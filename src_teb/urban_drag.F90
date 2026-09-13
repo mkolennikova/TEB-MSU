@@ -498,7 +498,18 @@ DO JLOOP=1,3
   !
   
   
-!  ZTS_GROUND(:) = PTS_ROAD(:) * T%XROAD  (:)/(T%XROAD(:)+T%XGARDEN(:)) + PTS_GARDEN(:) * T%XGARDEN  (:)/(T%XROAD(:)+T%XGARDEN(:))
+!* Surface temperature of the ground (road + garden) averaged with the road and
+!  garden fractions. This value is used in ZQ0 below (canyon wind), but its
+!  computation was commented out, so ZTS_GROUND was used uninitialised.
+!  The zero-denominator case (no road and no garden) is guarded, as done for
+!  ZRD/ZGD in URBAN_SOLAR_ABS.
+WHERE (T%XROAD(:) + T%XGARDEN(:) > 0.)
+  ZTS_GROUND(:) = PTS_ROAD(:)   * T%XROAD(:)   / (T%XROAD(:) + T%XGARDEN(:)) &
+                + PTS_GARDEN(:) * T%XGARDEN(:) / (T%XROAD(:) + T%XGARDEN(:))
+ELSEWHERE
+  ZTS_GROUND(:) = PTS_ROAD(:)
+END WHERE
+!
 !  ZZ0_GROUND(:) = ZZ0_ROAD(:) * T%XROAD  (:)/(T%XROAD(:)+T%XGARDEN(:)) + ZZ0_GARDEN(:) * T%XGARDEN  (:)/(T%XROAD(:)+T%XGARDEN(:))
    
   CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQ_LOWCAN, PEXNS, PEXNA,  &

@@ -555,6 +555,21 @@ ZQA(:) = PQA(:) * QSAT(ZTA(:),PPS(:)) / QSAT(PTA(:),PPA(:))
 !              --------------------------------------------------
 !
 
+!* Initialise the grid-averaged albedo, emissivity and radiative temperature of
+!  green areas and green roofs to XUNDEF before the optional blocks below.
+!  These arrays are passed to URBAN_SOLAR_ABS / URBAN_LW_COEF and are used there
+!  even when the garden / greenroof schemes are disabled (LGARDEN / LGREENROOF
+!  = .FALSE.); without this initialisation uninitialised memory would be used.
+!  When a scheme is enabled the values below are overwritten either by the
+!  external data (*_EXT) or by TEB_VEG_PROPERTIES, so both operating modes
+!  (built-in and external) are unaffected.
+ZALB_GD   = XUNDEF
+ZEMIS_GD  = XUNDEF
+ZTSRAD_GD = XUNDEF
+ZALB_GR   = XUNDEF
+ZEMIS_GR  = XUNDEF
+ZTSRAD_GR = XUNDEF
+
 !!
 IF (TOP%LGARDEN) THEN
   IF (.NOT. OGARDEN_EXT) THEN
