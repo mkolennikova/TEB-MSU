@@ -7,23 +7,96 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
-def read_output (output_dir, namelist_path):
+def read_output_txt(output_dir, namelist_path):
+  """Read the legacy model output: one <VARIABLE>.txt file per variable.
+
+  The time index is reconstructed from the forcing namelist:
+  output line i corresponds to t0 + (i - 1) * forc_step.
+  """
   file_paths = glob.glob(f'{output_dir}/*.txt')
 
   output_df = pd.DataFrame()
   for out_file in file_paths:
     var_name = os.path.basename(out_file).split('.')[0]
     try:
-      var_data = pd.read_csv(out_file, header=None)
+      # converters=float: the pandas fast float parser may lose 1 ULP on some values
+      var_data = pd.read_csv(out_file, header=None, converters={0: float})
     except pd.errors.EmptyDataError:
-      print (f'{out_file} is empty, skipping') 
+      print (f'{out_file} is empty, skipping')
+      continue
 
-    output_df[var_name] = var_data
+    output_df[var_name] = var_data.iloc[:, 0]
 
   namelist = f90nml.read(namelist_path)
   t1 = pd.Timestamp (namelist['tebforcing']['teb_year'], namelist['tebforcing']['teb_month'],  namelist['tebforcing']['teb_day'])
   t2 = t1 + pd.Timedelta (seconds=namelist['tebforcing']['forc_step']) * (namelist['tebforcing']['nsteps']-2)
   output_df.index = pd.date_range(t1, t2, freq=pd.Timedelta (seconds=namelist['tebforcing']['forc_step']))
+  return output_df
+
+
+def read_output (output_dir, namelist_path=None, fmt='auto', include_forcing=True):
+  """Read the output of a TEB-Ru offline run.
+
+  Two formats are supported:
+
+  * ``'csv'`` - the current output: a single semicolon-separated file
+    ``TEB_output.csv`` with a header line. Column 1 is ``time`` (the time of the model
+    state, i.e. the end of the forcing interval, ``t0 + n * forc_step``), then the
+    model variables, then the atmospheric forcing used by the model at that step
+    (columns ``Forc_*``).
+  * ``'txt'`` - the legacy output: one ``<VARIABLE>.txt`` file per variable with one
+    value per forcing step (no time stamps; the index is reconstructed from the
+    forcing namelist).
+
+  Parameters
+  ----------
+  output_dir : str
+      Directory with the output (with or without a trailing separator).
+  namelist_path : str, optional
+      Forcing namelist. Required for the legacy txt format only, because the CSV file
+      carries its own time stamps.
+  fmt : {'auto', 'csv', 'txt'}
+      'auto' (default) reads ``TEB_output.csv`` when it is present, otherwise the
+      legacy txt files.
+  include_forcing : bool
+      For the CSV format only: if False, the ``Forc_*`` columns are dropped, so that
+      the returned DataFrame has the model variables of the legacy format.
+
+  Returns
+  -------
+  pandas.DataFrame
+      Model output indexed by time. Numeric values are parsed with the Python
+      ``float`` (the pandas fast float parser may lose 1 ULP for some real(8) values).
+  """
+  output_dir = str(output_dir)
+  if not output_dir.endswith((os.sep, '/')):
+    output_dir += os.sep
+  csv_file = os.path.join(output_dir, 'TEB_output.csv')
+
+  fmt = fmt.lower()
+  if fmt == 'auto':
+    fmt = 'csv' if os.path.isfile(csv_file) else 'txt'
+  if fmt not in ('csv', 'txt'):
+    raise ValueError(f"fmt must be 'auto', 'csv' or 'txt', got {fmt!r}")
+
+  if fmt == 'txt':
+    if namelist_path is None:
+      raise ValueError('namelist_path is required to read the legacy txt output')
+    return read_output_txt(output_dir, namelist_path)
+
+  if not os.path.isfile(csv_file):
+    raise FileNotFoundError(f'no such file: {csv_file}')
+
+  columns = pd.read_csv(csv_file, sep=';', nrows=0).columns.tolist()
+  if 'time' not in columns:
+    raise ValueError(f'{csv_file}: no "time" column (found: {columns})')
+  values = [c for c in columns if c != 'time']
+
+  output_df = pd.read_csv(csv_file, sep=';', parse_dates=['time'],
+                          converters={c: float for c in values})
+  output_df = output_df.set_index('time')
+  if not include_forcing:
+    output_df = output_df[[c for c in output_df.columns if not c.startswith('Forc_')]]
   return output_df
 
 

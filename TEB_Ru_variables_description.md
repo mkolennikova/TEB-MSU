@@ -156,14 +156,31 @@ Notes:
 
 ## Output Variables
 
-These variables are written to output files during model simulation.
+The model writes all its output variables to a single file
+`<output_dir>/TEB_output.csv` (semicolon-separated, one line per forcing step).
+Column 1 is the time of the model state, then the model variables, then the
+atmospheric forcing used by the model at that step (`Forc_*`).
+
+### Time column
+
+| Column | Dimension | Comment |
+|:-------|:----------|:--------|
+| `time` | ISO 8601 (UTC) | Time of the model state, i.e. the end of the forcing interval: `t0 + n * forc_step` |
+
+The file has `nsteps - 1` lines, where `t0` = `teb_year`/`teb_month`/`teb_day` and
+`teb_hour`/`teb_min` from the forcing namelist. The initial state at `t0` is a model
+input (namelist `teb_ti_bld`, `teb_qi_bld`, ... and the internal TEB initialization),
+it is not a computed step and is therefore not written. With the default namelists
+(`forc_step = 1800 s`) the first line is `2004-02-20 00:30:00`.
+
+### Model variables
 
 | Variable | Dimension | Comment |
 |:---------|:-----------|:--------|
 | `T_CANYON` | K | Canyon air temperature |
 | `Q_CANYON` | kg/kg | Canyon air specific humidity |
 | `U_CANYON` | m/s | Canyon wind speed |
-| `P_CANYON` | Pa | Atmospheric pressure |
+| `P_CANYON` | Pa | Atmospheric pressure at the surface |
 | `T_ROOF1` | K | Roof surface temperature |
 | `T_ROAD1` | K | Road surface temperature |
 | `T_WALLA1` | K | Wall A surface temperature |
@@ -172,9 +189,46 @@ These variables are written to output files during model simulation.
 | `H_TOWN` | W/m² | Sensible heat flux from urban canyon |
 | `LE_TOWN` | W/m² | Latent heat flux from urban canyon |
 | `RN_TOWN` | W/m² | Net radiation of urban canyon effective surface |
+| `WIND_TOP` | m/s | Wind speed at the canyon top |
 | `HVAC_COOL` | W/m²(building) | Cooling energy consumption |
 | `HVAC_HEAT` | W/m²(building) | Heating energy consumption |
 | `SOLAR_PROD` | W/m²(building) | Average solar panel energy production |
+
+`HVAC_COOL` and `HVAC_HEAT` are written only with the Building Energy Model
+(`teb_itype_bem = 'BEM'`); `SOLAR_PROD` is written only when the solar panels module is
+activated (`teb_lsolar_panel = .TRUE.`). The set of columns therefore depends on the
+model options of the run.
+
+### Atmospheric forcing (`Forc_*` columns)
+
+The forcing the model used at the current step: the interpolated forcing of the last
+model sub-step `dt` of the forcing interval (i.e. at `time - dt`).
+
+| Variable | Dimension | Comment |
+|:---------|:-----------|:--------|
+| `Forc_TA` | K | Air temperature |
+| `Forc_QA` | kg/m³ | Air humidity as read from the forcing file (TEB converts it: `qv = QA / rho`) |
+| `Forc_QV` | kg/kg | Air specific humidity as passed to TEB |
+| `Forc_U`, `Forc_V` | m/s | Zonal and meridional wind components (`u = WIND*sin(DIR)`, `v = WIND*cos(DIR)`) |
+| `Forc_WIND` | m/s | Wind speed, `sqrt(u² + v²)` |
+| `Forc_DIR` | ° | Wind direction from North, clockwise (`atan2(u, v)`), as in `Forc_DIR.txt` |
+| `Forc_PS` | Pa | Pressure at the forcing level (not the model surface pressure `P_CANYON`) |
+| `Forc_RHOA` | kg/m³ | Air density at the forcing level |
+| `Forc_RAIN`, `Forc_SNOW` | kg/m²/s | Liquid and snow precipitation |
+| `Forc_LW` | W/m² | Downward longwave radiation |
+| `Forc_DIR_SW`, `Forc_SCA_SW` | W/m² | Direct and diffuse shortwave radiation |
+
+Reading the output with the Python utilities
+([`python/output_utils.py`](python/output_utils.py)):
+
+```python
+import output_utils
+
+df = output_utils.read_output('output/')                        # TEB_output.csv
+df = output_utils.read_output('output_old/', fmt='txt',         # legacy <VAR>.txt files
+                              namelist_path='namelist/namelist_forcing.nml')
+df = output_utils.read_output('output/', include_forcing=False)  # model variables only
+```
 
 ---
 

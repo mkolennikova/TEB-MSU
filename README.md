@@ -71,6 +71,27 @@ Model configuration is controlled through Fortran namelist files in the [`nameli
 
 Description of model options from [namelist.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/namelist/namelist.nml), as wel as model output variables is avaible in [here](https://github.com/mkolennikova/TEB-Ru/blob/main/TEB_Ru_variables_description.md). 
 
+### Model Output
+
+The model writes all output variables, together with the atmospheric forcing used at
+each step, to a single semicolon-separated file `<output_dir>/TEB_output.csv`
+(`-output <dir>` on the command line, `output/` by default). The file contains one line
+per forcing step: first the time column `time` (ISO 8601, the end of the forcing
+interval, e.g. `2004-02-20 00:30:00`), then the model variables, then the forcing
+columns `Forc_*` (see [TEB_Ru_variables_description.md](TEB_Ru_variables_description.md)).
+The columns depend on the model options (e.g. `HVAC_*` only with the Building Energy
+Model, `SOLAR_PROD` only with solar panels).
+
+The Python utility [`python/output_utils.py`](python/output_utils.py) reads both this
+file and the legacy per-variable `*.txt` output of older runs:
+
+```python
+import output_utils
+df = output_utils.read_output('output/')                  # TEB_output.csv
+df = output_utils.read_output('output_old/', fmt='txt',   # legacy <VAR>.txt files
+                              namelist_path='namelist/namelist_forcing.nml')
+```
+
 ### Compiler Flags
 
 Compiler settings are defined in [`gfortran_args`](https://github.com/mkolennikova/TEB-Ru/blob/main/gfortran_args). The model automatically detects the available compiler:

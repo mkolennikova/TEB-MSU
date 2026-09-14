@@ -317,24 +317,19 @@ REAL, DIMENSION(:,:), ALLOCATABLE :: ZDIR   ! wind direction
 ! -----------------------------------------------------------                        
 !    
 CHARACTER(LEN=100) :: output_dir
-CHARACTER(LEN=100) :: T_ROOF1, T_CANYON, T_ROAD1, T_WALLA1, T_WALLB1, TI_BLD, &
-                      Q_CANYON, P_CANYON, U_CANYON, H_TOWN, LE_TOWN, RN_TOWN, &
-                      HVAC_COOL, HVAC_HEAT, SOLAR_PROD, WIND_TOP
-! CHARACTER(LEN=*), PARAMETER       :: T_ROOF1 = 'output/T_ROOF1.txt'                  
-! CHARACTER(LEN=*), PARAMETER       :: T_CANYON = 'output/T_CANYON.txt'                
-! CHARACTER(LEN=*), PARAMETER       :: T_ROAD1 = 'output/T_ROAD1.txt'                  
-! CHARACTER(LEN=*), PARAMETER       :: T_WALLA1= 'output/T_WALLA1.txt'                 
-! CHARACTER(LEN=*), PARAMETER       :: T_WALLB1= 'output/T_WALLB1.txt'                 
-! CHARACTER(LEN=*), PARAMETER       :: TI_BLD = 'output/TI_BLD.txt'                    
-! CHARACTER(LEN=*), PARAMETER       :: Q_CANYON = 'output/Q_CANYON.txt'                
-! CHARACTER(LEN=*), PARAMETER       :: P_CANYON = 'output/P_CANYON.txt'                
-! CHARACTER(LEN=*), PARAMETER       :: U_CANYON = 'output/U_CANYON.txt'                
-! CHARACTER(LEN=*), PARAMETER       :: H_TOWN = 'output/H_TOWN.txt'                    
-! CHARACTER(LEN=*), PARAMETER       :: LE_TOWN = 'output/LE_TOWN.txt'                  
-! CHARACTER(LEN=*), PARAMETER       :: RN_TOWN = 'output/RN_TOWN.txt'                  
-! CHARACTER(LEN=*), PARAMETER       :: HVAC_COOL = 'output/HVAC_COOL.txt'              
-! CHARACTER(LEN=*), PARAMETER       :: HVAC_HEAT = 'output/HVAC_HEAT.txt'
-! CHARACTER(LEN=*), PARAMETER       :: SOLAR_PROD = 'output/SOLAR_PROD.txt'
+! the output is written to a single CSV file with ';' separators
+INTEGER, PARAMETER :: fu_out  = 13             ! unit of the output CSV file
+INTEGER, PARAMETER :: nout_max = 32            ! max number of output columns
+INTEGER :: nout                                ! actual number of output columns
+INTEGER :: jout                                ! column loop counter
+INTEGER :: lout                                ! length of the current output line
+CHARACTER(LEN=1),  PARAMETER :: out_sep = ';'  ! CSV field separator
+CHARACTER(LEN=16), DIMENSION(nout_max) :: out_names  ! column headers (1:nout)
+CHARACTER(LEN=100) :: output_csv               ! full path of the output CSV file
+CHARACTER(LEN=4096) :: out_line                ! one CSV line (header or data row)
+CHARACTER(LEN=32) :: time_buf                  ! timestamp buffer (ISO 8601)
+REAL :: forc_wind                              ! forcing wind speed       (m/s)
+REAL :: forc_dir                               ! forcing wind direction   (deg from North)
 ! -----------------------------------------------------------                        
 ! Namelist paths                                                                            
 ! -----------------------------------------------------------                                      
@@ -728,40 +723,71 @@ teb_hour_seconds = teb_hour * 3600. + teb_min * 60. + teb_sec
 ! -----------------------------------------------------------
 !
 
-! Set output file paths
-T_ROOF1   = TRIM(output_dir)//'T_ROOF1.txt'
-T_CANYON  = TRIM(output_dir)//'T_CANYON.txt'
-T_ROAD1   = TRIM(output_dir)//'T_ROAD1.txt'
-T_WALLA1  = TRIM(output_dir)//'T_WALLA1.txt'
-T_WALLB1  = TRIM(output_dir)//'T_WALLB1.txt'
-TI_BLD    = TRIM(output_dir)//'TI_BLD.txt'
-Q_CANYON  = TRIM(output_dir)//'Q_CANYON.txt'
-P_CANYON  = TRIM(output_dir)//'P_CANYON.txt'
-U_CANYON  = TRIM(output_dir)//'U_CANYON.txt'
-H_TOWN    = TRIM(output_dir)//'H_TOWN.txt'
-LE_TOWN   = TRIM(output_dir)//'LE_TOWN.txt'
-RN_TOWN   = TRIM(output_dir)//'RN_TOWN.txt'
-HVAC_COOL = TRIM(output_dir)//'HVAC_COOL.txt'
-HVAC_HEAT = TRIM(output_dir)//'HVAC_HEAT.txt'
-SOLAR_PROD= TRIM(output_dir)//'SOLAR_PROD.txt'
-WIND_TOP  = TRIM(output_dir)//'WIND_TOP.txt'
+! Set the list of the output columns.
+! The number of columns depends on the activated model options:
+!   HVAC_COOL/HVAC_HEAT - only with the Building Energy Model (teb_itype_bem='BEM')
+!   SOLAR_PROD          - only with the solar panels module
+! The atmospheric forcing used at the current step is appended at the end
+! (columns Forc_*).
+nout = 0
+nout = nout + 1; out_names(nout) = 'T_ROOF1'
+nout = nout + 1; out_names(nout) = 'T_CANYON'
+nout = nout + 1; out_names(nout) = 'T_ROAD1'
+nout = nout + 1; out_names(nout) = 'T_WALLA1'
+nout = nout + 1; out_names(nout) = 'T_WALLB1'
+nout = nout + 1; out_names(nout) = 'TI_BLD'
+nout = nout + 1; out_names(nout) = 'Q_CANYON'
+nout = nout + 1; out_names(nout) = 'P_CANYON'
+nout = nout + 1; out_names(nout) = 'U_CANYON'
+nout = nout + 1; out_names(nout) = 'H_TOWN'
+nout = nout + 1; out_names(nout) = 'LE_TOWN'
+nout = nout + 1; out_names(nout) = 'RN_TOWN'
+IF (teb_itype_bem == 'BEM') THEN
+   nout = nout + 1; out_names(nout) = 'HVAC_COOL'
+   nout = nout + 1; out_names(nout) = 'HVAC_HEAT'
+END IF
+IF (teb_lsolar_panel) THEN
+   nout = nout + 1; out_names(nout) = 'SOLAR_PROD'
+END IF
+nout = nout + 1; out_names(nout) = 'WIND_TOP'
+! atmospheric forcing used by the model at the current time-step
+nout = nout + 1; out_names(nout) = 'Forc_TA'
+nout = nout + 1; out_names(nout) = 'Forc_QA'
+nout = nout + 1; out_names(nout) = 'Forc_QV'
+nout = nout + 1; out_names(nout) = 'Forc_U'
+nout = nout + 1; out_names(nout) = 'Forc_V'
+nout = nout + 1; out_names(nout) = 'Forc_WIND'
+nout = nout + 1; out_names(nout) = 'Forc_DIR'
+nout = nout + 1; out_names(nout) = 'Forc_PS'
+nout = nout + 1; out_names(nout) = 'Forc_RHOA'
+nout = nout + 1; out_names(nout) = 'Forc_RAIN'
+nout = nout + 1; out_names(nout) = 'Forc_SNOW'
+nout = nout + 1; out_names(nout) = 'Forc_LW'
+nout = nout + 1; out_names(nout) = 'Forc_DIR_SW'
+nout = nout + 1; out_names(nout) = 'Forc_SCA_SW'
 
-OPEN(UNIT=13, FILE = T_ROOF1,   ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=14, FILE = T_CANYON,  ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=15, FILE = T_ROAD1,   ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=16, FILE = T_WALLA1,  ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=17, FILE = T_WALLB1,  ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=18, FILE = TI_BLD,    ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=19, FILE = Q_CANYON,  ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=20, FILE = P_CANYON,  ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=21, FILE = U_CANYON,  ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=22, FILE = H_TOWN,    ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=23, FILE = LE_TOWN,   ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=24, FILE = RN_TOWN,   ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=25, FILE = HVAC_COOL, ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=26, FILE = HVAC_HEAT, ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=27, FILE = SOLAR_PROD,ACCESS = 'APPEND',STATUS = 'REPLACE')
-OPEN(UNIT=28, FILE = WIND_TOP,  ACCESS = 'APPEND',STATUS = 'REPLACE')
+! Open the output CSV file (the header is written once, the file is replaced)
+output_csv = TRIM(output_dir)//'TEB_output.csv'
+OPEN(UNIT=fu_out, FILE = output_csv, STATUS = 'REPLACE', ACTION = 'WRITE', IOSTAT=rc)
+IF (rc /= 0) THEN
+   WRITE(*,*) 'ERROR: Cannot open output CSV file: ', TRIM(output_csv)
+   WRITE(*,*) 'IOSTAT = ', rc
+   STOP 1
+END IF
+
+! Build and write the header line: time;name1;name2;...
+! (the line is filled in place: an assignment of a concatenation longer than
+!  out_line would be silently truncated, so the position is tracked explicitly)
+out_line = 'time'
+lout = LEN_TRIM(out_line)
+DO jout = 1, nout
+   out_line(lout+1:lout+1) = out_sep
+   out_line(lout+2:) = TRIM(out_names(jout))
+   lout = lout + 1 + LEN_TRIM(out_names(jout))
+END DO
+WRITE(*,*) '  Output file: ', TRIM(output_csv)
+WRITE(*,*) '  Output columns: ', TRIM(out_line)
+WRITE(fu_out,'(A)') TRIM(out_line)
 
 ! -----------------------------------------------------------
 ! Temporal loops
@@ -850,26 +876,54 @@ DO nstep= 1,nsteps - 1
 						
     END DO
 	   !
-    WRITE(13,*) teb_tsroof
-    WRITE(14,*) teb_tcanyon
-    WRITE(15,*) teb_tsroad
-    WRITE(16,*) teb_tswalla
-    WRITE(17,*) teb_tswallb
-    WRITE(18,*) teb_ti_bld
-    WRITE(19,*) teb_qcanyon
-    WRITE(20,*) XPS
-    WRITE(21,*) teb_wind_canyon
-    WRITE(22,*) teb_shfl
-    WRITE(23,*) teb_lhfl
-    WRITE(24,*) teb_rn_town
-    IF (teb_itype_bem=='BEM') THEN
-      WRITE(25,*) teb_hvac_cool
-      WRITE(26,*) teb_hvac_heat
+    ! --- one line of the output file: timestamp, model variables, forcing
+    ! note: teb_hour is computed before the date is updated (ADD_FORECAST_TO_DATE_SURF),
+    !       so just after the date change it may be 24; the time of the current state is
+    !       therefore recomputed from teb_hour_seconds (seconds since midnight of the date)
+    WRITE(time_buf,'(I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2,":",I2.2)')              &
+         teb_year, teb_month, teb_day,                                                &
+         INT(teb_hour_seconds(1)/3600.),                                              &
+         INT(MOD(teb_hour_seconds(1), 3600.)/60.),                                    &
+         INT(MOD(teb_hour_seconds(1), 60.))
+    out_line = TRIM(time_buf)
+    CALL CSV_APPEND(out_line, teb_tsroof(1))
+    CALL CSV_APPEND(out_line, teb_tcanyon(1))
+    CALL CSV_APPEND(out_line, teb_tsroad(1))
+    CALL CSV_APPEND(out_line, teb_tswalla(1))
+    CALL CSV_APPEND(out_line, teb_tswallb(1))
+    CALL CSV_APPEND(out_line, teb_ti_bld(1))
+    CALL CSV_APPEND(out_line, teb_qcanyon(1))
+    CALL CSV_APPEND(out_line, XPS(1))
+    CALL CSV_APPEND(out_line, teb_wind_canyon(1))
+    CALL CSV_APPEND(out_line, teb_shfl(1))
+    CALL CSV_APPEND(out_line, teb_lhfl(1))
+    CALL CSV_APPEND(out_line, teb_rn_town(1))
+    IF (teb_itype_bem == 'BEM') THEN
+       CALL CSV_APPEND(out_line, teb_hvac_cool(1))
+       CALL CSV_APPEND(out_line, teb_hvac_heat(1))
     END IF
-	IF (teb_lsolar_panel) THEN
-      WRITE(27,*) teb_solar_prod
+    IF (teb_lsolar_panel) THEN
+       CALL CSV_APPEND(out_line, teb_solar_prod(1))
     END IF
-    WRITE(28,*) teb_wind_top
+    CALL CSV_APPEND(out_line, teb_wind_top(1))
+    ! --- atmospheric forcing used by the model at the current time-step
+    forc_wind = SQRT(u(1)**2 + v(1)**2)
+    forc_dir  = MOD(ATAN2(u(1), v(1))*180./XPI + 360., 360.)
+    CALL CSV_APPEND(out_line, t(1))
+    CALL CSV_APPEND(out_line, qv(1)*rho(1))
+    CALL CSV_APPEND(out_line, qv(1))
+    CALL CSV_APPEND(out_line, u(1))
+    CALL CSV_APPEND(out_line, v(1))
+    CALL CSV_APPEND(out_line, forc_wind)
+    CALL CSV_APPEND(out_line, forc_dir)
+    CALL CSV_APPEND(out_line, ps(1))
+    CALL CSV_APPEND(out_line, rho(1))
+    CALL CSV_APPEND(out_line, prr_con(1))
+    CALL CSV_APPEND(out_line, prs_con(1))
+    CALL CSV_APPEND(out_line, lwd_s(1))
+    CALL CSV_APPEND(out_line, swdir_s(1))
+    CALL CSV_APPEND(out_line, swdifd_s(1))
+    WRITE(fu_out,'(A)') TRIM(out_line)
 END DO
 
 !  DEALLOCATE variables
@@ -886,22 +940,7 @@ DEALLOCATE(ZPS)
 DEALLOCATE(ZDIR)
 
 CALL OPEN_CLOSE_BIN_ASC_FORC('CLOSE ','ASCII ',1,'R', forcing_path2)
-CLOSE(13)
-CLOSE(14)
-CLOSE(15)
-CLOSE(16)
-CLOSE(17)
-CLOSE(18)
-CLOSE(19)
-CLOSE(20)
-CLOSE(21)
-CLOSE(22)
-CLOSE(23)
-CLOSE(24)
-CLOSE(25)
-CLOSE(26)
-CLOSE(27)
-CLOSE(28)
+CLOSE(fu_out)
 
 !
     WRITE(*,*) ' '
@@ -934,6 +973,24 @@ SUBROUTINE PRINT_USAGE()
     WRITE(*,*) '  ./TEB_offline.exe -help'
     WRITE(*,*) ''
 END SUBROUTINE PRINT_USAGE
+
+!> Append one real value to a CSV line: 'line = line//sep//value'
+!! List-directed output is used, so that the CSV file contains exactly the same digits
+!! as the previous per-variable txt files (bit-identical values).
+SUBROUTINE CSV_APPEND(line, value)
+    CHARACTER(LEN=*), INTENT(INOUT) :: line
+    REAL, INTENT(IN) :: value
+    CHARACTER(LEN=64) :: buf
+    INTEGER :: l
+    WRITE(buf,*) value
+    l = LEN_TRIM(line)
+    IF (l + 1 + LEN_TRIM(ADJUSTL(buf)) > LEN(line)) THEN
+       WRITE(*,*) 'ERROR: output line is too long, increase the size of out_line'
+       STOP 1
+    END IF
+    line(l+1:l+1) = out_sep
+    line(l+2:) = TRIM(ADJUSTL(buf))
+END SUBROUTINE CSV_APPEND
 
 END PROGRAM run_teb_offline
 

@@ -24,10 +24,17 @@ def read_forcing(namelist_path, forcing_path=None, drop_last=True):
     Column names are the file names without extension ('Forc_TA', 'Forc_WIND', ...),
     i.e. the same convention as write_forcing() and plot_forcing_mpl().
 
-    The time index follows the convention of output_utils.read_output(), so that the
-    forcing can be overlaid on the model output: forcing record i corresponds to the
-    model output line i, i.e. to the time t0 + (i - 1) * forc_step, where t0 is the
-    start date stored in the namelist (teb_year / teb_month / teb_day).
+    The time index is built so that the forcing can be overlaid on the model output
+    (see output_utils.read_output): forcing record i is the left boundary of the
+    forcing interval of the model step i, and the model state written for that step
+    is time-stamped with the end of the interval. Record i is therefore labelled with
+    the time t0 + i * forc_step, where t0 is the start date stored in the namelist
+    (teb_year / teb_month / teb_day).
+
+    The same forcing values are also written by the model to the output file
+    TEB_output.csv (columns ``Forc_*``, see output_utils.read_output); read_forcing()
+    is still useful for the forcing directory itself (e.g. to inspect the forcing
+    without a run) and for old results.
 
     Parameters
     ----------
@@ -81,13 +88,17 @@ def read_forcing(namelist_path, forcing_path=None, drop_last=True):
             continue
         forcing_df[var_name] = var_data.iloc[:, 0]
 
-    # ---- Time index (same convention as output_utils.read_output) -----------
+    # ---- Time index (aligned with the model output, see read_output) ---------
     nsteps = int(nml['nsteps'])
     n_rows = nsteps - 1 if drop_last else nsteps
     forcing_df = forcing_df.iloc[:n_rows].copy()
 
-    start = pd.Timestamp(int(nml['teb_year']), int(nml['teb_month']), int(nml['teb_day']))
     forc_step = float(nml['forc_step'])
+    # record i is the left boundary of the interval of the model step i, while the
+    # model output written for that step is time-stamped with the end of the interval
+    # (t0 + forc_step, t0 + 2*forc_step, ...)
+    start = pd.Timestamp(int(nml['teb_year']), int(nml['teb_month']),
+                         int(nml['teb_day'])) + pd.Timedelta(seconds=forc_step)
     forcing_df.index = pd.date_range(start, periods=len(forcing_df),
                                      freq=pd.Timedelta(seconds=forc_step))
 
