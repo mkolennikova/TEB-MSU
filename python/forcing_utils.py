@@ -1,5 +1,7 @@
 import os
+import glob
 import numpy as np
+from pathlib import Path
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -13,6 +15,83 @@ def write_forcing(df4point, save_dir):
     for var in tqdm (df4point.columns, desc='Saving forcing variables'):
         if 'Forc_' in var:
             np.savetxt(save_dir + var + '.txt', df4point[var].to_numpy(), '%.5f')
+
+
+def read_forcing(namelist_path, forcing_path=None, drop_last=True):
+    """
+    Read the ASCII atmospheric forcing (Forc_*.txt) used by a TEB run.
+
+    Column names are the file names without extension ('Forc_TA', 'Forc_WIND', ...),
+    i.e. the same convention as write_forcing() and plot_forcing_mpl().
+
+    The time index follows the convention of output_utils.read_output(), so that the
+    forcing can be overlaid on the model output: forcing record i corresponds to the
+    model output line i, i.e. to the time t0 + (i - 1) * forc_step, where t0 is the
+    start date stored in the namelist (teb_year / teb_month / teb_day).
+
+    Parameters
+    ----------
+    namelist_path : str
+        Path to the forcing namelist (the 'tebforcing' group with forcing_path,
+        start date, nsteps and forc_step - as written by prepare_namelist()).
+    forcing_path : str, optional
+        Directory with the Forc_*.txt files. If None, the 'forcing_path' entry of the
+        namelist is used (relative paths are also looked up relative to the namelist
+        directory and to the repository root).
+    drop_last : bool, optional
+        If True (default), the last forcing record is dropped, so that the DataFrame has
+        nsteps - 1 rows - one row per model output step. The last record is only used by
+        the model to interpolate the final forcing interval.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Forcing data indexed by time (datetime index).
+    """
+    nml = f90nml.read(namelist_path)['tebforcing']
+
+    # ---- Locate the directory with the Forc_*.txt files ----------------------
+    if forcing_path is not None:
+        candidates = [Path(forcing_path)]
+    else:
+        namelist_dir = Path(namelist_path).parent
+        raw_path = Path(nml['forcing_path'])
+        candidates = [raw_path]
+        if not raw_path.is_absolute():
+            candidates.append(namelist_dir / raw_path)
+            candidates.append(namelist_dir.parent / raw_path)
+
+    forcing_dir = next((c for c in candidates if c.is_dir()), None)
+    if forcing_dir is None:
+        raise FileNotFoundError('Forcing directory not found. Tried: '
+                                + ', '.join(str(c) for c in candidates))
+
+    # ---- Read the forcing files ---------------------------------------------
+    file_paths = sorted(glob.glob(os.path.join(str(forcing_dir), 'Forc_*.txt')))
+    if not file_paths:
+        raise FileNotFoundError(f'No Forc_*.txt files found in {forcing_dir}')
+
+    forcing_df = pd.DataFrame()
+    for file_path in file_paths:
+        var_name = os.path.basename(file_path).split('.')[0]
+        try:
+            var_data = pd.read_csv(file_path, header=None)
+        except pd.errors.EmptyDataError:
+            print(f'{file_path} is empty, skipping')
+            continue
+        forcing_df[var_name] = var_data.iloc[:, 0]
+
+    # ---- Time index (same convention as output_utils.read_output) -----------
+    nsteps = int(nml['nsteps'])
+    n_rows = nsteps - 1 if drop_last else nsteps
+    forcing_df = forcing_df.iloc[:n_rows].copy()
+
+    start = pd.Timestamp(int(nml['teb_year']), int(nml['teb_month']), int(nml['teb_day']))
+    forc_step = float(nml['forc_step'])
+    forcing_df.index = pd.date_range(start, periods=len(forcing_df),
+                                     freq=pd.Timedelta(seconds=forc_step))
+
+    return forcing_df
 
 def plot_forcing_mpl(df, title=None, save_path=None, figsize=(14, 10), resample='auto'):
     """

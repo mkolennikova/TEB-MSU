@@ -61,6 +61,8 @@ TYPE TEB_t
   REAL, POINTER, DIMENSION(:)   :: XWALL_O_GRND  ! wall surf. / (road + garden surf.) (-)
   REAL, POINTER, DIMENSION(:)   :: XWALL_O_BLD   ! wall surf. / bld surf. (-)
   REAL, POINTER, DIMENSION(:)   :: XZ0_TOWN      ! roughness length for momentum    (m)
+!MV202609 z0 and zd to namelist
+  REAL, POINTER, DIMENSION(:)   :: XZD_TOWN      ! displacement height of the town  (m)
   REAL, POINTER, DIMENSION(:)   :: XSVF_ROAD     ! road sky view factor             (-)
   REAL, POINTER, DIMENSION(:)   :: XSVF_GARDEN   ! green area sky view factor       (-)
   REAL, POINTER, DIMENSION(:)   :: XSVF_WALL     ! wall sky view factor             (-)
@@ -195,6 +197,8 @@ IF (LHOOK) CALL DR_HOOK("MODD_TEB_N:TEB_INIT",0,ZHOOK_HANDLE)
   NULLIFY(YTEB%XWALL_O_GRND)
   NULLIFY(YTEB%XWALL_O_BLD)
   NULLIFY(YTEB%XZ0_TOWN)
+!MV202609 z0 and zd to namelist
+  NULLIFY(YTEB%XZD_TOWN)
   NULLIFY(YTEB%XSVF_ROAD)
   NULLIFY(YTEB%XSVF_GARDEN)
   NULLIFY(YTEB%XSVF_WALL)

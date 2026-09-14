@@ -105,7 +105,7 @@ INTERFACE
 					 PRUNOFF_GR_EXT, PALB_GD_EXT, PEMIS_GD_EXT, PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT, &
 					 PLE_GD_EXT, PEVAP_GD_EXT, PCH_GD, PCD_GD, PRUNOFF_GD_EXT, PCH_RD,    &
 					 PCH_RF, PCH_WL, PCH_TOP, PAC_TOP, ILMO_ROAD, ILMO_ROOF,  &
-					 ILMO_TOP, PCD_TERRA, PCH_TERRA)
+					 ILMO_TOP, PCD_TERRA, PCH_TERRA, PZD_TOWN)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN_STRUCT*  
@@ -240,6 +240,8 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PZREF              ! reference height of 
 REAL, DIMENSION(:)  , INTENT(IN)    :: PUREF              ! reference height of the first atm level (wind)
 REAL                , INTENT(IN)    :: PTSTEP             ! time step
 REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_TOWN           ! town roughness length for momentum
+!MV202609 z0 and zd to namelist
+REAL, DIMENSION(:)  , INTENT(IN)    :: PZD_TOWN           ! displacement height of the town (m)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PBLD               ! fraction of buildings
 REAL, DIMENSION(:)  , INTENT(IN)    :: PGARDEN            ! fraction of green areas
 REAL, DIMENSION(:)  , INTENT(IN)    :: PROAD_DIR          ! road direction (deg from North, clockwise)

@@ -101,7 +101,7 @@
 					 PRUNOFF_GR_EXT, PALB_GD_EXT, PEMIS_GD_EXT, PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT, &
 					 PLE_GD_EXT, PEVAP_GD_EXT, PCH_GD, PCD_GD, PRUNOFF_GD_EXT, PCH_RD,    &
 					 PCH_RF, PCH_WL, PCH_TOP, PAC_TOP, ILMO_ROAD, ILMO_ROOF,  &
-                     ILMO_TOP, PCD_TERRA, PCH_TERRA					 )
+                     ILMO_TOP, PCD_TERRA, PCH_TERRA, PZD_TOWN				 )
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN_STRUCT*  
@@ -250,6 +250,8 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PZREF              ! reference height of 
 REAL, DIMENSION(:)  , INTENT(IN)    :: PUREF              ! reference height of the first atm level (wind)
 REAL                , INTENT(IN)    :: PTSTEP             ! time step
 REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_TOWN           ! town roughness length for momentum
+!MV202609 z0 and zd to namelist
+REAL, DIMENSION(:)  , INTENT(IN)    :: PZD_TOWN           ! displacement height of the town (m)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PBLD               ! fraction of buildings
 REAL, DIMENSION(:)  , INTENT(IN)    :: PGARDEN            ! fraction of green areas
 REAL, DIMENSION(:)  , INTENT(IN)    :: PROAD_DIR          ! road direction (deg from North, clockwise)
@@ -910,6 +912,8 @@ T%XGARDEN_O_GRND = PGARDEN_O_GRND ! gard. surf. / (road + garden surf.)(-)
 T%XWALL_O_GRND   = PWALL_O_GRND   ! wall surf. / (road + garden surf.) (-)
 T%XWALL_O_BLD    = PWALL_O_BLD    ! wall surf. / bld surf. (-)
 T%XZ0_TOWN       = PZ0_TOWN       ! roughness length for momentum    (m)
+!MV202609 z0 and zd to namelist
+T%XZD_TOWN       = PZD_TOWN       ! displacement height of the town  (m)
 T%XSVF_ROAD      = PSVF_ROAD      ! road sky view factor             (-)
 T%XSVF_GARDEN    = PSVF_GARDEN    ! green area sky view factor       (-)
 T%XSVF_WALL      = PSVF_WALL      ! wall sky view factor             (-)

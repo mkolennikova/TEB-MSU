@@ -20,6 +20,57 @@ These variables are defined in the Fortran namelist files (`namelist.nml` and `n
 | `teb_ti_bld` | Prognostic variable | K | Indoor air temperature |
 | `teb_qi_bld` | Prognostic variable | kg/kg | Indoor specific humidity |
 
+<!-- MV202609 z0 and zd to namelist -->
+### Urban Aerodynamics
+
+Aerodynamic parameters of the urban (town) surface. Each of the two values below
+accepts the following forms (case insensitive):
+
+| Form | Example | Meaning |
+|:-----|:--------|:--------|
+| number | `0.5` or `'0.5'` | value in metres |
+| number with `m` | `'0.5m'` | value in metres |
+| fraction of the building height | `'0.1H'` | `urb_h_bld * 0.1` |
+| building height divided by n | `'H/3'` | `urb_h_bld / 3` |
+| parameterization name | `'MACDONALD1998'` | Macdonald et al. (1998) scheme, staggered arrays; `'MACDONALD1998SQ'` selects the square-array coefficients. The scheme sets the value of the entry in which it is given (only `z0` in `urb_z0_town`, only `zd` in `urb_zd_town`) |
+| ... | `'MACDONALD1998SQ'` | same scheme with A = 3.59 and beta = 0.55 (square arrays) |
+
+| Variable | Type | Dimension/Value | Comment |
+|:---------|:-----|:----------------|:--------|
+| `urb_z0_town` | External parameter | m, `H`, `H/n` or name | Roughness length for momentum of the urban surface (default `'0.1H'`, i.e. `0.1*urb_h_bld`) |
+| `urb_zd_town` | External parameter | m, `H`, `H/n` or name | Displacement height of the urban surface, measured from the road level (default `'H/3'`) |
+
+`urb_zd_town` is used both in the wind profile of the driver and inside TEB: all
+aerodynamic formulas use the height above the displacement surface, i.e.
+`urb_h_bld - urb_zd_town` above the roof level plus the forcing height.
+
+<!-- MV202609 z0 and zd to namelist -->
+**Macdonald et al. (1998)** (doi 10.1016/S1352-2310(97)00403-2), staggered arrays
+(`'MACDONALD1998'`: A = 4.43, beta = 1.0) or square arrays (`'MACDONALD1998SQ'`:
+A = 3.59, beta = 0.55), with Cd = 1.2 and kappa = 0.4 (von Karman):
+
+```
+d/h  = 1 + A^(-lambda_p) * (lambda_p - 1)                                         eq. (23)
+z0/h = (1 - d/h) * exp( -( 0.5*beta*(Cd/kappa^2)*(1 - d/h)*lambda_f )^(-0.5) )    eq. (22)
+```
+
+where `lambda_p = urb_fr_bld` (plan area index) and `lambda_f = mean(teb_fai)`
+(frontal area index, isotropic variant). The two namelist entries are resolved
+independently, so a scheme name can be combined with an explicit value in the
+other entry, e.g. `urb_z0_town = '0.1H'` with `urb_zd_town = 'MACDONALD1998'`,
+or the same scheme name can be given in both entries.
+
+Notes:
+- the official TEB has no displacement-height parameter (only the roughness length
+  `ZZ0`, given in metres) and uses a hard-coded `+ urb_h_bld/3.` shift in
+  `urban_drag.F90`, which corresponds to `zd = 2/3*urb_h_bld` and is inconsistent
+  with its own wind profile, where `2/3*urb_h_bld = urb_h_bld - zd` gives
+  `zd = 1/3*urb_h_bld`; in TEB-Ru both places use the single value `urb_zd_town`;
+- with the default wind scheme (`teb_itype_wind = 0`) the town exchange coefficient
+  affects only the friction velocity (diagnostics and the coupling with an
+  atmospheric model); it changes the offline results when the Wang scheme
+  (`teb_itype_wind = 1`) is used.
+
 ### Surface Properties
 
 | Variable | Type | Dimension/Value | Comment |

@@ -30,18 +30,23 @@ def read_output (output_dir, namelist_path):
 
 # ============================================================================
 # Default configuration for subplots (uses variable names in legend)
+# Optional 'forcing' entries overlay the corresponding columns of forcing_df
+# as black reference lines (see preview_output_mpl / preview_output_plotly)
 # ============================================================================
 DEFAULT_SUBPLOTS_CONFIG = [
     {
         'variables': ['TI_BLD', 'T_CANYON', 'T_ROOF1', 'T_WALLA1', 'T_WALLB1'],
         'title': 'Temperatures',
-        'ylabel': 'Temperature (K)'
+        'ylabel': 'Temperature (K)',
         # 'labels' omitted -> uses variable names
+        'forcing': [{'column': 'Forc_TA', 'label': 'FORC_TA'}]
     },
     {
-        'variables': ['U_CANYON'],
-        'title': 'Canyon Wind Speed',
-        'ylabel': 'Wind speed (m/s)'
+        'variables': ['U_CANYON', 'WIND_TOP'],
+        'title': 'Wind Speed',
+        'ylabel': 'Wind speed (m/s)',
+        # 'labels' omitted -> uses variable names
+        'forcing': [{'column': 'Forc_WIND', 'label': 'FORC_WIND'}]
     },
     {
         'variables': ['H_TOWN', 'LE_TOWN'],
@@ -88,8 +93,43 @@ def _filter_df_by_time(df, start=None, end=None):
     return df
 
 
+def _resolve_forcing_series(forcing_df, config, color='black', linewidth=1.5):
+    """
+    Collect the forcing curves that have to be overlaid on one subplot.
+
+    A subplot config may contain an optional 'forcing' list, e.g.
+        'forcing': [{'column': 'Forc_TA', 'label': 'FORC_TA'}]
+    Each entry is looked up in `forcing_df` (a DataFrame with 'Forc_*' columns, e.g.
+    from forcing_utils.read_forcing). The keys 'color' and 'linewidth' of an entry
+    override the function-level defaults; the forcing lines are always solid.
+
+    Returns
+    -------
+    list of tuples (x, y, label, color, linewidth)
+        Empty when there is nothing to draw (no forcing_df, no 'forcing' key or the
+        requested columns are missing / empty).
+    """
+    specs = config.get('forcing') or []
+    if forcing_df is None or not specs:
+        return []
+
+    series = []
+    for spec in specs:
+        column = spec.get('column')
+        if column is None or column not in forcing_df.columns:
+            continue
+        y = forcing_df[column]
+        if y.isna().all():
+            continue
+        series.append((forcing_df.index, y, spec.get('label', column),
+                       spec.get('color', color), spec.get('linewidth', linewidth)))
+    return series
+
+
 def preview_output_mpl(df, subplots_config=None, figsize=(10, 18), 
-                       save_path=None, dpi=300, start=None, end=None):
+                       save_path=None, dpi=300, start=None, end=None,
+                       forcing_df=None, forcing_color='black',
+                       forcing_linewidth=1.5):
     """
     Preview TEB-Ru outputs using Matplotlib.
     
@@ -109,6 +149,15 @@ def preview_output_mpl(df, subplots_config=None, figsize=(10, 18),
         Start time for filtering DataFrame (e.g., '2024-01-01' or Timestamp).
     end : str, datetime, or None, optional
         End time for filtering DataFrame.
+    forcing_df : pandas.DataFrame, optional
+        Forcing data to overlay as black reference lines, indexed by time and with
+        'Forc_*' columns (e.g. from forcing_utils.read_forcing). The panels that show
+        forcing data declare the columns in their config with a 'forcing' key; if
+        forcing_df is None (default) nothing is overlaid.
+    forcing_color : str, optional
+        Colour of the forcing curves (default 'black').
+    forcing_linewidth : float, optional
+        Line width of the forcing curves (default 1.5).
     
     Returns:
     --------
@@ -118,6 +167,9 @@ def preview_output_mpl(df, subplots_config=None, figsize=(10, 18),
     
     # Filter DataFrame if time range specified
     df_plot = _filter_df_by_time(df, start, end)
+
+    # Forcing data are filtered with the same time range
+    forcing_plot = _filter_df_by_time(forcing_df, start, end) if forcing_df is not None else None
     
     if subplots_config is None:
         subplots_config = DEFAULT_SUBPLOTS_CONFIG
@@ -185,16 +237,22 @@ def preview_output_mpl(df, subplots_config=None, figsize=(10, 18),
             if len(linewidths) != len(valid_vars):
                 linewidths = [2] * len(valid_vars)
         
-        # Plot
+        # Forcing curves (black reference lines, drawn under the model curves)
+        forcing_series = _resolve_forcing_series(forcing_plot, config, color=forcing_color,
+                                                 linewidth=forcing_linewidth)
+        for xf, yf, f_label, f_color, f_lw in forcing_series:
+            ax.plot(xf, yf, label=f_label, color=f_color, linewidth=f_lw, zorder=1)
+
+        # Plot model outputs (on top of the forcing curves)
         for var, label, color, ls, lw in zip(valid_vars, leg_labels, colors, linestyles, linewidths):
-            ax.plot(x, df_plot[var], label=label, color=color, linestyle=ls, linewidth=lw)
+            ax.plot(x, df_plot[var], label=label, color=color, linestyle=ls, linewidth=lw, zorder=2)
         
         if ylabel:
             ax.set_ylabel(ylabel)
         if title:
             ax.set_title(title)
         
-        if len(valid_vars) > 1:
+        if len(valid_vars) + len(forcing_series) > 1:
             ax.legend(loc='upper right', fontsize=8)
         
         ax.grid(True, alpha=0.3)
@@ -211,7 +269,9 @@ def preview_output_mpl(df, subplots_config=None, figsize=(10, 18),
 
 def preview_output_plotly(df, subplots_config=None, save_path=None, height=None,
                           start=None, end=None, vertical_spacing=0.03, 
-                          layout_kwargs=None, legend_side='right'):
+                          layout_kwargs=None, legend_side='right',
+                          forcing_df=None, forcing_color='black',
+                          forcing_linewidth=1.5):
     """
     Preview TEB-Ru outputs using Plotly (interactive) with grouped vertical legend.
     
@@ -235,6 +295,15 @@ def preview_output_plotly(df, subplots_config=None, save_path=None, height=None,
         Additional layout parameters for fig.update_layout().
     legend_side : str, optional
         Legend placement: 'right' (default) or 'left'.
+    forcing_df : pandas.DataFrame, optional
+        Forcing data to overlay as black reference lines, indexed by time and with
+        'Forc_*' columns (e.g. from forcing_utils.read_forcing). The panels that show
+        forcing data declare the columns in their config with a 'forcing' key; if
+        forcing_df is None (default) nothing is overlaid.
+    forcing_color : str, optional
+        Colour of the forcing curves (default 'black').
+    forcing_linewidth : float, optional
+        Line width of the forcing curves (default 1.5).
     
     Returns:
     --------
@@ -255,6 +324,9 @@ def preview_output_plotly(df, subplots_config=None, save_path=None, height=None,
     
     n_rows = len(subplots_config)
     
+    # Forcing data are filtered with the same time range
+    forcing_plot = _filter_df_by_time(forcing_df, start, end) if forcing_df is not None else None
+
     if height is None:
         height = max(600, n_rows * 200)
     
@@ -321,6 +393,24 @@ def preview_output_plotly(df, subplots_config=None, save_path=None, height=None,
             if len(linewidths) != len(valid_vars):
                 linewidths = [2] * len(valid_vars)
         
+        # Forcing curves (black reference lines, added first so that the model
+        # curves stay on top of them)
+        forcing_series = _resolve_forcing_series(forcing_plot, config, color=forcing_color,
+                                                 linewidth=forcing_linewidth)
+        for xf, yf, f_label, f_color, f_lw in forcing_series:
+            fig.add_trace(
+                go.Scatter(
+                    x=xf,
+                    y=yf,
+                    mode='lines',
+                    name=f_label,
+                    legendgroup=f"group_{row_idx}",
+                    legendgrouptitle_text=group_title if row_idx == 1 else None,  # only first trace per group sets title
+                    line=dict(color=f_color, width=f_lw)
+                ),
+                row=row_idx, col=1
+            )
+
         # Add traces with legend group and group title
         for var, label, color, ls, lw in zip(valid_vars, leg_labels, colors, linestyles, linewidths):
             fig.add_trace(

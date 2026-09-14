@@ -192,6 +192,8 @@ ALLOCATE(T%XGARDEN_O_GRND(1))! gard. surf. / (road + garden surf.)(-)
 ALLOCATE(T%XWALL_O_GRND(1))  ! wall surf. / (road + garden surf.) (-)
 ALLOCATE(T%XWALL_O_BLD(1))   ! wall surf. / bld surf. (-)
 ALLOCATE(T%XZ0_TOWN(1))      ! roughness length for momentum    (m)
+!MV202609 z0 and zd to namelist
+ALLOCATE(T%XZD_TOWN(1))      ! displacement height of the town  (m)
 ALLOCATE(T%XSVF_ROAD(1))     ! road sky view factor             (-)
 ALLOCATE(T%XSVF_GARDEN(1))   ! green area sky view factor       (-)
 ALLOCATE(T%XSVF_WALL(1))     ! wall sky view factor             (-)

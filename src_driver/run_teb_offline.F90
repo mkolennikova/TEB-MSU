@@ -104,6 +104,9 @@ REAL ,DIMENSION(nvec) :: urb_fr_bld                     !IN Building area fracti
 REAL ,DIMENSION(nvec) :: fr_garden                      !IN Garden area fraction with respect to urban tile    (  -  )
 REAL ,DIMENSION(nvec) :: urb_h2w                        !IN Street canyon H/W ratio   ( m/m )
 REAL ,DIMENSION(nvec) :: urb_h_bld                      !IN Building height  (  m  )
+!MV202609 z0 and zd to namelist
+CHARACTER(LEN=16)     :: urb_z0_town                    !IN z0 of the urban surface (0.5 | 0.5m | 0.1H | H/3 | <name>)
+CHARACTER(LEN=16)     :: urb_zd_town                    !IN displacement height    (same forms as urb_z0_town)
 CHARACTER(LEN=4)      :: teb_hroad_dir                  !IN road direction option :                      
                                                         ! 'UNIF' : uniform roads                       
                                                         ! 'ORIE' : specified road orientation          
@@ -316,7 +319,7 @@ REAL, DIMENSION(:,:), ALLOCATABLE :: ZDIR   ! wind direction
 CHARACTER(LEN=100) :: output_dir
 CHARACTER(LEN=100) :: T_ROOF1, T_CANYON, T_ROAD1, T_WALLA1, T_WALLB1, TI_BLD, &
                       Q_CANYON, P_CANYON, U_CANYON, H_TOWN, LE_TOWN, RN_TOWN, &
-                      HVAC_COOL, HVAC_HEAT, SOLAR_PROD
+                      HVAC_COOL, HVAC_HEAT, SOLAR_PROD, WIND_TOP
 ! CHARACTER(LEN=*), PARAMETER       :: T_ROOF1 = 'output/T_ROOF1.txt'                  
 ! CHARACTER(LEN=*), PARAMETER       :: T_CANYON = 'output/T_CANYON.txt'                
 ! CHARACTER(LEN=*), PARAMETER       :: T_ROAD1 = 'output/T_ROAD1.txt'                  
@@ -367,7 +370,9 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
                     teb_itype_wind, teb_fai, teb_lgarden, teb_lgreenroof, teb_frac_gr, &
                     teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                   &
                     teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h,    &
-                    teb_rd_irrig_end_h, teb_rd_irrig_sum, teb_utc_hour, teb_lshade	
+                    teb_rd_irrig_end_h, teb_rd_irrig_sum, teb_utc_hour, teb_lshade, &
+!MV202609 z0 and zd to namelist
+                    urb_z0_town, urb_zd_town
 
 !============================================================
 !============================================================
@@ -503,6 +508,9 @@ urb_fr_bld(:)    = 0.62             ! Horizontal building area density
 fr_garden(:)     = 0.2              ! Fraction of GARDEN areas
 urb_h2w(:)       = 1.38158          ! Canyon H/W
 urb_h_bld(:)     = 20.              ! Canyon height (m)
+!MV202609 z0 and zd to namelist
+urb_z0_town      = '0.1H'           ! z0 of the urban surface (0.1*H - as before)
+urb_zd_town      = 'H/3'            ! displacement height (H/3 - as before)
 teb_road_dir(:)  = 0.0              ! Road direction (° from North, clockwise)
 teb_hroad_dir    = 'UNIF'           ! Road direction
                                     ! 'UNIF' : uniform roads
@@ -736,6 +744,7 @@ RN_TOWN   = TRIM(output_dir)//'RN_TOWN.txt'
 HVAC_COOL = TRIM(output_dir)//'HVAC_COOL.txt'
 HVAC_HEAT = TRIM(output_dir)//'HVAC_HEAT.txt'
 SOLAR_PROD= TRIM(output_dir)//'SOLAR_PROD.txt'
+WIND_TOP  = TRIM(output_dir)//'WIND_TOP.txt'
 
 OPEN(UNIT=13, FILE = T_ROOF1,   ACCESS = 'APPEND',STATUS = 'REPLACE')
 OPEN(UNIT=14, FILE = T_CANYON,  ACCESS = 'APPEND',STATUS = 'REPLACE')
@@ -752,6 +761,7 @@ OPEN(UNIT=24, FILE = RN_TOWN,   ACCESS = 'APPEND',STATUS = 'REPLACE')
 OPEN(UNIT=25, FILE = HVAC_COOL, ACCESS = 'APPEND',STATUS = 'REPLACE')
 OPEN(UNIT=26, FILE = HVAC_HEAT, ACCESS = 'APPEND',STATUS = 'REPLACE')
 OPEN(UNIT=27, FILE = SOLAR_PROD,ACCESS = 'APPEND',STATUS = 'REPLACE')
+OPEN(UNIT=28, FILE = WIND_TOP,  ACCESS = 'APPEND',STATUS = 'REPLACE')
 
 ! -----------------------------------------------------------
 ! Temporal loops
@@ -834,7 +844,9 @@ DO nstep= 1,nsteps - 1
 				teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
 				teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
-				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade)
+				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade,                          &
+!MV202609 z0 and zd to namelist
+				urb_z0_town, urb_zd_town)
 						
     END DO
 	   !
@@ -857,6 +869,7 @@ DO nstep= 1,nsteps - 1
 	IF (teb_lsolar_panel) THEN
       WRITE(27,*) teb_solar_prod
     END IF
+    WRITE(28,*) teb_wind_top
 END DO
 
 !  DEALLOCATE variables
@@ -888,6 +901,7 @@ CLOSE(24)
 CLOSE(25)
 CLOSE(26)
 CLOSE(27)
+CLOSE(28)
 
 !
     WRITE(*,*) ' '

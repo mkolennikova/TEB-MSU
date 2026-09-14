@@ -4,6 +4,20 @@
  urb_h_bld=20.,
  urb_fr_bld=0.62,
  urb_h2w=1.38158,
+ !MV202609 z0 and zd to namelist
+ ! aerodynamics of the urban surface:
+ !   urb_z0_town   - roughness length for momentum
+ !   urb_zd_town   - displacement height (zd)
+ ! accepted forms (case insensitive):
+ !   0.5 | 0.5m   - value in metres
+ !   0.1H         - fraction of urb_h_bld
+ !   H/3          - urb_h_bld divided by n
+ !   <name>       - parameterization by name:
+ !                  MACDONALD1998 (staggered), MACDONALD1998SQ (square)
+ ! each entry is resolved independently, e.g. urb_z0_town='0.1H' together with
+ ! urb_zd_town='MACDONALD1998'
+ urb_z0_town='0.1H',
+ urb_zd_town='H/3',
  teb_road_dir=0.,
  teb_hroad_dir='UNIF',
  teb_wall_opt='UNIF',

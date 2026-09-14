@@ -53,7 +53,9 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
 				teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
-				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade)
+				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade,                         &
+!MV202609 z0 and zd to namelist
+				urb_z0_town, urb_zd_town)
 
 !-------------------------------------------------------------------------------
 ! Declarations
@@ -110,6 +112,9 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 	REAL ,DIMENSION(nvec) :: fr_garden                      !IN Garden area fraction with respect to urban tile    (  -  )
 	REAL ,DIMENSION(nvec) :: urb_h2w                        !IN Street canyon H/W ratio   ( m/m )
 	REAL ,DIMENSION(nvec) :: urb_h_bld                      !IN Building height  (  m  )
+!MV202609 z0 and zd to namelist
+	CHARACTER(LEN=16)     :: urb_z0_town                    !IN z0 of the urban surface (0.5 | 0.5m | 0.1H | H/3 | <name>)
+	CHARACTER(LEN=16)     :: urb_zd_town                    !IN displacement height    (same forms as urb_z0_town)
     CHARACTER(LEN=4)      :: teb_hroad_dir                  !IN road direction option :                      
                                                             ! 'UNIF' : uniform roads                       
                                                             ! 'ORIE' : specified road orientation          
@@ -322,7 +327,9 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				teb_wall_opt, teb_road_dir(i), teb_zresidential(i), teb_dt_res(i), teb_dt_off(i), teb_cap_sys_heat(i),  &
 				teb_lsolar_panel, teb_fr_panel(i), teb_lroad_irrig, teb_rd_irrig_start_m(i), teb_rd_irrig_end_m(i),     &
 				teb_rd_irrig_start_h(i), teb_rd_irrig_end_h(i), teb_rd_irrig_sum(i), teb_solar_prod(i), teb_utc_hour,   &
-				teb_lshade)
+				teb_lshade,                                                                       &
+!MV202609 z0 and zd to namelist
+				urb_z0_town, urb_zd_town)
 	END DO
 	
 END SUBROUTINE teb_interface

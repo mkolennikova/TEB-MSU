@@ -378,8 +378,14 @@ ENDDO
 !
 IF (.NOT. TOP%LCANOPY) THEN
  
+!MV202609 z0 and zd to namelist
+! The reference heights are taken above the displacement surface:
+!   (roof height - zd) + PZREF = (T%XBLD_HEIGHT - T%XZD_TOWN) + PZREF
+! (the official TEB has a hard-coded '+ T%XBLD_HEIGHT/3.' here, which corresponds
+!  to zd = 2/3*H and is not consistent with the wind profile of the driver,
+!  where 2/3*H = H - zd gives zd = H/3)
   CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, ZTS_TOWN, ZQ_TOWN, PEXNS, PEXNA, PTA, PQA,     &
-                       PZREF+ T%XBLD_HEIGHT/3., PUREF+T%XBLD_HEIGHT/3., PVMOD, T%XZ0_TOWN, &
+                       PZREF+ (T%XBLD_HEIGHT-T%XZD_TOWN), PUREF+(T%XBLD_HEIGHT-T%XZD_TOWN), PVMOD, T%XZ0_TOWN, &
                        PRI, PCD, PCDN, ZAC, ZRA, ZCH, ZZ0H_TOWN, ILMO_TOWN              )
   
 !  OPEN(UNIT=27, FILE = ZZ0H_TOWN1, ACCESS = 'APPEND')
