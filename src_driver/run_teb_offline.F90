@@ -153,6 +153,12 @@ REAL, DIMENSION(nvec) :: teb_cap_sys_heat               !IN Capacity of the heat
 INTEGER  :: teb_itype_wind                              !IN TEB option for camyon wond calculation:
 													    ! 0 - default; 1 - Wang scheme
 REAL ,DIMENSION(nvec, 1:8) :: teb_fai                   !IN Frontal area index                 
+!
+!MV202609 tau scheme of the road
+! Input parameters for the tau scheme of the road
+LOGICAL  :: teb_ltau_scheme                             !IN Flag to use the tau scheme
+REAL     :: teb_tau_hw_thresh                           !IN H/W giving tau = 0.5
+REAL     :: teb_tau_hw_width                            !IN width of the tanh relaxation
 
 ! Input parameters for Greenroof from TERRA
 LOGICAL  :: teb_lgreenroof                              !IN Flag to use a green roofs scheme
@@ -281,7 +287,9 @@ REAL ,DIMENSION(nvec) :: teb_hsnow_town_now             !OUT town snow depth at 
 REAL ,DIMENSION(nvec) :: teb_hsnow_town                 !OUT town snow depth
 
 ! BEM variables
-REAL ,DIMENSION(nvec) :: teb_hwaste                     !OUT Sensible waste heat from HVAC system [W m-2(tot)] 
+REAL ,DIMENSION(nvec) :: teb_hwaste                     !OUT Sensible waste heat from HVAC system [W m-2(tot)]
+!MV202609 anthropogenic heat diagnostics
+REAL ,DIMENSION(nvec) :: teb_lewaste                    !OUT Latent waste heat of the buildings [W m-2(tot)] 
 REAL ,DIMENSION(nvec) :: teb_hvac_cool                  !OUT Energy consumption of the cooling system [W m-2(bld)]  
 REAL ,DIMENSION(nvec) :: teb_hvac_heat                  !OUT Energy consumption of the heating system [W m-2(bld)]  
 
@@ -316,7 +324,10 @@ REAL ,DIMENSION(nvec) :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (at
 REAL ,DIMENSION(nvec) :: PH_ROAD_CAN      ! road sensible heat flux, road -> canyon air [W m-2]
 REAL ,DIMENSION(nvec) :: PLE_ROAD_CAN     ! road latent heat flux, road -> canyon air [W m-2]
 REAL ,DIMENSION(nvec) :: PH_ROAD_ATM      ! road sensible heat flux, road -> forcing level [W m-2]
-REAL ,DIMENSION(nvec) :: PLE_ROAD_ATM     ! road latent heat flux, road -> forcing level [W m-2]
+REAL ,DIMENSION(nvec) :: PLE_ROAD_ATM      ! road latent heat flux, road -> forcing level [W m-2]
+!MV202609 tau scheme of the road
+REAL ,DIMENSION(nvec) :: PH_ROAD          ! road sensible heat flux, tau scheme [W m-2]
+REAL ,DIMENSION(nvec) :: PLE_ROAD         ! road latent heat flux, tau scheme [W m-2]
 REAL ,DIMENSION(nvec) :: ahf_traffic_now                !OUT Anthropogenic heat flux by traffic (current value)
 REAL ,DIMENSION(nvec) :: teb_solar_prod                 !OUT Averaged Energy production of solar panel on roofs (W/m2 bld  )
 	
@@ -389,7 +400,9 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
                     teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h,    &
                     teb_rd_irrig_end_h, teb_rd_irrig_sum, teb_utc_hour, teb_lshade, &
 !MV202609 z0 and zd to namelist
-                    urb_z0_town, urb_zd_town
+                    urb_z0_town, urb_zd_town,                                       &
+!MV202609 tau scheme of the road
+                    teb_ltau_scheme, teb_tau_hw_thresh, teb_tau_hw_width
 
 !============================================================
 !============================================================
@@ -602,6 +615,10 @@ teb_cap_sys_heat(:)  =  90.         ! Capacity of the heating system [W m-2(bld)
 teb_itype_wind       = 0            !IN TEB option for camyon wond calculation:
 									! 0 - default; 1 - Wang scheme 
 teb_fai(:,1:8)       = 0.5          ! Frontal area index
+!MV202609 tau scheme of the road
+teb_ltau_scheme      = .FALSE.      ! Flag to use the tau scheme for the road
+teb_tau_hw_thresh    = 0.5          ! H/W giving tau = 0.5 (tau scheme)
+teb_tau_hw_width     = 0.25         ! width of the tanh relaxation (tau scheme)
 !============================================================
 !============================================================
 ! Parameters for GREENROOF module 
@@ -770,6 +787,12 @@ teb_hour_seconds = teb_hour * 3600. + teb_min * 60. + teb_sec
 ! (teb_ac_rd, teb_tch_rd, teb_tcm_gd, teb_tch_gd, teb_cd_garden_atm,
 ! teb_ch_garden_atm) complete the set with PAC_ROAD_CAN, PCH_ROAD_CAN,
 ! PCD_GARDEN_CAN, PCH_GARDEN_CAN, PCD_GARDEN_ATM and PCH_GARDEN_ATM.
+! anthropogenic heat diagnostics appended after LE_ROAD: AHF_TRAFFIC = sensible
+! anthropogenic heat flux due to traffic at the current time-step and H_WASTE =
+! sensible waste heat of the buildings (HVAC systems and infiltration/
+! ventilation), both in W m-2(ground). They are already included in H_TOWN with
+! their full weight (the tau scheme weights the road exchange only), so
+! H_TOWN - AHF_TRAFFIC - H_WASTE is the flux of the urban surfaces alone.
 nout = 0
 nout = nout + 1; out_names(nout) = 'T_ROOF1'
 nout = nout + 1; out_names(nout) = 'T_CANYON'
@@ -819,6 +842,14 @@ nout = nout + 1; out_names(nout) = 'H_ROAD_CAN'
 nout = nout + 1; out_names(nout) = 'LE_ROAD_CAN'
 nout = nout + 1; out_names(nout) = 'H_ROAD_ATM'
 nout = nout + 1; out_names(nout) = 'LE_ROAD_ATM'
+!MV202609 tau scheme of the road
+nout = nout + 1; out_names(nout) = 'H_ROAD'
+nout = nout + 1; out_names(nout) = 'LE_ROAD'
+!MV202609 anthropogenic heat diagnostics (traffic and building waste heat)
+nout = nout + 1; out_names(nout) = 'AHF_TRAFFIC'
+nout = nout + 1; out_names(nout) = 'H_WASTE'
+nout = nout + 1; out_names(nout) = 'LE_WASTE'
+nout = nout + 1; out_names(nout) = 'GFLUX_TOWN'
 ! atmospheric forcing used by the model at the current time-step
 nout = nout + 1; out_names(nout) = 'Forc_TA'
 nout = nout + 1; out_names(nout) = 'Forc_QA'
@@ -947,7 +978,12 @@ DO nstep= 1,nsteps - 1
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
+!MV202609 tau scheme of the road
+                          PH_ROAD, PLE_ROAD, teb_ltau_scheme,                   &
+                          teb_tau_hw_thresh, teb_tau_hw_width,                  &
+!MV202609 anthropogenic heat diagnostics
+                          teb_lewaste)
 						
     END DO
 	   !
@@ -1009,6 +1045,14 @@ CALL CSV_APPEND(out_line, PH_ROAD_CAN(1))
 CALL CSV_APPEND(out_line, PLE_ROAD_CAN(1))
 CALL CSV_APPEND(out_line, PH_ROAD_ATM(1))
 CALL CSV_APPEND(out_line, PLE_ROAD_ATM(1))
+!MV202609 tau scheme of the road
+CALL CSV_APPEND(out_line, PH_ROAD(1))
+CALL CSV_APPEND(out_line, PLE_ROAD(1))
+!MV202609 anthropogenic heat diagnostics (traffic and building waste heat)
+CALL CSV_APPEND(out_line, ahf_traffic_now(1))
+CALL CSV_APPEND(out_line, teb_hwaste(1))
+CALL CSV_APPEND(out_line, teb_lewaste(1))
+CALL CSV_APPEND(out_line, teb_gflux(1))
     ! --- atmospheric forcing used by the model at the current time-step
     forc_wind = SQRT(u(1)**2 + v(1)**2)
     forc_dir  = MOD(ATAN2(u(1), v(1))*180./XPI + 360., 360.)

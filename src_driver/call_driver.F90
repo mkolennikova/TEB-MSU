@@ -38,7 +38,12 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
+!MV202609 tau scheme of the road
+                          PH_ROAD, PLE_ROAD, LTAU_SCHEME,                       &
+                          XTAU_HW_THRESH, XTAU_HW_WIDTH,                        &
+!MV202609 anthropogenic heat diagnostics
+                          ZLE_WASTE)
 							
 ! ======================================================================
 ! 
@@ -373,6 +378,12 @@ REAL,DIMENSION(1)                 :: PH_ROAD_CAN      !OUT road sensible heat fl
 REAL,DIMENSION(1)                 :: PLE_ROAD_CAN     !OUT road latent heat flux, road -> canyon air [W m-2]
 REAL,DIMENSION(1)                 :: PH_ROAD_ATM      !OUT road sensible heat flux, road -> forcing level [W m-2]
 REAL,DIMENSION(1)                 :: PLE_ROAD_ATM     !OUT road latent heat flux, road -> forcing level [W m-2]
+!MV202609 tau scheme of the road
+REAL,DIMENSION(1)                 :: PH_ROAD          !OUT road sensible heat flux, tau scheme [W m-2]
+REAL,DIMENSION(1)                 :: PLE_ROAD         !OUT road latent heat flux, tau scheme [W m-2]
+LOGICAL                           :: LTAU_SCHEME      !IN flag to use the tau scheme for the road
+REAL                              :: XTAU_HW_THRESH   !IN H/W giving tau = 0.5 (tau scheme)
+REAL                              :: XTAU_HW_WIDTH    !IN width of the tanh relaxation (tau scheme)
 REAL,DIMENSION(1)                 :: ZH_TRAFFIC_NOW    !OUT heat fluxes due to traffic at current time-step      
 REAL,DIMENSION(1)                 :: ZPROD_BLD         !OUT Averaged Energy production of solar panel on roofs (W/m2 bld  )   
  
@@ -584,7 +595,11 @@ REAL, DIMENSION(1) :: ZT_BLD_COOL        ! Total cooling energy demand of the bu
 REAL, DIMENSION(1) :: ZH_BLD_HEAT        ! Heating energy demand of the building [W m-2(bld)]               
 REAL, DIMENSION(1) :: ZLE_BLD_COOL       ! Latent cooling energy demand of the building [W m-2(bld)]               
 REAL, DIMENSION(1) :: ZLE_BLD_HEAT       ! Latent heating energy demand of the building [W m-2(bld)]                                             
-REAL, DIMENSION(1) :: ZLE_WASTE          ! Latent waste heat from HVAC system [W m-2(tot)]                               
+!MV202609 anthropogenic heat diagnostics
+!* latent waste heat of the buildings, per horizontal surface area (as the
+!* sensible one ZH_WASTE): it is added to the wall/roof latent fluxes and to the
+!* canyon humidity by URBAN_FLUXES/AVG_URBAN_FLUXES
+REAL, DIMENSION(1), INTENT(OUT) :: ZLE_WASTE                               
 REAL, DIMENSION(1) :: ZF_WASTE_CAN       ! fraction of waste heat released into the canyon                                                           
 REAL, DIMENSION(1) :: ZQIN               ! Internal heat gains [W m-2(floor)]         
 REAL, DIMENSION(1) :: ZQIN_FRAD          ! Radiant fraction of internal heat gains    
@@ -1462,7 +1477,9 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, LGARDEN_EXT, LGREENROOF, LGREENR
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
+!MV202609 tau scheme of the road
+                          LTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH)
 !*****************************************************************************
 !*****************************************************************************
 !*****************************************************************************
@@ -1508,6 +1525,12 @@ ZTS_WALL_A = ZT_WALL_A(1,1)
 ZTS_WALL_B = ZT_WALL_B(1,1)
 
 ZH_ROOF_FR = ZH_ROOF*ZBLD
+!MV202609 tau scheme of the road
+!* road fluxes (per m2 of road) as computed by the road energy budget, i.e. the
+!* tau-aggregated fluxes when the tau scheme is activated (see TEB_GARDEN/TEB)
+PH_ROAD = ZH_ROAD
+PLE_ROAD = ZLE_ROAD
+!
 ZH_ROAD_FR = ZH_ROAD*ZROAD
 ZH_WALL_FR = ZH_WALL_A*ZWALL_O_HOR
 

@@ -80,6 +80,17 @@ TYPE TEB_OPTIONS_t
   LOGICAL                        :: LGREENROOF   ! T: green roofs (call ISBA from TEB)
   LOGICAL                        :: LHYDRO       ! T: urban subsoil and hydrology processes
   LOGICAL                        :: LSOLAR_PANEL ! T: solar panels on roofs
+!MV202609 tau scheme of the road
+! tau scheme for the road: the actual road fluxes are the weighted mean of the
+! road/canyon and road/forcing-level fluxes, with the weights tau and 1-tau,
+! tau being a tanh relaxation of the canyon H/W ratio (see TAU_URBAN in
+! TEB_GARDEN): tau -> 0 for very sparse building (H/W -> 0, the road exchanges
+! directly with the air of the forcing level) and tau = 1 for dense canyons
+! (H/W above the threshold, the road exchanges with the canyon air only).
+!
+  LOGICAL                        :: LTAU_SCHEME  ! T: tau scheme activated
+  REAL                           :: XTAU_HW_THRESH ! H/W giving tau = 0.5       (-)
+  REAL                           :: XTAU_HW_WIDTH  ! width of the tanh relaxation (-)
 ! 
 ! type of initialization of vegetation: from cover types (ecoclimap) or parameters prescribed
 !
@@ -142,6 +153,9 @@ YTEB_OPTIONS%CTREE=' '
 YTEB_OPTIONS%LGREENROOF=.FALSE.
 YTEB_OPTIONS%LHYDRO=.FALSE.
 YTEB_OPTIONS%LSOLAR_PANEL=.FALSE.
+YTEB_OPTIONS%LTAU_SCHEME=.FALSE.
+YTEB_OPTIONS%XTAU_HW_THRESH=0.5
+YTEB_OPTIONS%XTAU_HW_WIDTH=0.25
 YTEB_OPTIONS%LECOCLIMAP=.FALSE.
 YTEB_OPTIONS%NTEB_PATCH=0
 YTEB_OPTIONS%NROOF_LAYER=0

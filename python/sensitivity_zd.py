@@ -111,6 +111,14 @@ LCZ = {
                  h_bld=20.0, fr_bld=0.55, h2w=1.50, fai=0.40),
     'LCZ9': dict(label='LCZ 9 - sparse low-rise (suburban)',
                  h_bld=6.0, fr_bld=0.15, h2w=0.15, fai=0.10),
+    #: extreme test case: nearly free-standing buildings (plan area index 0.01).
+    #: H/W is derived from the geometry of a regular building array,
+    #: h2w = fr_bld/(1-fr_bld) * (H/D), with the building shape H/D = 0.85
+    #: calibrated on LCZ 9 (h2w = 0.15 * 0.85 / 0.15 = 0.85):
+    #: h2w = 0.01/0.99 * 0.85 = 0.0086. The frontal area index is scaled
+    #: accordingly (fai = 0.67 * fr_bld, as for LCZ 9).
+    'SPARSE': dict(label='Extremely sparse buildings (fr_bld = 0.01)',
+                   h_bld=6.0, fr_bld=0.01, h2w=0.0086, fai=0.007),
 }
 
 RE_Z0 = re.compile(r'urb_z0_town\s*=\s*(\S+)\s*->\s*z0\s*=\s*([0-9EeDd.+-]+)')

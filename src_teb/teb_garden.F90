@@ -29,7 +29,9 @@
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM,          &
+!MV202609 tau scheme of the road
+                          PH_ROAD, PLE_ROAD)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN*  
@@ -266,6 +268,9 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD_CAN   ! road sensible heat flux,
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD_CAN  ! road latent heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD_ATM   ! road sensible heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD_ATM  ! road latent heat flux, road -> forcing level [W m-2]
+!MV202609 tau scheme of the road
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD       ! road sensible heat flux, tau scheme [W m-2]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD      ! road latent heat flux, tau scheme [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
@@ -307,6 +312,8 @@ REAL, DIMENSION(SIZE(PTA)) :: ZDF_RF       ! free-snow fraction on roofs
 REAL, DIMENSION(SIZE(PTA)) :: ZDF_RD       ! free-snow fraction on roads
 REAL, DIMENSION(SIZE(PTA)) :: ZDELT_RD     ! fraction of water on roads
 REAL, DIMENSION(SIZE(PTA)) :: ZDELT_RF     ! fraction of water on roofs
+!MV202609 tau scheme of the road
+REAL, DIMENSION(SIZE(PTA)) :: ZTAU         ! tau scheme weight of the canyon path (-)
 !REAL, DIMENSION(SIZE(PTA)) :: ZAC_RF       ! roof conductance
 REAL, DIMENSION(SIZE(PTA)) :: ZAC_RF_WAT   ! roof water conductance
 !REAL, DIMENSION(SIZE(PTA)) :: ZAC_WL       ! wall conductance
@@ -709,6 +716,19 @@ END IF
 !              -------------------------
 !
 
+!MV202609 tau scheme of the road
+!* tau is the fraction of the road exchange performed with the canyon air, the
+!* remaining part (1-tau) exchanging directly with the air of the forcing level.
+!* tau is a tanh relaxation of the canyon H/W ratio (see TAU_URBAN below):
+!* tau -> 0 for very sparse buildings and tau = 1 for a dense canyon. With the
+!* scheme disabled tau = 1, which reproduces the former behaviour exactly.
+!
+IF (TOP%LTAU_SCHEME) THEN
+  ZTAU(:) = TAU_URBAN(T%XCAN_HW_RATIO(:), TOP%XTAU_HW_THRESH, TOP%XTAU_HW_WIDTH, T%XBLD_HEIGHT(:))
+ELSE
+  ZTAU(:) = 1.
+ENDIF
+!
   CALL TEB  (icell, iblock, TOP, T, BOP, B, TIR, DMT, OGARDEN_EXT, HIMPLICIT_WIND, PBEM_AC,     &
              PTSUN, PT_CAN, PQ_CAN, PU_CAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN,       &
              PZ_LOWCAN, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,              &
@@ -735,7 +755,9 @@ END IF
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM,          &
+!MV202609 tau scheme of the road
+                          ZTAU, PH_ROAD, PLE_ROAD)
 
 !
 !-------------------------------------------------------------------------------
@@ -776,7 +798,9 @@ END IF
                        ZTSRAD_GD, ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD, ZEVAP_GD,             &
                        ZRUNOFF_GD, ZEVAP_GR, ZRUNOFF_GR, ZDRAIN_GR,                       &
                        PRN_GRND, PH_GRND, PLE_GRND, PGFLX_GRND, PRN_TWN, PH_TWN, PLE_TWN, &
-                       PGFLX_TWN, PEVAP_TWN, ZEMIT_LW_RD,ZEMIT_LW_GD, PEMIT_LW_GRND, ZEMIS_GD, PLW_UP )
+                       PGFLX_TWN, PEVAP_TWN, ZEMIT_LW_RD,ZEMIT_LW_GD, PEMIT_LW_GRND, ZEMIS_GD, PLW_UP, &
+!MV202609 tau scheme of the road
+                       ZTAU )
 !
 PSFCO2(:) = T%XGARDEN(:) * ZSFCO2_GD(:) + T%XBLD(:) * T%XGREENROOF(:) * ZSFCO2_GR(:) ! no CO2 flux from built and road yet.
 !
@@ -798,6 +822,34 @@ PDUWDU_GRND (:)  = 0.
 IF (LHOOK) CALL DR_HOOK('TEB_GARDEN',1,ZHOOK_HANDLE)
 !-------------------------------------------------------------------------------
 CONTAINS
+!-------------------------------------------------------------------------------
+!
+!MV202609 tau scheme of the road
+!!****  *TAU_URBAN*
+!!
+!!    PURPOSE
+!!    -------
+!!
+!!    Weight of the canyon path in the tau scheme of the road: tau = 1 for a
+!!    dense canyon (the road exchanges with the canyon air only) and tau -> 0
+!!    for very sparse buildings (the road exchanges directly with the air of
+!!    the forcing level). The transition is a tanh relaxation centred on the
+!!    canyon H/W ratio HW_THRESH, of width HW_WIDTH.
+!!
+!!    The building height H_BLD is not used yet: it is kept in the argument
+!!    list so that a more elaborate formulation can be introduced later without
+!!    changing the callers.
+!!
+ELEMENTAL FUNCTION TAU_URBAN(HW_RATIO, HW_THRESH, HW_WIDTH, H_BLD) RESULT(TAU)
+   REAL, INTENT(IN) :: HW_RATIO    ! canyon H/W ratio                      (-)
+   REAL, INTENT(IN) :: HW_THRESH   ! H/W giving tau = 0.5                  (-)
+   REAL, INTENT(IN) :: HW_WIDTH    ! width of the tanh relaxation          (-)
+   REAL, INTENT(IN) :: H_BLD       ! building height (reserved for future) (m)
+   REAL             :: TAU         ! weight of the canyon path             (-)
+!-------------------------------------------------------------------------------
+   TAU = 0.5 * (1.0 + TANH((HW_RATIO - HW_THRESH) / MAX(HW_WIDTH, TINY(1.0))))
+END FUNCTION TAU_URBAN
+!-------------------------------------------------------------------------------
 !-------------------------------------------------------------------------------
 SUBROUTINE TEB_GARDEN2
 !

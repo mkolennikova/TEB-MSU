@@ -107,7 +107,9 @@
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
+!MV202609 tau scheme of the road
+                          OTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN_STRUCT*  
@@ -440,6 +442,10 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_CAN      ! road sensible heat flux,
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_CAN     ! road latent heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_ATM      ! road sensible heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_ATM     ! road latent heat flux, road -> forcing level [W m-2]
+!MV202609 tau scheme of the road
+LOGICAL,              INTENT(IN)  :: OTAU_SCHEME      ! flag to use the tau scheme for the road
+REAL,                 INTENT(IN)  :: XTAU_HW_THRESH   ! H/W giving tau = 0.5 (tau scheme)
+REAL,                 INTENT(IN)  :: XTAU_HW_WIDTH    ! width of the tanh relaxation (tau scheme)
 !                                                         !    and structural roof
 !
 ! new arguments created after BEM
@@ -903,6 +909,10 @@ TOP%CBEM      = HBEM            ! TEB option for the building energy model
 
 TOP%LGREENROOF   = OGREENROOF   ! T: green roofs (call ISBA from TEB)
 TOP%LSOLAR_PANEL = OSOLAR_PANEL ! T: solar panels on roofs
+!MV202609 tau scheme of the road
+TOP%LTAU_SCHEME    = OTAU_SCHEME    ! T: tau scheme for the road fluxes
+TOP%XTAU_HW_THRESH = XTAU_HW_THRESH ! H/W giving tau = 0.5 (tau scheme)
+TOP%XTAU_HW_WIDTH  = XTAU_HW_WIDTH  ! width of the tanh relaxation (tau scheme)
 ! 
 ! type of initialization of vegetation: from cover types (ecoclimap) or parameters prescribed
 !
@@ -1081,7 +1091,9 @@ CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGARDEN
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
+!MV202609 tau scheme of the road
+                          PH_ROAD, PLE_ROAD)
 !
 !-------------------------------------------------------------------------------
 !
@@ -1157,7 +1169,9 @@ CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGARDEN
  PH_WALL_A   = DMT%XH_WALL_A ! wall sensible heat flux          (W/m2)
  PH_WALL_B   = DMT%XH_WALL_B ! wall sensible heat flux          (W/m2)
  PH_ROOF     = DMT%XH_ROOF   ! roof sensible heat flux          (W/m2)
- PH_ROAD     = DMT%XH_ROAD   ! road sensible heat flux          (W/m2)
+!MV202609 tau scheme of the road
+!* PH_ROAD (road sensible heat flux of the snow-free road as used by the road
+!* energy budget, i.e. the tau-aggregated flux) is returned by TEB_GARDEN
  PH_STRLROOF = DMT%XH_STRLROOF ! structural roof sens. heat flux  (W/m2)
  PH_BLT      = DMT%XH_BLT      ! built surf sensible heat flux    (W/m2)
  PRN_WALL_A  = DMT%XRN_WALL_A  ! net radiation at wall            (W/m2)
@@ -1173,7 +1187,9 @@ CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGARDEN
  PGFLUX_STRLROOF = DMT%XGFLUX_STRLROOF !net structural roof cond flux (W/m2)
  PGFLUX_BLT      = DMT%XGFLUX_BLT! net built surf conduction flux   (W/m2)
  PLE_ROOF        = DMT%XLE_ROOF  ! roof latent heat flux            (W/m2)
- PLE_ROAD        = DMT%XLE_ROAD ! road latent heat flux            (W/m2)
+!MV202609 tau scheme of the road
+!* PLE_ROAD (road latent heat flux as used by the road energy budget, i.e. the
+!* tau-aggregated flux) is returned by TEB_GARDEN
  PLE_STRLROOF    = DMT%XLE_STRLROOF !structural roof latent heat flux (W/m2)
  PLE_BLT         = DMT%XLE_BLT      ! built surf latent heat flux      (W/m2)
 !

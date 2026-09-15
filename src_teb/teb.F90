@@ -30,7 +30,9 @@
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
+!MV202609 tau scheme of the road
+                          PTAU, PH_ROAD, PLE_ROAD)
 					 
 				 
 !   ##########################################################################
@@ -405,6 +407,9 @@ REAL, DIMENSION(:), INTENT(OUT) :: PH_ROAD_ATM   ! sensible heat flux, road -> f
 REAL, DIMENSION(:), INTENT(OUT) :: PLE_ROAD_ATM  ! latent heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT) :: PH_ROAD_CAN   ! sensible heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT) :: PLE_ROAD_CAN  ! latent heat flux, road -> canyon air [W m-2]
+!MV202609 tau scheme of the road
+REAL, DIMENSION(:), INTENT(OUT) :: PH_ROAD       ! road sensible heat flux, tau scheme [W m-2]
+REAL, DIMENSION(:), INTENT(OUT) :: PLE_ROAD      ! road latent heat flux, tau scheme [W m-2]
 !
 !*      0.2    Declarations of local variables
 !
@@ -414,6 +419,13 @@ REAL, DIMENSION(SIZE(PTA)) :: ZWS_RD_MAX   ! and road water reservoirs
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 REAL, DIMENSION(SIZE(PTA)) :: ZAC_RD_ATM_WAT ! road conductance for water (forcing level)
 REAL, DIMENSION(SIZE(PTA)) :: ZDF_RD         ! snow-free road fraction (for the atm. flux)
+!MV202609 tau scheme of the road
+REAL, DIMENSION(:), INTENT(IN) :: PTAU       ! tau scheme weight of the canyon path (-)
+REAL, DIMENSION(SIZE(PTA)) :: ZPAC_RD        ! road conductance, tau-aggregated
+REAL, DIMENSION(SIZE(PTA)) :: ZPAC_RD_WAT    ! road water conductance, tau-aggregated
+REAL, DIMENSION(SIZE(PTA)) :: ZT_REF         ! reference air temperature of the road fluxes [K]
+REAL, DIMENSION(SIZE(PTA)) :: ZQ_REF         ! reference air humidity of the road fluxes [kg kg-1]
+INTEGER                    :: JJ             ! loop index (tau scheme)
 !
 REAL, DIMENSION(SIZE(PTA)) :: ZAC_BLD        ! surface conductance inside the building itself in DEF building model
 REAL, DIMENSION(SIZE(PTA)) :: ZTA            ! air temperature extrapolated at roof level
@@ -737,31 +749,71 @@ END SELECT
 			   
 
 
+!MV202609 tau scheme of the road
+!* effective conductance and reference air of the road energy budget: when the
+!* tau scheme is activated the road budget is fed with the tau-weighted mean of
+!* the road/canyon and road/forcing-level exchanges (this is exact, the flux
+!* being linear in the conductance at a given surface temperature); with the
+!* scheme disabled the effective values are the canyon ones, so that the former
+!* behaviour is reproduced exactly.
+!
+ZPAC_RD(:)     = PAC_RD(:)
+ZPAC_RD_WAT(:) = PAC_RD_WAT(:)
+ZT_REF(:)      = PT_LOWCAN(:)
+ZQ_REF(:)      = PQ_LOWCAN(:)
+IF (TOP%LTAU_SCHEME) THEN
+  ZPAC_RD(:)     = PTAU(:) * PAC_RD(:)     + (1.-PTAU(:)) * PAC_ROAD_ATM(:)
+  ZPAC_RD_WAT(:) = PTAU(:) * PAC_RD_WAT(:) + (1.-PTAU(:)) * ZAC_RD_ATM_WAT(:)
+  !* the effective reference air is only needed where the effective conductance
+  !* does not vanish (a dry road has a zero water conductance and the
+  !* corresponding latent flux vanishes whatever the reference humidity)
+  DO JJ = 1, SIZE(PTA)
+    IF (ZPAC_RD(JJ) > 0.) THEN
+      ZT_REF(JJ) = ( PTAU(JJ) * PAC_RD(JJ) * PT_LOWCAN(JJ)                     &
+                     + (1.-PTAU(JJ)) * PAC_ROAD_ATM(JJ) * PTA(JJ) ) / ZPAC_RD(JJ)
+    ELSE
+      ZT_REF(JJ) = PT_LOWCAN(JJ)
+    ENDIF
+    IF (ZPAC_RD_WAT(JJ) > 0.) THEN
+      ZQ_REF(JJ) = ( PTAU(JJ) * PAC_RD_WAT(JJ) * PQ_LOWCAN(JJ)                 &
+                     + (1.-PTAU(JJ)) * ZAC_RD_ATM_WAT(JJ) * PQA(JJ) ) / ZPAC_RD_WAT(JJ)
+    ELSE
+      ZQ_REF(JJ) = PQ_LOWCAN(JJ)
+    ENDIF
+  ENDDO
+ENDIF
+!
 !* ts_road, ts_wall, qsat_road, t_canyon and q_canyon are updated
 !
- CALL ROAD_LAYER_E_BUDGET(T, B, PTSTEP, PDN_RD, PRHOA, PAC_RD, PAC_RD_WAT, &
+ CALL ROAD_LAYER_E_BUDGET(T, B, PTSTEP, PDN_RD, PRHOA, ZPAC_RD, ZPAC_RD_WAT, &
                           PLW_RAD, PPS, PQSAT_RD, PDELT_RD, PEXNS,         &
-                          DMT%XABS_SW_ROAD, PGSN_RD, PQ_LOWCAN, PT_LOWCAN,&
+                          DMT%XABS_SW_ROAD, PGSN_RD, ZQ_REF, ZT_REF,       &
                           ZTS_WL_A, ZTS_WL_B, ZTSSN_RD,  PTS_GARDEN,       &
                           PLW_WA_TO_R, PLW_WB_TO_R, PLW_S_TO_R,            &
                           PLW_WIN_TO_R, PEMIT_LW_RD, ZDQS_RD, DMT%XABS_LW_ROAD,  &
                           DMT%XH_ROAD, PLEW_RD, ZIMB_RD, PRR+DMT%XIRRIG_ROAD    )
 !
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-!* canyon road fluxes of the current time step
-PH_ROAD_CAN(:) = DMT%XH_ROAD(:)
-PLE_ROAD_CAN(:) = PLEW_RD(:)
+!MV202609 tau scheme of the road
+!* actual road fluxes: sensible and latent heat fluxes used by the road energy
+!* budget (i.e. the tau-aggregated fluxes when the tau scheme is activated)
+PH_ROAD(:)  = DMT%XH_ROAD(:)
+PLE_ROAD(:) = PLEW_RD(:)
 !
-!* diagnostic turbulent fluxes of the road directly with the air of the forcing
-!* level (PTA, PQA): computed here, outside of ROAD_LAYER_E_BUDGET, from the
-!* surface temperature resulting from the road energy-budget solve
-!* (T%XT_ROAD(:,1), which is also the surface temperature used by the road/canyon
-!* fluxes, the scheme being fully implicit). Same formula, same water limitation
-!* and same cp/Exns convention as PHFREE_ROAD/PLEFREE_ROAD, only the reference
-!* air - and hence its conductance PAC_ROAD_ATM/PAC_ROAD_ATM_WAT - is changed.
-!* Diagnostics only: they do not feed back on the road energy budget.
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+!* potential component fluxes of the road: same quantity as if the whole exchange
+!* occurred with the canyon air (tau = 1) or directly with the air of the forcing
+!* level (tau = 0), computed from the surface temperature resulting from the road
+!* energy-budget solve (T%XT_ROAD(:,1), which is also the surface temperature used
+!* by the road/canyon fluxes, the scheme being fully implicit). Same formula, same
+!* water limitation and same cp/Exns convention as PHFREE_ROAD/PLEFREE_ROAD, only
+!* the reference air - and hence its conductance - is changed. Diagnostics only:
+!* they do not feed back on the road energy budget.
 !
 ZDF_RD(:)       = 1. - PDN_RD(:)
+PH_ROAD_CAN(:)  = PRHOA(:) * PAC_RD(:)         * ZDF_RD(:) * XCPD/PEXNS(:)  &
+                  * (T%XT_ROAD(:,1) - PT_LOWCAN(:))
+PLE_ROAD_CAN(:) = PRHOA(:) * PAC_RD_WAT(:)     * ZDF_RD(:) * XLVTT         &
+                  * PDELT_RD(:) * (PQSAT_RD(:) - PQ_LOWCAN(:))
 PH_ROAD_ATM(:)  = PRHOA(:) * PAC_ROAD_ATM(:)   * ZDF_RD(:) * XCPD/PEXNS(:)  &
                   * (T%XT_ROAD(:,1) - PTA(:))
 PLE_ROAD_ATM(:) = PRHOA(:) * ZAC_RD_ATM_WAT(:) * ZDF_RD(:) * XLVTT         &

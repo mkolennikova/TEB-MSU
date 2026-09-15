@@ -16,7 +16,9 @@ INTERFACE
                                 PRUNOFF_GD, PEVAP_GR, PRUNOFF_GR, PDRAIN_GR,       &
                                 PRN_GRND, PH_GRND, PLE_GRND, PGFLX_GRND,           &
                                 PRN_TWN, PH_TWN, PLE_TWN, PGFLX_TWN, PEVAP_TWN,    &
-                                PEMIT_LW_RD, PEMIT_LW_GD, PEMIT_LW_GRND, PEMIS_GD, PLW_UP  )
+                                PEMIT_LW_RD, PEMIT_LW_GD, PEMIT_LW_GRND, PEMIS_GD, PLW_UP, &
+!MV202609 tau scheme of the road
+                                PTAU)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
@@ -133,6 +135,8 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PEMIT_LW_GRND ! LW emitted by the ground (r
 !
 REAL, DIMENSION(:), INTENT(IN)    :: PEMIS_GD  ! garden emissivity
 REAL, DIMENSION(:), INTENT(OUT)   :: PLW_UP    ! upwards longwave radiation
+!MV202609 tau scheme of the road
+REAL, DIMENSION(:), INTENT(IN)    :: PTAU      ! tau scheme weight of the canyon path (-)
 
 END SUBROUTINE AVG_URBAN_FLUXES
 END INTERFACE

@@ -18,7 +18,9 @@
                                 PRUNOFF_GD, PEVAP_GR, PRUNOFF_GR, PDRAIN_GR,       &
                                 PRN_GRND, PH_GRND, PLE_GRND, PGFLX_GRND,           &
                                 PRN_TWN, PH_TWN, PLE_TWN, PGFLX_TWN, PEVAP_TWN,    &
-                                PEMIT_LW_RD, PEMIT_LW_GD, PEMIT_LW_GRND, PEMIS_GD, PLW_UP)
+                                PEMIT_LW_RD, PEMIT_LW_GD, PEMIT_LW_GRND, PEMIS_GD, PLW_UP, &
+!MV202609 tau scheme of the road
+                                PTAU)
 !   ##########################################################################
 !
 !!****  *AVG_URBAN_FLUXES* computes fluxes on urbanized surfaces  
@@ -194,6 +196,8 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PEMIT_LW_GRND ! LW emitted by the ground (r
 !
 REAL, DIMENSION(:), INTENT(IN)    :: PEMIS_GD  ! garden emissivity
 REAL, DIMENSION(:), INTENT(OUT)   :: PLW_UP    ! upwards longwave radiation
+!MV202609 tau scheme of the road
+REAL, DIMENSION(:), INTENT(IN)    :: PTAU      ! tau scheme weight of the canyon path (-)
 
 CHARACTER(LEN=*), PARAMETER       :: RN_ROOF = 'output/RN_ROOF.txt'
 CHARACTER(LEN=*), PARAMETER       :: RN_ROAD = 'output/RN_ROAD.txt'
@@ -464,14 +468,17 @@ DO JJ=1,SIZE(T%XROAD)
 	!print*, 'avg_urban_fluxes PH_TRAFFIC = ', PH_TRAFFIC(JJ)
 	!print*, 'avg_urban_fluxes T%XBLD (JJ) = ', T%XBLD (JJ)
 	
-    ZINTER = PAC_RD(JJ) * PDF_RD(JJ) * ZRD (JJ) +  PAC_GD(JJ) * ZGD(JJ) + PAC_WL(JJ) * PWL_O_GRND(JJ) + PAC_TOP(JJ) 
-    PT_CAN(JJ) =  (  T%XT_ROAD  (JJ,1) * PAC_RD (JJ) * PDF_RD (JJ) * ZRD(JJ)        &
+!MV202609 tau scheme of the road
+!* only the tau fraction of the road exchange heats the canyon air; the
+!* remaining part exchanges directly with the air of the forcing level
+    ZINTER = PTAU(JJ) * PAC_RD(JJ) * PDF_RD(JJ) * ZRD (JJ) +  PAC_GD(JJ) * ZGD(JJ) + PAC_WL(JJ) * PWL_O_GRND(JJ) + PAC_TOP(JJ) 
+    PT_CAN(JJ) =  (  T%XT_ROAD  (JJ,1) * PTAU(JJ) * PAC_RD (JJ) * PDF_RD (JJ) * ZRD(JJ)  &
                    + T%XT_WALL_A(JJ,1) * PAC_WL (JJ) * (1.-B%XGR(JJ)) * PWL_O_GRND(JJ) * 0.5 &
                    + T%XT_WALL_B(JJ,1) * PAC_WL (JJ) * (1.-B%XGR(JJ)) * PWL_O_GRND(JJ) * 0.5 &
                    + B%XT_WIN1    (JJ) * PAC_WL (JJ) *     B%XGR(JJ)  * PWL_O_GRND(JJ)       &
                    + PTA          (JJ) * PAC_TOP(JJ)                                         &
                    + PH_TRAFFIC   (JJ) / (1.-T%XBLD (JJ))               / PRHOA(JJ) / XCPD   &
-                   + PHSN_RD(JJ) * PDN_RD(JJ)                           / PRHOA(JJ) / XCPD  ) &
+                   + PHSN_RD(JJ) * PTAU(JJ) * PDN_RD(JJ)                / PRHOA(JJ) / XCPD  ) &
                                             / ZINTER  
 !
 !	print*, 'avg_urban_fluxes PT_CAN1 = ', PT_CAN(JJ)
@@ -500,12 +507,12 @@ DO JJ=1,SIZE(T%XROAD)
 !	print*, 'ZINTER = ', ZINTER        
 !ENDIF
 
-    ZINTER = PAC_RD_WAT(JJ) * PDF_RD(JJ) * PDELT_RD(JJ) * ZRD(JJ) + PAC_AGG_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ) + PAC_TOP(JJ)
-    PQ_CAN(JJ) = (  PQSAT_RD   (JJ) * PAC_RD_WAT(JJ) * PDF_RD    (JJ) * ZRD(JJ) * PDELT_RD(JJ)    &
+    ZINTER = PTAU(JJ) * PAC_RD_WAT(JJ) * PDF_RD(JJ) * PDELT_RD(JJ) * ZRD(JJ) + PAC_AGG_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ) + PAC_TOP(JJ)
+    PQ_CAN(JJ) = (  PQSAT_RD   (JJ) * PTAU(JJ) * PAC_RD_WAT(JJ) * PDF_RD    (JJ) * ZRD(JJ) * PDELT_RD(JJ)    &
                   + PQSAT_GD   (JJ) * PAC_AGG_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ)                   &
                   + PQA        (JJ) * PAC_TOP(JJ)                                                 &
                   + PLE_TRAFFIC(JJ) / (1.-T%XBLD(JJ)) / PRHOA(JJ) / XLVTT                         &
-                  + PLESN_RD   (JJ) * PDN_RD(JJ)      / PRHOA(JJ) / XLVTT * ZRD(JJ)  ) / ZINTER
+                  + PLESN_RD   (JJ) * PTAU(JJ) * PDN_RD(JJ)      / PRHOA(JJ) / XLVTT * ZRD(JJ)  ) / ZINTER
 
     IF (TOP%CBEM=="BEM") THEN
       PQ_CAN(JJ) = PQ_CAN(JJ) + (DMT%XLE_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ)) / PRHOA(JJ) / XLVTT) / ZINTER

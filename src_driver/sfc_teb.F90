@@ -61,7 +61,12 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
+!MV202609 tau scheme of the road
+                          PH_ROAD, PLE_ROAD, teb_ltau_scheme,                   &
+                          teb_tau_hw_thresh, teb_tau_hw_width,                  &
+!MV202609 anthropogenic heat diagnostics
+                          teb_lewaste)
 
 !-------------------------------------------------------------------------------
 ! Declarations
@@ -311,6 +316,14 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_CAN      ! road sensible heat flux,
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_CAN     ! road latent heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_ATM      ! road sensible heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_ATM     ! road latent heat flux, road -> forcing level [W m-2]
+!MV202609 tau scheme of the road
+REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD          ! road sensible heat flux, tau scheme [W m-2]
+!MV202609 anthropogenic heat diagnostics
+REAL, DIMENSION(:), INTENT(OUT)   :: teb_lewaste       ! latent waste heat of the buildings [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD         ! road latent heat flux, tau scheme [W m-2]
+LOGICAL,              INTENT(IN)  :: teb_ltau_scheme  ! flag to use the tau scheme for the road
+REAL,                 INTENT(IN)  :: teb_tau_hw_thresh! H/W giving tau = 0.5 (tau scheme)
+REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxation (tau scheme)
 	REAL ,DIMENSION(nvec) :: teb_rn_town
 	REAL ,DIMENSION(nvec) :: teb_wind_canyon
 	REAL ,DIMENSION(nvec) :: teb_tsroad
@@ -363,7 +376,12 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_ATM     ! road latent heat flux, r
                           PAC_ROAD_ATM(i), PCH_ROAD_ATM(i), PCD_ROAD_ATM(i), PCDN_ROAD_ATM(i), &
                           PRI_ROAD_ATM(i), ZZ0H_ROAD_ATM(i), PCDN_GARDEN_CAN(i), PRI_GARDEN_CAN(i), &
                           ZZ0H_GARDEN_CAN(i), PAC_GARDEN_ATM(i), PCDN_GARDEN_ATM(i), PRI_GARDEN_ATM(i), ZZ0H_GARDEN_ATM(i), &
-                          PH_ROAD_CAN(i), PLE_ROAD_CAN(i), PH_ROAD_ATM(i), PLE_ROAD_ATM(i))
+                          PH_ROAD_CAN(i), PLE_ROAD_CAN(i), PH_ROAD_ATM(i), PLE_ROAD_ATM(i), &
+!MV202609 tau scheme of the road
+                          PH_ROAD(i), PLE_ROAD(i), teb_ltau_scheme,                        &
+                          teb_tau_hw_thresh, teb_tau_hw_width,                             &
+!MV202609 anthropogenic heat diagnostics
+                          teb_lewaste(i))
 	END DO
 	
 END SUBROUTINE teb_interface
