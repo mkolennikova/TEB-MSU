@@ -48,14 +48,20 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				teb_qvfl_gd, teb_tch_gd, teb_tcm_gd, teb_runoff_gd, teb_itype_wind, teb_fai,        &
 				teb_dqs_town, teb_gflux, teb_shfl_rf, teb_shfl_rd, teb_shfl_wl, teb_ac_rf,          &
 				teb_ac_rd, teb_ac_wl, teb_ac_top, teb_tch_rf, teb_tch_rd, teb_tch_wl, teb_tch_top,  &
-				teb_wind_top, teb_ilmo_road, teb_ilmo_roof, teb_ilmo_top, ahf_traffic_now,          &
+				teb_wind_top, teb_ustar_town, teb_cd_garden_atm, teb_ch_garden_atm, ahf_traffic_now,          &
 				teb_rn_town, teb_wind_canyon, teb_tsroad, teb_lgarden_ext, teb_lgreenroof_ext,      &
 				teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
 				teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
 				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade,                         &
 !MV202609 z0 and zd to namelist
-				urb_z0_town, urb_zd_town)
+				urb_z0_town, urb_zd_town,                         &
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+                          PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
+                          PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
+                          PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
+                          ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
 
 !-------------------------------------------------------------------------------
 ! Declarations
@@ -280,9 +286,31 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 	REAL ,DIMENSION(nvec) :: teb_tch_wl
 	REAL ,DIMENSION(nvec) :: teb_tch_top
 	REAL ,DIMENSION(nvec) :: teb_wind_top
-	REAL ,DIMENSION(nvec) :: teb_ilmo_road
-	REAL ,DIMENSION(nvec) :: teb_ilmo_roof
-	REAL ,DIMENSION(nvec) :: teb_ilmo_top
+	REAL ,DIMENSION(nvec) :: teb_ustar_town
+	REAL ,DIMENSION(nvec) :: teb_cd_garden_atm
+	REAL ,DIMENSION(nvec) :: teb_ch_garden_atm
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_ROAD_CAN    ! road   roughness length for heat (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM     ! road   aerodynamical conductance (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROAD_ATM     ! road   drag coefficient for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_ATM     ! road   drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_ATM    ! road   neutral drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_ATM     ! road   Richardson number (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_ROAD_ATM    ! road   roughness length for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_CAN  ! garden neutral drag coefficient (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_CAN   ! garden Richardson number (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_CAN  ! garden roughness length for heat (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GARDEN_ATM   ! garden aerodynamical conductance (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_ATM  ! garden neutral drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_ATM   ! garden Richardson number (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_CAN      ! road sensible heat flux, road -> canyon air [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_CAN     ! road latent heat flux, road -> canyon air [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_ATM      ! road sensible heat flux, road -> forcing level [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_ATM     ! road latent heat flux, road -> forcing level [W m-2]
 	REAL ,DIMENSION(nvec) :: teb_rn_town
 	REAL ,DIMENSION(nvec) :: teb_wind_canyon
 	REAL ,DIMENSION(nvec) :: teb_tsroad
@@ -322,14 +350,20 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				teb_qvfl_gd(i), teb_tch_gd(i), teb_tcm_gd(i), teb_runoff_gd(i), teb_itype_wind, teb_fai(i,:),           &
 				teb_dqs_town(i), teb_gflux(i), teb_shfl_rf(i), teb_shfl_rd(i), teb_shfl_wl(i), teb_ac_rf(i),            &
 				teb_ac_rd(i), teb_ac_wl(i), teb_ac_top(i), teb_tch_rf(i), teb_tch_rd(i), teb_tch_wl(i), teb_tch_top(i), &
-				teb_wind_top(i), teb_ilmo_road(i), teb_ilmo_roof(i), teb_ilmo_top(i), ahf_traffic_now(i),               &
+				teb_wind_top(i), teb_ustar_town(i), teb_cd_garden_atm(i), teb_ch_garden_atm(i), ahf_traffic_now(i),               &
 				teb_rn_town(i), teb_wind_canyon(i), teb_tsroad(i), teb_lgarden_ext, teb_lgreenroof_ext, teb_hroad_dir,  &
 				teb_wall_opt, teb_road_dir(i), teb_zresidential(i), teb_dt_res(i), teb_dt_off(i), teb_cap_sys_heat(i),  &
 				teb_lsolar_panel, teb_fr_panel(i), teb_lroad_irrig, teb_rd_irrig_start_m(i), teb_rd_irrig_end_m(i),     &
 				teb_rd_irrig_start_h(i), teb_rd_irrig_end_h(i), teb_rd_irrig_sum(i), teb_solar_prod(i), teb_utc_hour,   &
 				teb_lshade,                                                                       &
 !MV202609 z0 and zd to namelist
-				urb_z0_town, urb_zd_town)
+				urb_z0_town, urb_zd_town,                         &
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+                          PCD_ROAD_CAN(i), PCDN_ROAD_CAN(i), PRI_ROAD_CAN(i), ZZ0H_ROAD_CAN(i), &
+                          PAC_ROAD_ATM(i), PCH_ROAD_ATM(i), PCD_ROAD_ATM(i), PCDN_ROAD_ATM(i), &
+                          PRI_ROAD_ATM(i), ZZ0H_ROAD_ATM(i), PCDN_GARDEN_CAN(i), PRI_GARDEN_CAN(i), &
+                          ZZ0H_GARDEN_CAN(i), PAC_GARDEN_ATM(i), PCDN_GARDEN_ATM(i), PRI_GARDEN_ATM(i), ZZ0H_GARDEN_ATM(i), &
+                          PH_ROAD_CAN(i), PLE_ROAD_CAN(i), PH_ROAD_ATM(i), PLE_ROAD_ATM(i))
 	END DO
 	
 END SUBROUTINE teb_interface

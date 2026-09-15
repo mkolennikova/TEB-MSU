@@ -27,12 +27,18 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 				ZRUNOFF_GR_EXT, LGARDEN, ZZ0_GD_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD,   &
 				ZCD_GD, ZRUNOFF_GD_EXT, ITYPE_WIND, ZFAI, ZDQS_TOWN, ZGFLUX_TOWN, ZH_ROOF_FR, ZH_ROAD_FR,         &
 				ZH_WALL_FR, ZAC_ROOF, ZAC_ROAD, ZAC_WALL, ZAC_TOP, ZCH_RF, ZCH_RD, ZCH_WL, ZCH_TOP, ZU_TOP,   &
-                ZUSTAR_TOWN, ZCD_TERRA, ZCH_TERRA, ZH_TRAFFIC_NOW, ZRN_TOWN, ZU_CANYON, ZTS_ROAD, LGARDEN_EXT, &
+                ZUSTAR_TOWN, ZCD_GARDEN_ATM, ZCH_GARDEN_ATM, ZH_TRAFFIC_NOW, ZRN_TOWN, ZU_CANYON, ZTS_ROAD, LGARDEN_EXT, &
 				LGREENROOF_EXT, HROAD_DIR, HWALL_OPT, ZROAD_DIR, ZRESIDENTIAL, ZDT_RES, ZDT_OFF, ZCAP_SYS_HEAT, &
 				LSOLAR_PANEL, ZFRAC_PANEL, LPAR_RD_IRRIG, ZRD_START_MONTH, ZRD_END_MONTH, ZRD_START_HOUR,        &
 				ZRD_END_HOUR, ZRD_24H_IRRIG, ZPROD_BLD, ZUTC_HOUR, LSHADE,                                     &
 !MV202609 z0 and zd to namelist
-				HZ0_TOWN, HZD_TOWN)
+				HZ0_TOWN, HZD_TOWN,                         &
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+                          PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
+                          PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
+                          PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
+                          ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
 							
 ! ======================================================================
 ! 
@@ -337,13 +343,36 @@ REAL,DIMENSION(1)                 :: ZCH_RD            !OUT road transfer coeffi
 REAL,DIMENSION(1)                 :: ZCH_RF            !OUT roof transfer coefficient for heat
 REAL,DIMENSION(1)                 :: ZCH_WL            !OUT wall transfer coefficient for heat
 REAL,DIMENSION(1)                 :: ZCH_TOP           !OUT between canyon top and atm. transfer coefficient for heat
-REAL,DIMENSION(1)                 :: ZILMO_ROAD        !OUT 1/length of Monin-Obukov
-REAL,DIMENSION(1)                 :: ZILMO_ROOF        !OUT 1/length of Monin-Obukov
-REAL,DIMENSION(1)                 :: ZILMO_TOP         !OUT 1/length of Monin-Obukov
+REAL,DIMENSION(1)                 :: ZILMO_ROAD_CAN        !OUT 1/length of Monin-Obukov
+REAL,DIMENSION(1)                 :: ZILMO_ROOF_EXCH        !OUT 1/length of Monin-Obukov
+REAL,DIMENSION(1)                 :: ZILMO_TOP_EXCH         !OUT 1/length of Monin-Obukov
+REAL,DIMENSION(1)                 :: ZILMO_TOP_FLUX         ! 1/length of Monin-Obukov (from fluxes)
 REAL,DIMENSION(1)                 :: ZLMO_TOP          !OUT 1/length of Monin-Obukov 
 REAL,DIMENSION(1)                 :: ZZ0U              !OUT Roughness length (m)
-REAL,DIMENSION(1)                 :: ZCD_TERRA         !OUT 
-REAL,DIMENSION(1)                 :: ZCH_TERRA         !OUT 
+REAL,DIMENSION(1)                 :: ZCD_GARDEN_ATM         !OUT 
+REAL,DIMENSION(1)                 :: ZCH_GARDEN_ATM         !OUT 
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+REAL,DIMENSION(1)                 :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
+REAL,DIMENSION(1)                 :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
+REAL,DIMENSION(1)                 :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
+REAL,DIMENSION(1)                 :: ZZ0H_ROAD_CAN    ! road   roughness length for heat (canyon)
+REAL,DIMENSION(1)                 :: PAC_ROAD_ATM     ! road   aerodynamical conductance (atm.)
+REAL,DIMENSION(1)                 :: PCH_ROAD_ATM     ! road   drag coefficient for heat (atm.)
+REAL,DIMENSION(1)                 :: PCD_ROAD_ATM     ! road   drag coefficient (atm.)
+REAL,DIMENSION(1)                 :: PCDN_ROAD_ATM    ! road   neutral drag coefficient (atm.)
+REAL,DIMENSION(1)                 :: PRI_ROAD_ATM     ! road   Richardson number (atm.)
+REAL,DIMENSION(1)                 :: ZZ0H_ROAD_ATM    ! road   roughness length for heat (atm.)
+REAL,DIMENSION(1)                 :: PCDN_GARDEN_CAN  ! garden neutral drag coefficient (canyon)
+REAL,DIMENSION(1)                 :: PRI_GARDEN_CAN   ! garden Richardson number (canyon)
+REAL,DIMENSION(1)                 :: ZZ0H_GARDEN_CAN  ! garden roughness length for heat (canyon)
+REAL,DIMENSION(1)                 :: PAC_GARDEN_ATM   ! garden aerodynamical conductance (atm.)
+REAL,DIMENSION(1)                 :: PCDN_GARDEN_ATM  ! garden neutral drag coefficient (atm.)
+REAL,DIMENSION(1)                 :: PRI_GARDEN_ATM   ! garden Richardson number (atm.)
+REAL,DIMENSION(1)                 :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (atm.)
+REAL,DIMENSION(1)                 :: PH_ROAD_CAN      !OUT road sensible heat flux, road -> canyon air [W m-2]
+REAL,DIMENSION(1)                 :: PLE_ROAD_CAN     !OUT road latent heat flux, road -> canyon air [W m-2]
+REAL,DIMENSION(1)                 :: PH_ROAD_ATM      !OUT road sensible heat flux, road -> forcing level [W m-2]
+REAL,DIMENSION(1)                 :: PLE_ROAD_ATM     !OUT road latent heat flux, road -> forcing level [W m-2]
 REAL,DIMENSION(1)                 :: ZH_TRAFFIC_NOW    !OUT heat fluxes due to traffic at current time-step      
 REAL,DIMENSION(1)                 :: ZPROD_BLD         !OUT Averaged Energy production of solar panel on roofs (W/m2 bld  )   
  
@@ -892,10 +921,10 @@ IF (ntstep == 1) THEN
 	ZZ0U = ZZ0
 ELSE
     ZZ0U = ZZ0
-	!IF (ZILMO_TOP(1) < 0.) THEN
-	!	ZZ0U = ZZ0 * (1 + 1.15 * ((ZBLD_HEIGHT / -ZILMO_TOP)**(1./3.)))
+	!IF (ZILMO_TOP_FLUX(1) < 0.) THEN
+	!	ZZ0U = ZZ0 * (1 + 1.15 * ((ZBLD_HEIGHT / -ZILMO_TOP_FLUX)**(1./3.)))
 	!ELSE
-	!	ZZ0U = ZZ0 / (1 + 8.13 * (ZBLD_HEIGHT / ZILMO_TOP))
+	!	ZZ0U = ZZ0 / (1 + 8.13 * (ZBLD_HEIGHT / ZILMO_TOP_FLUX))
 	!ENDIF	
 ENDIF
 !ZZ0U = MIN(ZZ0U,ZZ0 * 5.)
@@ -1426,8 +1455,14 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, LGARDEN_EXT, LGREENROOF, LGREENR
 					 ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZH_GR_EXT, ZLE_GR_EXT, ZEVAP_GR_EXT,   &
 					 ZRUNOFF_GR_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, &
 					 ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, ZRUNOFF_GD_EXT, ZCH_RD,    &
-					 ZCH_RF, ZCH_WL, ZCH_TOP, ZAC_TOP, ZILMO_ROAD, ZILMO_ROOF,&
-                     ZILMO_TOP, ZCD_TERRA, ZCH_TERRA, ZZDU			 )
+					 ZCH_RF, ZCH_WL, ZCH_TOP, ZAC_TOP, ZILMO_ROAD_CAN, ZILMO_ROOF_EXCH,&
+                     ZILMO_TOP_EXCH, ZCD_GARDEN_ATM, ZCH_GARDEN_ATM, ZZDU			 ,                         &
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+                          PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
+                          PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
+                          PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
+                          ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
 !*****************************************************************************
 !*****************************************************************************
 !*****************************************************************************
@@ -1485,12 +1520,15 @@ DELTA_TWALL = ZTS_WALL_A - ZT_CANYON
 ZABS_SW_GRND = ZROAD /(ZROAD + ZGARDEN) * ZABS_SW_ROAD + ZGARDEN /(ZROAD + ZGARDEN) * ZABS_SW_GARDEN
 ZABS_LW_GRND = ZROAD /(ZROAD + ZGARDEN) * ZABS_LW_ROAD + ZGARDEN /(ZROAD + ZGARDEN) * ZABS_LW_GARDEN
 
-ZILMO_TOP = -(ZUSTAR_TOWN**3 * XTA) / (XKARMAN * XG * ZH_TOWN / (XCPD * XRHOA))
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+!* 1/L of the town computed from the fluxes (not exported; distinct from ZILMO_TOP_EXCH
+!* which receives the 1/L from TEB, empty under MASC95)
+ZILMO_TOP_FLUX = -(ZUSTAR_TOWN**3 * XTA) / (XKARMAN * XG * ZH_TOWN / (XCPD * XRHOA))
 
-IF (ZILMO_TOP(1) < 0.) THEN
-	ZILMO_TOP = MIN(-ZBLD_HEIGHT / 150., ZILMO_TOP)
+IF (ZILMO_TOP_FLUX(1) < 0.) THEN
+	ZILMO_TOP_FLUX = MIN(-ZBLD_HEIGHT / 150., ZILMO_TOP_FLUX)
 ELSE
-	ZILMO_TOP = MAX(ZBLD_HEIGHT / 150., ZILMO_TOP)
+	ZILMO_TOP_FLUX = MAX(ZBLD_HEIGHT / 150., ZILMO_TOP_FLUX)
 ENDIF
 
 ! --------------------------------------------------------------------------------------

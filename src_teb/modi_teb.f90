@@ -21,8 +21,14 @@ INTERFACE
                      PLW_WIN_TO_WB, PLW_WIN_TO_R, PLW_WIN_TO_NR, KDAY, PEMIT_LW_FAC,    &
                      PEMIT_LW_RD, PT_RAD_IND, PHU_BLD, PTIME, PE_SHADING, PMELT_BLT,    &
 					 PSNOWD_RF, PSNOWD_RD, PCH_GARDEN, PCD_GARDEN, PCH_ROAD, PCH_ROOF,  &
-					 PCH_WALL, PCH_TOP, ILMO_ROAD, ILMO_ROOF, ILMO_TOP, PCD_TERRA,      &
-					 PCH_TERRA					 )
+					 PCH_WALL, PCH_TOP, ILMO_ROAD, ILMO_ROOF, ILMO_TOP, PCD_GARDEN_ATM,      &
+					 PCH_GARDEN_ATM					 ,                         &
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+                          PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
+                          PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
+                          PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
+                          ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
@@ -199,8 +205,30 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PCH_TOP     ! drag coeifficient for heat
 REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_ROAD   ! 1/length of Monin-Obukov
 REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_ROOF   ! 1/length of Monin-Obukov
 REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_TOP    ! 1/length of Monin-Obukov
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD_TERRA
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_TERRA
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GARDEN_ATM
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN_ATM
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_ATM   ! sensible heat flux, road -> forcing level [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_ATM  ! latent heat flux, road -> forcing level [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_CAN   ! sensible heat flux, road -> canyon air [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_CAN  ! latent heat flux, road -> canyon air [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_ROAD_CAN    ! road   roughness length for heat (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM     ! road   aerodynamical conductance (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROAD_ATM     ! road   drag coefficient for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_ATM     ! road   drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_ATM    ! road   neutral drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_ATM     ! road   Richardson number (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_ROAD_ATM    ! road   roughness length for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_CAN  ! garden neutral drag coefficient (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_CAN   ! garden Richardson number (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_CAN  ! garden roughness length for heat (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GARDEN_ATM   ! garden aerodynamical conductance (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_ATM  ! garden neutral drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_ATM   ! garden Richardson number (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (atm.)
 
 END SUBROUTINE TEB
 END INTERFACE

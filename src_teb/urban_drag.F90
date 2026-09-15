@@ -12,11 +12,18 @@
                           PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT,  &
 						  PTSRAD_GR, PRUNOFF_GR, PQSAT_ROOF,      &
                           PQSAT_ROAD, PDELT_ROOF, PDELT_ROAD, PCD, PCDN, PAC_ROOF, &
-                          PAC_ROOF_WAT, PAC_WALL, PAC_ROAD, PAC_ROAD_WAT, PAC_TOP, &
-                          PAC_GARDEN, PRI, PUW_ROAD, PUW_ROOF, PDUWDU_ROAD,        &
-                          PDUWDU_ROOF, PUSTAR_TOWN, PAC_WIN, PCH_GARDEN,           &
-						  PCD_GARDEN, PCH_ROAD, PCH_ROOF, PCH_WALL, PCH_TOP,       &
-                          ILMO_ROAD, ILMO_ROOF, ILMO_TOP, PCD_TERRA, PCH_TERRA	  ) 
+                          PAC_ROOF_WAT, PAC_WALL, PAC_ROAD_CAN, PAC_ROAD_WAT, PAC_TOP, &
+                          PAC_GARDEN_CAN, PRI, PUW_ROAD, PUW_ROOF, PDUWDU_ROAD,        &
+                          PDUWDU_ROOF, PUSTAR_TOWN, PAC_WIN, PCH_GARDEN_CAN,           &
+						  PCD_GARDEN_CAN, PCH_ROAD_CAN, PCH_ROOF, PCH_WALL, PCH_TOP,       &
+                          ILMO_ROAD_CAN, ILMO_ROOF, ILMO_TOP, PCD_GARDEN_ATM, PCH_GARDEN_ATM,      &
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+                          PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN,    &
+                          PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM,    &
+                          PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN,&
+                          ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM,            &
+                          PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM,                              &
+                          PAC_ROAD_ATM_WAT	  ) 
 !   ##########################################################################
 !
 !!****  *URBAN_DRAG*  
@@ -65,6 +72,7 @@
 !                            canopy/no canopy
 !          09/12 (G. Pigeon) add new formulation for outdoor conv. coef for
 !                            wall/roof/window
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !!
 !-------------------------------------------------------------------------------
 !
@@ -155,18 +163,18 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROOF_WAT   ! aerodynamical conductance 
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_WALL       ! aerodynamical conductance
 !                                                   ! between canyon air and
 !                                                   ! walls 
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD       ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_CAN       ! aerodynamical conductance
 !                                                   ! between canyon air and
 !                                                   ! roads
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_WAT   ! aerodynamical conductance
 !                                                   ! between canyon air and
 !                                                   ! road (for water)
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GARDEN     ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GARDEN_CAN     ! aerodynamical conductance
 !                                                   ! between canyon air and
 !                                                   ! garden
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_TOP        ! aerodynamical conductance
 !                                                   ! between canyon top and atm.
-!REAL, DIMENSION(:), INTENT(IN)    :: PAC_GARDEN     ! aerodynamical conductance
+!REAL, DIMENSION(:), INTENT(IN)    :: PAC_GARDEN_CAN     ! aerodynamical conductance
 !                                                   ! between canyon air and GARDEN areas
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI            ! Town Richardson number
 !
@@ -177,18 +185,42 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PDUWDU_ROOF    !
 REAL, DIMENSION(:), INTENT(OUT)   :: PUSTAR_TOWN    ! Fraction velocity for town
 !
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_WIN        ! aerodynamical conductance for window
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN     ! drag coeifficient for heat
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GARDEN     ! garden  surf. exchange coefficient
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROAD       ! drag coeifficient for heat
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN_CAN     ! drag coeifficient for heat
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GARDEN_CAN     ! garden  surf. exchange coefficient
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROAD_CAN       ! drag coeifficient for heat
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROOF       ! drag coeifficient for heat
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_WALL       ! drag coeifficient for heat
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_TOP        ! drag coeifficient for heat
 
-REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_ROAD      ! 1/length of Monin-Obukov
+REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_ROAD_CAN      ! 1/length of Monin-Obukov
 REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_ROOF      ! 1/length of Monin-Obukov
 REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_TOP       ! 1/length of Monin-Obukov
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD_TERRA
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_TERRA
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GARDEN_ATM ! garden surf. exchange coeff. (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN_ATM ! garden drag coeff. for heat (atm.)
+!
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+!* full set of URBAN_EXCH_COEF outputs for the exchange between the road and the
+!* garden surfaces and the air of the canyon (_CAN) or of the forcing level (_ATM)
+!* (diagnostic variables only, see section 8.3 below)
+!
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_ROAD_CAN    ! road   roughness length for heat (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM     ! road   aerodynamical conductance (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROAD_ATM     ! road   drag coefficient for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_ATM     ! road   drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_ATM    ! road   neutral drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_ATM     ! road   Richardson number (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_ROAD_ATM    ! road   roughness length for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_CAN  ! garden neutral drag coefficient (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_CAN   ! garden Richardson number (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_CAN  ! garden roughness length for heat (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GARDEN_ATM   ! garden aerodynamical conductance (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_ATM  ! garden neutral drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_ATM   ! garden Richardson number (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM_WAT ! road   conductance for water (atm.)
 
 !
 !*      0.2    declarations of local variables
@@ -207,15 +239,16 @@ REAL, DIMENSION(SIZE(PTA)) :: ZW_CAN       ! ver. wind in canyon
 REAL, DIMENSION(SIZE(PTA)) :: ZRI          ! Richardson number
 REAL, DIMENSION(SIZE(PTA)) :: ZLE_MAX      ! maximum latent heat flux available
 REAL, DIMENSION(SIZE(PTA)) :: ZLE          ! actual latent heat flux
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+REAL, DIMENSION(SIZE(PTA)) :: ZLE_ROAD_ATM ! road latent heat flux, road -> forcing level
 REAL, DIMENSION(SIZE(PTA)) :: ZRA_ROOF     ! aerodynamical resistance
 !REAL, DIMENSION(SIZE(PTA)) :: ZCH_ROOF     ! drag coefficient for heat
 REAL, DIMENSION(SIZE(PTA)) :: ZRA_TOP      ! aerodynamical resistance
 !REAL, DIMENSION(SIZE(PTA)) :: ZCH_TOP      ! drag coefficient for heat
-REAL, DIMENSION(SIZE(PTA)) :: ZRA_ROAD     ! aerodynamical resistance
-REAL, DIMENSION(SIZE(PTA)) :: ZRA_GARDEN   ! aerodynamical resistance
-REAL, DIMENSION(SIZE(PTA)) :: ZCDN_GARDEN  ! 
-REAL, DIMENSION(SIZE(PTA)) :: ZCDN_TERRA   ! 
-REAL, DIMENSION(SIZE(PTA)) :: ZCD_ROAD     ! road  surf. exchange coefficient
+REAL, DIMENSION(SIZE(PTA)) :: ZRA_ROAD_CAN     ! road aerodynamical resistance (canyon)
+REAL, DIMENSION(SIZE(PTA)) :: ZRA_GARDEN_CAN   ! garden aerodynamical resistance (canyon)
+REAL, DIMENSION(SIZE(PTA)) :: ZRA_ROAD_ATM     ! road aerodynamical resistance (atm., unused)
+REAL, DIMENSION(SIZE(PTA)) :: ZILMO_ROAD_ATM   ! road 1/L of Monin-Obukov (atm., unused)
 REAL, DIMENSION(SIZE(PTA)) :: ZAC          ! town aerodynamical conductance (not used)
 REAL, DIMENSION(SIZE(PTA)) :: ZRA          ! town aerodynamical resistance  (not used)
 REAL, DIMENSION(SIZE(PTA)) :: ZCH          ! town drag coefficient for heat (not used)
@@ -237,8 +270,6 @@ REAL, DIMENSION(SIZE(PTA)) :: ZUSTAR_TOWN  !
 REAL, DIMENSION(SIZE(PTA)) :: ZZ0_TOP      ! roughness length for zac_top calculation
 REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_TOP      ! roughness length for zac_top calculation
 REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_ROOF      ! roughness length for zac_top calculation
-REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_ROAD      ! roughness length for zac_top calculation
-REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_GARDEN    ! roughness length for zac_top calculation
 REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_TOWN      ! roughness length for zac_top calculation
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCN_WIN   ! natural convective heat transfer coef. for window [W/(m2.K)]
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCN_ROOF  ! natural convective heat transfer coef. for roof [W/(m2.K)]
@@ -247,10 +278,8 @@ REAL, DIMENSION(SIZE(PTA)) :: ZCHTCN_WALL  ! natural convective heat transfer co
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCS_WALL  ! forced natural convective heat transfer coef. for smooth wall [W/(m2.K)]
 REAL, DIMENSION(SIZE(PTA)) :: ZTS_GROUND   ! Surface temperature of ground (road + garden)
 REAL, DIMENSION(SIZE(PTA)) :: ZZ0_GROUND   ! Roughness length of ground (road + garden)
-REAL, DIMENSION(SIZE(PTA)) :: ZAC_TERRA
-REAL, DIMENSION(SIZE(PTA)) :: ZRA_TERRA
-REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_TERRA
-REAL, DIMENSION(SIZE(PTA)) :: ILMO_TERRA
+REAL, DIMENSION(SIZE(PTA)) :: ZRA_GARDEN_ATM
+REAL, DIMENSION(SIZE(PTA)) :: ZILMO_GARDEN_ATM
 REAL, DIMENSION(SIZE(PTA)) :: ZVMOD_TOWN
 REAL, DIMENSION(SIZE(PTA)) :: ZVMOD_TOP
 REAL, DIMENSION(SIZE(PTA)) :: ZUSTAR_TOP
@@ -291,6 +320,39 @@ PCD    (:) = XUNDEF
 PCDN   (:) = XUNDEF
 PAC_TOP(:) = XUNDEF
 PRI    (:) = XUNDEF
+!
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+!* diagnostic exchange coefficients between the surfaces and the air of the
+!* canyon or of the forcing level (see section 8.3), full set of URBAN_EXCH_COEF
+!* outputs; the garden/atmosphere ones are filled only if OGARDEN_EXT
+!
+PCD_ROAD_CAN   (:) = XUNDEF
+PCDN_ROAD_CAN  (:) = XUNDEF
+PRI_ROAD_CAN   (:) = XUNDEF
+ZZ0H_ROAD_CAN  (:) = XUNDEF
+PAC_ROAD_ATM   (:) = XUNDEF
+PAC_ROAD_ATM_WAT(:) = XUNDEF
+PCH_ROAD_ATM   (:) = XUNDEF
+PCD_ROAD_ATM   (:) = XUNDEF
+PCDN_ROAD_ATM  (:) = XUNDEF
+PRI_ROAD_ATM   (:) = XUNDEF
+ZZ0H_ROAD_ATM  (:) = XUNDEF
+PCDN_GARDEN_CAN(:) = XUNDEF
+PRI_GARDEN_CAN (:) = XUNDEF
+ZZ0H_GARDEN_CAN(:) = XUNDEF
+PAC_GARDEN_ATM (:) = XUNDEF
+PCDN_GARDEN_ATM(:) = XUNDEF
+PRI_GARDEN_ATM (:) = XUNDEF
+ZZ0H_GARDEN_ATM(:) = XUNDEF
+PCD_GARDEN_ATM (:) = XUNDEF
+PCH_GARDEN_ATM (:) = XUNDEF
+!
+!* 1/L is not computed under MASC95 (see URBAN_EXCH_COEF): the corresponding
+!* outputs are set here to XUNDEF so that no uninitialised value leaves this routine
+!
+ILMO_ROAD_CAN  (:) = XUNDEF
+ILMO_ROOF      (:) = XUNDEF
+ILMO_TOP       (:) = XUNDEF
 !
 PUW_ROAD   (:) = XUNDEF
 PUW_ROOF   (:) = XUNDEF
@@ -518,16 +580,17 @@ END WHERE
 !
 !  ZZ0_GROUND(:) = ZZ0_ROAD(:) * T%XROAD  (:)/(T%XROAD(:)+T%XGARDEN(:)) + ZZ0_GARDEN(:) * T%XGARDEN  (:)/(T%XROAD(:)+T%XGARDEN(:))
    
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
   CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQ_LOWCAN, PEXNS, PEXNA,  &
 						PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
-						PU_LOWCAN+ZW_CAN, ZZ0_ROAD, ZRI, ZCD_ROAD, ZCDN,         &
-						PAC_ROAD, ZRA_ROAD, PCH_ROAD, ZZ0H_ROAD, ILMO_ROAD        )
+						PU_LOWCAN+ZW_CAN, ZZ0_ROAD, PRI_ROAD_CAN, PCD_ROAD_CAN, PCDN_ROAD_CAN,         &
+						PAC_ROAD_CAN, ZRA_ROAD_CAN, PCH_ROAD_CAN, ZZ0H_ROAD_CAN, ILMO_ROAD_CAN        )
   
   !
   !CALL URBAN_EXCH_COEF('MASC95', ZZ0_O_Z0H, ZTS_GROUND, PQ_LOWCAN, PEXNS, PEXNA,  &
   !                     PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
-  !                     PVMOD, ZZ0_GROUND, ZRI, ZCD_ROAD, ZCDN,         &
-  !                     PAC_ROAD, ZRA_ROAD, PCH_ROAD, ZZ0H_ROAD        )
+  !                     PVMOD, ZZ0_GROUND, ZRI, PCD_ROAD_CAN, ZCDN,         &
+  !                     PAC_ROAD_CAN, ZRA_ROAD_CAN, PCH_ROAD_CAN, ZZ0H_ROAD_CAN        )
 					   
   
   DO JJ=1,SIZE(PTA)
@@ -536,10 +599,10 @@ END WHERE
 
     IF (T%XROAD(JJ) .GT. 0.) THEN
 !      ZQ0(JJ)   = ZQ0(JJ) &
-!            + (PTS_ROAD  (JJ) - PT_LOWCAN(JJ)) * PAC_ROAD  (JJ) * T%XROAD  (JJ)/(T%XROAD(JJ)+T%XGARDEN(JJ)) 
+!            + (PTS_ROAD  (JJ) - PT_LOWCAN(JJ)) * PAC_ROAD_CAN  (JJ) * T%XROAD  (JJ)/(T%XROAD(JJ)+T%XGARDEN(JJ)) 
 
       ZQ0(JJ)   = ZQ0(JJ) &
-            + (ZTS_GROUND  (JJ) - PT_LOWCAN(JJ)) * PAC_ROAD  (JJ)
+            + (ZTS_GROUND  (JJ) - PT_LOWCAN(JJ)) * PAC_ROAD_CAN  (JJ)
 
     ENDIF
 ! 
@@ -552,22 +615,48 @@ END WHERE
   ENDDO
 !
 END DO
-!PCH_ROAD(:) = PCH_ROAD(:) * 2.
-!PAC_ROAD(:) = PAC_ROAD(:) * 2.
+!-------------------------------------------------------------------------------
+!
+!*      8.3    Exchange coefficients between the road and the atmosphere
+!              at the forcing level (direct exchange, without the canyon)
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+!              ------------------------------------------------------------
+!
+!* Same kind of diagnostic as the garden/atmosphere (TERRA) coefficients: the
+!  value of the aerodynamic coefficients that the road surface would have if it
+!  exchanged directly with the air of the forcing level (PTA, PQA and PVMOD at
+!  the heights PZREF and PUREF) instead of the low canyon air (PT_LOWCAN,
+!  PQ_LOWCAN and PU_LOWCAN at the height PZ_LOWCAN).
+!
+!* This call is the exact analogue of the road/canyon one (section 8.2): same
+!  roughness length for momentum (ZZ0_ROAD), same option for the roughness length
+!  for heat (TOP%CZ0H with the ZZ0_O_Z0H ratio) and same wind thresholding, only
+!  the reference air is changed.
+!
+!* These coefficients are diagnostic variables only: they do not feed back on the
+!  surface energy budget.
+!
+CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQA, PEXNS, PEXNA, PTA, PQA, &
+                     PZREF, PUREF, PVMOD, ZZ0_ROAD, PRI_ROAD_ATM, PCD_ROAD_ATM, &
+                     PCDN_ROAD_ATM, PAC_ROAD_ATM, ZRA_ROAD_ATM, PCH_ROAD_ATM,  &
+                     ZZ0H_ROAD_ATM, ZILMO_ROAD_ATM                              )
+!
+!PCH_ROAD_CAN(:) = PCH_ROAD_CAN(:) * 2.
+!PAC_ROAD_CAN(:) = PAC_ROAD_CAN(:) * 2.
 !IF (icell == 1 .AND. iblock == 1884) THEN
 !   print*, 'ZZ0_GROUND = ', ZZ0_GROUND 
-!   print*, 'ZZ0H_ROAD = ', ZZ0H_ROAD
-!   print*, 'PCH_ROAD = ', PCH_ROAD
+!   print*, 'ZZ0H_ROAD_CAN = ', ZZ0H_ROAD_CAN
+!   print*, 'PCH_ROAD_CAN = ', PCH_ROAD_CAN
 !ENDIF
 
 !IF (TOP%LGARDEN) THEN
-!	PCH_GARDEN(:) = PCH_ROAD(:)
-!	PAC_GARDEN(:) = PAC_ROAD(:)
-!	PCD_GARDEN(:) = ZCD_ROAD(:)
+!	PCH_GARDEN_CAN(:) = PCH_ROAD_CAN(:)
+!	PAC_GARDEN_CAN(:) = PAC_ROAD_CAN(:)
+!	PCD_GARDEN_CAN(:) = PCD_ROAD_CAN(:)
 !ELSE
-!	PCH_GARDEN(:) = 0.
-!	PAC_GARDEN(:) = 0.
-!	PCD_GARDEN(:) = 0.
+!	PCH_GARDEN_CAN(:) = 0.
+!	PAC_GARDEN_CAN(:) = 0.
+!	PCD_GARDEN_CAN(:) = 0.
 !ENDIF	
 !
 !
@@ -578,13 +667,29 @@ DO JJ=1,SIZE(PTA)
   !
   ZLE_MAX(JJ)     = T%XWS_ROAD(JJ) / PTSTEP * XLVTT
   ZLE    (JJ)     = ( PQSAT_ROAD(JJ) - PQ_LOWCAN(JJ) )                   &
-                   *   PAC_ROAD(JJ) * PDELT_ROAD(JJ) * XLVTT * PRHOA(JJ)
+                   *   PAC_ROAD_CAN(JJ) * PDELT_ROAD(JJ) * XLVTT * PRHOA(JJ)
   !
-  PAC_ROAD_WAT(JJ) = PAC_ROAD(JJ)
+  PAC_ROAD_WAT(JJ) = PAC_ROAD_CAN(JJ)
   !
   IF (PDELT_ROAD(JJ)==0.) PAC_ROAD_WAT(JJ) = 0.
   !
-  IF (ZLE(JJ)>0.) PAC_ROAD_WAT(JJ) = PAC_ROAD(JJ) * MIN ( 1. , ZLE_MAX(JJ)/ZLE(JJ) )
+  IF (ZLE(JJ)>0.) PAC_ROAD_WAT(JJ) = PAC_ROAD_CAN(JJ) * MIN ( 1. , ZLE_MAX(JJ)/ZLE(JJ) )
+  !
+  !MV202609 road-to-atm and garden-to-atm exchange diagnostics
+  !* same water limitation as above, but for the exchange of the road with the air
+  !* of the forcing level: the corresponding conductance is used by the road ->
+  !* atmosphere flux diagnostic computed in ROAD_LAYER_E_BUDGET. The available
+  !* water (ZLE_MAX) is the same for both diagnostics.
+  !
+  ZLE_ROAD_ATM(JJ) = ( PQSAT_ROAD(JJ) - PQA(JJ) )                        &
+                     * PAC_ROAD_ATM(JJ) * PDELT_ROAD(JJ) * XLVTT * PRHOA(JJ)
+  !
+  PAC_ROAD_ATM_WAT(JJ) = PAC_ROAD_ATM(JJ)
+  !
+  IF (PDELT_ROAD(JJ)==0.) PAC_ROAD_ATM_WAT(JJ) = 0.
+  !
+  IF (ZLE_ROAD_ATM(JJ)>0.) PAC_ROAD_ATM_WAT(JJ) = PAC_ROAD_ATM(JJ) * MIN ( 1. , ZLE_MAX(JJ)/ZLE_ROAD_ATM(JJ) )
+  !
   !
   !
   !*      8.5    aerodynamical conductance for window
@@ -605,22 +710,40 @@ DO JJ=1,SIZE(PTA)
 
 
 !IF (TOP%LGARDEN) THEN
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+!* garden/canyon exchange coefficients: computed only when the garden is provided
+!* by an EXTERNAL model (OGARDEN_EXT) - the same condition as for the
+!* garden/atmosphere coefficients below.
 IF (OGARDEN_EXT) THEN
    
-   CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
+CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
                        PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
-                       PU_LOWCAN, PZ0_GARDEN_EXT, ZRI, PCD_GARDEN, ZCDN_GARDEN,         &
-                       PAC_GARDEN, ZRA_GARDEN, PCH_GARDEN, ZZ0H_GARDEN, ILMO_GARDEN        )	
+                       PU_LOWCAN, PZ0_GARDEN_EXT, PRI_GARDEN_CAN, PCD_GARDEN_CAN, PCDN_GARDEN_CAN,         &
+                       PAC_GARDEN_CAN, ZRA_GARDEN_CAN, PCH_GARDEN_CAN, ZZ0H_GARDEN_CAN, ILMO_GARDEN        )	
    
 !   CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTSRAD_GR, PRUNOFF_GR, PEXNS, PEXNA,  &
 !                       PTA, PQA, PZREF, PZREF,              &
-!                       PVMOD, PZ0_GARDEN, ZRI, PCD_TERRA, ZCDN_TERRA,         &
-!                       ZAC_TERRA, ZRA_TERRA, PCH_TERRA, ZZ0H_TERRA, ILMO_TERRA        )
-   CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
-                       PTA, PQA, PZREF, PZREF,              &
-                       PVMOD, PZ0_GARDEN_EXT, ZRI, PCD_TERRA, ZCDN_TERRA,         &
-                       ZAC_TERRA, ZRA_TERRA, PCH_TERRA, ZZ0H_TERRA, ILMO_TERRA        )					   
+!                       PVMOD, PZ0_GARDEN, ZRI, PCD_GARDEN_ATM, PCDN_GARDEN_ATM,         &
+!                       PAC_GARDEN_ATM, ZRA_GARDEN_ATM, PCH_GARDEN_ATM, ZZ0H_GARDEN_ATM, ZILMO_GARDEN_ATM        )
 ENDIF
+!
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+!* garden/atmosphere (TERRA-type) exchange coefficients: diagnostic variables,
+!* computed ONLY together with the garden/canyon coefficients above, i.e. when
+!* the garden is provided by an EXTERNAL model (OGARDEN_EXT = .TRUE.): only then
+!* PTS_GARDEN and PQS_GARDEN describe a real garden surface state. With the
+!* internal (proxy-SVAT) garden the surface state is a placeholder
+!* (PTS_GARDEN = canyon air temperature from TEB_VEG_PROPERTIES, PQS_GARDEN = 0),
+!* so the forcing-level coefficients would be meaningless; they keep their XUNDEF
+!* initialisation in that case, as well as when no garden is modelled at all.
+!
+IF (OGARDEN_EXT) THEN
+CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
+                       PTA, PQA, PZREF, PZREF,              &
+                       PVMOD, PZ0_GARDEN_EXT, PRI_GARDEN_ATM, PCD_GARDEN_ATM, PCDN_GARDEN_ATM,         &
+                       PAC_GARDEN_ATM, ZRA_GARDEN_ATM, PCH_GARDEN_ATM, ZZ0H_GARDEN_ATM, ZILMO_GARDEN_ATM        )
+ENDIF
+
 		
 	
 
@@ -631,18 +754,18 @@ ENDIF
 !	print*, 'urban_drag PVMOD = ', PVMOD
 !    print*, 'urban_drag PZ0_GARDEN = ', PZ0_GARDEN
 !    print*, 'urban_drag PZ_LOWCAN = ', PZ_LOWCAN
-!    print*, 'urban_drag PCH_GARDEN = ', PCH_GARDEN
-!	print*, 'urban_drag ZCDN_GARDEN = ', ZCDN_GARDEN
-!    print*, 'urban_drag PCD_GARDEN = ', PCD_GARDEN
+!    print*, 'urban_drag PCH_GARDEN_CAN = ', PCH_GARDEN_CAN
+!	print*, 'urban_drag PCDN_GARDEN_CAN = ', PCDN_GARDEN_CAN
+!    print*, 'urban_drag PCD_GARDEN_CAN = ', PCD_GARDEN_CAN
 !    print*, 'urban_drag PZREF = ', PZREF
 !	print*, 'urban_drag PTSRAD_GR = ', PTSRAD_GR
 !	print*, 'urban_drag PRUNOFF_GR = ', PRUNOFF_GR
 !	print*, 'urban_drag PEXNS = ', PEXNS
 !	print*, 'urban_drag PEXNA = ', PEXNA
 
-!    print*, 'urban_drag PCH_TERRA = ', PCH_TERRA
-!	print*, 'urban_drag ZCDN_TERRA = ', ZCDN_TERRA
-!    print*, 'urban_drag PCD_TERRA = ', PCD_TERRA
+!    print*, 'urban_drag PCH_GARDEN_ATM = ', PCH_GARDEN_ATM
+!	print*, 'urban_drag PCDN_GARDEN_ATM = ', PCDN_GARDEN_ATM
+!    print*, 'urban_drag PCD_GARDEN_ATM = ', PCD_GARDEN_ATM
 !ENDIF
 				   
   !
@@ -662,12 +785,12 @@ ENDIF
     !
     IF(HIMPLICIT_WIND=='OLD')THEN
       !   old implicitation
-      ZUSTAR2(JJ) = (ZCD_ROAD(JJ)*PU_LOWCAN(JJ)*PPEW_B_COEF_LOWCAN(JJ))/              &
-                    (1.0-PRHOA(JJ)*ZCD_ROAD(JJ)*PU_LOWCAN(JJ)*PPEW_A_COEF_LOWCAN(JJ))
+      ZUSTAR2(JJ) = (PCD_ROAD_CAN(JJ)*PU_LOWCAN(JJ)*PPEW_B_COEF_LOWCAN(JJ))/              &
+                    (1.0-PRHOA(JJ)*PCD_ROAD_CAN(JJ)*PU_LOWCAN(JJ)*PPEW_A_COEF_LOWCAN(JJ))
     ELSE
       !   new implicitation
-      ZUSTAR2(JJ) = (ZCD_ROAD(JJ)*PU_LOWCAN(JJ)*(2.*PPEW_B_COEF_LOWCAN(JJ)-PU_LOWCAN(JJ)))/  &
-                    (1.0-2.0*PRHOA(JJ)*ZCD_ROAD(JJ)*PU_LOWCAN(JJ)*PPEW_A_COEF_LOWCAN(JJ))
+      ZUSTAR2(JJ) = (PCD_ROAD_CAN(JJ)*PU_LOWCAN(JJ)*(2.*PPEW_B_COEF_LOWCAN(JJ)-PU_LOWCAN(JJ)))/  &
+                    (1.0-2.0*PRHOA(JJ)*PCD_ROAD_CAN(JJ)*PU_LOWCAN(JJ)*PPEW_A_COEF_LOWCAN(JJ))
       !                   
       ZVMOD(JJ) = PRHOA(JJ)*PPEW_A_COEF_LOWCAN(JJ)*ZUSTAR2(JJ) + PPEW_B_COEF_LOWCAN(JJ)
       ZVMOD(JJ) = MAX(ZVMOD(JJ),0.)

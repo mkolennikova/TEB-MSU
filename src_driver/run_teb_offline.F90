@@ -292,9 +292,31 @@ REAL ,DIMENSION(nvec) :: teb_tch_gd                     !OUT garden transfer coe
 REAL ,DIMENSION(nvec) :: teb_tcm_gd                     !OUT garden  surf. exchange coefficient
 
 !Other variables
-REAL ,DIMENSION(nvec) :: teb_ilmo_road
-REAL ,DIMENSION(nvec) :: teb_ilmo_roof
-REAL ,DIMENSION(nvec) :: teb_ilmo_top
+REAL ,DIMENSION(nvec) :: teb_ustar_town
+REAL ,DIMENSION(nvec) :: teb_cd_garden_atm
+REAL ,DIMENSION(nvec) :: teb_ch_garden_atm
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+REAL ,DIMENSION(nvec) :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
+REAL ,DIMENSION(nvec) :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
+REAL ,DIMENSION(nvec) :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
+REAL ,DIMENSION(nvec) :: ZZ0H_ROAD_CAN    ! road   roughness length for heat (canyon)
+REAL ,DIMENSION(nvec) :: PAC_ROAD_ATM     ! road   aerodynamical conductance (atm.)
+REAL ,DIMENSION(nvec) :: PCH_ROAD_ATM     ! road   drag coefficient for heat (atm.)
+REAL ,DIMENSION(nvec) :: PCD_ROAD_ATM     ! road   drag coefficient (atm.)
+REAL ,DIMENSION(nvec) :: PCDN_ROAD_ATM    ! road   neutral drag coefficient (atm.)
+REAL ,DIMENSION(nvec) :: PRI_ROAD_ATM     ! road   Richardson number (atm.)
+REAL ,DIMENSION(nvec) :: ZZ0H_ROAD_ATM    ! road   roughness length for heat (atm.)
+REAL ,DIMENSION(nvec) :: PCDN_GARDEN_CAN  ! garden neutral drag coefficient (canyon)
+REAL ,DIMENSION(nvec) :: PRI_GARDEN_CAN   ! garden Richardson number (canyon)
+REAL ,DIMENSION(nvec) :: ZZ0H_GARDEN_CAN  ! garden roughness length for heat (canyon)
+REAL ,DIMENSION(nvec) :: PAC_GARDEN_ATM   ! garden aerodynamical conductance (atm.)
+REAL ,DIMENSION(nvec) :: PCDN_GARDEN_ATM  ! garden neutral drag coefficient (atm.)
+REAL ,DIMENSION(nvec) :: PRI_GARDEN_ATM   ! garden Richardson number (atm.)
+REAL ,DIMENSION(nvec) :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (atm.)
+REAL ,DIMENSION(nvec) :: PH_ROAD_CAN      ! road sensible heat flux, road -> canyon air [W m-2]
+REAL ,DIMENSION(nvec) :: PLE_ROAD_CAN     ! road latent heat flux, road -> canyon air [W m-2]
+REAL ,DIMENSION(nvec) :: PH_ROAD_ATM      ! road sensible heat flux, road -> forcing level [W m-2]
+REAL ,DIMENSION(nvec) :: PLE_ROAD_ATM     ! road latent heat flux, road -> forcing level [W m-2]
 REAL ,DIMENSION(nvec) :: ahf_traffic_now                !OUT Anthropogenic heat flux by traffic (current value)
 REAL ,DIMENSION(nvec) :: teb_solar_prod                 !OUT Averaged Energy production of solar panel on roofs (W/m2 bld  )
 	
@@ -319,7 +341,7 @@ REAL, DIMENSION(:,:), ALLOCATABLE :: ZDIR   ! wind direction
 CHARACTER(LEN=100) :: output_dir
 ! the output is written to a single CSV file with ';' separators
 INTEGER, PARAMETER :: fu_out  = 13             ! unit of the output CSV file
-INTEGER, PARAMETER :: nout_max = 32            ! max number of output columns
+INTEGER, PARAMETER :: nout_max = 64            ! max number of output columns
 INTEGER :: nout                                ! actual number of output columns
 INTEGER :: jout                                ! column loop counter
 INTEGER :: lout                                ! length of the current output line
@@ -729,6 +751,25 @@ teb_hour_seconds = teb_hour * 3600. + teb_min * 60. + teb_sec
 !   SOLAR_PROD          - only with the solar panels module
 ! The atmospheric forcing used at the current step is appended at the end
 ! (columns Forc_*).
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+! The exchange coefficients between the road/garden surfaces and the air of the
+! canyon (*_ROAD_CAN, *_GARDEN_CAN) or of the forcing level (*_ROAD_ATM,
+! *_GARDEN_ATM) are appended after WIND_TOP (see URBAN_DRAG section 8.3):
+! PCD/PCDN = drag coefficients, PRI = Richardson number, ZZ0H = roughness length
+! for heat, PAC/PCH = conductance and heat transfer coefficient.
+! The garden canyon/atmosphere coefficients are computed only with the external
+! garden model (teb_lgarden_ext = .TRUE.); with the internal garden
+! PCH_GARDEN_CAN is set to 0 in TEB_GARDEN and the *_GARDEN_ATM stay XUNDEF.
+! The diagnostic turbulent heat fluxes of the road with the canyon air
+! (H_ROAD_CAN, LE_ROAD_CAN) and directly with the air of the forcing level
+! (H_ROAD_ATM, LE_ROAD_ATM) are appended at the very end: they are derived from
+! the road surface temperature of the energy-budget solve (ROAD_LAYER_E_BUDGET)
+! and from the road/canyon and road/atmosphere conductances, and are diagnostics
+! only.
+! The coefficients of the canyon exchange already available in the driver
+! (teb_ac_rd, teb_tch_rd, teb_tcm_gd, teb_tch_gd, teb_cd_garden_atm,
+! teb_ch_garden_atm) complete the set with PAC_ROAD_CAN, PCH_ROAD_CAN,
+! PCD_GARDEN_CAN, PCH_GARDEN_CAN, PCD_GARDEN_ATM and PCH_GARDEN_ATM.
 nout = 0
 nout = nout + 1; out_names(nout) = 'T_ROOF1'
 nout = nout + 1; out_names(nout) = 'T_CANYON'
@@ -750,6 +791,34 @@ IF (teb_lsolar_panel) THEN
    nout = nout + 1; out_names(nout) = 'SOLAR_PROD'
 END IF
 nout = nout + 1; out_names(nout) = 'WIND_TOP'
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+nout = nout + 1; out_names(nout) = 'PCD_ROAD_CAN'
+nout = nout + 1; out_names(nout) = 'PCDN_ROAD_CAN'
+nout = nout + 1; out_names(nout) = 'PRI_ROAD_CAN'
+nout = nout + 1; out_names(nout) = 'ZZ0H_ROAD_CAN'
+nout = nout + 1; out_names(nout) = 'PAC_ROAD_ATM'
+nout = nout + 1; out_names(nout) = 'PCH_ROAD_ATM'
+nout = nout + 1; out_names(nout) = 'PCD_ROAD_ATM'
+nout = nout + 1; out_names(nout) = 'PCDN_ROAD_ATM'
+nout = nout + 1; out_names(nout) = 'PRI_ROAD_ATM'
+nout = nout + 1; out_names(nout) = 'ZZ0H_ROAD_ATM'
+nout = nout + 1; out_names(nout) = 'PCDN_GARDEN_CAN'
+nout = nout + 1; out_names(nout) = 'PRI_GARDEN_CAN'
+nout = nout + 1; out_names(nout) = 'ZZ0H_GARDEN_CAN'
+nout = nout + 1; out_names(nout) = 'PAC_GARDEN_ATM'
+nout = nout + 1; out_names(nout) = 'PCDN_GARDEN_ATM'
+nout = nout + 1; out_names(nout) = 'PRI_GARDEN_ATM'
+nout = nout + 1; out_names(nout) = 'ZZ0H_GARDEN_ATM'
+nout = nout + 1; out_names(nout) = 'PAC_ROAD_CAN'
+nout = nout + 1; out_names(nout) = 'PCH_ROAD_CAN'
+nout = nout + 1; out_names(nout) = 'PCD_GARDEN_CAN'
+nout = nout + 1; out_names(nout) = 'PCH_GARDEN_CAN'
+nout = nout + 1; out_names(nout) = 'PCD_GARDEN_ATM'
+nout = nout + 1; out_names(nout) = 'PCH_GARDEN_ATM'
+nout = nout + 1; out_names(nout) = 'H_ROAD_CAN'
+nout = nout + 1; out_names(nout) = 'LE_ROAD_CAN'
+nout = nout + 1; out_names(nout) = 'H_ROAD_ATM'
+nout = nout + 1; out_names(nout) = 'LE_ROAD_ATM'
 ! atmospheric forcing used by the model at the current time-step
 nout = nout + 1; out_names(nout) = 'Forc_TA'
 nout = nout + 1; out_names(nout) = 'Forc_QA'
@@ -865,14 +934,20 @@ DO nstep= 1,nsteps - 1
 				teb_qvfl_gd, teb_tch_gd, teb_tcm_gd, teb_runoff_gd, teb_itype_wind, teb_fai,        &
 				teb_dqs_town, teb_gflux, teb_shfl_rf, teb_shfl_rd, teb_shfl_wl, teb_ac_rf,          &
 				teb_ac_rd, teb_ac_wl, teb_ac_top, teb_tch_rf, teb_tch_rd, teb_tch_wl, teb_tch_top,  &
-				teb_wind_top, teb_ilmo_road, teb_ilmo_roof, teb_ilmo_top, ahf_traffic_now,          &
+				teb_wind_top, teb_ustar_town, teb_cd_garden_atm, teb_ch_garden_atm, ahf_traffic_now,          &
 				teb_rn_town, teb_wind_canyon, teb_tsroad, teb_lgarden_ext, teb_lgreenroof_ext,      &
 				teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
 				teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
 				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade,                          &
 !MV202609 z0 and zd to namelist
-				urb_z0_town, urb_zd_town)
+				urb_z0_town, urb_zd_town,                         &
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+                          PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
+                          PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
+                          PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
+                          ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
+                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM)
 						
     END DO
 	   !
@@ -906,6 +981,34 @@ DO nstep= 1,nsteps - 1
        CALL CSV_APPEND(out_line, teb_solar_prod(1))
     END IF
     CALL CSV_APPEND(out_line, teb_wind_top(1))
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+CALL CSV_APPEND(out_line, PCD_ROAD_CAN(1))
+CALL CSV_APPEND(out_line, PCDN_ROAD_CAN(1))
+CALL CSV_APPEND(out_line, PRI_ROAD_CAN(1))
+CALL CSV_APPEND(out_line, ZZ0H_ROAD_CAN(1))
+CALL CSV_APPEND(out_line, PAC_ROAD_ATM(1))
+CALL CSV_APPEND(out_line, PCH_ROAD_ATM(1))
+CALL CSV_APPEND(out_line, PCD_ROAD_ATM(1))
+CALL CSV_APPEND(out_line, PCDN_ROAD_ATM(1))
+CALL CSV_APPEND(out_line, PRI_ROAD_ATM(1))
+CALL CSV_APPEND(out_line, ZZ0H_ROAD_ATM(1))
+CALL CSV_APPEND(out_line, PCDN_GARDEN_CAN(1))
+CALL CSV_APPEND(out_line, PRI_GARDEN_CAN(1))
+CALL CSV_APPEND(out_line, ZZ0H_GARDEN_CAN(1))
+CALL CSV_APPEND(out_line, PAC_GARDEN_ATM(1))
+CALL CSV_APPEND(out_line, PCDN_GARDEN_ATM(1))
+CALL CSV_APPEND(out_line, PRI_GARDEN_ATM(1))
+CALL CSV_APPEND(out_line, ZZ0H_GARDEN_ATM(1))
+CALL CSV_APPEND(out_line, teb_ac_rd(1))
+CALL CSV_APPEND(out_line, teb_tch_rd(1))
+CALL CSV_APPEND(out_line, teb_tcm_gd(1))
+CALL CSV_APPEND(out_line, teb_tch_gd(1))
+CALL CSV_APPEND(out_line, teb_cd_garden_atm(1))
+CALL CSV_APPEND(out_line, teb_ch_garden_atm(1))
+CALL CSV_APPEND(out_line, PH_ROAD_CAN(1))
+CALL CSV_APPEND(out_line, PLE_ROAD_CAN(1))
+CALL CSV_APPEND(out_line, PH_ROAD_ATM(1))
+CALL CSV_APPEND(out_line, PLE_ROAD_ATM(1))
     ! --- atmospheric forcing used by the model at the current time-step
     forc_wind = SQRT(u(1)**2 + v(1)**2)
     forc_dir  = MOD(ATAN2(u(1), v(1))*180./XPI + 360., 360.)

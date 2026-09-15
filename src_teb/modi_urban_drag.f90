@@ -10,11 +10,18 @@ INTERFACE
                           PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT,  &
 						  PTSRAD_GR, PRUNOFF_GR, PQSAT_ROOF,      &
                           PQSAT_ROAD, PDELT_ROOF, PDELT_ROAD, PCD, PCDN, PAC_ROOF, &
-                          PAC_ROOF_WAT, PAC_WALL, PAC_ROAD, PAC_ROAD_WAT, PAC_TOP, &
-                          PAC_GARDEN, PRI, PUW_ROAD, PUW_ROOF, PDUWDU_ROAD,        &
-                          PDUWDU_ROOF, PUSTAR_TOWN, PAC_WIN, PCH_GARDEN,           &
-						  PCD_GARDEN, PCH_ROAD, PCH_ROOF, PCH_WALL, PCH_TOP,       &
-                          ILMO_ROAD, ILMO_ROOF, ILMO_TOP, PCD_TERRA, PCH_TERRA	  ) 
+                          PAC_ROOF_WAT, PAC_WALL, PAC_ROAD_CAN, PAC_ROAD_WAT, PAC_TOP, &
+                          PAC_GARDEN_CAN, PRI, PUW_ROAD, PUW_ROOF, PDUWDU_ROAD,        &
+                          PDUWDU_ROOF, PUSTAR_TOWN, PAC_WIN, PCH_GARDEN_CAN,           &
+						  PCD_GARDEN_CAN, PCH_ROAD_CAN, PCH_ROOF, PCH_WALL, PCH_TOP,       &
+                          ILMO_ROAD_CAN, ILMO_ROOF, ILMO_TOP, PCD_GARDEN_ATM, PCH_GARDEN_ATM,      &
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+                          PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN,    &
+                          PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM,    &
+                          PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN,&
+                          ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM,            &
+                          PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM,                  &
+                          PAC_ROAD_ATM_WAT	  ) 
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
@@ -70,10 +77,10 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PCDN           ! neutral drag coefficient
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROOF       ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROOF_WAT   ! aerodynamical conductance (for water)
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_WALL       ! aerodynamical conductance
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD       ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_CAN       ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_WAT   ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_TOP        ! aerodynamical conductance
-REAL, DIMENSION(:), INTENT(IN)    :: PAC_GARDEN     ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(IN)    :: PAC_GARDEN_CAN     ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI            ! Town Richardson number
 REAL, DIMENSION(:), INTENT(OUT)   :: PUW_ROAD       ! Momentum flux for roads
 REAL, DIMENSION(:), INTENT(OUT)   :: PUW_ROOF       ! Momentum flux for roofs
@@ -81,17 +88,40 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PDUWDU_ROAD    !
 REAL, DIMENSION(:), INTENT(OUT)   :: PDUWDU_ROOF    ! 
 REAL, DIMENSION(:), INTENT(OUT)   :: PUSTAR_TOWN    ! Fraction velocity for town
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_WIN        ! aerodynamical conductance for window
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN     ! drag coeifficient for heat
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GARDEN     ! garden  surf. exchange coefficient
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROAD       ! drag coeifficient for heat
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN_CAN     ! drag coeifficient for heat
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GARDEN_CAN     ! garden  surf. exchange coefficient
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROAD_CAN       ! drag coeifficient for heat
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROOF       ! drag coeifficient for heat
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_WALL       ! drag coeifficient for heat
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_TOP        ! drag coeifficient for heat
-REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_ROAD      ! 1/length of Monin-Obukov
+REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_ROAD_CAN      ! 1/length of Monin-Obukov
 REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_ROOF      ! 1/length of Monin-Obukov
 REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_TOP       ! 1/length of Monin-Obukov
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD_TERRA
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_TERRA
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GARDEN_ATM ! garden surf. exchange coeff. (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN_ATM ! garden drag coeff. for heat (atm.)
+!
+!MV202609 road-to-atm and garden-to-atm exchange diagnostics
+!* full set of URBAN_EXCH_COEF outputs for the exchange between the road and the
+!* garden surfaces and the air of the canyon (_CAN) or of the forcing level (_ATM)
+!
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_ROAD_CAN    ! road   roughness length for heat (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM     ! road   aerodynamical conductance (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROAD_ATM     ! road   drag coefficient for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_ATM     ! road   drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_ATM    ! road   neutral drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_ATM     ! road   Richardson number (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_ROAD_ATM    ! road   roughness length for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_CAN  ! garden neutral drag coefficient (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_CAN   ! garden Richardson number (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_CAN  ! garden roughness length for heat (canyon)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GARDEN_ATM   ! garden aerodynamical conductance (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_ATM  ! garden neutral drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_ATM   ! garden Richardson number (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM_WAT ! road   conductance for water (atm.)
 
 END SUBROUTINE URBAN_DRAG
 END INTERFACE
