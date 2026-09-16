@@ -131,14 +131,17 @@ ROAD_COMPONENTS = ('H_ROAD_CAN', 'H_ROAD_ATM')
 COLOUR_REF = '#7f7f7f'
 
 #: further curves drawn on some figures: figure variable -> (variable, label,
-#: colour, style, line width). The air temperature of the forcing level is an
-#: input: it is identical in the two runs, so it is drawn once per panel and
-#: shows how far the canyon air follows the forcing
+#: colour, style, line width, source). The air temperature of the forcing level
+#: is an input: it is identical in the two runs, so it is drawn once per panel
+#: ('ref') and shows how far the canyon air follows the forcing. All the other
+#: curves are model diagnostics, which differ between the two runs: they must be
+#: taken from the tau run ('run'), otherwise the figure shows the reference
+#: canyon air instead of the tau-relaxed one.
 EXTRA = {
-    'T_CANYON': (('Forc_TA', 'T forcing level', '#000000', ':', 1.8),),
-    'T_CAN1':   (('T_CAN0', 'T_CAN0 (no tau)', '#17becf', '--', 1.6),
-                 ('T_CANYON', 'T canyon (tau relaxed)', '#1f77b4', '-.', 1.6),
-                 ('Forc_TA', 'T forcing level', '#000000', ':', 1.8)),
+    'T_CANYON': (('Forc_TA', 'T forcing level', '#000000', ':', 1.8, 'ref'),),
+    'T_CAN1':   (('T_CAN0', 'T_CAN0 (no tau)', '#17becf', '--', 1.6, 'run'),
+                 ('T_CANYON', 'T canyon (tau relaxed)', '#1f77b4', '-.', 1.6, 'run'),
+                 ('Forc_TA', 'T forcing level', '#000000', ':', 1.8, 'ref')),
 }
 
 #: default prescriptions of the urban roughness length and displacement height
@@ -309,9 +312,9 @@ def plot_timeseries(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
                     ylabel: str, days: float, path: Path, extra=()):
     """Time series of one variable, first `days` days: reference versus tau.
 
-    `extra` lists further curves (variable, label, colour, style, line width)
-    taken from the reference run: the forcing is an input, so it is identical
-    in both runs.
+    `extra` lists further curves (variable, label, colour, style, line width,
+    source): 'ref' for the forcing (an input, identical in both runs) and 'run'
+    for the model diagnostics of the tau run.
     """
     label, unit, col = CMP[name]
     keys = list(info)
@@ -329,17 +332,12 @@ def plot_timeseries(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
             (f'{label}, tau off', y_ref[:nshow], COLOUR_REF, '--'),
             (f'{label}, tau on', y_run[:nshow], col, '-'),
         ]
-        for vname, vlabel, vcol, vls, vlw in extra:
-            y = ref[case].get(vname)
+        for vname, vlabel, vcol, vls, vlw, src in extra:
+            #: 'ref' for the forcing (an input, identical in both runs),
+            #: 'run' for the model diagnostics of the tau run
+            y = (run[case] if src == 'run' else ref[case]).get(vname)
             series.append((vlabel, None if y is None else y[:nshow], vcol, vls, vlw))
         _panel(ax, case, info, tau_vals[case], x, series, ylabel)
-    for ax in axes[len(keys):]:
-        ax.axis('off')
-    fig.suptitle(f'{label}, first {days:g} days: '
-                 f'reference (tau scheme off) versus tau scheme', fontsize=11)
-    fig.tight_layout(rect=[0, 0, 1, 0.96])
-    fig.savefig(path, dpi=150)
-    plt.close(fig)
     for ax in axes[len(keys):]:
         ax.axis('off')
     fig.suptitle(f'{label}, first {days:g} days: '
@@ -364,8 +362,10 @@ def plot_diurnal(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
     With `ref_line = False` only the tau run is drawn (used for the potential
     components figure). `run_only` lists further variables drawn for the tau
     run, in their own colour and dotted. `extra` lists further curves
-    (variable, label, colour, style, line width) taken from the reference run:
-    the forcing is an input, so it is identical in both runs.
+    (variable, label, colour, style, line width, source): 'ref' for the forcing
+    (an input, identical in both runs) and 'run' for the model diagnostics of
+    the tau run (T_CAN0 and T_CANYON differ between the two runs, so the
+    reference values would draw the canyon air without relaxation).
     """
     label, unit, col = CMP[name]
     keys = list(info)
@@ -391,8 +391,10 @@ def plot_diurnal(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
             if y is None or not np.any(np.isfinite(y)):
                 continue
             series.append((f'{lab2} (tau on)', _hourly_mean(y, hours, xh), col2, ':'))
-        for vname, vlabel, vcol, vls, vlw in extra:
-            y = ref[case].get(vname)
+        for vname, vlabel, vcol, vls, vlw, src in extra:
+            #: 'ref' for the forcing (an input, identical in both runs),
+            #: 'run' for the model diagnostics of the tau run
+            y = (run[case] if src == 'run' else ref[case]).get(vname)
             if y is None or not np.any(np.isfinite(y)):
                 continue
             series.append((vlabel, _hourly_mean(y, hours, xh), vcol, vls, vlw))
