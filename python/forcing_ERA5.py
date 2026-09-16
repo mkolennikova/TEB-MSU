@@ -262,10 +262,14 @@ def convert_nc2df(
         else:
             ds = xr.open_mfdataset(files, combine='by_coords', parallel=True)
 
-    # Rename coordinates if needed
+    # Rename coordinates if needed. The CDS point time series files may provide
+    # the location as scalar data variables instead of coordinates: accept both
+    # forms (the columns are dropped from the forcing DataFrame further below).
     if 'latitude' not in ds.coords and 'longitude' not in ds.coords:
         if 'lat' in ds.coords and 'lon' in ds.coords:
             ds = ds.rename({'lat': 'latitude', 'lon': 'longitude'})
+        elif 'latitude' in ds.data_vars and 'longitude' in ds.data_vars:
+            ds = ds.set_coords(['latitude', 'longitude'])
         else:
             raise KeyError("Dataset does not contain 'latitude'/'longitude' or 'lat'/'lon' coordinates")
 
