@@ -515,7 +515,7 @@ DO JJ=1,SIZE(T%XROAD)
                    + B%XT_WIN1    (JJ) * PAC_WL (JJ) *     B%XGR(JJ)  * PWL_O_GRND(JJ)       &
                    + PTA          (JJ) * PAC_TOP(JJ)                                         &
                    + PH_TRAFFIC   (JJ) / (1.-T%XBLD (JJ))               / PRHOA(JJ) / XCPD   &
-                   + PHSN_RD_CAN(JJ) * PDN_RD(JJ)            / PRHOA(JJ) / XCPD  ) &
+                   + ZRD(JJ) * PHSN_RD_CAN(JJ) * PDN_RD(JJ)  / PRHOA(JJ) / XCPD  ) &
                                             / ZINTER  
 !
 !	print*, 'avg_urban_fluxes PT_CAN1 = ', PT_CAN(JJ)
