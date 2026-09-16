@@ -263,7 +263,8 @@ REAL :: ZL_CAN1          ! Obukhov length of the free layer (m)
 REAL :: ZZ_MID           ! height of the free layer air: h_bld/2, bounded by the forcing level (m)
 REAL :: ZPHI_CAN1        ! free layer air temperature / theta* ratio of the MOST profile (-)
 REAL :: ZH_CAN1          ! heat input of the free layer (W/m2 canyon)
-REAL :: ZLE_CAN1         ! moisture input of the free layer (W/m2 canyon)
+REAL :: ZLE_CAN1         ! moisture input of the free layer (liquid water sources) (W/m2 canyon)
+REAL :: ZLE_CAN1_SN      ! snow part of the free-layer moisture input (sublimation, W/m2 canyon)
 REAL :: ZWLWIN_EFF       ! effective wall+window temperature for the layer heat input (K)
 LOGICAL :: ZOK_CAN1      ! sanity flag of the road->atmosphere input diagnostics
 REAL, PARAMETER :: ZU_ROAD_MIN   = 0.01    ! minimum friction velocity (m/s)
@@ -598,7 +599,7 @@ DO JJ=1,SIZE(T%XROAD)
                   + PQSAT_GD   (JJ) * PAC_AGG_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ)                   &
                   + PQA        (JJ) * PAC_TOP(JJ)                                                 &
                   + PLE_TRAFFIC(JJ) / (1.-T%XBLD(JJ)) / PRHOA(JJ) / XLVTT                         &
-                  + PLESN_RD_CAN(JJ) * PDN_RD(JJ)     / PRHOA(JJ) / XLVTT * ZRD(JJ)  ) / ZINTER
+                  + PLESN_RD_CAN(JJ) * PDN_RD(JJ)     / PRHOA(JJ) / XLSTT * ZRD(JJ)  ) / ZINTER
 
     IF (TOP%CBEM=="BEM") THEN
       PQ_CAN0(JJ) = PQ_CAN0(JJ) + (DMT%XLE_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ)) / PRHOA(JJ) / XLVTT) / ZINTER
@@ -609,13 +610,16 @@ DO JJ=1,SIZE(T%XROAD)
 !* input of the free layer and the same MOST profile at H/2 (psi_q = psi_h)
 !
     ZLE_CAN1 = ZRD(JJ) * PLE_ROAD_ATM(JJ) + ZGD(JJ) * PLE_GD(JJ)                       &
-             + PLE_TRAFFIC(JJ) / (1.-T%XBLD(JJ))                                       &
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
-             + ZRD(JJ) * PLESN_RD_ATM(JJ) * PDN_RD(JJ)
+             + PLE_TRAFFIC(JJ) / (1.-T%XBLD(JJ))
     IF (TOP%CBEM=="BEM") THEN
       ZLE_CAN1 = ZLE_CAN1 + DMT%XLE_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ))
     ENDIF
-    PQ_CAN1(JJ) = PQA(JJ) + ZLE_CAN1                                                   &
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!* the snow sublimates (XLSTT) while the other sources evaporate liquid water
+!* (XLVTT): the snow part is converted into its XLVTT-equivalent so that the
+!* single latent heat of the sub-layer formula can be applied to the whole sum
+    ZLE_CAN1_SN = ZRD(JJ) * PLESN_RD_ATM(JJ) * PDN_RD(JJ) * XLVTT / XLSTT
+    PQ_CAN1(JJ) = PQA(JJ) + ( ZLE_CAN1 + ZLE_CAN1_SN )                                 &
                 / ( PRHOA(JJ) * XLVTT * XKARMAN * ZU_ROAD_ATM ) * ZPHI_CAN1
 !
     IF (TOP%LTAU_SCHEME) THEN
