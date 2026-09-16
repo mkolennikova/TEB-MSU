@@ -7,7 +7,9 @@ INTERFACE
                                PDN_RD, PABS_SW_SN_RD, PABS_LW_SN_RD, PRNSN_RF, PHSN_RF,     &
                                PLESN_RF, PGSN_RF, PMELT_RF, PRNSN_RD, PHSN_RD, PLESN_RD,    &
                                PGSN_RD, PMELT_RD, PLW_WA_TO_NR , PLW_WB_TO_NR, PLW_S_TO_NR, &
-                               PLW_WIN_TO_NR, PDQS_SN_RF, PDQS_SN_RD, PSNOWD_RF, PSNOWD_RD   )  
+                               PLW_WIN_TO_NR, PDQS_SN_RF, PDQS_SN_RD, PSNOWD_RF, PSNOWD_RD,  &
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+                               PTAU, PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM )  
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
 IMPLICIT NONE
@@ -45,6 +47,12 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RF   ! snow melt
 REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RD ! net radiation over snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD  ! sensible heat flux over snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD ! latent heat flux over snow
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+REAL, DIMENSION(:), INTENT(IN)    :: PTAU     ! tau scheme weight of the canyon path (-)
+REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_CAN  ! sensible heat flux over snow, snow -> canyon air
+REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_ATM  ! sensible heat flux over snow, snow -> forcing level
+REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD_CAN ! latent heat flux over snow, snow -> canyon air
+REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD_ATM ! latent heat flux over snow, snow -> forcing level
 REAL, DIMENSION(:), INTENT(OUT)   :: PGSN_RD  ! flux under the snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RD   ! snow melt
 REAL, DIMENSION(:), INTENT(IN)    :: PLW_WA_TO_NR        ! LW contrib. wall       -> road(snow)

@@ -360,6 +360,12 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PHSNOW_ROAD        ! sensible heat flux o
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PLESNOW_ROAD       ! latent heat flux over snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PGSNOW_ROAD        ! flux under the snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PMELT_ROAD         ! snow melt
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!* local branch diagnostics of the road snow exchange (internal to the wrapper)
+REAL, DIMENSION(SIZE(PWS_ROAD)) :: PHSN_RD_CAN        ! sensible heat flux over snow, snow -> canyon air
+REAL, DIMENSION(SIZE(PWS_ROAD)) :: PHSN_RD_ATM        ! sensible heat flux over snow, snow -> forcing level
+REAL, DIMENSION(SIZE(PWS_ROAD)) :: PLESN_RD_CAN       ! latent heat flux over snow, snow -> canyon air
+REAL, DIMENSION(SIZE(PWS_ROAD)) :: PLESN_RD_ATM       ! latent heat flux over snow, snow -> forcing level
 !
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GRND           ! net radiation over ground
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GRND            ! sensible heat flux over ground
@@ -1081,6 +1087,8 @@ CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGARDEN
                            PZREF, PUREF, PVMOD, PH_TRAFFIC, PLE_TRAFFIC, PTSTEP, PLEW_ROOF, PLEW_ROAD,             &
                            PLE_WALL_A, PLE_WALL_B, PRNSNOW_ROOF, PHSNOW_ROOF, PLESNOW_ROOF, PGSNOW_ROOF,PMELT_ROOF,&
                            PRNSNOW_ROAD, PHSNOW_ROAD, PLESNOW_ROAD, PGSNOW_ROAD, PMELT_ROAD, PRN_GRND, PH_GRND,    &
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+                           PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM,                          &
                            PLE_GRND, PGFLUX_GRND, PRN_TOWN, PH_TOWN, PLE_TOWN, PGFLUX_TOWN, PEVAP_TOWN,            &
                            PSFCO2, PUW_GRND, PUW_ROOF, PDUWDU_GRND, PDUWDU_ROOF,                                   &
                            PUSTAR_TOWN, PCD, PCDN, PCH_TOWN, PRI_TOWN, PTS_TOWN, PEMIS_TOWN,                       &

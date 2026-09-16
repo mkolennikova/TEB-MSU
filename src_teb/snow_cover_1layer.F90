@@ -7,7 +7,11 @@
                                  PRHOFOLD, OALL_MELT, PDRAIN_TIME, PWCRN, PZ0SN, PZ0HSN, &
                                  TPSNOW, PTG, PTG_COEFA, PTG_COEFB, PABS_SW, PLW1, PLW2, &
                                  PTA, PQA, PVMOD, PPS, PRHOA, PSR, PZREF, PUREF, PRNSNOW,&
-                                 PHSNOW, PLESNOW, PGSNOW, PMELT, PDQS_SNOW, PABS_LW, PSNOW_D  )  
+                                 PHSNOW, PLESNOW, PGSNOW, PMELT, PDQS_SNOW, PABS_LW, PSNOW_D  ,&
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+                                 PTA_ATM, PQA_ATM, PVMOD_ATM, PZREF_ATM, PUREF_ATM,    &
+                                 PTAU, LTAU_SPLIT, PHSNOW_CAN, PHSNOW_ATM,             &
+                                 PLESNOW_CAN, PLESNOW_ATM   )  
 !   ##########################################################################
 !
 !!****  *SNOW_COVER_1LAYER*  
@@ -124,6 +128,18 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PMELT    ! snow melting rate (kg/m2/s)
 REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SNOW! heat storage inside snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW  ! absorbed LW rad by snow (W/m2)
 REAL, DIMENSION(:), INTENT(OUT)   :: PSNOW_D  ! snow depth
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+REAL, DIMENSION(:), INTENT(IN)    :: PTA_ATM      ! air temperature of the forcing level (free atmosphere)
+REAL, DIMENSION(:), INTENT(IN)    :: PQA_ATM      ! specific humidity of the forcing level
+REAL, DIMENSION(:), INTENT(IN)    :: PVMOD_ATM    ! wind of the forcing level
+REAL, DIMENSION(:), INTENT(IN)    :: PZREF_ATM    ! reference height of the forcing level (temperature)
+REAL, DIMENSION(:), INTENT(IN)    :: PUREF_ATM    ! reference height of the forcing level (wind)
+REAL, DIMENSION(:), INTENT(IN)    :: PTAU         ! tau scheme weight of the canyon path (-)
+LOGICAL,              INTENT(IN)  :: LTAU_SPLIT   ! T: the tau split of the snow exchange is active
+REAL, DIMENSION(:), INTENT(OUT)   :: PHSNOW_CAN   ! sensible heat flux over snow, snow -> canyon air
+REAL, DIMENSION(:), INTENT(OUT)   :: PHSNOW_ATM   ! sensible heat flux over snow, snow -> forcing level
+REAL, DIMENSION(:), INTENT(OUT)   :: PLESNOW_CAN  ! latent heat flux over snow, snow -> canyon air
+REAL, DIMENSION(:), INTENT(OUT)   :: PLESNOW_ATM  ! latent heat flux over snow, snow -> forcing level
 !
 !
 !*      0.2    declarations of local variables
@@ -139,6 +155,14 @@ REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRI      ! Richardson number
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZAC      ! aerodynamical conductance
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRA      ! aerodynamical resistance
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZCH      ! drag coefficient for heat
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRI_ATM    ! Richardson number (forcing level)
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZAC_CAN    ! conductance with the canyon air
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZAC_ATM    ! conductance with the forcing level air
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRA_ATM    ! aerodynamical resistance (forcing level)
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZCH_ATM    ! drag coefficient for heat (forcing level)
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZTA_REF    ! reference air temperature of the snow exchange
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZQA_REF    ! reference air humidity of the snow exchange
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZB, ZY   ! coefficients in Ts eq.
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZWSNOW   ! snow before evolution
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZSNOW_HC ! snow heat capacity
@@ -313,6 +337,39 @@ ZQSAT(:) = QSATI(ZTS_SNOW(:), PPS(:) )
 !
  CALL SURFACE_AERO_COND(ZRI, PZREF, PUREF, PVMOD, ZZ0, ZZ0H, ZAC, ZRA, ZCH)
 !
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!* The snow may exchange with the air of the canyon (tau fraction) and directly
+!* with the air of the forcing level (1 - tau), exactly as the road does: the
+!* two conductances are computed with the same routines and aggregated with tau,
+!* and the reference air of the aggregated exchange is the corresponding
+!* conductance weighted mean of both airs. With LTAU_SPLIT = .FALSE. (the snow of
+!* the roofs) or with tau = 1 (scheme disabled) the canyon branch is used
+!* unchanged, so that the former behaviour is reproduced exactly.
+!
+ ZAC_CAN(:) = ZAC(:)
+ ZTA_REF(:) = PTA(:)
+ ZQA_REF(:) = PQA(:)
+ IF (LTAU_SPLIT) THEN
+   CALL SURFACE_RI(ZTS_SNOW, ZQSAT, ZEXNS, ZEXNA, PTA_ATM, PQA_ATM, &
+                   PZREF_ATM, PUREF_ATM, ZDIRCOSZW, PVMOD_ATM, ZRI_ATM)
+   CALL SURFACE_AERO_COND(ZRI_ATM, PZREF_ATM, PUREF_ATM, PVMOD_ATM, ZZ0, ZZ0H, &
+                          ZAC_ATM, ZRA_ATM, ZCH_ATM)
+   !* the aggregation is restricted to the cells where the snow fluxes are
+   !* computed (elsewhere the snow temperature may be undefined)
+   DO JJ = 1, JCOMPT_FLUX
+     JI = JFLUXMASK(JJ)
+     IF (PTAU(JI) < 1.) THEN
+       ZAC(JI) = PTAU(JI) * ZAC_CAN(JI) + (1.-PTAU(JI)) * ZAC_ATM(JI)
+       IF (ZAC(JI) > 0.) THEN
+         ZTA_REF(JI) = ( PTAU(JI) * ZAC_CAN(JI) * PTA(JI)             &
+                       + (1.-PTAU(JI)) * ZAC_ATM(JI) * PTA_ATM(JI) ) / ZAC(JI)
+         ZQA_REF(JI) = ( PTAU(JI) * ZAC_CAN(JI) * PQA(JI)             &
+                       + (1.-PTAU(JI)) * ZAC_ATM(JI) * PQA_ATM(JI) ) / ZAC(JI)
+       END IF
+     END IF
+   END DO
+ END IF
+!
 !-------------------------------------------------------------------------------
 !
 !*      2.     snow thermal characteristics
@@ -397,7 +454,7 @@ DO JJ=1,JCOMPT_SNOW3
 ! 
   ZB(JI) = ZB(JI) + ZWORK1(JI) *   ZIMPL
 !
-  ZY(JI) = ZY(JI) - ZWORK1(JI) * ( ZEXPL * TPSNOW%T(JI,1) - PTA(JI) )
+  ZY(JI) = ZY(JI) - ZWORK1(JI) * ( ZEXPL * TPSNOW%T(JI,1) - ZTA_REF(JI) )
 !
 !
 !*      3.6    coefficients from latent heat flux
@@ -407,7 +464,7 @@ DO JJ=1,JCOMPT_SNOW3
 !
   ZB(JI) = ZB(JI) + ZWORK1(JI) *  ZIMPL * ZDQSAT(JI)
 !
-  ZY(JI) = ZY(JI) - ZWORK1(JI) * (  ZQSAT(JI) - PQA(JI) - ZIMPL * ZDQSAT(JI)*TPSNOW%T(JI,1) )
+  ZY(JI) = ZY(JI) - ZWORK1(JI) * (  ZQSAT(JI) - ZQA_REF(JI) - ZIMPL * ZDQSAT(JI)*TPSNOW%T(JI,1) )
 !
 !*      3.7    coefficients from conduction flux at snow base
 !              ----------------------------------------------
@@ -492,13 +549,27 @@ DO JJ = 1, JCOMPT_FLUX
 !*      5.2    sensible heat flux
 !              ------------------
 !
-  PHSNOW(JI) = XCPD * PRHOA(JI) * ZAC(JI) * ( TPSNOW%T(JI,1) - PTA(JI) )
+  PHSNOW(JI) = XCPD * PRHOA(JI) * ZAC(JI) * ( TPSNOW%T(JI,1) - ZTA_REF(JI) )
+  !* the two branches of the snow sensible heat flux (see the aggregation above)
+  PHSNOW_CAN(JI) = XCPD * PRHOA(JI) * ZAC_CAN(JI) * ( TPSNOW%T(JI,1) - PTA(JI) )
+  IF (LTAU_SPLIT) THEN
+    PHSNOW_ATM(JI) = XCPD * PRHOA(JI) * ZAC_ATM(JI) * ( TPSNOW%T(JI,1) - PTA_ATM(JI) )
+  ELSE
+    PHSNOW_ATM(JI) = PHSNOW_CAN(JI)
+  END IF
 !
 !
 !*      5.4    latent heat flux
 !              ----------------
 !
-  PLESNOW(JI) = XLSTT * PRHOA(JI) * ZAC(JI) * ( ZQSAT(JI) - PQA(JI) )
+  PLESNOW(JI) = XLSTT * PRHOA(JI) * ZAC(JI) * ( ZQSAT(JI) - ZQA_REF(JI) )
+  !* the two branches of the snow latent heat flux (see the aggregation above)
+  PLESNOW_CAN(JI) = XLSTT * PRHOA(JI) * ZAC_CAN(JI) * ( ZQSAT(JI) - PQA(JI) )
+  IF (LTAU_SPLIT) THEN
+    PLESNOW_ATM(JI) = XLSTT * PRHOA(JI) * ZAC_ATM(JI) * ( ZQSAT(JI) - PQA_ATM(JI) )
+  ELSE
+    PLESNOW_ATM(JI) = PLESNOW_CAN(JI)
+  END IF
   !
 !
 !*      5.5    Conduction heat flux

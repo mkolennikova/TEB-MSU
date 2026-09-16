@@ -858,6 +858,9 @@ nout = nout + 1; out_names(nout) = 'GFLUX_TOWN'
 nout = nout + 1; out_names(nout) = 'T_CAN0'
 nout = nout + 1; out_names(nout) = 'T_CAN1'
 nout = nout + 1; out_names(nout) = 'PHI_CAN1'
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+nout = nout + 1; out_names(nout) = 'WSNOW_RD'
+nout = nout + 1; out_names(nout) = 'TSNOW_RD'
 ! atmospheric forcing used by the model at the current time-step
 nout = nout + 1; out_names(nout) = 'Forc_TA'
 nout = nout + 1; out_names(nout) = 'Forc_QA'
@@ -1076,6 +1079,9 @@ CALL CSV_APPEND(out_line, teb_gflux(1))
 CALL CSV_APPEND(out_line, PT_CAN0(1))
 CALL CSV_APPEND(out_line, PT_CAN1(1))
 CALL CSV_APPEND(out_line, PPHI_CAN1(1))
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+CALL CSV_APPEND(out_line, teb_wsnow_road(1,1))
+CALL CSV_APPEND(out_line, teb_tsnow_road(1,1))
     ! --- atmospheric forcing used by the model at the current time-step
     forc_wind = SQRT(u(1)**2 + v(1)**2)
     forc_dir  = MOD(ATAN2(u(1), v(1))*180./XPI + 360., 360.)

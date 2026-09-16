@@ -25,7 +25,9 @@
                                 PH_ROAD_ATM, PLE_ROAD_ATM, PCD_ROAD_ATM,     &
                                 ZZ0H_ROAD_ATM, PZREF, PVMOD,                 &
                                 PT_CAN0, PT_CAN1, PPHI_CAN1,                 &
-                                PQ_CAN0, PQ_CAN1)
+                                PQ_CAN0, PQ_CAN1,                             &
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+                                PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM)
 !   ##########################################################################
 !
 !!****  *AVG_URBAN_FLUXES* computes fluxes on urbanized surfaces  
@@ -215,6 +217,11 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN1        ! free layer (second canopy)
 REAL, DIMENSION(:), INTENT(OUT)   :: PPHI_CAN1      ! free layer air temperature / theta* ratio of the MOST profile (-)
 REAL, DIMENSION(:), INTENT(OUT)   :: PQ_CAN0        ! canyon air humidity without tau (kg kg-1)
 REAL, DIMENSION(:), INTENT(OUT)   :: PQ_CAN1        ! free layer air humidity (kg kg-1)
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+REAL, DIMENSION(:), INTENT(IN)    :: PHSN_RD_CAN    ! snow -> canyon air sensible heat flux (W/m2 road snow)
+REAL, DIMENSION(:), INTENT(IN)    :: PHSN_RD_ATM    ! snow -> forcing level sensible heat flux (W/m2 road snow)
+REAL, DIMENSION(:), INTENT(IN)    :: PLESN_RD_CAN   ! snow -> canyon air latent heat flux (W/m2 road snow)
+REAL, DIMENSION(:), INTENT(IN)    :: PLESN_RD_ATM   ! snow -> forcing level latent heat flux (W/m2 road snow)
 
 CHARACTER(LEN=*), PARAMETER       :: RN_ROOF = 'output/RN_ROOF.txt'
 CHARACTER(LEN=*), PARAMETER       :: RN_ROAD = 'output/RN_ROAD.txt'
@@ -508,7 +515,7 @@ DO JJ=1,SIZE(T%XROAD)
                    + B%XT_WIN1    (JJ) * PAC_WL (JJ) *     B%XGR(JJ)  * PWL_O_GRND(JJ)       &
                    + PTA          (JJ) * PAC_TOP(JJ)                                         &
                    + PH_TRAFFIC   (JJ) / (1.-T%XBLD (JJ))               / PRHOA(JJ) / XCPD   &
-                   + PHSN_RD(JJ) * PDN_RD(JJ)                / PRHOA(JJ) / XCPD  ) &
+                   + PHSN_RD_CAN(JJ) * PDN_RD(JJ)            / PRHOA(JJ) / XCPD  ) &
                                             / ZINTER  
 !
 !	print*, 'avg_urban_fluxes PT_CAN1 = ', PT_CAN(JJ)
@@ -539,7 +546,9 @@ DO JJ=1,SIZE(T%XROAD)
     ZH_CAN1    = ZRD(JJ) * PH_ROAD_ATM(JJ) + ZGD(JJ) * PH_GD(JJ)                       &
                + PRHOA(JJ) * XCPD * PAC_WL(JJ) * PWL_O_GRND(JJ)                        &
                * ( ZWLWIN_EFF - PT_LOWCAN(JJ) )                                        &
-               + PH_TRAFFIC(JJ) / (1.-T%XBLD(JJ))
+               + PH_TRAFFIC(JJ) / (1.-T%XBLD(JJ))                                      &
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+               + ZRD(JJ) * PHSN_RD_ATM(JJ) * PDN_RD(JJ)
     IF (TOP%CBEM=="BEM") THEN
       ZH_CAN1 = ZH_CAN1 + DMT%XH_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ))
     ENDIF
@@ -589,7 +598,7 @@ DO JJ=1,SIZE(T%XROAD)
                   + PQSAT_GD   (JJ) * PAC_AGG_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ)                   &
                   + PQA        (JJ) * PAC_TOP(JJ)                                                 &
                   + PLE_TRAFFIC(JJ) / (1.-T%XBLD(JJ)) / PRHOA(JJ) / XLVTT                         &
-                  + PLESN_RD   (JJ) * PDN_RD(JJ)      / PRHOA(JJ) / XLVTT * ZRD(JJ)  ) / ZINTER
+                  + PLESN_RD_CAN(JJ) * PDN_RD(JJ)     / PRHOA(JJ) / XLVTT * ZRD(JJ)  ) / ZINTER
 
     IF (TOP%CBEM=="BEM") THEN
       PQ_CAN0(JJ) = PQ_CAN0(JJ) + (DMT%XLE_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ)) / PRHOA(JJ) / XLVTT) / ZINTER
@@ -600,7 +609,9 @@ DO JJ=1,SIZE(T%XROAD)
 !* input of the free layer and the same MOST profile at H/2 (psi_q = psi_h)
 !
     ZLE_CAN1 = ZRD(JJ) * PLE_ROAD_ATM(JJ) + ZGD(JJ) * PLE_GD(JJ)                       &
-             + PLE_TRAFFIC(JJ) / (1.-T%XBLD(JJ))
+             + PLE_TRAFFIC(JJ) / (1.-T%XBLD(JJ))                                       &
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+             + ZRD(JJ) * PLESN_RD_ATM(JJ) * PDN_RD(JJ)
     IF (TOP%CBEM=="BEM") THEN
       ZLE_CAN1 = ZLE_CAN1 + DMT%XLE_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ))
     ENDIF

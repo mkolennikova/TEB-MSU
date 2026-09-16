@@ -23,7 +23,9 @@ INTERFACE
                                 PH_ROAD_ATM, PLE_ROAD_ATM, PCD_ROAD_ATM,     &
                                 ZZ0H_ROAD_ATM, PZREF, PVMOD,                 &
                                 PT_CAN0, PT_CAN1, PPHI_CAN1,                 &
-                                PQ_CAN0, PQ_CAN1)
+                                PQ_CAN0, PQ_CAN1,                             &
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+                                PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
@@ -154,6 +156,11 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN1        ! free layer (second canopy)
 REAL, DIMENSION(:), INTENT(OUT)   :: PPHI_CAN1      ! free layer air temperature / theta* ratio of the MOST profile (-)
 REAL, DIMENSION(:), INTENT(OUT)   :: PQ_CAN0        ! canyon air humidity without tau (kg kg-1)
 REAL, DIMENSION(:), INTENT(OUT)   :: PQ_CAN1        ! free layer air humidity (kg kg-1)
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+REAL, DIMENSION(:), INTENT(IN)    :: PHSN_RD_CAN    ! snow -> canyon air sensible heat flux (W/m2 road snow)
+REAL, DIMENSION(:), INTENT(IN)    :: PHSN_RD_ATM    ! snow -> forcing level sensible heat flux (W/m2 road snow)
+REAL, DIMENSION(:), INTENT(IN)    :: PLESN_RD_CAN   ! snow -> canyon air latent heat flux (W/m2 road snow)
+REAL, DIMENSION(:), INTENT(IN)    :: PLESN_RD_ATM   ! snow -> forcing level latent heat flux (W/m2 road snow)
 
 END SUBROUTINE AVG_URBAN_FLUXES
 END INTERFACE

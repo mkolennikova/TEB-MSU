@@ -351,6 +351,12 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PHSNOW_ROAD        ! sensible heat flux o
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PLESNOW_ROAD       ! latent heat flux over snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PGSNOW_ROAD        ! flux under the snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PMELT_ROAD         ! snow melt
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!* local branch diagnostics of the road snow exchange (internal to the wrapper)
+REAL, DIMENSION(SIZE(PWS_ROAD)) :: PHSN_RD_CAN        ! sensible heat flux over snow, snow -> canyon air
+REAL, DIMENSION(SIZE(PWS_ROAD)) :: PHSN_RD_ATM        ! sensible heat flux over snow, snow -> forcing level
+REAL, DIMENSION(SIZE(PWS_ROAD)) :: PLESN_RD_CAN       ! latent heat flux over snow, snow -> canyon air
+REAL, DIMENSION(SIZE(PWS_ROAD)) :: PLESN_RD_ATM       ! latent heat flux over snow, snow -> forcing level
 !
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GRND           ! net radiation over ground
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GRND            ! sensible heat flux over ground
