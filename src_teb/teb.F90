@@ -872,6 +872,13 @@ CASE("DEF")
    ZFLX_BLD_MA (:) = 0.
    !other variables
    PHU_BLD(:)     = XUNDEF
+!MV202609 waste heat diagnostics: the waste heat of the buildings is produced by
+!* the BEM only; the simple building budget ('DEF') has no HVAC system, so the
+!* two diagnostics are zero. They must be defined anyway: they are written to the
+!* output and, in the BEM configuration, they feed the canyon air and the town
+!* fluxes (see AVG_URBAN_FLUXES).
+   DMT%XH_WASTE (:) = 0.
+   DMT%XLE_WASTE(:) = 0.
 
 CASE("BEM")
   CALL BEM(icell, iblock, BOP, T, B, DMT, PTSTEP, PBEM_AC, PTSUN, KDAY, PPS, PRHOA, PT_CANYON, &
