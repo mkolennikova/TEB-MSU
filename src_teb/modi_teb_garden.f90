@@ -30,7 +30,7 @@ INTERFACE
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
                           PH_ROAD, PLE_ROAD,                                          &
 !MV202609 tau scheme of the road (revision: three-temperature construction)
-                          PT_CAN0, PT_LAYER, PPHI_LAYER)
+                          PT_CAN0, PT_CAN1, PPHI_CAN1)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
@@ -197,8 +197,8 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD       ! road sensible heat flux,
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD      ! road latent heat flux, tau scheme [W m-2]
 !MV202609 tau scheme of the road (revision: three-temperature construction)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN0       ! canyon air temperature without tau [K]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_LAYER      ! free layer air temperature [K]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PPHI_LAYER    ! layer air temperature / theta* ratio of the MOST profile [-]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN1       ! free layer (second canopy) air temperature [K]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PPHI_CAN1     ! free layer air temperature / theta* ratio of the MOST profile [-]
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)

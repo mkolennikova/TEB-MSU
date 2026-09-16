@@ -327,8 +327,8 @@ REAL ,DIMENSION(nvec) :: PH_ROAD_ATM      ! road sensible heat flux, road -> for
 REAL ,DIMENSION(nvec) :: PLE_ROAD_ATM      ! road latent heat flux, road -> forcing level [W m-2]
 !MV202609 tau scheme of the road (revision: three-temperature construction)
 REAL ,DIMENSION(nvec) :: PT_CAN0           ! canyon air temperature without tau [K]
-REAL ,DIMENSION(nvec) :: PT_LAYER          ! free layer air temperature [K]
-REAL ,DIMENSION(nvec) :: PPHI_LAYER        ! layer air temperature / theta* ratio of the MOST profile [-]
+REAL ,DIMENSION(nvec) :: PT_CAN1           ! free layer (second canopy) air temperature [K]
+REAL ,DIMENSION(nvec) :: PPHI_CAN1         ! free layer air temperature / theta* ratio of the MOST profile [-]
 !MV202609 tau scheme of the road
 REAL ,DIMENSION(nvec) :: PH_ROAD          ! road sensible heat flux, tau scheme [W m-2]
 REAL ,DIMENSION(nvec) :: PLE_ROAD         ! road latent heat flux, tau scheme [W m-2]
@@ -356,7 +356,7 @@ REAL, DIMENSION(:,:), ALLOCATABLE :: ZDIR   ! wind direction
 CHARACTER(LEN=100) :: output_dir
 ! the output is written to a single CSV file with ';' separators
 INTEGER, PARAMETER :: fu_out  = 13             ! unit of the output CSV file
-INTEGER, PARAMETER :: nout_max = 64            ! max number of output columns
+INTEGER, PARAMETER :: nout_max = 128           ! max number of output columns (array bound of out_names)
 INTEGER :: nout                                ! actual number of output columns
 INTEGER :: jout                                ! column loop counter
 INTEGER :: lout                                ! length of the current output line
@@ -856,8 +856,8 @@ nout = nout + 1; out_names(nout) = 'LE_WASTE'
 nout = nout + 1; out_names(nout) = 'GFLUX_TOWN'
 !MV202609 tau scheme of the road (revision: three-temperature construction)
 nout = nout + 1; out_names(nout) = 'T_CAN0'
-nout = nout + 1; out_names(nout) = 'T_LAYER'
-nout = nout + 1; out_names(nout) = 'PHI_LAYER'
+nout = nout + 1; out_names(nout) = 'T_CAN1'
+nout = nout + 1; out_names(nout) = 'PHI_CAN1'
 ! atmospheric forcing used by the model at the current time-step
 nout = nout + 1; out_names(nout) = 'Forc_TA'
 nout = nout + 1; out_names(nout) = 'Forc_QA'
@@ -880,6 +880,15 @@ OPEN(UNIT=fu_out, FILE = output_csv, STATUS = 'REPLACE', ACTION = 'WRITE', IOSTA
 IF (rc /= 0) THEN
    WRITE(*,*) 'ERROR: Cannot open output CSV file: ', TRIM(output_csv)
    WRITE(*,*) 'IOSTAT = ', rc
+   STOP 1
+END IF
+
+! The column names are stored in a fixed size array: stop explicitly instead of
+! overwriting memory when the list of columns grows beyond nout_max
+IF (nout > nout_max) THEN
+   WRITE(*,*) 'ERROR RUN_TEB_OFFLINE: too many output columns: ', nout, &
+              ' > nout_max = ', nout_max
+   WRITE(*,*) 'Increase nout_max in RUN_TEB_OFFLINE.'
    STOP 1
 END IF
 
@@ -988,7 +997,7 @@ DO nstep= 1,nsteps - 1
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
 !MV202609 tau scheme of the road (revision: three-temperature construction)
-                          PT_CAN0, PT_LAYER, PPHI_LAYER,                        &
+                          PT_CAN0, PT_CAN1, PPHI_CAN1,                        &
 !MV202609 tau scheme of the road
                           PH_ROAD, PLE_ROAD, teb_ltau_scheme,                   &
                           teb_tau_hw_thresh, teb_tau_hw_width,                  &
@@ -1065,8 +1074,8 @@ CALL CSV_APPEND(out_line, teb_lewaste(1))
 CALL CSV_APPEND(out_line, teb_gflux(1))
 !MV202609 tau scheme of the road (revision: three-temperature construction)
 CALL CSV_APPEND(out_line, PT_CAN0(1))
-CALL CSV_APPEND(out_line, PT_LAYER(1))
-CALL CSV_APPEND(out_line, PPHI_LAYER(1))
+CALL CSV_APPEND(out_line, PT_CAN1(1))
+CALL CSV_APPEND(out_line, PPHI_CAN1(1))
     ! --- atmospheric forcing used by the model at the current time-step
     forc_wind = SQRT(u(1)**2 + v(1)**2)
     forc_dir  = MOD(ATAN2(u(1), v(1))*180./XPI + 360., 360.)
