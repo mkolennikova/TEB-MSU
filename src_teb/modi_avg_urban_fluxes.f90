@@ -18,7 +18,12 @@ INTERFACE
                                 PRN_TWN, PH_TWN, PLE_TWN, PGFLX_TWN, PEVAP_TWN,    &
                                 PEMIT_LW_RD, PEMIT_LW_GD, PEMIT_LW_GRND, PEMIS_GD, PLW_UP, &
 !MV202609 tau scheme of the road
-                                PTAU)
+                                PTAU,                                        &
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+                                PH_ROAD_ATM, PLE_ROAD_ATM, PCD_ROAD_ATM,     &
+                                ZZ0H_ROAD_ATM, PZREF, PVMOD,                 &
+                                PT_CAN0, PT_LAYER, PPHI_LAYER,               &
+                                PQ_CAN0, PQ_LAYER)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
@@ -137,6 +142,18 @@ REAL, DIMENSION(:), INTENT(IN)    :: PEMIS_GD  ! garden emissivity
 REAL, DIMENSION(:), INTENT(OUT)   :: PLW_UP    ! upwards longwave radiation
 !MV202609 tau scheme of the road
 REAL, DIMENSION(:), INTENT(IN)    :: PTAU      ! tau scheme weight of the canyon path (-)
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+REAL, DIMENSION(:), INTENT(IN)    :: PH_ROAD_ATM    ! road sensible heat flux towards the atmosphere [W m-2 road]
+REAL, DIMENSION(:), INTENT(IN)    :: PLE_ROAD_ATM   ! road latent  heat flux towards the atmosphere [W m-2 road]
+REAL, DIMENSION(:), INTENT(IN)    :: PCD_ROAD_ATM   ! road drag coefficient to the atmosphere (-)
+REAL, DIMENSION(:), INTENT(IN)    :: ZZ0H_ROAD_ATM  ! road roughness length for heat to the atmosphere (m)
+REAL, DIMENSION(:), INTENT(IN)    :: PZREF          ! reference height of the forcing level (m)
+REAL, DIMENSION(:), INTENT(IN)    :: PVMOD          ! wind speed at the forcing level (m s-1)
+REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN0        ! canyon air temperature without tau (K)
+REAL, DIMENSION(:), INTENT(OUT)   :: PT_LAYER       ! free layer air temperature (K)
+REAL, DIMENSION(:), INTENT(OUT)   :: PPHI_LAYER     ! layer mean / theta* ratio of the MOST profile (-)
+REAL, DIMENSION(:), INTENT(OUT)   :: PQ_CAN0        ! canyon air humidity without tau (kg kg-1)
+REAL, DIMENSION(:), INTENT(OUT)   :: PQ_LAYER       ! free layer air humidity (kg kg-1)
 
 END SUBROUTINE AVG_URBAN_FLUXES
 END INTERFACE

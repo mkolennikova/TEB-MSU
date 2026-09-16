@@ -325,6 +325,10 @@ REAL ,DIMENSION(nvec) :: PH_ROAD_CAN      ! road sensible heat flux, road -> can
 REAL ,DIMENSION(nvec) :: PLE_ROAD_CAN     ! road latent heat flux, road -> canyon air [W m-2]
 REAL ,DIMENSION(nvec) :: PH_ROAD_ATM      ! road sensible heat flux, road -> forcing level [W m-2]
 REAL ,DIMENSION(nvec) :: PLE_ROAD_ATM      ! road latent heat flux, road -> forcing level [W m-2]
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+REAL ,DIMENSION(nvec) :: PT_CAN0           ! canyon air temperature without tau [K]
+REAL ,DIMENSION(nvec) :: PT_LAYER          ! free layer air temperature [K]
+REAL ,DIMENSION(nvec) :: PPHI_LAYER        ! layer air temperature / theta* ratio of the MOST profile [-]
 !MV202609 tau scheme of the road
 REAL ,DIMENSION(nvec) :: PH_ROAD          ! road sensible heat flux, tau scheme [W m-2]
 REAL ,DIMENSION(nvec) :: PLE_ROAD         ! road latent heat flux, tau scheme [W m-2]
@@ -850,6 +854,10 @@ nout = nout + 1; out_names(nout) = 'AHF_TRAFFIC'
 nout = nout + 1; out_names(nout) = 'H_WASTE'
 nout = nout + 1; out_names(nout) = 'LE_WASTE'
 nout = nout + 1; out_names(nout) = 'GFLUX_TOWN'
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+nout = nout + 1; out_names(nout) = 'T_CAN0'
+nout = nout + 1; out_names(nout) = 'T_LAYER'
+nout = nout + 1; out_names(nout) = 'PHI_LAYER'
 ! atmospheric forcing used by the model at the current time-step
 nout = nout + 1; out_names(nout) = 'Forc_TA'
 nout = nout + 1; out_names(nout) = 'Forc_QA'
@@ -979,6 +987,8 @@ DO nstep= 1,nsteps - 1
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+                          PT_CAN0, PT_LAYER, PPHI_LAYER,                        &
 !MV202609 tau scheme of the road
                           PH_ROAD, PLE_ROAD, teb_ltau_scheme,                   &
                           teb_tau_hw_thresh, teb_tau_hw_width,                  &
@@ -1053,6 +1063,10 @@ CALL CSV_APPEND(out_line, ahf_traffic_now(1))
 CALL CSV_APPEND(out_line, teb_hwaste(1))
 CALL CSV_APPEND(out_line, teb_lewaste(1))
 CALL CSV_APPEND(out_line, teb_gflux(1))
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+CALL CSV_APPEND(out_line, PT_CAN0(1))
+CALL CSV_APPEND(out_line, PT_LAYER(1))
+CALL CSV_APPEND(out_line, PPHI_LAYER(1))
     ! --- atmospheric forcing used by the model at the current time-step
     forc_wind = SQRT(u(1)**2 + v(1)**2)
     forc_dir  = MOD(ATAN2(u(1), v(1))*180./XPI + 360., 360.)

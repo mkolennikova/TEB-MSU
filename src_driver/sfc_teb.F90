@@ -62,6 +62,8 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+                          PT_CAN0, PT_LAYER, PPHI_LAYER,                        &
 !MV202609 tau scheme of the road
                           PH_ROAD, PLE_ROAD, teb_ltau_scheme,                   &
                           teb_tau_hw_thresh, teb_tau_hw_width,                  &
@@ -316,6 +318,10 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_CAN      ! road sensible heat flux,
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_CAN     ! road latent heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_ATM      ! road sensible heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_ATM     ! road latent heat flux, road -> forcing level [W m-2]
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN0          ! canyon air temperature without tau [K]
+REAL, DIMENSION(:), INTENT(OUT)   :: PT_LAYER         ! free layer air temperature [K]
+REAL, DIMENSION(:), INTENT(OUT)   :: PPHI_LAYER       ! layer air temperature / theta* ratio of the MOST profile [-]
 !MV202609 tau scheme of the road
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD          ! road sensible heat flux, tau scheme [W m-2]
 !MV202609 anthropogenic heat diagnostics
@@ -377,6 +383,8 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
                           PRI_ROAD_ATM(i), ZZ0H_ROAD_ATM(i), PCDN_GARDEN_CAN(i), PRI_GARDEN_CAN(i), &
                           ZZ0H_GARDEN_CAN(i), PAC_GARDEN_ATM(i), PCDN_GARDEN_ATM(i), PRI_GARDEN_ATM(i), ZZ0H_GARDEN_ATM(i), &
                           PH_ROAD_CAN(i), PLE_ROAD_CAN(i), PH_ROAD_ATM(i), PLE_ROAD_ATM(i), &
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+                          PT_CAN0(i), PT_LAYER(i), PPHI_LAYER(i),                            &
 !MV202609 tau scheme of the road
                           PH_ROAD(i), PLE_ROAD(i), teb_ltau_scheme,                        &
                           teb_tau_hw_thresh, teb_tau_hw_width,                             &

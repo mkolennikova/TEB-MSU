@@ -20,7 +20,12 @@
                                 PRN_TWN, PH_TWN, PLE_TWN, PGFLX_TWN, PEVAP_TWN,    &
                                 PEMIT_LW_RD, PEMIT_LW_GD, PEMIT_LW_GRND, PEMIS_GD, PLW_UP, &
 !MV202609 tau scheme of the road
-                                PTAU)
+                                PTAU,                                        &
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+                                PH_ROAD_ATM, PLE_ROAD_ATM, PCD_ROAD_ATM,     &
+                                ZZ0H_ROAD_ATM, PZREF, PVMOD,                 &
+                                PT_CAN0, PT_LAYER, PPHI_LAYER,               &
+                                PQ_CAN0, PQ_LAYER)
 !   ##########################################################################
 !
 !!****  *AVG_URBAN_FLUXES* computes fluxes on urbanized surfaces  
@@ -76,7 +81,7 @@ USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_TEB_PANEL_n, ONLY : TEB_PANEL_t
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 !
-USE MODD_CSTS,ONLY : XCPD, XLVTT, XLSTT, XSTEFAN
+USE MODD_CSTS,ONLY : XCPD, XLVTT, XLSTT, XSTEFAN, XKARMAN, XG
 !
 USE MODE_THERMOS
 !
@@ -198,6 +203,18 @@ REAL, DIMENSION(:), INTENT(IN)    :: PEMIS_GD  ! garden emissivity
 REAL, DIMENSION(:), INTENT(OUT)   :: PLW_UP    ! upwards longwave radiation
 !MV202609 tau scheme of the road
 REAL, DIMENSION(:), INTENT(IN)    :: PTAU      ! tau scheme weight of the canyon path (-)
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+REAL, DIMENSION(:), INTENT(IN)    :: PH_ROAD_ATM    ! road sensible heat flux towards the atmosphere [W m-2 road]
+REAL, DIMENSION(:), INTENT(IN)    :: PLE_ROAD_ATM   ! road latent  heat flux towards the atmosphere [W m-2 road]
+REAL, DIMENSION(:), INTENT(IN)    :: PCD_ROAD_ATM   ! road drag coefficient to the atmosphere (-)
+REAL, DIMENSION(:), INTENT(IN)    :: ZZ0H_ROAD_ATM  ! road roughness length for heat to the atmosphere (m)
+REAL, DIMENSION(:), INTENT(IN)    :: PZREF          ! reference height of the forcing level (m)
+REAL, DIMENSION(:), INTENT(IN)    :: PVMOD          ! wind speed at the forcing level (m s-1)
+REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN0        ! canyon air temperature without tau (K)
+REAL, DIMENSION(:), INTENT(OUT)   :: PT_LAYER       ! free layer air temperature (K)
+REAL, DIMENSION(:), INTENT(OUT)   :: PPHI_LAYER     ! layer mean / theta* ratio of the MOST profile (-)
+REAL, DIMENSION(:), INTENT(OUT)   :: PQ_CAN0        ! canyon air humidity without tau (kg kg-1)
+REAL, DIMENSION(:), INTENT(OUT)   :: PQ_LAYER       ! free layer air humidity (kg kg-1)
 
 CHARACTER(LEN=*), PARAMETER       :: RN_ROOF = 'output/RN_ROOF.txt'
 CHARACTER(LEN=*), PARAMETER       :: RN_ROAD = 'output/RN_ROAD.txt'
@@ -232,6 +249,19 @@ REAL, DIMENSION(SIZE(T%XROAD)) :: ZRD, ZGD
 !
 REAL :: ZINTER
 INTEGER :: JJ
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+REAL :: ZU_ROAD_ATM      ! friction velocity of the road -> atmosphere path (m/s)
+REAL :: ZTH_LAYER        ! temperature scale of the free layer (K)
+REAL :: ZL_LAYER         ! Obukhov length of the free layer (m)
+REAL :: ZZ_MID           ! height of the free layer air: h_bld/2, bounded by the forcing level (m)
+REAL :: ZPHI_LAYER       ! layer air temperature / theta* ratio of the MOST profile (-)
+REAL :: ZH_LAYER         ! heat input of the free layer (W/m2 canyon)
+REAL :: ZLE_LAYER        ! moisture input of the free layer (W/m2 canyon)
+REAL :: ZWLWIN_EFF       ! effective wall+window temperature for the layer heat input (K)
+LOGICAL :: ZOK_LAYER     ! sanity flag of the road->atmosphere input diagnostics
+REAL, PARAMETER :: ZU_ROAD_MIN   = 0.01    ! minimum friction velocity (m/s)
+REAL, PARAMETER :: ZTH_MIN       = 1.E-10  ! minimum |theta*| kept for the Obukhov length (K)
+REAL, PARAMETER :: ZETA_STAB_MAX = 1.      ! maximum stability argument (strongly stable bound, -)
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 !
@@ -471,25 +501,71 @@ DO JJ=1,SIZE(T%XROAD)
 !MV202609 tau scheme of the road
 !* only the tau fraction of the road exchange heats the canyon air; the
 !* remaining part exchanges directly with the air of the forcing level
-    ZINTER = PTAU(JJ) * PAC_RD(JJ) * PDF_RD(JJ) * ZRD (JJ) +  PAC_GD(JJ) * ZGD(JJ) + PAC_WL(JJ) * PWL_O_GRND(JJ) + PAC_TOP(JJ) 
-    PT_CAN(JJ) =  (  T%XT_ROAD  (JJ,1) * PTAU(JJ) * PAC_RD (JJ) * PDF_RD (JJ) * ZRD(JJ)  &
+    ZINTER = PAC_RD(JJ) * PDF_RD(JJ) * ZRD (JJ) +  PAC_GD(JJ) * ZGD(JJ) + PAC_WL(JJ) * PWL_O_GRND(JJ) + PAC_TOP(JJ) 
+    PT_CAN0(JJ) =  (  T%XT_ROAD  (JJ,1) * PAC_RD (JJ) * PDF_RD (JJ) * ZRD(JJ)  &
                    + T%XT_WALL_A(JJ,1) * PAC_WL (JJ) * (1.-B%XGR(JJ)) * PWL_O_GRND(JJ) * 0.5 &
                    + T%XT_WALL_B(JJ,1) * PAC_WL (JJ) * (1.-B%XGR(JJ)) * PWL_O_GRND(JJ) * 0.5 &
                    + B%XT_WIN1    (JJ) * PAC_WL (JJ) *     B%XGR(JJ)  * PWL_O_GRND(JJ)       &
                    + PTA          (JJ) * PAC_TOP(JJ)                                         &
                    + PH_TRAFFIC   (JJ) / (1.-T%XBLD (JJ))               / PRHOA(JJ) / XCPD   &
-                   + PHSN_RD(JJ) * PTAU(JJ) * PDN_RD(JJ)                / PRHOA(JJ) / XCPD  ) &
+                   + PHSN_RD(JJ) * PDN_RD(JJ)                / PRHOA(JJ) / XCPD  ) &
                                             / ZINTER  
 !
 !	print*, 'avg_urban_fluxes PT_CAN1 = ', PT_CAN(JJ)
 	
 	
-    PT_CAN(JJ) = PT_CAN(JJ) + ( PTSRAD_GD(JJ) * PAC_GD(JJ) * ZGD(JJ) ) / ZINTER
+    PT_CAN0(JJ) = PT_CAN0(JJ) + ( PTSRAD_GD(JJ) * PAC_GD(JJ) * ZGD(JJ) ) / ZINTER
 	
 !	print*, 'avg_urban_fluxes PT_CAN2 = ', PT_CAN(JJ)
 !	print*, 'avg_urban_fluxes PTSRAD_GD = ', PTSRAD_GD(JJ)
     IF (TOP%CBEM=="BEM") THEN
-      PT_CAN(JJ) = PT_CAN(JJ) + (DMT%XH_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ)) / PRHOA(JJ) / XCPD) / ZINTER
+      PT_CAN0(JJ) = PT_CAN0(JJ) + (DMT%XH_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ)) / PRHOA(JJ) / XCPD) / ZINTER
+    ENDIF
+!
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+!* free layer air temperature: the canyon surfaces are supposed to exchange
+!* directly with the atmosphere - the road and the garden through their
+!* surface-to-atmosphere fluxes, the walls and the windows (their flux towards
+!* the air, which is no longer trapped inside the canyon) and the volumetric
+!* sources (traffic, waste heat of the building energy model) - and the air
+!* temperature of that layer is taken at the height H/2 (as for the other
+!* canyon variables of TEB, see ZZ_LOWCAN in CALL_DRIVER), from the MOST profile
+!* of the corresponding direct flux (u*, theta* and the Obukhov length of the
+!* road->atmosphere path). The snow covered road is not included yet (it
+!* requires the snow-to-atmosphere exchange, added in a second step).
+!
+    ZWLWIN_EFF = (1.-B%XGR(JJ)) * 0.5 * ( T%XT_WALL_A(JJ,1) + T%XT_WALL_B(JJ,1) )      &
+               +      B%XGR(JJ)  * B%XT_WIN1(JJ)
+    ZH_LAYER   = ZRD(JJ) * PH_ROAD_ATM(JJ) + ZGD(JJ) * PH_GD(JJ)                       &
+               + PRHOA(JJ) * XCPD * PAC_WL(JJ) * PWL_O_GRND(JJ)                        &
+               * ( ZWLWIN_EFF - PT_LOWCAN(JJ) )                                        &
+               + PH_TRAFFIC(JJ) / (1.-T%XBLD(JJ))
+    IF (TOP%CBEM=="BEM") THEN
+      ZH_LAYER = ZH_LAYER + DMT%XH_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ))
+    ENDIF
+!
+    ZOK_LAYER   = ( PCD_ROAD_ATM(JJ) .GT. 0. .AND. PCD_ROAD_ATM(JJ) .LT. 1.            &
+                .AND. ZZ0H_ROAD_ATM(JJ) .GT. 0. .AND. ZZ0H_ROAD_ATM(JJ) .LT. 1.        &
+                .AND. PVMOD(JJ) .GT. 0. )
+    ZZ_MID      = MAX( 0.5 * MIN( T%XBLD_HEIGHT(JJ), PZREF(JJ) ), 1. )
+    ZU_ROAD_ATM = MAX( SQRT( MAX( PCD_ROAD_ATM(JJ), 0. ) ) * PVMOD(JJ), ZU_ROAD_MIN )
+    ZTH_LAYER   = ZH_LAYER / ( PRHOA(JJ) * XCPD * ZU_ROAD_ATM )
+    ZPHI_LAYER  = LOG( PZREF(JJ) / ZZ_MID )                    ! neutral limit
+    IF ( ZOK_LAYER .AND. ABS(ZTH_LAYER) .GE. ZTH_MIN ) THEN
+      ZL_LAYER   = - ZU_ROAD_ATM**2 * PTA(JJ) / ( XKARMAN * XG * ZTH_LAYER )
+      ZPHI_LAYER = LOG( PZREF(JJ) / ZZ_MID )                                           &
+                 - PSI_H_BD( MIN( PZREF(JJ) / ZL_LAYER, ZETA_STAB_MAX ) )              &
+                 + PSI_H_BD( MIN( ZZ_MID    / ZL_LAYER, ZETA_STAB_MAX ) )
+    ENDIF
+    PT_LAYER(JJ)   = PTA(JJ) + ( ZTH_LAYER / XKARMAN ) * ZPHI_LAYER
+    PPHI_LAYER(JJ) = ZPHI_LAYER
+!
+!* air temperature seen by the surfaces: tau relaxation of both end members
+!
+    IF (TOP%LTAU_SCHEME) THEN
+      PT_CAN(JJ) = PTAU(JJ) * PT_CAN0(JJ) + (1.-PTAU(JJ)) * PT_LAYER(JJ)
+    ELSE
+      PT_CAN(JJ) = PT_CAN0(JJ)
     ENDIF
 !IF (icell == 5 .AND. iblock == 2532) THEN
 !	print*, 'PT_CAN        (JJ) = ', PT_CAN        (JJ)       
@@ -507,15 +583,33 @@ DO JJ=1,SIZE(T%XROAD)
 !	print*, 'ZINTER = ', ZINTER        
 !ENDIF
 
-    ZINTER = PTAU(JJ) * PAC_RD_WAT(JJ) * PDF_RD(JJ) * PDELT_RD(JJ) * ZRD(JJ) + PAC_AGG_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ) + PAC_TOP(JJ)
-    PQ_CAN(JJ) = (  PQSAT_RD   (JJ) * PTAU(JJ) * PAC_RD_WAT(JJ) * PDF_RD    (JJ) * ZRD(JJ) * PDELT_RD(JJ)    &
+    ZINTER = PAC_RD_WAT(JJ) * PDF_RD(JJ) * PDELT_RD(JJ) * ZRD(JJ) + PAC_AGG_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ) + PAC_TOP(JJ)
+    PQ_CAN0(JJ) = (  PQSAT_RD   (JJ) * PAC_RD_WAT(JJ) * PDF_RD    (JJ) * ZRD(JJ) * PDELT_RD(JJ)    &
                   + PQSAT_GD   (JJ) * PAC_AGG_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ)                   &
                   + PQA        (JJ) * PAC_TOP(JJ)                                                 &
                   + PLE_TRAFFIC(JJ) / (1.-T%XBLD(JJ)) / PRHOA(JJ) / XLVTT                         &
-                  + PLESN_RD   (JJ) * PTAU(JJ) * PDN_RD(JJ)      / PRHOA(JJ) / XLVTT * ZRD(JJ)  ) / ZINTER
+                  + PLESN_RD   (JJ) * PDN_RD(JJ)      / PRHOA(JJ) / XLVTT * ZRD(JJ)  ) / ZINTER
 
     IF (TOP%CBEM=="BEM") THEN
-      PQ_CAN(JJ) = PQ_CAN(JJ) + (DMT%XLE_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ)) / PRHOA(JJ) / XLVTT) / ZINTER
+      PQ_CAN0(JJ) = PQ_CAN0(JJ) + (DMT%XLE_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ)) / PRHOA(JJ) / XLVTT) / ZINTER
+    ENDIF
+!
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+!* free layer air humidity: same construction as the air temperature, with the
+!* moisture input of the layer and the same MOST profile at H/2 (psi_q = psi_h)
+!
+    ZLE_LAYER = ZRD(JJ) * PLE_ROAD_ATM(JJ) + ZGD(JJ) * PLE_GD(JJ)                      &
+              + PLE_TRAFFIC(JJ) / (1.-T%XBLD(JJ))
+    IF (TOP%CBEM=="BEM") THEN
+      ZLE_LAYER = ZLE_LAYER + DMT%XLE_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ))
+    ENDIF
+    PQ_LAYER(JJ) = PQA(JJ) + ZLE_LAYER                                                 &
+                 / ( PRHOA(JJ) * XLVTT * XKARMAN * ZU_ROAD_ATM ) * ZPHI_LAYER
+!
+    IF (TOP%LTAU_SCHEME) THEN
+      PQ_CAN(JJ) = PTAU(JJ) * PQ_CAN0(JJ) + (1.-PTAU(JJ)) * PQ_LAYER(JJ)
+    ELSE
+      PQ_CAN(JJ) = PQ_CAN0(JJ)
     ENDIF
 !IF (icell == 5 .AND. iblock == 2532) THEN
 !	print*, 'PQ_CAN        (JJ) = ', PQ_CAN        (JJ)       
@@ -533,5 +627,22 @@ END WHERE
 !
 IF (LHOOK) CALL DR_HOOK('AVG_URBAN_FLUXES',1,ZHOOK_HANDLE)
 !-------------------------------------------------------------------------------
+!
+CONTAINS
+!
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+!* stability function for heat of the Businger-Dyer family, with the coefficients
+!* used by SURFACE_CD / SURFACE_AERO_COND (15 in the unstable regime, 5 in the
+!* stable one). PSI_H_BD = integral of (1 - phi_h) d(zeta) / zeta
+!
+FUNCTION PSI_H_BD(ZETA) RESULT(PSI_H)
+  REAL, INTENT(IN) :: ZETA
+  REAL             :: PSI_H
+  IF (ZETA < 0.) THEN
+    PSI_H = 2. * LOG( ( 1. + SQRT( MAX( 1. - 15. * ZETA, 1.E-12 ) ) ) / 2. )
+  ELSE
+    PSI_H = - 5. * ZETA
+  ENDIF
+END FUNCTION PSI_H_BD
 !
 END SUBROUTINE AVG_URBAN_FLUXES

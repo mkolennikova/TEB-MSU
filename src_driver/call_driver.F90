@@ -39,6 +39,8 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+                          PT_CAN0, PT_LAYER, PPHI_LAYER,                        &
 !MV202609 tau scheme of the road
                           PH_ROAD, PLE_ROAD, LTAU_SCHEME,                       &
                           XTAU_HW_THRESH, XTAU_HW_WIDTH,                        &
@@ -378,6 +380,10 @@ REAL,DIMENSION(1)                 :: PH_ROAD_CAN      !OUT road sensible heat fl
 REAL,DIMENSION(1)                 :: PLE_ROAD_CAN     !OUT road latent heat flux, road -> canyon air [W m-2]
 REAL,DIMENSION(1)                 :: PH_ROAD_ATM      !OUT road sensible heat flux, road -> forcing level [W m-2]
 REAL,DIMENSION(1)                 :: PLE_ROAD_ATM     !OUT road latent heat flux, road -> forcing level [W m-2]
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+REAL,DIMENSION(1)                 :: PT_CAN0          !OUT canyon air temperature without tau [K]
+REAL,DIMENSION(1)                 :: PT_LAYER         !OUT free layer air temperature [K]
+REAL,DIMENSION(1)                 :: PPHI_LAYER       !OUT layer air temperature / theta* ratio of the MOST profile [-]
 !MV202609 tau scheme of the road
 REAL,DIMENSION(1)                 :: PH_ROAD          !OUT road sensible heat flux, tau scheme [W m-2]
 REAL,DIMENSION(1)                 :: PLE_ROAD         !OUT road latent heat flux, tau scheme [W m-2]
@@ -1478,6 +1484,8 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, LGARDEN_EXT, LGREENROOF, LGREENR
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
+!MV202609 tau scheme of the road (revision: three-temperature construction)
+                          PT_CAN0, PT_LAYER, PPHI_LAYER, &
 !MV202609 tau scheme of the road
                           LTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH)
 !*****************************************************************************
