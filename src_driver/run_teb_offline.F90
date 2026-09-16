@@ -332,6 +332,12 @@ REAL ,DIMENSION(nvec) :: PPHI_CAN1         ! free layer air temperature / theta*
 !MV202609 tau scheme of the road
 REAL ,DIMENSION(nvec) :: PH_ROAD          ! road sensible heat flux, tau scheme [W m-2]
 REAL ,DIMENSION(nvec) :: PLE_ROAD         ! road latent heat flux, tau scheme [W m-2]
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+REAL ,DIMENSION(nvec) :: PAC_ROAD_WAT     ! road water conductance (canyon, water-limited)
+REAL ,DIMENSION(nvec) :: PAC_ROAD_ATM_WAT ! road water conductance (forcing level, water-limited)
+REAL ,DIMENSION(nvec) :: PDN_RD           ! road snow fraction (-)
+REAL ,DIMENSION(nvec) :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
+REAL ,DIMENSION(nvec) :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
 REAL ,DIMENSION(nvec) :: ahf_traffic_now                !OUT Anthropogenic heat flux by traffic (current value)
 REAL ,DIMENSION(nvec) :: teb_solar_prod                 !OUT Averaged Energy production of solar panel on roofs (W/m2 bld  )
 	
@@ -849,6 +855,13 @@ nout = nout + 1; out_names(nout) = 'LE_ROAD_ATM'
 !MV202609 tau scheme of the road
 nout = nout + 1; out_names(nout) = 'H_ROAD'
 nout = nout + 1; out_names(nout) = 'LE_ROAD'
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+nout = nout + 1; out_names(nout) = 'PAC_ROAD_WAT'
+nout = nout + 1; out_names(nout) = 'PAC_ROAD_ATM_WAT'
+nout = nout + 1; out_names(nout) = 'PDN_RD'
+nout = nout + 1; out_names(nout) = 'LE_ROAD_WAT'
+nout = nout + 1; out_names(nout) = 'LE_ROAD_SNOW'
+nout = nout + 1; out_names(nout) = 'WS_ROAD'
 !MV202609 anthropogenic heat diagnostics (traffic and building waste heat)
 nout = nout + 1; out_names(nout) = 'AHF_TRAFFIC'
 nout = nout + 1; out_names(nout) = 'H_WASTE'
@@ -1002,7 +1015,8 @@ DO nstep= 1,nsteps - 1
 !MV202609 tau scheme of the road (revision: three-temperature construction)
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                        &
 !MV202609 tau scheme of the road
-                          PH_ROAD, PLE_ROAD, teb_ltau_scheme,                   &
+                          PH_ROAD, PLE_ROAD, PAC_ROAD_WAT, PAC_ROAD_ATM_WAT, PDN_RD, LE_ROAD_WAT, LE_ROAD_SNOW, &
+                          teb_ltau_scheme,                   &
                           teb_tau_hw_thresh, teb_tau_hw_width,                  &
 !MV202609 anthropogenic heat diagnostics
                           teb_lewaste)
@@ -1070,6 +1084,13 @@ CALL CSV_APPEND(out_line, PLE_ROAD_ATM(1))
 !MV202609 tau scheme of the road
 CALL CSV_APPEND(out_line, PH_ROAD(1))
 CALL CSV_APPEND(out_line, PLE_ROAD(1))
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+CALL CSV_APPEND(out_line, PAC_ROAD_WAT(1))
+CALL CSV_APPEND(out_line, PAC_ROAD_ATM_WAT(1))
+CALL CSV_APPEND(out_line, PDN_RD(1))
+CALL CSV_APPEND(out_line, LE_ROAD_WAT(1))
+CALL CSV_APPEND(out_line, LE_ROAD_SNOW(1))
+CALL CSV_APPEND(out_line, teb_ws_road(1))
 !MV202609 anthropogenic heat diagnostics (traffic and building waste heat)
 CALL CSV_APPEND(out_line, ahf_traffic_now(1))
 CALL CSV_APPEND(out_line, teb_hwaste(1))

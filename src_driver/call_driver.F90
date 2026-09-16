@@ -42,7 +42,8 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 !MV202609 tau scheme of the road (revision: three-temperature construction)
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                        &
 !MV202609 tau scheme of the road
-                          PH_ROAD, PLE_ROAD, LTAU_SCHEME,                       &
+                          PH_ROAD, PLE_ROAD, PAC_ROAD_WAT, PAC_ROAD_ATM_WAT, PDN_RD, LE_ROAD_WAT, LE_ROAD_SNOW, &
+                          LTAU_SCHEME,                       &
                           XTAU_HW_THRESH, XTAU_HW_WIDTH,                        &
 !MV202609 anthropogenic heat diagnostics
                           ZLE_WASTE)
@@ -387,6 +388,12 @@ REAL,DIMENSION(1)                 :: PPHI_CAN1        !OUT free layer air temper
 !MV202609 tau scheme of the road
 REAL,DIMENSION(1)                 :: PH_ROAD          !OUT road sensible heat flux, tau scheme [W m-2]
 REAL,DIMENSION(1)                 :: PLE_ROAD         !OUT road latent heat flux, tau scheme [W m-2]
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+REAL,DIMENSION(1)                 :: PAC_ROAD_WAT     !OUT road water conductance (canyon, water-limited)
+REAL,DIMENSION(1)                 :: PAC_ROAD_ATM_WAT !OUT road water conductance (forcing level, water-limited)
+REAL,DIMENSION(1)                 :: PDN_RD           !OUT road snow fraction (-)
+REAL,DIMENSION(1)                 :: LE_ROAD_WAT      !OUT road latent heat flux of the snow-free road (W/m2 road)
+REAL,DIMENSION(1)                 :: LE_ROAD_SNOW     !OUT road latent heat flux of the snow-covered road (W/m2 road)
 LOGICAL                           :: LTAU_SCHEME      !IN flag to use the tau scheme for the road
 REAL                              :: XTAU_HW_THRESH   !IN H/W giving tau = 0.5 (tau scheme)
 REAL                              :: XTAU_HW_WIDTH    !IN width of the tanh relaxation (tau scheme)
@@ -468,7 +475,11 @@ REAL,DIMENSION(1)  :: ZAC_ROOF          ! roof aerodynamical conductance
 REAL,DIMENSION(1)  :: ZAC_ROAD          ! road aerodynamical conductance                         
 REAL,DIMENSION(1)  :: ZAC_WALL          ! wall aerodynamical conductance   
 REAL,DIMENSION(1)  :: ZAC_TOP           ! aerodynamical conductance between canyon top and atm.     
-REAL,DIMENSION(1)  :: ZAC_ROAD_WAT      ! road aerodynamical conductance (for water)   
+REAL,DIMENSION(1)  :: ZAC_ROAD_WAT      ! road aerodynamical conductance (for water)
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+REAL,DIMENSION(1)  :: ZAC_ROAD_ATM_WAT  ! road aerodynamical conductance (for water, forcing level)
+REAL,DIMENSION(1)  :: ZLE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
+REAL,DIMENSION(1)  :: ZLE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)   
 REAL,DIMENSION(1)  :: ZAC_GARDEN        ! garden aerodynamical conductance             
 REAL,DIMENSION(1)  :: ZAC_GARDEN_WAT    ! garden aerodynamical conductance for vapor   
 REAL,DIMENSION(1)  :: ZAC_GREENROOF     ! green roofs aerodynamical conductance        
@@ -1486,6 +1497,8 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, LGARDEN_EXT, LGREENROOF, LGREENR
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
 !MV202609 tau scheme of the road (revision: three-temperature construction)
                           PT_CAN0, PT_CAN1, PPHI_CAN1, &
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+                          ZAC_ROAD_ATM_WAT, ZLE_ROAD_WAT, ZLE_ROAD_SNOW, &
 !MV202609 tau scheme of the road
                           LTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH)
 !*****************************************************************************
@@ -1538,6 +1551,14 @@ ZH_ROOF_FR = ZH_ROOF*ZBLD
 !* tau-aggregated fluxes when the tau scheme is activated (see TEB_GARDEN/TEB)
 PH_ROAD = ZH_ROAD
 PLE_ROAD = ZLE_ROAD
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+!* road water diagnostics: effective (water-limited) conductances of both branches,
+!* snow fraction and liquid/snow components of the road latent heat flux
+PAC_ROAD_WAT     = ZAC_ROAD_WAT
+PAC_ROAD_ATM_WAT = ZAC_ROAD_ATM_WAT
+PDN_RD           = ZDN_RD
+LE_ROAD_WAT      = ZLE_ROAD_WAT
+LE_ROAD_SNOW     = ZLE_ROAD_SNOW
 !
 ZH_ROAD_FR = ZH_ROAD*ZROAD
 ZH_WALL_FR = ZH_WALL_A*ZWALL_O_HOR

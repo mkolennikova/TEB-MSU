@@ -115,6 +115,8 @@ INTERFACE
 !MV202609 tau scheme of the road
                                                     PT_CAN0, PT_CAN1, PPHI_CAN1, &
 !MV202609 tau scheme of the road (revision: three-temperature construction)
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+                                                     PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
                           OTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH)
 !   ##########################################################################
 !
@@ -320,6 +322,10 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_ROOF       ! runoff over the grou
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_ROAD           ! net radiation over road
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_ROAD            ! sensible heat flux over road
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_ROAD           ! latent heat flux over road
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_ROAD_ATM_WAT   ! road water conductance (forcing level, water-limited)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: LE_ROAD_WAT        ! road latent heat flux of the snow-free road (W/m2 road)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: LE_ROAD_SNOW       ! road latent heat flux of the snow-covered road (W/m2 road)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PLEW_ROAD          ! latent heat flux over road (snow)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PGFLUX_ROAD        ! flux through the road
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_ROAD       ! runoff over the ground

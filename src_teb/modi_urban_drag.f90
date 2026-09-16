@@ -4,7 +4,7 @@ INTERFACE
     SUBROUTINE URBAN_DRAG(icell, iblock, TOP, T, B, OGARDEN_EXT, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
                           PU_CANYON, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ_LOWCAN,   &
                           PTS_ROOF, PTS_ROAD, PTS_WALL, PTS_GARDEN, PQS_GARDEN,    &
-                          PDELT_SNOW_ROOF, PDELT_SNOW_ROAD,  PEXNS, PEXNA, PTA,    &
+                          PDELT_SNOW_ROOF, PDELT_SNOW_ROAD,  PTAU, PEXNS, PEXNA, PTA,    &
                           PQA, PPS, PRHOA,PZREF, PUREF, PVMOD, PWS_ROOF_MAX,       &
                           PWS_ROAD_MAX, PPEW_A_COEF, PPEW_B_COEF,                  &
                           PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT,  &
@@ -49,6 +49,7 @@ REAL, DIMENSION(:), INTENT(IN)    :: PTS_GARDEN     ! surface temperature
 REAL, DIMENSION(:), INTENT(IN)    :: PQS_GARDEN     ! surface humidity
 REAL, DIMENSION(:), INTENT(IN)    :: PDELT_SNOW_ROOF! fraction of snow on roof
 REAL, DIMENSION(:), INTENT(IN)    :: PDELT_SNOW_ROAD! fraction of snow on road
+REAL, DIMENSION(:), INTENT(IN)    :: PTAU           ! tau scheme weight of the canyon path (-)
 REAL, DIMENSION(:), INTENT(IN)    :: PEXNS          ! surface exner function
 REAL, DIMENSION(:), INTENT(IN)    :: PTA            ! temperature at the lowest level
 REAL, DIMENSION(:), INTENT(IN)    :: PQA            ! specific humidity

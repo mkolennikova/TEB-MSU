@@ -34,7 +34,7 @@
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
 !MV202609 tau scheme of the road
-                          PTAU, PH_ROAD, PLE_ROAD)
+                          PTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW)
 					 
 				 
 !   ##########################################################################
@@ -417,6 +417,10 @@ REAL, DIMENSION(:), INTENT(OUT) :: PLE_ROAD_CAN  ! latent heat flux, road -> can
 !MV202609 tau scheme of the road
 REAL, DIMENSION(:), INTENT(OUT) :: PH_ROAD       ! road sensible heat flux, tau scheme [W m-2]
 REAL, DIMENSION(:), INTENT(OUT) :: PLE_ROAD      ! road latent heat flux, tau scheme [W m-2]
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+REAL, DIMENSION(:), INTENT(OUT) :: PAC_ROAD_ATM_WAT ! road water conductance, road -> forcing level (water-limited)
+REAL, DIMENSION(:), INTENT(OUT) :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
+REAL, DIMENSION(:), INTENT(OUT) :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
 !
 !*      0.2    Declarations of local variables
 !
@@ -617,7 +621,7 @@ ZWS_RD_MAX(:) = ZWS_RD_MAX(:) * PDF_RD(:)
 !
  CALL URBAN_DRAG(icell, iblock, TOP, T, B, OGARDEN_EXT, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
                  PU_CANYON, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ_LOWCAN, &
-                 ZTS_RF, ZTS_RD, ZTS_WL, PTS_GARDEN, PQS_GARDEN, PDN_RF, PDN_RD,    &
+                 ZTS_RF, ZTS_RD, ZTS_WL, PTS_GARDEN, PQS_GARDEN, PDN_RF, PDN_RD, PTAU,    &
                  PEXNS, PEXNA, PTA, PQA, PPS, PRHOA, PZREF, PUREF,      &
                  PVMOD, ZWS_RF_MAX, ZWS_RD_MAX, PPEW_A_COEF,            &
                  PPEW_B_COEF, PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, &   
@@ -634,7 +638,11 @@ ZWS_RD_MAX(:) = ZWS_RD_MAX(:) * PDF_RD(:)
                   PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN,          &
                   ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM,      &
                   ZZ0H_GARDEN_ATM,                                                       &
-                  ZAC_RD_ATM_WAT	 )
+                  ZAC_RD_ATM_WAT )
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+!* road -> forcing level water-limited conductance (diagnostic; also used by the
+!* tau aggregation and by the reference humidity ZQ_REF of the road budget)
+PAC_ROAD_ATM_WAT(:) = ZAC_RD_ATM_WAT(:)
 !IF (icell == 5 .AND. iblock == 2532) THEN
 !	print*, 'after urban_drag PCH_GARDEN = ', PCH_GARDEN
 !    print*, 'after urban_drag PCD_GARDEN = ', PCD_GARDEN
@@ -807,6 +815,11 @@ ENDIF
 !* budget (i.e. the tau-aggregated fluxes when the tau scheme is activated)
 PH_ROAD(:)  = DMT%XH_ROAD(:)
 PLE_ROAD(:) = PLEW_RD(:)
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+!* liquid and snow contributions to the road latent heat flux, per m2 of road
+!* (tile-mean: the flux of each part is weighted by its surface fraction)
+LE_ROAD_WAT (:) = PDF_RD(:) * PLEW_RD(:)
+LE_ROAD_SNOW(:) = PDN_RD(:) * PLESN_RD(:)
 !
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* potential component fluxes of the road: same quantity as if the whole exchange
@@ -925,8 +938,15 @@ ENDWHERE
 !*      11.    Roof ans road reservoirs evolution
 !              ----------------------------------
 !
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+!* the road water reservoir is drained by the liquid latent flux of the snow-free
+!* road only (PDF_RD*PLEW_RD): the sublimation/deposition of the road snow is
+!* already accounted in the road snowpack (WSNOW_RD), removing it once more from
+!* the puddle would double-count it; the liquid fraction of the latent flux uses
+!* XLVTT (the snow fraction uses XLSTT, see snow scheme)
  CALL URBAN_HYDRO(ZWS_RF_MAX, ZWS_RD_MAX, T%XWS_ROOF, T%XWS_ROAD, PRR,          &
-                  DMT%XIRRIG_ROAD, PTSTEP, T%XBLD, DMT%XLE_ROOF, DMT%XLE_ROAD,  &
+                  DMT%XIRRIG_ROAD, PTSTEP, T%XBLD, DMT%XLE_ROOF,               &
+                  PDF_RD(:) * PLEW_RD(:),                                        &
                   DMT%XRUNOFF_STRLROOF, DMT%XRUNOFF_ROAD   )
 !
 IF (TOP%LGREENROOF) THEN

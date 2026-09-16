@@ -32,7 +32,7 @@ INTERFACE
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
 !MV202609 tau scheme of the road
-                          PTAU, PH_ROAD, PLE_ROAD)
+                          PTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
@@ -223,6 +223,10 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_CAN   ! sensible heat flux, road ->
 !MV202609 tau scheme of the road
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD       ! road sensible heat flux, tau scheme [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD      ! road latent heat flux, tau scheme [W m-2]
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM_WAT ! road water conductance, road -> forcing level (water-limited)
+REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
+REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
 REAL, DIMENSION(:), INTENT(IN)    :: PTAU         ! tau scheme weight of the canyon path (-)
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_CAN  ! latent heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)

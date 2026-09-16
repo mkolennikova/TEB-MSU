@@ -65,7 +65,8 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 !MV202609 tau scheme of the road (revision: three-temperature construction)
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                        &
 !MV202609 tau scheme of the road
-                          PH_ROAD, PLE_ROAD, teb_ltau_scheme,                   &
+                          PH_ROAD, PLE_ROAD, PAC_ROAD_WAT, PAC_ROAD_ATM_WAT, PDN_RD, LE_ROAD_WAT, LE_ROAD_SNOW, &
+                          teb_ltau_scheme,                   &
                           teb_tau_hw_thresh, teb_tau_hw_width,                  &
 !MV202609 anthropogenic heat diagnostics
                           teb_lewaste)
@@ -327,6 +328,12 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD          ! road sensible heat flux,
 !MV202609 anthropogenic heat diagnostics
 REAL, DIMENSION(:), INTENT(OUT)   :: teb_lewaste       ! latent waste heat of the buildings [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD         ! road latent heat flux, tau scheme [W m-2]
+!MV202609 tau scheme of the road (revision: puddle diagnostics)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_WAT     ! road water conductance (canyon, water-limited)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM_WAT ! road water conductance (forcing level, water-limited)
+REAL, DIMENSION(:), INTENT(OUT)   :: PDN_RD           ! road snow fraction (-)
+REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
+REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
 LOGICAL,              INTENT(IN)  :: teb_ltau_scheme  ! flag to use the tau scheme for the road
 REAL,                 INTENT(IN)  :: teb_tau_hw_thresh! H/W giving tau = 0.5 (tau scheme)
 REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxation (tau scheme)
@@ -386,7 +393,8 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
 !MV202609 tau scheme of the road (revision: three-temperature construction)
                           PT_CAN0(i), PT_CAN1(i), PPHI_CAN1(i),                            &
 !MV202609 tau scheme of the road
-                          PH_ROAD(i), PLE_ROAD(i), teb_ltau_scheme,                        &
+                          PH_ROAD(i), PLE_ROAD(i), PAC_ROAD_WAT(i), PAC_ROAD_ATM_WAT(i), PDN_RD(i), LE_ROAD_WAT(i), LE_ROAD_SNOW(i), &
+                          teb_ltau_scheme,                        &
                           teb_tau_hw_thresh, teb_tau_hw_width,                             &
 !MV202609 anthropogenic heat diagnostics
                           teb_lewaste(i))

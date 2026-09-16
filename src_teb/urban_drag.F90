@@ -6,7 +6,7 @@
     SUBROUTINE URBAN_DRAG(icell, iblock, TOP, T, B, OGARDEN_EXT, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
                           PU_CANYON, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ_LOWCAN,   &
                           PTS_ROOF, PTS_ROAD, PTS_WALL, PTS_GARDEN, PQS_GARDEN,    &
-                          PDELT_SNOW_ROOF, PDELT_SNOW_ROAD,  PEXNS, PEXNA, PTA,    &
+                          PDELT_SNOW_ROOF, PDELT_SNOW_ROAD,  PTAU, PEXNS, PEXNA, PTA,    &
                           PQA, PPS, PRHOA,PZREF, PUREF, PVMOD, PWS_ROOF_MAX,       &
                           PWS_ROAD_MAX, PPEW_A_COEF, PPEW_B_COEF,                  &
                           PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT,  &
@@ -128,6 +128,7 @@ REAL, DIMENSION(:), INTENT(IN)    :: PTS_GARDEN     ! surface temperature
 REAL, DIMENSION(:), INTENT(IN)    :: PQS_GARDEN     ! surface humidity
 REAL, DIMENSION(:), INTENT(IN)    :: PDELT_SNOW_ROOF! fraction of snow on roof
 REAL, DIMENSION(:), INTENT(IN)    :: PDELT_SNOW_ROAD! fraction of snow on road
+REAL, DIMENSION(:), INTENT(IN)    :: PTAU           ! tau scheme weight of the canyon path (-)
 REAL, DIMENSION(:), INTENT(IN)    :: PEXNS          ! surface exner function
 REAL, DIMENSION(:), INTENT(IN)    :: PTA            ! temperature at the lowest level
 REAL, DIMENSION(:), INTENT(IN)    :: PQA            ! specific humidity
@@ -238,9 +239,12 @@ REAL, DIMENSION(SIZE(PTA)) :: ZPZ0_GARDEN  ! garden roughness length
 REAL, DIMENSION(SIZE(PTA)) :: ZW_CAN       ! ver. wind in canyon
 REAL, DIMENSION(SIZE(PTA)) :: ZRI          ! Richardson number
 REAL, DIMENSION(SIZE(PTA)) :: ZLE_MAX      ! maximum latent heat flux available
-REAL, DIMENSION(SIZE(PTA)) :: ZLE          ! actual latent heat flux
+REAL, DIMENSION(SIZE(PTA)) :: ZLE          ! roof latent heat flux (free)
+REAL, DIMENSION(SIZE(PTA)) :: ZLE_CAN_FREE ! road latent heat flux, road -> canyon (unlimited)
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
-REAL, DIMENSION(SIZE(PTA)) :: ZLE_ROAD_ATM ! road latent heat flux, road -> forcing level
+REAL, DIMENSION(SIZE(PTA)) :: ZLE_ATM_FREE ! road latent heat flux, road -> forcing level (unlimited)
+REAL, DIMENSION(SIZE(PTA)) :: ZLE_TOT      ! tau-weighted sum of the free branch latent fluxes
+REAL, DIMENSION(SIZE(PTA)) :: ZFRAC_WAT    ! water availability factor applied to both branches
 REAL, DIMENSION(SIZE(PTA)) :: ZRA_ROOF     ! aerodynamical resistance
 !REAL, DIMENSION(SIZE(PTA)) :: ZCH_ROOF     ! drag coefficient for heat
 REAL, DIMENSION(SIZE(PTA)) :: ZRA_TOP      ! aerodynamical resistance
@@ -666,29 +670,45 @@ CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQA, PEXNS, PEXNA, PTA, PQA,
 DO JJ=1,SIZE(PTA)
   !
   ZLE_MAX(JJ)     = T%XWS_ROAD(JJ) / PTSTEP * XLVTT
-  ZLE    (JJ)     = ( PQSAT_ROAD(JJ) - PQ_LOWCAN(JJ) )                   &
-                   *   PAC_ROAD_CAN(JJ) * PDELT_ROAD(JJ) * XLVTT * PRHOA(JJ)
   !
-  PAC_ROAD_WAT(JJ) = PAC_ROAD_CAN(JJ)
-  !
-  IF (PDELT_ROAD(JJ)==0.) PAC_ROAD_WAT(JJ) = 0.
-  !
-  IF (ZLE(JJ)>0.) PAC_ROAD_WAT(JJ) = PAC_ROAD_CAN(JJ) * MIN ( 1. , ZLE_MAX(JJ)/ZLE(JJ) )
-  !
-  !MV202609 road-to-atm and garden-to-atm exchange diagnostics
-  !* same water limitation as above, but for the exchange of the road with the air
-  !* of the forcing level: the corresponding conductance is used by the road ->
-  !* atmosphere flux diagnostic computed in ROAD_LAYER_E_BUDGET. The available
-  !* water (ZLE_MAX) is the same for both diagnostics.
-  !
-  ZLE_ROAD_ATM(JJ) = ( PQSAT_ROAD(JJ) - PQA(JJ) )                        &
+  !MV202609 tau scheme of the road (revision: single bucket over both branches)
+  !* free (unlimited) latent fluxes of the two branches of the road (canyon air
+  !* and forcing level), per m2 of snow-free road
+  ZLE_CAN_FREE(JJ) = ( PQSAT_ROAD(JJ) - PQ_LOWCAN(JJ) )                 &
+                     * PAC_ROAD_CAN(JJ) * PDELT_ROAD(JJ) * XLVTT * PRHOA(JJ)
+  ZLE_ATM_FREE(JJ) = ( PQSAT_ROAD(JJ) - PQA(JJ) )                        &
                      * PAC_ROAD_ATM(JJ) * PDELT_ROAD(JJ) * XLVTT * PRHOA(JJ)
   !
-  PAC_ROAD_ATM_WAT(JJ) = PAC_ROAD_ATM(JJ)
+  !* the two branches share the water of the single road reservoir: the tau-
+  !*-weighted sum of their free fluxes may not exceed the available water
+  !   ZLE_TOT = tau*ZLE_CAN_FREE + (1-tau)*ZLE_ATM_FREE
+  !   f       = min(1, ZLE_MAX/ZLE_TOT)   (no limit for condensation, ZLE_TOT <= 0)
+  ! so the reservoir constraint applies to the branches taken together, not to
+  ! each branch separately (with tau = 1 or the tau scheme disabled this reduces
+  ! to the classic canyon-branch rule and the former behaviour is reproduced
+  ! exactly). The same factor f applies to both branches, therefore the actual
+  ! road latent flux is exactly tau*PLE_ROAD_CAN + (1-tau)*PLE_ROAD_ATM also
+  ! when the water limitation is active.
+  ZLE_TOT(JJ)   = PTAU(JJ) * ZLE_CAN_FREE(JJ) + (1.-PTAU(JJ)) * ZLE_ATM_FREE(JJ)
   !
-  IF (PDELT_ROAD(JJ)==0.) PAC_ROAD_ATM_WAT(JJ) = 0.
+  ZFRAC_WAT(JJ) = 1.
+  IF (ZLE_TOT(JJ) > 0.) ZFRAC_WAT(JJ) = MIN(1., ZLE_MAX(JJ)/ZLE_TOT(JJ))
   !
-  IF (ZLE_ROAD_ATM(JJ)>0.) PAC_ROAD_ATM_WAT(JJ) = PAC_ROAD_ATM(JJ) * MIN ( 1. , ZLE_MAX(JJ)/ZLE_ROAD_ATM(JJ) )
+  !MV202609 road-to-atm and garden-to-atm exchange diagnostics
+  !* the canyon and the forcing-level branches get the same water-limitation
+  !* factor; PAC_ROAD_ATM_WAT is the conductance used by the road -> atmosphere
+  !* flux diagnostic computed in ROAD_LAYER_E_BUDGET (same water as PAC_ROAD_WAT)
+  PAC_ROAD_WAT    (JJ) = PAC_ROAD_CAN(JJ) * ZFRAC_WAT(JJ)
+  PAC_ROAD_ATM_WAT(JJ) = PAC_ROAD_ATM(JJ) * ZFRAC_WAT(JJ)
+  !
+  !* a bone-dry road has no water at all whatever the limit factor
+  IF (PDELT_ROAD(JJ)==0.) THEN
+    PAC_ROAD_WAT    (JJ) = 0.
+    PAC_ROAD_ATM_WAT(JJ) = 0.
+  ENDIF
+  !
+  !
+  !
   !
   !
   !
