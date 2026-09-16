@@ -106,29 +106,53 @@ def check_reservoir_limit(d, dt):
 
 def water_budget_residual(d, dt):
     """Combined puddle + road-snow budget on rain-free, non-full (no runoff)
-    hours. Returns residuals for the fixed (LE_ROAD_WAT) and the production
-    (LE_ROAD) liquid drains, with the snow mass taken either per tile or per
-    snow-covered area."""
+    hours. Returns residuals for the corrected liquid drain (PLEW_RD, tile-mean)
+    and the previous double-weighted drain (PDF_RD*PLEW_RD), with the snow mass
+    taken either per tile or per snow-covered area."""
     d = d.copy()
     d['dWS'] = d['WS_ROAD'].diff()
     d['dSN1'] = d['WSNOW_RD'].diff()
     d['dSNp'] = (d['WSNOW_RD'] * d['PDN_RD']).diff()
-    sel = (d['Forc_RAIN'].values < 1e-9) & (d['WS_ROAD'].values < 0.99) \
+    # runoff-free hours: the effective capacity of the road reservoir is scaled
+    # by the snow-free fraction (WS_ROAD_MAX*(1-PDN_RD) in TEB), so the reservoir
+    # overflows well below 1 mm when the road is snow-covered
+    cap = (1.0 - d['PDN_RD'].values)
+    sel = (d['Forc_RAIN'].values < 1e-9) & (d['WS_ROAD'].values < 0.999 * cap) \
         & (d['dWS'].notna().values)
     dt_ = d[sel]
     if len(dt_) < 3:
         return None
     snow_in = dt_['Forc_SNOW'].values * dt
-    li_wat = dt_['LE_ROAD_WAT'].values / XLVTT * dt
-    li_le = dt_['LE_ROAD'].values / XLVTT * dt
+    # the corrected code drains the puddle with the tile-mean liquid flux of the
+    # road (PLEW_RD = CSV column LE_ROAD, no extra PDF_RD weight); the 'old'
+    # variant PDF_RD*PLEW_RD (= (1-PDN_RD)*LE_ROAD) was the double-weighted one
+    li_fixed = dt_['LE_ROAD'].values / XLVTT * dt
+    li_old = dt_['LE_ROAD'].values * (1.0 - dt_['PDN_RD'].values) / XLVTT * dt
     sn_le = dt_['LE_ROAD_SNOW'].values / XLSTT * dt
     res = {}
-    for kname, d_sn in (('tile', dt_['dSN1'].values), ('frac', dt_['dSNp'].values)):
+    for kname, d_sn in (('snow_tile', dt_['dSN1'].values), ('snow_frac', dt_['dSNp'].values)):
         res[kname] = {
-            'fixed_liq_LE_ROAD_WAT': float((dt_['dWS'].values + d_sn + li_wat + sn_le - snow_in).sum()),
-            'raw_LE_ROAD_column': float((dt_['dWS'].values + d_sn + li_le + sn_le - snow_in).sum()),
+            'fixed_liq_PLEW_RD': float((dt_['dWS'].values + d_sn + li_fixed + sn_le - snow_in).sum()),
+            'old_liq_PDF_PLEW_RD': float((dt_['dWS'].values + d_sn + li_old + sn_le - snow_in).sum()),
         }
     return res
+
+
+def check_tilemean_normalization(d):
+    """The road energy budget computes PLEW_RD as a tile-mean quantity (per m2 of
+    road): at tau = 1 the CSV LE_ROAD (= PLEW_RD) equals LE_ROAD_CAN exactly even
+    when the snow fraction is large (both carry the same 1-PDN_RD factor inside
+    the flux). Under the alternative 'per m2 of snow-free road' normalization the
+    ratio would be ~ 1/(1-PDN_RD) instead of ~ 1."""
+    pdn = d['PDN_RD'].values
+    m = (pdn > 0.3) & (np.abs(d['LE_ROAD_CAN'].values) > 0.05)
+    if int(m.sum()) < 5:
+        return True, float('nan'), float('nan'), 0
+    ratio = d['LE_ROAD'].values[m] / d['LE_ROAD_CAN'].values[m]
+    med_r = float(np.nanmedian(ratio))
+    med_inv = float(np.nanmedian(1.0 / (1.0 - pdn[m])))
+    ok = abs(med_r - 1.0) <= 0.15 and med_r <= 0.5 * med_inv
+    return ok, med_r, med_inv, int(m.sum())
 
 
 def diff_csv(d, ref, tol=1e-9):
@@ -178,6 +202,13 @@ def main():
         print('T3 reservoir limit   : %s  (max |LE_ROAD - ZLE_MAX|/ZLE_MAX = %.3e, active rows = %d)'
               % ('PASS' if ok3 else 'FAIL', rlim, n3))
 
+    ok5, med_r5, med_inv5, n5 = check_tilemean_normalization(d)
+    if n5 == 0:
+        print('T5 tile-mean LE_ROAD : SKIP (needs snow: PDN_RD > 0.3, n >= 5)')
+    else:
+        print('T5 tile-mean LE_ROAD : %s  (median LE_ROAD/LE_ROAD_CAN = %.3f vs 1/(1-PDN) = %.3f, n = %d)'
+              % ('PASS' if ok5 else 'FAIL', med_r5, med_inv5, n5))
+
     res = water_budget_residual(d, args.dt)
     if args.dt < 3600.:
         print('T4 water budget      : SKIP (sub-hour steps; use --dt 3600 to close the budget exactly)')
@@ -185,8 +216,8 @@ def main():
         print('T4 water budget      : SKIP (too few runoff-free rows)')
     else:
         for k, v in res.items():
-            print('T4 water budget (snow mass %s): fixed_liq_resid = %+.4f   raw_LE_ROAD_col_resid = %+.4f  kg/m2'
-                  % (k, v['fixed_liq_LE_ROAD_WAT'], v['raw_LE_ROAD_column']))
+            print('T4 water budget (snow mass %s): fixed_liq(PLEW_RD) = %+.4f   old_liq(PDF*PLEW_RD) = %+.4f  kg/m2'
+                  % (k, v['fixed_liq_PLEW_RD'], v['old_liq_PDF_PLEW_RD']))
 
     if args.diff:
         ref = pd.read_csv(args.diff, sep=';')
@@ -194,7 +225,7 @@ def main():
         print('A/B vs %s : %s'
               % (args.diff, ('mismatches: %s' % bad) if bad else 'bit-identical on shared columns'))
 
-    ok = ok1 and ok2 and (ok3 or args.dt < 3600.)
+    ok = ok1 and ok2 and (ok3 or args.dt < 3600.) and ok5
     print('=' * 90)
     print('RESULT: %s' % ('ALL PASS' if ok else 'SOME TESTS FAILED'))
     sys.exit(0 if ok else 1)

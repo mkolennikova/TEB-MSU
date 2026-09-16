@@ -224,13 +224,21 @@ PLE_WL_B(:) = ZINTER(:)
 !*      4.     Snow-free and snow-covered surfaces averaging
 !              ---------------------------------------------
 !
+!MV202609 fixes of the road puddle water normalization (PLEW_RD is tile-mean, no double PDF_RD weight)
+!* the road energy budget (ROAD_LAYER_E_BUDGET) is written in the tile-mean
+!* formulation: its outputs DMT%XH_ROAD and PLEW_RD are per m2 of ROAD (the
+!* snow-free fraction 1-PDN_RD is already inside ZRHO_ACF_R/ZRHO_ACF_R_WAT of
+!* the budget), so no PDF_RD weight is applied to them here. The snow fluxes
+!* PHSN_RD/PLESN_RD/PGSN_RD are per m2 of SNOW and are combined with one PDN_RD
+!* weight only. DMT%XRN_ROAD is per m2 of snow-free surface here (re-shuffled
+!* below), so it keeps its PDF_RD weight in the ground heat flux.
 !*      4.1    Roads
 !              -----
 !
 !                                            heat flux into the ground
 !
-DMT%XGFLUX_ROAD (:) =  PDF_RD(:) * (DMT%XRN_ROAD(:) - DMT%XH_ROAD (:) - PLEW_RD(:) )&
-                       + PDN_RD(:) * PGSN_RD(:)  
+DMT%XGFLUX_ROAD (:) =  PDF_RD(:) * DMT%XRN_ROAD(:) - DMT%XH_ROAD (:) - PLEW_RD(:) &
+                     + PDN_RD(:) * PGSN_RD(:)
 !
 !                                            net radiation
 !
@@ -243,10 +251,10 @@ DMT%XRN_ROAD(:) = DMT%XRN_ROAD(:) * PDF_RD(:) + PRNSN_RD(:) * PDN_RD(:)
 ! sensible heat flux
 !
 
-DMT%XH_ROAD  (:) = DMT%XH_ROAD (:) * PDF_RD(:) + PHSN_RD(:) * PDN_RD(:)
+DMT%XH_ROAD  (:) = DMT%XH_ROAD (:)          + PHSN_RD(:) * PDN_RD(:)
 ! total latent heat of evaporation from  the road (snow free + snow)
 !
-DMT%XLE_ROAD (:) = PLEW_RD(:) * PDF_RD(:) + PLESN_RD(:) * PDN_RD(:)
+DMT%XLE_ROAD (:) = PLEW_RD(:)               + PLESN_RD(:) * PDN_RD(:)
 !
 !*      4.2    Roofs
 !              -----

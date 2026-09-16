@@ -458,11 +458,15 @@ DO JJ=1,SIZE(T%XROAD)
 !*      4.     Averaged evaporative flux (kg/m2/s)
 !              -----------------------------------
 !
+!MV202609 fixes of the road puddle water normalization (PLEW_RD is tile-mean, no double PDF_RD weight)
+!* PLEW_RD is the liquid latent heat flux of the road energy budget, already per
+!* m2 of road (the snow-free fraction is inside the budget, no PDF_RD weight
+!* here); PLESN_RD is per m2 of snow and carries the PDN_RD fraction.
   PEVAP_TWN(JJ) = PTOTS_O_HORS(JJ)*(                                                             &
                    PRF_FRAC  (JJ) * PDF_RF(JJ) * (1.-T%XGREENROOF(JJ)) * PLEW_RF   (JJ) / XLVTT  &
                  + PRF_FRAC  (JJ) * PDN_RF(JJ) * (1.-T%XGREENROOF(JJ)) * PLESN_RF  (JJ) / XLSTT  &
                  + PRF_FRAC  (JJ)              *     T%XGREENROOF(JJ)  * PEVAP_GR  (JJ)          &
-                 + PRD_FRAC  (JJ) * PDF_RD(JJ)                         * PLEW_RD   (JJ) / XLVTT  &
+                 + PRD_FRAC  (JJ)                                  * PLEW_RD   (JJ) / XLVTT  &
                  + PRD_FRAC  (JJ) * PDN_RD(JJ)                         * PLESN_RD  (JJ) / XLSTT  &
                  + PGD_FRAC  (JJ)                                      * PEVAP_GD  (JJ)          &
                  + PWL_FRAC  (JJ) * 0.5                 * (PLE_WL_A(JJ) + PLE_WL_B(JJ)) / XLVTT )&

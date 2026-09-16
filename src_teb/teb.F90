@@ -815,10 +815,14 @@ ENDIF
 !* budget (i.e. the tau-aggregated fluxes when the tau scheme is activated)
 PH_ROAD(:)  = DMT%XH_ROAD(:)
 PLE_ROAD(:) = PLEW_RD(:)
-!MV202609 tau scheme of the road (revision: puddle diagnostics)
-!* liquid and snow contributions to the road latent heat flux, per m2 of road
-!* (tile-mean: the flux of each part is weighted by its surface fraction)
-LE_ROAD_WAT (:) = PDF_RD(:) * PLEW_RD(:)
+!MV202609 fixes of the road puddle water normalization (PLEW_RD is tile-mean, no double PDF_RD weight)
+!* liquid and snow contributions to the road latent heat flux, per m2 of road:
+!* the road energy budget computes PLEW_RD already as a tile-mean quantity (the
+!* snow-free fraction 1-PDN_RD is inside ZRHO_ACF_R_WAT of the budget), so the
+!* liquid part LE_ROAD_WAT = PLEW_RD coincides with the CSV column LE_ROAD;
+!* LE_ROAD_SNOW is the tile-mean snow part; LE_ROAD_WAT + LE_ROAD_SNOW is the
+!* tile-mean total latent heat flux of the road (DMT%XLE_ROAD).
+LE_ROAD_WAT (:) = PLEW_RD(:)
 LE_ROAD_SNOW(:) = PDN_RD(:) * PLESN_RD(:)
 !
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
@@ -938,15 +942,18 @@ ENDWHERE
 !*      11.    Roof ans road reservoirs evolution
 !              ----------------------------------
 !
-!MV202609 tau scheme of the road (revision: puddle diagnostics)
-!* the road water reservoir is drained by the liquid latent flux of the snow-free
-!* road only (PDF_RD*PLEW_RD): the sublimation/deposition of the road snow is
-!* already accounted in the road snowpack (WSNOW_RD), removing it once more from
-!* the puddle would double-count it; the liquid fraction of the latent flux uses
-!* XLVTT (the snow fraction uses XLSTT, see snow scheme)
+!MV202609 fixes of the road puddle water normalization (PLEW_RD is tile-mean, no double PDF_RD weight)
+!* the road water reservoir is drained by the liquid latent heat flux of the
+!* snow-free road, PLEW_RD: this flux is computed by the road energy budget as a
+!* tile-mean quantity (per m2 of road), i.e. it already contains the snow-free
+!* fraction factor (1-PDN_RD) via ZRHO_ACF_R_WAT inside the budget, so no
+!* additional weight must be applied here. The sublimation/deposition of the
+!* road snow is already accounted in the road snowpack (WSNOW_RD): feeding it
+!* once more into the puddle would double-count it. The liquid fraction uses
+!* XLVTT (the snow one XLSTT, see the snow scheme)
  CALL URBAN_HYDRO(ZWS_RF_MAX, ZWS_RD_MAX, T%XWS_ROOF, T%XWS_ROAD, PRR,          &
                   DMT%XIRRIG_ROAD, PTSTEP, T%XBLD, DMT%XLE_ROOF,               &
-                  PDF_RD(:) * PLEW_RD(:),                                        &
+                  PLEW_RD(:),                                                    &
                   DMT%XRUNOFF_STRLROOF, DMT%XRUNOFF_ROAD   )
 !
 IF (TOP%LGREENROOF) THEN
