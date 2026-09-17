@@ -247,6 +247,12 @@ REAL ,DIMENSION(nvec) :: teb_qstown_s                   !OUT town surface specif
 REAL ,DIMENSION(nvec) :: teb_wstown_now                 !OUT town water content (m H2O) at previous time-step    
 REAL ,DIMENSION(nvec) :: teb_wstown                     !OUT town water content (m H2O)
 REAL ,DIMENSION(nvec) :: teb_runoff_town                !OUT runoff for town
+!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
+REAL ,DIMENSION(nvec) :: teb_runoff_road                !OUT water runoff of the road (kg/m2/s)
+REAL ,DIMENSION(nvec) :: teb_runoff_roof                !OUT water runoff of the roof (kg/m2/s)
+!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
+REAL                  :: ZRO_ROAD_ACC                   ! runoff of the road accumulated over the model sub-steps (kg/m2/s)
+REAL                  :: ZRO_ROOF_ACC                   ! runoff of the roof accumulated over the model sub-steps (kg/m2/s)
 REAL ,DIMENSION(nvec) :: teb_alb_so                     !OUT town solar albedo  
 REAL ,DIMENSION(nvec) :: teb_alb_th                     !OUT town thermal albedo
 REAL ,DIMENSION(nvec) :: teb_wind_top                   !OUT Wind speed at canyon top (m/s)
@@ -338,6 +344,10 @@ REAL ,DIMENSION(nvec) :: PAC_ROAD_ATM_WAT ! road water conductance (forcing leve
 REAL ,DIMENSION(nvec) :: PDN_RD           ! road snow fraction (-)
 REAL ,DIMENSION(nvec) :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
 REAL ,DIMENSION(nvec) :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+REAL ,DIMENSION(nvec) :: PDN_RF           ! roof snow fraction (-)
+REAL ,DIMENSION(nvec) :: LE_ROOF_WAT      ! roof latent heat flux of the snow-free roof (W/m2 roof)
+REAL ,DIMENSION(nvec) :: LE_ROOF_SNOW     ! roof latent heat flux of the snow-covered roof (W/m2 roof)
 REAL ,DIMENSION(nvec) :: ahf_traffic_now                !OUT Anthropogenic heat flux by traffic (current value)
 REAL ,DIMENSION(nvec) :: teb_solar_prod                 !OUT Averaged Energy production of solar panel on roofs (W/m2 bld  )
 	
@@ -413,6 +423,7 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
                     urb_z0_town, urb_zd_town,                                       &
 !MV202609 tau scheme of the road
                     teb_ltau_scheme, teb_tau_hw_thresh, teb_tau_hw_width
+
 
 !============================================================
 !============================================================
@@ -874,6 +885,15 @@ nout = nout + 1; out_names(nout) = 'PHI_CAN1'
 !MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
 nout = nout + 1; out_names(nout) = 'WSNOW_RD'
 nout = nout + 1; out_names(nout) = 'TSNOW_RD'
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+nout = nout + 1; out_names(nout) = 'PDN_RF'
+nout = nout + 1; out_names(nout) = 'LE_ROOF_WAT'
+nout = nout + 1; out_names(nout) = 'LE_ROOF_SNOW'
+nout = nout + 1; out_names(nout) = 'WS_ROOF'
+nout = nout + 1; out_names(nout) = 'WSNOW_RF'
+!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
+nout = nout + 1; out_names(nout) = 'RUNOFF_ROAD'
+nout = nout + 1; out_names(nout) = 'RUNOFF_ROOF'
 ! atmospheric forcing used by the model at the current time-step
 nout = nout + 1; out_names(nout) = 'Forc_TA'
 nout = nout + 1; out_names(nout) = 'Forc_QA'
@@ -930,6 +950,14 @@ INB_ATM = forc_step / dt
 
 DO nstep= 1,nsteps - 1
    WRITE(*,FMT='(I5,A1,I5)') nstep,'/',nsteps - 1
+!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
+!* the road/roof runoff is accumulated over the INB_ATM model sub-steps of the
+!* forcing step: the runoff of a single sub-step is a clipped quantity (it is
+!* non-zero only when the reservoir overflows), so the value of the last
+!* sub-step alone cannot be used to close the hourly water budget of the road
+!* and of the roof reservoirs (it is not the mean runoff of the hour).
+   ZRO_ROAD_ACC = 0.
+   ZRO_ROOF_ACC = 0.
 	! read Forcing
     CALL OL_READ_ATM('ASCII ', 'ASCII ', nstep, forcing_path2,   &
                     ZTA,ZQA,ZWIND,ZDIR_SW,ZSCA_SW,ZLW,ZSNOW,ZRAIN,ZPS,&
@@ -1016,10 +1044,17 @@ DO nstep= 1,nsteps - 1
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                        &
 !MV202609 tau scheme of the road
                           PH_ROAD, PLE_ROAD, PAC_ROAD_WAT, PAC_ROAD_ATM_WAT, PDN_RD, LE_ROAD_WAT, LE_ROAD_SNOW, &
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+                          PDN_RF, LE_ROOF_WAT, LE_ROOF_SNOW, &
                           teb_ltau_scheme,                   &
                           teb_tau_hw_thresh, teb_tau_hw_width,                  &
 !MV202609 anthropogenic heat diagnostics
-                          teb_lewaste)
+                          teb_lewaste,                        &
+!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
+                          teb_runoff_road, teb_runoff_roof)
+!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
+   ZRO_ROAD_ACC = ZRO_ROAD_ACC + teb_runoff_road(1)
+   ZRO_ROOF_ACC = ZRO_ROOF_ACC + teb_runoff_roof(1)
 						
     END DO
 	   !
@@ -1103,6 +1138,15 @@ CALL CSV_APPEND(out_line, PPHI_CAN1(1))
 !MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
 CALL CSV_APPEND(out_line, teb_wsnow_road(1,1))
 CALL CSV_APPEND(out_line, teb_tsnow_road(1,1))
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+CALL CSV_APPEND(out_line, PDN_RF(1))
+CALL CSV_APPEND(out_line, LE_ROOF_WAT(1))
+CALL CSV_APPEND(out_line, LE_ROOF_SNOW(1))
+CALL CSV_APPEND(out_line, teb_ws_roof(1))
+CALL CSV_APPEND(out_line, teb_wsnow_roof(1,1))
+!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
+CALL CSV_APPEND(out_line, ZRO_ROAD_ACC / INB_ATM)
+CALL CSV_APPEND(out_line, ZRO_ROOF_ACC / INB_ATM)
     ! --- atmospheric forcing used by the model at the current time-step
     forc_wind = SQRT(u(1)**2 + v(1)**2)
     forc_dir  = MOD(ATAN2(u(1), v(1))*180./XPI + 360., 360.)

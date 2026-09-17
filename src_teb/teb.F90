@@ -34,7 +34,9 @@
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
 !MV202609 tau scheme of the road
-                          PTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW)
+                          PTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+                          LE_ROOF_WAT, LE_ROOF_SNOW)
 					 
 				 
 !   ##########################################################################
@@ -421,6 +423,9 @@ REAL, DIMENSION(:), INTENT(OUT) :: PLE_ROAD      ! road latent heat flux, tau sc
 REAL, DIMENSION(:), INTENT(OUT) :: PAC_ROAD_ATM_WAT ! road water conductance, road -> forcing level (water-limited)
 REAL, DIMENSION(:), INTENT(OUT) :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
 REAL, DIMENSION(:), INTENT(OUT) :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+REAL, DIMENSION(:), INTENT(OUT) :: LE_ROOF_WAT      ! roof latent heat flux of the snow-free roof (W/m2 roof)
+REAL, DIMENSION(:), INTENT(OUT) :: LE_ROOF_SNOW     ! roof latent heat flux of the snow-covered roof (W/m2 roof)
 !
 !*      0.2    Declarations of local variables
 !
@@ -825,6 +830,18 @@ PLE_ROAD(:) = PLEW_RD(:)
 LE_ROAD_WAT (:) = PLEW_RD(:)
 LE_ROAD_SNOW(:) = PDN_RD(:) * PLESN_RD(:)
 !
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+!* roof decomposition, with the same convention as the road one: PLEW_RF and
+!* PLESN_RF are given per m2 of snow-free roof and per m2 of snow (see
+!* ROOF_LAYER_E_BUDGET and URBAN_SNOW_EVOL), so the tile-mean values use
+!* (1-PDN_RF) = PDF_RF and PDN_RF. LE_ROOF_WAT is the liquid water flux that
+!* drains the roof puddle (the flux passed to URBAN_HYDRO below) and
+!* LE_ROOF_SNOW the tile-mean snow part; their sum is the structural roof
+!* latent heat flux per m2 of roof (the liquid+snow parts of DMT%XLE_STRLROOF,
+!* the greenroof and the building waste heat being excluded, see URBAN_FLUXES).
+LE_ROOF_WAT (:) = ( 1. - PDN_RF(:) ) * PLEW_RF(:)
+LE_ROOF_SNOW(:) =        PDN_RF(:)   * PLESN_RF(:)
+!
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* potential component fluxes of the road: same quantity as if the whole exchange
 !* occurred with the canyon air (tau = 1) or directly with the air of the forcing
@@ -928,12 +945,27 @@ END SELECT
 !
 ! Water transfer from snow reservoir to water reservoir in case of snow melt
 !
+!MV202609 fixes of the snow melt / roof puddle water path (melt injection)
+!* PMELT_RF / PMELT_RD are computed by URBAN_SNOW_EVOL for each m2 of SNOW
+!* ("All computations are then done only for each m2 of snow, and not for each
+!* m2 of roof/road": the snowpack is divided by PDN_* before the call and
+!* multiplied back afterwards, see URBAN_SNOW_EVOL), so the melt water that
+!* reaches the roof/road reservoirs is PDN_RF*PMELT_RF / PDN_RD*PMELT_RD per m2
+!* of roof/road, exactly like the tile-mean snow latent flux PDN_*PLESN_*.
+!* Without the PDN_* weight the reservoirs receive 1/PDN_* times the real melt
+!* (a spurious water source, maximal for a patchy snowpack: with PDN = 0.7 the
+!* melt water injected is 43% too large).
+!* The MIN() with the reservoir capacity is also removed here: URBAN_HYDRO
+!* (called just below) applies the capacity and turns the excess into runoff,
+!* while capping the reservoir here silently DESTROYS the melt water that does
+!* not fit in the roof/road puddle (a water leak of the same order as the melt
+!* itself during the melt season, ZWS_*_MAX being only 1 mm * (1-PDN_*)).
 WHERE (PMELT_RF(:) .GT. 0.)
-  T%XWS_ROOF(:) = MIN(ZWS_RF_MAX,T%XWS_ROOF(:) + PMELT_RF(:)*PTSTEP)
+  T%XWS_ROOF(:) = T%XWS_ROOF(:) + PDN_RF(:) * PMELT_RF(:) * PTSTEP
 ENDWHERE
 !
 WHERE (PMELT_RD(:) .GT. 0.)
-  T%XWS_ROAD(:) = MIN(ZWS_RD_MAX,T%XWS_ROAD(:) + PMELT_RD(:)*PTSTEP)
+  T%XWS_ROAD(:) = T%XWS_ROAD(:) + PDN_RD(:) * PMELT_RD(:) * PTSTEP
 ENDWHERE
 
 !
@@ -951,8 +983,22 @@ ENDWHERE
 !* road snow is already accounted in the road snowpack (WSNOW_RD): feeding it
 !* once more into the puddle would double-count it. The liquid fraction uses
 !* XLVTT (the snow one XLSTT, see the snow scheme)
+!MV202609 fixes of the snow melt / roof puddle water path (roof reservoir drain)
+!* the roof reservoir is drained by the liquid latent heat flux of the snow-free
+!* STRUCTURAL roof per m2 of roof, LE_ROOF_WAT = (1-PDN_RF)*PLEW_RF (the same
+!* quantity as the liquid part of DMT%XLE_STRLROOF, and the same convention as
+!* the road one: PLEW_RF is given per m2 of snow-free roof only). The roof
+!* puddle must NOT be drained by DMT%XLE_ROOF (used before this revision):
+!*  - with the greenroof, DMT%XLE_ROOF contains PLE_GR (the greenroof
+!*    transpiration is fed by the garden/BEM water, not by the roof puddle),
+!*  - with BEM it contains the building latent waste heat LE_WASTE/XBLD (vapour
+!*    produced by the HVAC system, not water from the roof puddle),
+!*  - in all cases it contains the roof snow sublimation PDN_RF*PLESN_RF, which
+!*    is already taken from the roof snowpack by the snow scheme (WSNOW_RF):
+!*    draining the puddle with it evaporates the roof puddle water a second time
+!*    (and with XLVTT instead of the XLSTT used by the snow scheme).
  CALL URBAN_HYDRO(ZWS_RF_MAX, ZWS_RD_MAX, T%XWS_ROOF, T%XWS_ROAD, PRR,          &
-                  DMT%XIRRIG_ROAD, PTSTEP, T%XBLD, DMT%XLE_ROOF,               &
+                  DMT%XIRRIG_ROAD, PTSTEP, T%XBLD, LE_ROOF_WAT(:),              &
                   PLEW_RD(:),                                                    &
                   DMT%XRUNOFF_STRLROOF, DMT%XRUNOFF_ROAD   )
 !

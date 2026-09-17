@@ -43,10 +43,14 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                        &
 !MV202609 tau scheme of the road
                           PH_ROAD, PLE_ROAD, PAC_ROAD_WAT, PAC_ROAD_ATM_WAT, PDN_RD, LE_ROAD_WAT, LE_ROAD_SNOW, &
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+                          PDN_RF, LE_ROOF_WAT, LE_ROOF_SNOW, &
                           LTAU_SCHEME,                       &
                           XTAU_HW_THRESH, XTAU_HW_WIDTH,                        &
 !MV202609 anthropogenic heat diagnostics
-                          ZLE_WASTE)
+                          ZLE_WASTE,                        &
+!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
+                          RUNOFF_ROAD, RUNOFF_ROOF)
 							
 ! ======================================================================
 ! 
@@ -394,6 +398,10 @@ REAL,DIMENSION(1)                 :: PAC_ROAD_ATM_WAT !OUT road water conductanc
 REAL,DIMENSION(1)                 :: PDN_RD           !OUT road snow fraction (-)
 REAL,DIMENSION(1)                 :: LE_ROAD_WAT      !OUT road latent heat flux of the snow-free road (W/m2 road)
 REAL,DIMENSION(1)                 :: LE_ROAD_SNOW     !OUT road latent heat flux of the snow-covered road (W/m2 road)
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+REAL,DIMENSION(1)                 :: PDN_RF           !OUT roof snow fraction (-)
+REAL,DIMENSION(1)                 :: LE_ROOF_WAT      !OUT roof latent heat flux of the snow-free roof (W/m2 roof)
+REAL,DIMENSION(1)                 :: LE_ROOF_SNOW     !OUT roof latent heat flux of the snow-covered roof (W/m2 roof)
 LOGICAL                           :: LTAU_SCHEME      !IN flag to use the tau scheme for the road
 REAL                              :: XTAU_HW_THRESH   !IN H/W giving tau = 0.5 (tau scheme)
 REAL                              :: XTAU_HW_WIDTH    !IN width of the tanh relaxation (tau scheme)
@@ -479,7 +487,10 @@ REAL,DIMENSION(1)  :: ZAC_ROAD_WAT      ! road aerodynamical conductance (for wa
 !MV202609 tau scheme of the road (revision: puddle diagnostics)
 REAL,DIMENSION(1)  :: ZAC_ROAD_ATM_WAT  ! road aerodynamical conductance (for water, forcing level)
 REAL,DIMENSION(1)  :: ZLE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
-REAL,DIMENSION(1)  :: ZLE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)   
+REAL,DIMENSION(1)  :: ZLE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+REAL,DIMENSION(1)  :: ZLE_ROOF_WAT      ! roof latent heat flux of the snow-free roof (W/m2 roof)
+REAL,DIMENSION(1)  :: ZLE_ROOF_SNOW     ! roof latent heat flux of the snow-covered roof (W/m2 roof)   
 REAL,DIMENSION(1)  :: ZAC_GARDEN        ! garden aerodynamical conductance             
 REAL,DIMENSION(1)  :: ZAC_GARDEN_WAT    ! garden aerodynamical conductance for vapor   
 REAL,DIMENSION(1)  :: ZAC_GREENROOF     ! green roofs aerodynamical conductance        
@@ -491,7 +502,10 @@ REAL,DIMENSION(1)  :: ZUSTAR_TOWN       ! Fraction velocity for town
 REAL,DIMENSION(1)  :: ZRESA_TOWN        ! Aerodynamical resistance                     
 REAL,DIMENSION(1)  :: ZRI_TOWN          ! Richardson number                            
 REAL,DIMENSION(1)  :: ZRUNOFF_ROOF      ! runoff for roof                              
-REAL,DIMENSION(1)  :: ZRUNOFF_ROAD      ! runoff for road                                                                                    
+REAL,DIMENSION(1)  :: ZRUNOFF_ROAD      ! runoff for road
+!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
+REAL,DIMENSION(1)                 :: RUNOFF_ROAD      !OUT water runoff of the road (kg/m2/s)
+REAL,DIMENSION(1)                 :: RUNOFF_ROOF      !OUT water runoff of the roof (kg/m2/s)                                                                                    
 REAL,DIMENSION(1)  :: ZGSNOW_ROAD = 0.0 ! road snow conduction                         
 
 ! Urban fluxes variables                                                              
@@ -1499,6 +1513,8 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, LGARDEN_EXT, LGREENROOF, LGREENR
                           PT_CAN0, PT_CAN1, PPHI_CAN1, &
 !MV202609 tau scheme of the road (revision: puddle diagnostics)
                           ZAC_ROAD_ATM_WAT, ZLE_ROAD_WAT, ZLE_ROAD_SNOW, &
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+                          ZLE_ROOF_WAT, ZLE_ROOF_SNOW, &
 !MV202609 tau scheme of the road
                           LTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH)
 !*****************************************************************************
@@ -1559,6 +1575,20 @@ PAC_ROAD_ATM_WAT = ZAC_ROAD_ATM_WAT
 PDN_RD           = ZDN_RD
 LE_ROAD_WAT      = ZLE_ROAD_WAT
 LE_ROAD_SNOW     = ZLE_ROAD_SNOW
+!
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+!* roof water diagnostics: snow fraction and liquid/snow components of the roof
+!* latent heat flux (tile-mean, as computed by TEB for the roof reservoir drain)
+PDN_RF           = ZDN_RF
+LE_ROOF_WAT      = ZLE_ROOF_WAT
+LE_ROOF_SNOW     = ZLE_ROOF_SNOW
+!
+!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
+!* water runoff of the road and of the roof reservoirs (per m2 of road / roof),
+!* needed to close the water budget of the two reservoirs on every hour (the
+!* runoff is the (only) term that leaves the reservoir without evaporating)
+RUNOFF_ROAD      = ZRUNOFF_ROAD
+RUNOFF_ROOF      = ZRUNOFF_ROOF
 !
 ZH_ROAD_FR = ZH_ROAD*ZROAD
 ZH_WALL_FR = ZH_WALL_A*ZWALL_O_HOR

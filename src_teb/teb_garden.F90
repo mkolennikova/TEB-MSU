@@ -34,6 +34,8 @@
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM,          &
 !MV202609 tau scheme of the road
                           PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+                          LE_ROOF_WAT, LE_ROOF_SNOW, &
 !MV202609 tau scheme of the road (revision: three-temperature construction)
                           PT_CAN0, PT_CAN1, PPHI_CAN1)
 !   ##########################################################################
@@ -284,6 +286,9 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD      ! road latent heat flux, t
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_ROAD_ATM_WAT ! road water conductance, road -> forcing level (water-limited)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROOF_WAT      ! roof latent heat flux of the snow-free roof (W/m2 roof)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROOF_SNOW     ! roof latent heat flux of the snow-covered roof (W/m2 roof)
 !MV202609 tau scheme of the road (revision: three-temperature construction)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN0       ! canyon air temperature without tau [K]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN1       ! free layer (second canopy) air temperature [K]
@@ -780,7 +785,9 @@ ENDIF
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM,          &
 !MV202609 tau scheme of the road
-                          ZTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW)
+                          ZTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+                          LE_ROOF_WAT, LE_ROOF_SNOW)
 
 !
 !-------------------------------------------------------------------------------

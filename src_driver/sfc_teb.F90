@@ -66,10 +66,14 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                        &
 !MV202609 tau scheme of the road
                           PH_ROAD, PLE_ROAD, PAC_ROAD_WAT, PAC_ROAD_ATM_WAT, PDN_RD, LE_ROAD_WAT, LE_ROAD_SNOW, &
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+                          PDN_RF, LE_ROOF_WAT, LE_ROOF_SNOW, &
                           teb_ltau_scheme,                   &
                           teb_tau_hw_thresh, teb_tau_hw_width,                  &
 !MV202609 anthropogenic heat diagnostics
-                          teb_lewaste)
+                          teb_lewaste,                        &
+!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
+                          teb_runoff_road, teb_runoff_roof)
 
 !-------------------------------------------------------------------------------
 ! Declarations
@@ -248,6 +252,9 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 	REAL ,DIMENSION(nvec) :: teb_wstown_now
 	REAL ,DIMENSION(nvec) :: teb_wstown
 	REAL ,DIMENSION(nvec) :: teb_runoff_town
+!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
+REAL ,DIMENSION(nvec) :: teb_runoff_road
+REAL ,DIMENSION(nvec) :: teb_runoff_roof
 	REAL ,DIMENSION(nvec) :: teb_tssnow_town_now
 	REAL ,DIMENSION(nvec) :: teb_tssnow_town
 	REAL ,DIMENSION(nvec) :: teb_wsnow_town_now
@@ -334,6 +341,10 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM_WAT ! road water conductance (
 REAL, DIMENSION(:), INTENT(OUT)   :: PDN_RD           ! road snow fraction (-)
 REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
 REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+REAL, DIMENSION(:), INTENT(OUT)   :: PDN_RF           ! roof snow fraction (-)
+REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROOF_WAT      ! roof latent heat flux of the snow-free roof (W/m2 roof)
+REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROOF_SNOW     ! roof latent heat flux of the snow-covered roof (W/m2 roof)
 LOGICAL,              INTENT(IN)  :: teb_ltau_scheme  ! flag to use the tau scheme for the road
 REAL,                 INTENT(IN)  :: teb_tau_hw_thresh! H/W giving tau = 0.5 (tau scheme)
 REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxation (tau scheme)
@@ -394,10 +405,14 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
                           PT_CAN0(i), PT_CAN1(i), PPHI_CAN1(i),                            &
 !MV202609 tau scheme of the road
                           PH_ROAD(i), PLE_ROAD(i), PAC_ROAD_WAT(i), PAC_ROAD_ATM_WAT(i), PDN_RD(i), LE_ROAD_WAT(i), LE_ROAD_SNOW(i), &
+!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
+                          PDN_RF(i), LE_ROOF_WAT(i), LE_ROOF_SNOW(i), &
                           teb_ltau_scheme,                        &
                           teb_tau_hw_thresh, teb_tau_hw_width,                             &
 !MV202609 anthropogenic heat diagnostics
-                          teb_lewaste(i))
+                          teb_lewaste(i),                        &
+!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
+                          teb_runoff_road(i), teb_runoff_roof(i))
 	END DO
 	
 END SUBROUTINE teb_interface
