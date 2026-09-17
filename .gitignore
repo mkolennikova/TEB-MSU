@@ -1,4 +1,10 @@
 *.pyc
 *.zip
+*.o
+*.exe
+*.txt
+*.mod
+obj/*
+output/*.*
 python/*/
 .vscode/settings.json

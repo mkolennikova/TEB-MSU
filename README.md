@@ -69,6 +69,26 @@ Model configuration is controlled through Fortran namelist files in the [`nameli
 - **[namelist_forcing.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/namelist/namelist_forcing.nml)** – Atmospheric forcing parameters (temperature, humidity, wind, radiation, precipitation, etc.)
 - **[namelist.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/namelist/namelist.nml)** – Urban geometry, material properties, BEM parameters, vegetation settings, and other model options
 
+<!-- MV202609 strict namelist date/time reading -->
+⚠️ **The driver stops if a namelist cannot be read.** Both namelist files
+(`namelist_forcing.nml` and `namelist.nml`) are read with the same policy: on an
+`IOSTAT > 0` the run stops with an error (**no parameters are silently taken from the
+program**), the log lists every declared item of the failing group with its line
+number and its state, and the **first line at which the read fails** is reported. The
+items that are simply not present in the file are listed separately, together with the
+notice that the driver default is used for them.
+
+Integer items must be written without a decimal point: `teb_year`, `teb_month`,
+`teb_day`, `teb_hour`, `teb_min`, `nsteps` and `teb_utc_hour` are INTEGER items and a
+real value (`teb_hour = 0.0`) makes the READ fail at that entry. The start date/time
+items of the forcing namelist have **no default value** any more and are validated
+(range check): a run without a valid start date cannot start. The start date, the end
+date of the run, the forcing window and the location are echoed in the log.
+The date used by a finished run can also be verified from its output with
+[`python/check_solar_position.py`](python/check_solar_position.py), which compares the
+`SOLAR_ZENITH`/`SOLAR_ELEV`/`SOLAR_AZIM` columns of `TEB_output.csv` with the
+[`pysolar`](https://pysolar.readthedocs.io) library.
+
 Description of model options from [namelist.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/namelist/namelist.nml), as wel as model output variables is avaible in [here](https://github.com/mkolennikova/TEB-Ru/blob/main/TEB_Ru_variables_description.md). 
 
 ### Model Output

@@ -262,10 +262,21 @@ def prepare_namelist(
     forc_step = (df.index[1] - df.index[0]).total_seconds() if len(df) > 1 else 1800.0
 
     # Date components
-    teb_year = start_date.year
-    teb_month = start_date.month
-    teb_day = start_date.day
-    teb_hour = start_date.hour + start_date.minute / 60.0
+    # NB: teb_year / teb_month / teb_day / teb_hour / teb_min are INTEGER namelist
+    # items in the driver (src_driver/run_teb_offline.F90), so they must be written
+    # as integers: a real value (e.g. 'teb_hour = 0.0') makes the namelist READ
+    # fail (IOSTAT /= 0) and every entry that follows it (teb_min, teb_month,
+    # teb_year) silently keeps the driver default (2004/2!) - the model then runs
+    # with the wrong date. The forcing time step is a whole number of seconds, so
+    # the hour/minute of the start date are integers anyway.
+    teb_year = int(start_date.year)
+    teb_month = int(start_date.month)
+    teb_day = int(start_date.day)
+    teb_hour = int(start_date.hour)
+    teb_min = int(start_date.minute)
+    if start_date.second != 0 or start_date.microsecond != 0:
+        print(f'⚠️  start date {start_date} has sub-minute components: they are not '
+              f'represented in the TEB namelist (integer teb_hour / teb_min)')
 
     # Ensure forcing_path ends with a slash
     if not forcing_path.endswith('/'):
@@ -278,11 +289,11 @@ def prepare_namelist(
             'lon_teb': float(lon),
             'lat_teb': float(lat),
             'hlev_teb': float(hlev),
-            'teb_year': int(teb_year),
-            'teb_month': int(teb_month),
-            'teb_day': int(teb_day),
-            'teb_hour': round(teb_hour, 2),
-            'teb_min': 0.0,
+            'teb_year': teb_year,
+            'teb_month': teb_month,
+            'teb_day': teb_day,
+            'teb_hour': teb_hour,
+            'teb_min': teb_min,
             'nsteps': int(nsteps),
             'forc_step': float(forc_step),
         }

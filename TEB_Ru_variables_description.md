@@ -173,6 +173,28 @@ input (namelist `teb_ti_bld`, `teb_qi_bld`, ... and the internal TEB initializat
 it is not a computed step and is therefore not written. With the default namelists
 (`forc_step = 1800 s`) the first line is `2004-02-20 00:30:00`.
 
+<!-- MV202609 strict namelist date/time reading -->
+#### Start date and time of a run (forcing namelist)
+
+`teb_year`, `teb_month`, `teb_day`, `teb_hour`, `teb_min` and `nsteps` are **INTEGER**
+namelist items: write them **without a decimal point** (`teb_hour = 0`, not
+`teb_hour = 0.0`). With a real value the namelist `READ` fails at that entry and every
+item that follows it in the file keeps the value of the program, i.e. the run would
+silently use another date (and therefore another solar position and building calendar).
+The driver therefore
+
+* **stops with an error when a namelist cannot be read** - for both groups,
+  `/tebforcing/` and `/tebparam/` (no warning-and-continue, no silent defaults): the
+  log lists every declared item of the failing group with its line number and its
+  state (read / not read / not in the file) and reports the **first line at which the
+  READ fails**; the items that are not present in the file are reported separately
+  with the notice that the driver default is used for them;
+* has **no default date** any more: a run without a valid start date/time (item missing
+  from the file, not read, or out of range) stops with an error;
+* checks `nsteps >= 2`, `forc_step > 0`, `dt > 0` and `forc_step/dt` integer;
+* echoes the start date, the end date of the run (`start + (nsteps-1)*forc_step`), the
+  forcing window and the timestamp of the first output line in its log.
+
 ### Model variables
 
 | Variable | Dimension | Comment |
@@ -198,6 +220,31 @@ it is not a computed step and is therefore not written. With the default namelis
 (`teb_itype_bem = 'BEM'`); `SOLAR_PROD` is written only when the solar panels module is
 activated (`teb_lsolar_panel = .TRUE.`). The set of columns therefore depends on the
 model options of the run.
+
+<!-- MV202609 solar position diagnostics -->
+### Solar position (`SOLAR_*` columns)
+
+The position of the sun that the physics of the step used, computed by `SUNPOS` from
+the date of the run at the **last model sub-step** of the forcing interval, i.e. at the
+timestamp of the output line.
+
+| Variable | Dimension | Comment |
+|:---------|:-----------|:--------|
+| `SOLAR_ZENITH` | ° | Zenith angle of the sun (from the vertical; > 90° at night) |
+| `SOLAR_ELEV` | ° | Elevation above the horizon (`90 - SOLAR_ZENITH`, negative at night) |
+| `SOLAR_AZIM` | ° | Azimuth, measured clockwise from the north (0-360°) |
+
+These columns make the date of the run verifiable from the output itself: the maximum
+elevation of the day is a strong function of the season (Moscow: ~52° on 1 August, ~11°
+on 1 January). They are checked against the `pysolar` library with
+
+```bash
+python python/check_solar_position.py <output_dir>/TEB_output.csv --forcing-nml <forcing namelist>
+```
+
+which validates the internal consistency of the angles, the elevation and azimuth
+against pysolar, the daily maximum and the day length, and (test 5) that the first
+timestamp of the CSV is the start date of the forcing namelist plus one forcing step.
 
 ### Atmospheric forcing (`Forc_*` columns)
 

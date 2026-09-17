@@ -53,6 +53,15 @@ INTEGER :: num_args
 CHARACTER(LEN=100) :: arg1, arg2
 LOGICAL :: arg1_exists, arg2_exists
 
+!MV202609 strict namelist date/time reading
+! Sentinel value used for the start date/time items of the forcing namelist while
+! they are not read from the file. There is NO default date any more: every item
+! that is missing from the file - or that was not read because the namelist READ
+! stopped on an earlier faulty entry - keeps this value and stops the run with an
+! explicit error (see NML_DATE_OK / NML_CHECK_DATE below). With the old defaults
+! (2004-02-20) such a run silently used the wrong sun position / BEM calendar.
+INTEGER, PARAMETER :: inml_unset = -9999
+
 INTEGER :: nsteps                            !IN Number of timesteps
 INTEGER :: JSURF_STEP                        ! Driver loop index
 INTEGER :: INB_ATM                           ! number time the driver calls the TEB
@@ -424,6 +433,33 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
 !MV202609 tau scheme of the road
                     teb_ltau_scheme, teb_tau_hw_thresh, teb_tau_hw_width
 
+!MV202609 unified namelist reading
+!* Names of the items declared in the two groups above (same content and order as
+!* the NAMELIST statements), used by the diagnostics only: they allow reporting,
+!* for every declared item, whether it was read from the namelist file, whether
+!* the READ stopped before it, or whether it is not present in the file at all
+!* (in which case the value of the program - i.e. the driver default - is used).
+!* The equality of these two lists with the NAMELIST statements above is checked
+!* by python/check_namelist.py.
+CHARACTER(LEN=*), PARAMETER :: nml_forcing_items =                                  &
+     'forcing_path,lon_teb,lat_teb,hlev_teb,teb_year,teb_month,teb_day,teb_hour,'// &
+     'teb_min,nsteps,forc_step'
+!* items of /tebforcing/ that have a sentinel (inml_unset) when they are not read
+CHARACTER(LEN=*), PARAMETER :: nml_forcing_value_items =                            &
+     'teb_year,teb_month,teb_day,teb_hour,teb_min,nsteps'
+CHARACTER(LEN=*), PARAMETER :: nml_param_items =                                    &
+     'dt,urb_h_bld,urb_fr_bld,fr_garden,urb_h2w,teb_road_dir,teb_hroad_dir,'//      &
+     'teb_wall_opt,teb_ti_bld,teb_qi_bld,urb_alb_rf_so,urb_alb_rf_th,urb_hcap_rf,'//&
+     'urb_hcon_rf,urb_alb_rd_so,urb_alb_rd_th,urb_hcap_rd,urb_hcon_rd,'//           &
+     'urb_alb_wl_so,urb_alb_wl_th,urb_hcap_wl,urb_hcon_wl,teb_itype_bem,'//         &
+     'teb_lbem_ac,teb_itype_natvent,teb_itype_bem_cool,teb_itype_bem_heat,'//       &
+     'teb_frac_gz,teb_tcool_target,teb_theat_target,teb_zresidential,teb_dt_res,'//  &
+     'teb_dt_off,teb_bem_inf,teb_bem_vent,teb_bem_cop,teb_cap_sys_rat,'//           &
+     'teb_m_sys_rat,teb_cap_sys_heat,ahf_traffic,ahf_industry,teb_itype_wind,'//    &
+     'teb_fai,teb_lgarden,teb_lgreenroof,teb_frac_gr,teb_lsolar_panel,teb_fr_panel,'&
+     //'teb_lroad_irrig,teb_rd_irrig_start_m,teb_rd_irrig_end_m,teb_rd_irrig_start_h,'&
+     //'teb_rd_irrig_end_h,teb_rd_irrig_sum,teb_utc_hour,teb_lshade,urb_z0_town,'// &
+     'urb_zd_town,teb_ltau_scheme,teb_tau_hw_thresh,teb_tau_hw_width'
 
 !============================================================
 !============================================================
@@ -516,14 +552,24 @@ WRITE(*,*) '----------------------------------------------------'
 lon_teb(:)        = 1.3              ! Longitude (deg)
 lat_teb(:)        = 43.484           ! Latitude (deg)
 hlev_teb(:)       = 28.0             ! Atm. Forcing height above roof level
-teb_year          = 2004             ! Current year (UTC)
-teb_month         = 2                ! Current month (UTC)
-teb_day           = 20               ! Current day (UTC)
-teb_hour          = 0                ! Current hour (UTC)
-teb_min           = 0                ! Current minute (UTC)
+forcing_path      = ' '              ! Forcing filepath, required from the namelist
+!MV202609 strict namelist date/time reading
+!* teb_year/teb_month/teb_day/teb_hour/teb_min and nsteps are INTEGER items of
+!* the /tebforcing/ namelist group: they MUST be written without a decimal point
+!* ('teb_hour = 0', not 'teb_hour = 0.0'). A real value makes the namelist READ
+!* stop at this item: the item itself and every item that follows it in the file
+!* keep the value they have here - therefore they are initialized to the invalid
+!* sentinel inml_unset instead of a plausible default date (the old defaults
+!* 2004-02-20 silently produced a run with the wrong date, sun position and
+!* building calendar) and are checked right after the READ.
+teb_year          = inml_unset       ! Current year (UTC),  required from namelist
+teb_month         = inml_unset       ! Current month (UTC), required from namelist
+teb_day           = inml_unset       ! Current day (UTC),   required from namelist
+teb_hour          = inml_unset       ! Current hour (UTC),  required from namelist
+teb_min           = inml_unset       ! Current minute (UTC),required from namelist
 teb_sec           = 0                ! Current seconds (UTC)
 dt                = 300.             ! Model time-steps
-nsteps            = 18000            ! Number of Forcing time-steps
+nsteps            = inml_unset       ! Number of Forcing time-steps, required from namelist
 forc_step         = 1800             ! Forcing time-step
 
 !============================================================
@@ -705,13 +751,47 @@ IF (rc /= 0) THEN
 END IF
 
 READ(nml=tebforcing, iostat=rc, unit=fu)
-IF (rc > 0) THEN
-    WRITE(*,*) 'WARNING: Issues reading forcing namelist from: ', TRIM(namelist_forcing_path_local)
-    WRITE(*,*) 'IOSTAT = ', rc
-    WRITE(*,*) 'Attempting to continue...'
-    CALL SLEEP(2)  ! Pause for 2 second
-END IF
 CLOSE(fu)
+!MV202609 strict namelist date/time reading
+!* A failed read is an ERROR (and not a warning followed by a run with a wrong
+!* date): the namelist is only read up to the faulty entry, so every item that
+!* follows it in the file keeps the value of the program (inml_unset for the
+!* date/time items), which is detected by the validation below.
+!* rc < 0 (end of file) is raised by the namelist reader when the file does not
+!* end with an end-of-line after the terminating '/' - the values are read in
+!* that case, so it is accepted, but only if the validation passes.
+IF (rc > 0) THEN
+    WRITE(*,*) 'ERROR: cannot read the forcing namelist: ', TRIM(namelist_forcing_path_local)
+    WRITE(*,*) '       IOSTAT = ', rc
+    CALL NML_PRINT_DIAG('tebforcing', namelist_forcing_path_local, nml_forcing_items, &
+                        'the namelist could not be read completely', &
+                        NML_FORCING_VALUES(), nml_forcing_value_items)
+    STOP 1
+END IF
+IF (.NOT. NML_FORCING_OK()) THEN
+    WRITE(*,*) 'ERROR: the forcing namelist does not define a valid configuration'
+    WRITE(*,*) '       (IOSTAT of the READ = ', rc, ')'
+    CALL NML_PRINT_DIAG('tebforcing', namelist_forcing_path_local, nml_forcing_items, &
+                        'a required item is missing, not read, or out of range', &
+                        NML_FORCING_VALUES(), nml_forcing_value_items)
+    STOP 1
+END IF
+IF (rc < 0) THEN
+    WRITE(*,'(A)') ' TEB-Ru offline: note: the namelist file does not end with an' &
+         //' end-of-line (IOSTAT = -1 of the READ); all required items were read'
+END IF
+CALL NML_REPORT_ABSENT('tebforcing', namelist_forcing_path_local, nml_forcing_items)
+
+! Echo the settings that are really used (the date/time items are required and
+! validated just above, so the date below is always the date of the namelist)
+WRITE(*,'(A,A)') ' TEB-Ru offline: forcing namelist = ', TRIM(namelist_forcing_path_local)
+WRITE(*,'(A,I4,A,I2.2,A,I2.2,A,I2.2,A,I2.2,A)')                                &
+     ' TEB-Ru offline: start date ', teb_year, '-', teb_month, '-', teb_day,     &
+     ' ', teb_hour, ':', teb_min, ' (teb_year/month/day/hour/min of the namelist)'
+WRITE(*,'(A,I10,A,F12.1,A,A)') ' TEB-Ru offline: nsteps = ', nsteps,             &
+     '   forc_step = ', forc_step, ' s', ' (forcing window of the run)'
+WRITE(*,'(A,A)') ' TEB-Ru offline: forcing_path = ', TRIM(forcing_path)
+CALL NML_PRINT_END_DATE()
 forcing_path2=trim(forcing_path)
 
 !===========================================================================
@@ -732,13 +812,33 @@ IF (rc /= 0) THEN
 END IF
 
 READ(nml=tebparam, iostat=rc, unit=fu)
-IF (rc > 0) THEN
-    WRITE(*,*) 'WARNING: Issues reading parameter namelist from: ', TRIM(namelist_path_local)
-    WRITE(*,*) 'IOSTAT = ', rc
-    WRITE(*,*) 'Attempting to continue...'
-    CALL SLEEP(2)  ! Pause for 2 second
-END IF
 CLOSE(fu)
+!MV202609 unified namelist reading
+!* Same policy as for /tebforcing/ above: a failed READ of the parameter namelist
+!* stops the run. The namelist is only read up to the faulty entry, so every item
+!* that follows it in the file keeps the value of the program (the driver default):
+!* a silent change of the physics parameters of a run. (Before this revision the
+!* driver only warned and continued.)
+IF (rc > 0) THEN
+    WRITE(*,*) 'ERROR: cannot read the parameter namelist: ', TRIM(namelist_path_local)
+    WRITE(*,*) '       IOSTAT = ', rc
+    CALL NML_PRINT_DIAG('tebparam', namelist_path_local, nml_param_items, &
+                        'the namelist could not be read completely')
+    STOP 1
+END IF
+CALL NML_REPORT_ABSENT('tebparam', namelist_path_local, nml_param_items)
+!MV202609 strict namelist date/time reading
+!* dt is read in this group (and has a default value here), so the consistency of
+!* the model sub-step with the forcing time-step is checked only now: INB_ATM =
+!* forc_step/dt below must be an integer number of sub-steps per forcing step.
+IF (dt <= 0. .OR. MOD(forc_step, dt) /= 0.) THEN
+    WRITE(*,*) 'ERROR: inconsistent time steps: dt = ', dt, ' s (parameter namelist),'
+    WRITE(*,*) '       forc_step = ', forc_step, ' s (forcing namelist):'
+    WRITE(*,*) '       dt must be > 0 and forc_step must be a multiple of dt'
+    STOP 1
+END IF
+WRITE(*,'(A,F10.1,A,F12.1,A,I0,A)') ' TEB-Ru offline: dt = ', dt, ' s, forc_step = ', &
+     forc_step, ' s -> INB_ATM = ', NINT(forc_step / dt), ' model sub-steps per forcing step'
 
 !===========================================================================
 !===========================================================================
@@ -894,6 +994,19 @@ nout = nout + 1; out_names(nout) = 'WSNOW_RF'
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 nout = nout + 1; out_names(nout) = 'RUNOFF_ROAD'
 nout = nout + 1; out_names(nout) = 'RUNOFF_ROOF'
+!MV202609 solar position diagnostics
+!* the zenith/azimuth angles of the sun that the physics of the current step uses
+!* (computed by SUNPOS in CALL_DRIVER at every model sub-step, so the values
+!* written here are those of the LAST sub-step of the forcing interval, i.e. the
+!* position of the sun at the timestamp of the output line).
+!* SOLAR_ZENITH - zenith angle (deg from the vertical, > 90 at night),
+!* SOLAR_ELEV   - elevation above the horizon (deg, = 90 - SOLAR_ZENITH, negative
+!*                at night) - the column to compare with an analytical or
+!*                external (e.g. pysolar) solar position,
+!* SOLAR_AZIM   - azimuth (deg, measured clockwise from the north, 0-360).
+nout = nout + 1; out_names(nout) = 'SOLAR_ZENITH'
+nout = nout + 1; out_names(nout) = 'SOLAR_ELEV'
+nout = nout + 1; out_names(nout) = 'SOLAR_AZIM'
 ! atmospheric forcing used by the model at the current time-step
 nout = nout + 1; out_names(nout) = 'Forc_TA'
 nout = nout + 1; out_names(nout) = 'Forc_QA'
@@ -1147,6 +1260,10 @@ CALL CSV_APPEND(out_line, teb_wsnow_roof(1,1))
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 CALL CSV_APPEND(out_line, ZRO_ROAD_ACC / INB_ATM)
 CALL CSV_APPEND(out_line, ZRO_ROOF_ACC / INB_ATM)
+!MV202609 solar position diagnostics (degrees; last sub-step of the interval)
+CALL CSV_APPEND(out_line, XZENITH(1) * 180. / XPI)
+CALL CSV_APPEND(out_line, 90. - XZENITH(1) * 180. / XPI)
+CALL CSV_APPEND(out_line, MOD(XAZIM(1) * 180. / XPI + 360., 360.))
     ! --- atmospheric forcing used by the model at the current time-step
     forc_wind = SQRT(u(1)**2 + v(1)**2)
     forc_dir  = MOD(ATAN2(u(1), v(1))*180./XPI + 360., 360.)
@@ -1166,6 +1283,17 @@ CALL CSV_APPEND(out_line, ZRO_ROOF_ACC / INB_ATM)
     CALL CSV_APPEND(out_line, swdifd_s(1))
     WRITE(fu_out,'(A)') TRIM(out_line)
 END DO
+
+!MV202609 strict namelist date/time reading
+!* end of the run: the model date is echoed once more, so that the log always
+!* contains both the start date (from the namelist) and the end date (reached by
+!* the time integration) - a mismatch between them and the expected period of the
+!* forcing is immediately visible in the log.
+WRITE(*,'(A,I4,A,I2.2,A,I2.2,A,I2.2,A,I2.2,A,I2.2,A)')                         &
+     ' TEB-Ru offline: model ended at ', teb_year, '-', teb_month, '-', teb_day, &
+     ' ', INT(teb_hour_seconds(1)/3600.), ':',                                   &
+     INT(MOD(teb_hour_seconds(1), 3600.)/60.), ':',                              &
+     INT(MOD(teb_hour_seconds(1), 60.)), ' UTC (timestamp of the last line)'
 
 !  DEALLOCATE variables
 DEALLOCATE(ZTA) 
@@ -1193,6 +1321,494 @@ CLOSE(fu_out)
 ! --------------------------------------------------------------------------------------
 !
 CONTAINS
+
+!MV202609 strict namelist date/time reading
+!> Number of days of a month, leap years included.
+INTEGER FUNCTION NML_DAYS_IN_MONTH(kyear, kmonth)
+    INTEGER, INTENT(IN) :: kyear   ! year
+    INTEGER, INTENT(IN) :: kmonth  ! month (1-12)
+    SELECT CASE (kmonth)
+    CASE (4, 6, 9, 11)
+        NML_DAYS_IN_MONTH = 30
+    CASE (1, 3, 5, 7:8, 10, 12)
+        NML_DAYS_IN_MONTH = 31
+    CASE (2)
+        IF (MOD(kyear, 4) == 0 .AND. (MOD(kyear, 100) /= 0 .OR. MOD(kyear, 400) == 0)) THEN
+            NML_DAYS_IN_MONTH = 29
+        ELSE
+            NML_DAYS_IN_MONTH = 28
+        END IF
+    CASE DEFAULT
+        NML_DAYS_IN_MONTH = 0
+    END SELECT
+END FUNCTION NML_DAYS_IN_MONTH
+
+!> .TRUE. if the /tebforcing/ group defines a valid configuration: the start
+!! date/time of the run was read from the namelist and is a valid date, the forcing
+!! window is consistent and the location / forcing path are usable.
+!! The items teb_year/teb_month/teb_day/teb_hour/teb_min/nsteps are INTEGER items
+!! and have no default value any more: an item that is missing from the file - or
+!! that was not read because the READ stopped on an earlier faulty entry (e.g. a
+!! real value like 'teb_hour = 0.0' for an INTEGER item) - keeps the sentinel
+!! inml_unset and this function returns .FALSE.
+LOGICAL FUNCTION NML_FORCING_OK()
+    NML_FORCING_OK = .FALSE.
+    IF (teb_year  == inml_unset .OR. teb_month == inml_unset .OR. &
+        teb_day   == inml_unset .OR. teb_hour  == inml_unset .OR. &
+        teb_min   == inml_unset .OR. nsteps    == inml_unset) RETURN
+    IF (teb_year  < 1900 .OR. teb_year  > 2200) RETURN
+    IF (teb_month < 1    .OR. teb_month > 12)   RETURN
+    IF (teb_day   < 1    .OR. teb_day   > NML_DAYS_IN_MONTH(teb_year, teb_month)) RETURN
+    IF (teb_hour  < 0    .OR. teb_hour  > 23)   RETURN
+    IF (teb_min   < 0    .OR. teb_min   > 59)   RETURN
+    IF (nsteps    < 2)                          RETURN
+    IF (forc_step <= 0.)                        RETURN
+    IF (LEN_TRIM(forcing_path) == 0)            RETURN  ! blank path: not given
+    IF (ABS(lat_teb(1)) > 90. .OR. ABS(lon_teb(1)) > 360.) RETURN
+    IF (hlev_teb(1) <= 0.)                      RETURN
+    NML_FORCING_OK = .TRUE.
+END FUNCTION NML_FORCING_OK
+
+!> Diagnostic of a namelist group after a failed READ: for every declared item it
+!! prints the line of the file and whether it was read, whether the READ stopped
+!! before it (its value is then the driver default) or whether it is not present in
+!! the file. The failing entry is located by re-reading prefixes of the group (see
+!! NML_FIND_STOP). `vals` (optional, with `valued_items`) holds the values of the
+!! items that have a sentinel: an item whose value is inml_unset was not read.
+SUBROUTINE NML_PRINT_DIAG(group, path, items, reason, vals, valued_items)
+    CHARACTER(LEN=*), INTENT(IN) :: group, path, items, reason
+    INTEGER, OPTIONAL, INTENT(IN) :: vals(:)
+    CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: valued_items
+    CHARACTER(LEN=256), ALLOCATABLE :: body(:)
+    INTEGER, ALLOCATABLE :: lineno(:), vcopy(:)
+    INTEGER :: nb, nit, i, k, istop, pos, vt, ival, nvals
+    LOGICAL :: found, hasval, lnotread
+    CHARACTER(LEN=32) :: name, vname, stopname
+    CHARACTER(LEN=64) :: state
+    !* the values are copied here: the prefix reads of NML_FIND_STOP assign the
+    !* variables of the group (vcopy keeps the values at call time)
+    nvals = 0
+    IF (PRESENT(vals)) nvals = SIZE(vals)
+    ALLOCATE(vcopy(MAX(nvals, 1)))
+    vcopy = 0
+    IF (nvals > 0) vcopy(1:nvals) = vals
+    CALL NML_SCAN_GROUP(path, group, body, lineno, nb, found)
+    istop = NML_FIRST_FAIL_LINE(group, body, lineno, nb)
+    WRITE(*,'(2A)') '       reason: ', TRIM(reason)
+    WRITE(*,'(3A)') '       group /', TRIM(group), '/ of the file:'
+    WRITE(*,'(2A)') '         ', TRIM(path)
+    IF (.NOT. found) THEN
+        WRITE(*,'(3A)') '       ERROR: the group /', TRIM(group), &
+                        '/ is not present in this file'
+        RETURN
+    END IF
+    nit = NML_ITEM_COUNT(items)
+    WRITE(*,'(A,I0,A,I0,A)') '         ', nb, ' lines in the group, ', nit, &
+                             ' declared items:'
+    DO i = 1, nit
+        name = NML_ITEM_PICK(items, i)
+        pos = 0
+        DO k = 1, nb
+            IF (NML_LINE_HAS(body(k), name)) THEN
+                pos = lineno(k)
+                EXIT
+            END IF
+        END DO
+        hasval = .FALSE.
+        ival = 0
+        IF (PRESENT(valued_items) .AND. nvals > 0) THEN
+            DO vt = 1, NML_ITEM_COUNT(valued_items)
+                vname = NML_ITEM_PICK(valued_items, vt)
+                IF (vname == name .AND. vt <= nvals) THEN
+                    hasval = .TRUE.
+                    ival = vcopy(vt)
+                    EXIT
+                END IF
+            END DO
+        END IF
+        lnotread = hasval .AND. (ival == inml_unset)
+        IF (pos == 0) THEN
+            state = 'not in the file: driver default used'
+        ELSE IF (lnotread) THEN
+            state = 'NOT READ: value not set'
+        ELSE IF (istop > 0 .AND. pos >= istop) THEN
+            state = 'not read: at/after the failing entry'
+        ELSE
+            state = 'read'
+        END IF
+        IF (pos > 0) THEN
+            WRITE(*,'(3A,I0,2A)') '         - ', TRIM(name), ' (line ', pos, ') : ', &
+                                  TRIM(state)
+        ELSE
+            WRITE(*,'(4A)') '         - ', TRIM(name), ' : ', TRIM(state)
+        END IF
+    END DO
+    IF (istop > 0) THEN
+        stopname = ''
+        DO k = 1, nb
+            IF (lineno(k) == istop) THEN
+                stopname = NML_ITEM_NAME_OF(body(k))
+                EXIT
+            END IF
+        END DO
+        WRITE(*,'(A,I0,A)') '       -> the READ fails from line ', istop, ' on:'
+        WRITE(*,'(2A)') '          first failing entry: "', TRIM(stopname)//'"'
+        WRITE(*,'(A)') '          this entry and every entry that follows it in the file' &
+             //' keep the value of the program (the driver default)'
+    ELSE IF (found) THEN
+        WRITE(*,'(A)') '       -> the failing line of the group could not be located'
+    END IF
+    WRITE(*,'(A)') '       reminder: INTEGER namelist items must be written without a' &
+         //' decimal point (teb_hour = 0, not teb_hour = 0.0)'
+END SUBROUTINE NML_PRINT_DIAG
+
+!> Name of the item that a body line assigns (empty for a continuation line)
+FUNCTION NML_ITEM_NAME_OF(line) RESULT(name)
+    CHARACTER(LEN=*), INTENT(IN) :: line
+    CHARACTER(LEN=32) :: name
+    INTEGER :: j
+    name = ''
+    IF (.NOT. NML_LINE_ASSIGNS(line)) RETURN
+    j = INDEX(line, '=')
+    name = NML_LOWER(TRIM(ADJUSTL(line(1:j-1))))
+END FUNCTION NML_ITEM_NAME_OF
+
+!> Reports the declared items of a group that are NOT present in the namelist file:
+!! their value is the value of the program, i.e. the driver default. Informational
+!! only - a namelist file may legitimately give only part of the declared items.
+SUBROUTINE NML_REPORT_ABSENT(group, path, items)
+    CHARACTER(LEN=*), INTENT(IN) :: group, path, items
+    CHARACTER(LEN=256), ALLOCATABLE :: body(:)
+    INTEGER, ALLOCATABLE :: lineno(:)
+    INTEGER :: nb, nit, i, k, nabs
+    LOGICAL :: found, lhere
+    CHARACTER(LEN=32) :: name
+    CHARACTER(LEN=1024) :: list
+    CALL NML_SCAN_GROUP(path, group, body, lineno, nb, found)
+    IF (.NOT. found) RETURN
+    nit = NML_ITEM_COUNT(items)
+    nabs = 0
+    list = ''
+    DO i = 1, nit
+        name = NML_ITEM_PICK(items, i)
+        lhere = .FALSE.
+        DO k = 1, nb
+            IF (NML_LINE_HAS(body(k), name)) THEN
+                lhere = .TRUE.
+                EXIT
+            END IF
+        END DO
+        IF (.NOT. lhere) THEN
+            nabs = nabs + 1
+            IF (LEN_TRIM(list) == 0) THEN
+                list = TRIM(name)
+            ELSE
+                list = TRIM(list)//', '//TRIM(name)
+            END IF
+        END IF
+    END DO
+    IF (nabs == 0) RETURN
+    WRITE(*,'(A,I0,2A)') ' TEB-Ru offline: '//TRIM(group)//' namelist: ', nabs, &
+         ' item(s) are not in the file, the driver default is used: ', TRIM(list)
+END SUBROUTINE NML_REPORT_ABSENT
+
+!> Lowercase copy of a string (to search the namelist file without case sensitivity)
+FUNCTION NML_LOWER(str) RESULT(out)
+    CHARACTER(LEN=*), INTENT(IN) :: str
+    CHARACTER(LEN=LEN(str))      :: out
+    INTEGER :: j, ic
+    out = str
+    DO j = 1, LEN(str)
+        ic = IACHAR(out(j:j))
+        IF (ic >= IACHAR('A') .AND. ic <= IACHAR('Z')) out(j:j) = ACHAR(ic + 32)
+    END DO
+END FUNCTION NML_LOWER
+
+!> .TRUE. if the character can be part of a namelist item name
+LOGICAL FUNCTION NML_IS_NAME_CHAR(c)
+    CHARACTER, INTENT(IN) :: c
+    NML_IS_NAME_CHAR = (c >= 'a' .AND. c <= 'z') .OR. (c >= 'A' .AND. c <= 'Z') &
+                       .OR. (c >= '0' .AND. c <= '9') .OR. c == '_'
+END FUNCTION NML_IS_NAME_CHAR
+
+!> .TRUE. if the (lowercase) line of a namelist *starts* a new item, i.e. it begins
+!! with an item name followed by '=' (a continuation line with the remaining values
+!! of the previous item returns .FALSE.)
+LOGICAL FUNCTION NML_LINE_ASSIGNS(line)
+    CHARACTER(LEN=*), INTENT(IN) :: line
+    INTEGER :: j, k
+    CHARACTER(LEN=64) :: head
+    NML_LINE_ASSIGNS = .FALSE.
+    j = INDEX(line, '=')
+    IF (j == 0) RETURN
+    head = TRIM(ADJUSTL(line(1:j-1)))
+    IF (LEN_TRIM(head) == 0) RETURN
+    IF (INDEX(TRIM(head), ' ') > 0) RETURN   ! several words: not a single item name
+    IF (INDEX(TRIM(head), ',') > 0) RETURN
+    IF (INDEX(TRIM(head), '=') > 0) RETURN
+    DO k = 1, LEN_TRIM(head)
+        IF (.NOT. NML_IS_NAME_CHAR(head(k:k))) RETURN
+    END DO
+    NML_LINE_ASSIGNS = .TRUE.
+END FUNCTION NML_LINE_ASSIGNS
+
+!> Number of items of a comma separated list of namelist item names
+INTEGER FUNCTION NML_ITEM_COUNT(items)
+    CHARACTER(LEN=*), INTENT(IN) :: items
+    INTEGER :: j, k
+    NML_ITEM_COUNT = 0
+    IF (LEN_TRIM(items) == 0) RETURN
+    NML_ITEM_COUNT = 1
+    k = 1
+    DO
+        j = INDEX(items(k:), ',')
+        IF (j == 0) EXIT
+        NML_ITEM_COUNT = NML_ITEM_COUNT + 1
+        k = k + j
+    END DO
+END FUNCTION NML_ITEM_COUNT
+
+!> i-th item (lowercase, trimmed) of a comma separated list
+FUNCTION NML_ITEM_PICK(items, i) RESULT(name)
+    CHARACTER(LEN=*), INTENT(IN) :: items
+    INTEGER, INTENT(IN) :: i
+    CHARACTER(LEN=32) :: name
+    INTEGER :: j, k, n
+    name = ''
+    IF (i < 1) RETURN
+    k = 1
+    n = 0
+    DO
+        j = INDEX(items(k:), ',')
+        n = n + 1
+        IF (n == i) THEN
+            IF (j == 0) THEN
+                name = items(k:)
+            ELSE
+                name = items(k:k+j-2)
+            END IF
+            name = NML_LOWER(TRIM(ADJUSTL(name)))
+            RETURN
+        END IF
+        IF (j == 0) RETURN
+        k = k + j
+    END DO
+END FUNCTION NML_ITEM_PICK
+
+!> .TRUE. if the (lowercase) line of a namelist contains the item "name" assigned,
+!! i.e. "name" followed by blanks and '=' - the item must not be part of a longer
+!! name ("teb_hour" does not match "teb_hour_seconds")
+LOGICAL FUNCTION NML_LINE_HAS(line, name)
+    CHARACTER(LEN=*), INTENT(IN) :: line  ! lowercase line
+    CHARACTER(LEN=*), INTENT(IN) :: name  ! lowercase item name
+    INTEGER :: ip, jp, k, ln, ll
+    NML_LINE_HAS = .FALSE.
+    ln = LEN_TRIM(name)
+    ll = LEN_TRIM(line)
+    jp = 1
+    DO WHILE (jp <= ll)
+        ip = INDEX(line(jp:ll), name(1:ln))
+        IF (ip == 0) RETURN
+        ip = jp + ip - 1
+        IF (ip == 1 .OR. .NOT. NML_IS_NAME_CHAR(line(ip-1:ip-1))) THEN
+            k = ip + ln
+            DO WHILE (k <= ll .AND. line(k:k) == ' ')
+                k = k + 1
+            END DO
+            IF (k <= ll) THEN
+                IF (line(k:k) == '=') THEN
+                    NML_LINE_HAS = .TRUE.
+                    RETURN
+                END IF
+            END IF
+        END IF
+        jp = ip + 1
+    END DO
+END FUNCTION NML_LINE_HAS
+
+!> Adds a time interval (idays days, isec seconds) to a date, using the length of
+!! the month (leap years included). The date increment of the model itself is
+!! ADD_FORECAST_TO_DATE_SURF: the same rule, so the end date printed by the driver
+!! is the date the model reaches at the last output line.
+SUBROUTINE NML_STEP_DATE(kyr, kmo, kda, khr, kmi, ksec, idays, isec_in)
+    INTEGER, INTENT(INOUT) :: kyr, kmo, kda, khr, kmi, ksec
+    INTEGER, INTENT(IN)    :: idays    ! number of days to add
+    INTEGER, INTENT(IN)    :: isec_in  ! number of seconds to add
+    INTEGER :: j, isec
+    isec = khr*3600 + kmi*60 + ksec + isec_in
+    DO j = 1, idays + isec/86400
+        IF (kda < NML_DAYS_IN_MONTH(kyr, kmo)) THEN
+            kda = kda + 1
+        ELSE IF (kmo < 12) THEN
+            kda = 1
+            kmo = kmo + 1
+        ELSE
+            kda = 1
+            kmo = 1
+            kyr = kyr + 1
+        END IF
+    END DO
+    isec = MOD(isec, 86400)
+    khr = isec / 3600
+    kmi = MOD(isec, 3600) / 60
+    ksec = MOD(isec, 60)
+END SUBROUTINE NML_STEP_DATE
+
+!> Echo of the end date of the run: start date of the namelist + the duration of
+!! the run ((nsteps-1)*forc_step). The date/time of the first output line is the
+!! start date + one forcing step.
+SUBROUTINE NML_PRINT_END_DATE()
+    INTEGER :: kyr, kmo, kda, khr, kmi, ksec
+    INTEGER :: idays, isec
+    INTEGER(KIND=8) :: itotal
+    itotal = INT(REAL(nsteps - 1, KIND=8)*REAL(forc_step, KIND=8), KIND=8)
+    idays  = INT(itotal / 86400_8)
+    isec   = INT(MOD(itotal, 86400_8))
+    kyr = teb_year; kmo = teb_month; kda = teb_day
+    khr = teb_hour; kmi = teb_min  ; ksec = teb_sec
+    CALL NML_STEP_DATE(kyr, kmo, kda, khr, kmi, ksec, idays, isec)
+    WRITE(*,'(A,I4,A,I2.2,A,I2.2,A,I2.2,A,I2.2,A,I2.2,A)')                        &
+         ' TEB-Ru offline: end   date ', kyr, '-', kmo, '-', kda, ' ', khr, ':',  &
+         kmi, ':', ksec, ' UTC (= start + (nsteps-1)*forc_step)'
+    WRITE(*,'(A)') ' TEB-Ru offline: the first output line is stamped start + forc_step'
+END SUBROUTINE NML_PRINT_END_DATE
+
+!> Body of one namelist group of a file: the lines between '&group' and the line
+!! whose first non blank character is '/', with the comments removed and the blank
+!! lines dropped, together with their line numbers in the file. Restriction of this
+!! diagnostic scan: the end of the group is the first line that starts with '/'
+!! (the syntax of every namelist file of the project), so that a '/' inside a
+!! character value (e.g. a directory path) does not end the group.
+SUBROUTINE NML_SCAN_GROUP(path, group, body, lineno, nb, found)
+    CHARACTER(LEN=*), INTENT(IN)  :: path, group
+    CHARACTER(LEN=256), ALLOCATABLE, INTENT(OUT) :: body(:)
+    INTEGER, ALLOCATABLE, INTENT(OUT) :: lineno(:)
+    INTEGER, INTENT(OUT) :: nb
+    LOGICAL, INTENT(OUT) :: found
+    INTEGER, PARAMETER :: nmax = 2048
+    CHARACTER(LEN=256) :: line, low, tail
+    INTEGER :: fu, rc, i, k, j
+    ALLOCATE(body(nmax), lineno(nmax))
+    nb = 0
+    found = .FALSE.
+    OPEN(action='read', file=path, iostat=rc, newunit=fu)
+    IF (rc /= 0) THEN
+        CLOSE(fu, iostat=rc)
+        RETURN
+    END IF
+    i = 0
+    DO
+        READ(fu, '(A)', iostat=rc) line
+        IF (rc /= 0) EXIT
+        i = i + 1
+        low = NML_LOWER(line)
+        k = INDEX(low, '!')
+        IF (k > 0) low = low(1:k-1)
+        IF (.NOT. found) THEN
+            j = INDEX(low, '&'//TRIM(group))
+            IF (j > 0) THEN
+                found = .TRUE.
+                low = low(j + 1 + LEN_TRIM(group):)   ! drop the '&group' header
+            ELSE
+                CYCLE
+            END IF
+        END IF
+        tail = ADJUSTL(low)
+        IF (tail(1:1) == '/') EXIT                    ! end of the group
+        IF (LEN_TRIM(tail) > 0 .AND. nb < nmax) THEN
+            nb = nb + 1
+            body(nb) = tail
+            lineno(nb) = i
+        END IF
+    END DO
+    CLOSE(fu, iostat=rc)
+END SUBROUTINE NML_SCAN_GROUP
+
+!> Text of a namelist group built from its first `nbody` body lines: the header
+!! '&group', the lines themselves and the terminating '/'.
+FUNCTION NML_BUILD_TEXT(group, body, nbody) RESULT(buf)
+    CHARACTER(LEN=*), INTENT(IN) :: group
+    CHARACTER(LEN=*), INTENT(IN) :: body(:)
+    INTEGER, INTENT(IN) :: nbody
+    CHARACTER(LEN=:), ALLOCATABLE :: buf
+    INTEGER :: j, l, n
+    n = MIN(MAX(nbody, 0), SIZE(body))
+    l = LEN_TRIM(group) + 8
+    DO j = 1, n
+        l = l + LEN_TRIM(body(j)) + 1
+    END DO
+    ALLOCATE(CHARACTER(LEN=l) :: buf)
+    buf = '&'//TRIM(group)//ACHAR(10)
+    DO j = 1, n
+        buf = TRIM(buf)//TRIM(body(j))//ACHAR(10)
+    END DO
+    buf = TRIM(buf)//ACHAR(10)//'/'
+END FUNCTION NML_BUILD_TEXT
+
+!> .TRUE. if the first `nbody` lines of a group can be read as a namelist.
+!! NOTE: such a read assigns the variables of the group (it is used by the
+!! diagnostics only, on the error path, where the run stops right after).
+LOGICAL FUNCTION NML_TEXT_OK(group, body, nbody)
+    CHARACTER(LEN=*), INTENT(IN) :: group
+    CHARACTER(LEN=*), INTENT(IN) :: body(:)
+    INTEGER, INTENT(IN) :: nbody
+    CHARACTER(LEN=:), ALLOCATABLE :: buf
+    INTEGER :: rc
+    buf = NML_BUILD_TEXT(group, body, nbody)
+    IF (group == 'tebforcing') THEN
+        READ(buf, nml=tebforcing, iostat=rc)
+    ELSE
+        READ(buf, nml=tebparam, iostat=rc)
+    END IF
+    DEALLOCATE(buf)
+    NML_TEXT_OK = (rc <= 0)
+END FUNCTION NML_TEXT_OK
+
+!> First line of the group at which the READ fails (0 = the group reads completely).
+!! Simple implementation: the group is read again from an internal file, cutting it
+!! after each item (the items start at the lines that begin with an item name); the
+!! first cut that cannot be read gives the failing line. The namelist reader reports
+!! the error at that record or at the record just before it, so the diagnostic below
+!! reports "from line N on" - the exact item is identified by the sentinel check for
+!! the items that have one (the date/time items of /tebforcing/).
+INTEGER FUNCTION NML_FIRST_FAIL_LINE(group, body, lineno, nb)
+    CHARACTER(LEN=*), INTENT(IN) :: group
+    CHARACTER(LEN=*), INTENT(IN) :: body(:)
+    INTEGER, INTENT(IN) :: lineno(:), nb
+    INTEGER, ALLOCATABLE :: ibeg(:)
+    INTEGER :: nbeg, j, k
+    NML_FIRST_FAIL_LINE = 0
+    IF (nb < 1) RETURN
+    IF (NML_TEXT_OK(group, body, nb)) RETURN      ! no failure
+    ALLOCATE(ibeg(nb + 1))
+    nbeg = 0
+    DO j = 1, nb
+        IF (NML_LINE_ASSIGNS(body(j))) THEN
+            nbeg = nbeg + 1
+            ibeg(nbeg) = j
+        END IF
+    END DO
+    IF (nbeg == 0) RETURN
+    ibeg(nbeg + 1) = nb + 1
+    DO k = 1, nbeg
+        IF (.NOT. NML_TEXT_OK(group, body, ibeg(k + 1) - 1)) THEN
+            NML_FIRST_FAIL_LINE = lineno(ibeg(k))
+            RETURN
+        END IF
+    END DO
+END FUNCTION NML_FIRST_FAIL_LINE
+
+!> Values of the items listed in nml_forcing_value_items (the INTEGER ones),
+!! used by the diagnostic to detect an item that was not read (sentinel inml_unset)
+FUNCTION NML_FORCING_VALUES() RESULT(v)
+    INTEGER :: v(6)
+    v(1) = teb_year
+    v(2) = teb_month
+    v(3) = teb_day
+    v(4) = teb_hour
+    v(5) = teb_min
+    v(6) = nsteps
+END FUNCTION NML_FORCING_VALUES
 
 SUBROUTINE PRINT_USAGE()
     WRITE(*,*) ''

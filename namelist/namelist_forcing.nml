@@ -1,3 +1,19 @@
+!MV202609 strict namelist reading
+!-----------------------------------------------------------------------------
+! Both namelist files are read with the same policy: if a READ fails (IOSTAT > 0)
+! the run STOPS with an error and no parameter is silently taken from the program.
+! The log lists the declared items of the failing group with their line numbers
+! and their state, and reports the first line at which the READ fails; the items
+! that are not present in the file are reported separately (driver default used).
+! teb_year / teb_month / teb_day / teb_hour / teb_min / nsteps are INTEGER
+! namelist items: they MUST be written without a decimal point (teb_hour = 0 and
+! not teb_hour = 0.0). A real value makes the READ fail at that entry.
+! The start date/time items have no default value: every one of them must be
+! present in this file and valid (range check), otherwise the run stops.
+! forc_step is a REAL item: 'forc_step = 1800' and 'forc_step = 1800.0' are both
+! valid. The start date, the end date of the run and the forcing window are
+! echoed in the log of the run.
+!-----------------------------------------------------------------------------
 &tebforcing
  forcing_path='input/',
  lon_teb=1.3,

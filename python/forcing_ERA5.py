@@ -273,6 +273,20 @@ def convert_nc2df(
         else:
             raise KeyError("Dataset does not contain 'latitude'/'longitude' or 'lat'/'lon' coordinates")
 
+    # A point time series downloaded in several chunks (open_mfdataset) carries
+    # its location as an array repeating the same value at every time step: the
+    # coordinates above are then one-dimensional along time and, having no index
+    # of their own, they cannot be used by the point selection below. Reduce such
+    # a degenerate (constant) location array to a scalar coordinate; a gridded
+    # dataset keeps its latitude/longitude dimensions with their index and is
+    # therefore left untouched.
+    time_dims = {d for d in ds.dims if d in ('valid_time', 'time')}
+    for c in ('latitude', 'longitude'):
+        if c in ds.variables and ds[c].ndim == 1 and set(ds[c].dims) <= time_dims:
+            values = np.asarray(ds[c].values, dtype=float)
+            if np.allclose(values, values[0]):
+                ds = ds.drop_vars(c).assign_coords({c: float(values[0])})
+
     # Extract point if lat/lon provided
     if lat is not None and lon is not None:
         lat_coord = ds.coords['latitude']
