@@ -1,7 +1,7 @@
 !auto_modi:spll_urban_drag.D
 MODULE MODI_URBAN_DRAG
 INTERFACE
-    SUBROUTINE URBAN_DRAG(icell, iblock, TOP, T, B, OGARDEN_EXT, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
+    SUBROUTINE URBAN_DRAG(icell, iblock, TOP, T, B, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
                           PU_CANYON, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ_LOWCAN,   &
                           PTS_ROOF, PTS_ROAD, PTS_WALL, PTS_GARDEN, PQS_GARDEN,    &
                           PDELT_SNOW_ROOF, PDELT_SNOW_ROAD,  PTAU, PEXNS, PEXNA, PTA,    &
@@ -31,7 +31,6 @@ INTEGER                           :: iblock
 TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
 TYPE(TEB_t), INTENT(INOUT) :: T
 TYPE(BEM_t), INTENT(INOUT) :: B
-LOGICAL,              INTENT(IN)  :: OGARDEN_EXT         ! Flag to use EXTERNAL garden    model inside the canyon
 CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
 REAL,               INTENT(IN)    :: PTSTEP         ! time-step
 REAL, INTENT(IN)    :: PTIME         ! current time since midnight (UTC, s)

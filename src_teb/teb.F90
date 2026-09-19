@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !   ##########################################################################
-    SUBROUTINE TEB  (icell, iblock, TOP, T, BOP, B, TIR, DMT, OGARDEN_EXT, HIMPLICIT_WIND, PBEM_AC, PTSUN,                   &
+    SUBROUTINE TEB  (icell, iblock, TOP, T, BOP, B, TIR, DMT, HIMPLICIT_WIND, PBEM_AC, PTSUN,                   &
                      PT_CANYON, PQ_CANYON, PU_CANYON, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN,  &
                      PZ_LOWCAN, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,           &
                      PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PPS, PPA, PEXNS, PEXNA, PTA, PQA, PRHOA,       &
@@ -242,8 +242,7 @@ TYPE(BEM_t), INTENT(INOUT) :: B
 TYPE(TEB_IRRIG_t), INTENT(INOUT) :: TIR
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 !
- LOGICAL,              INTENT(IN)  :: OGARDEN_EXT      ! Flag to use EXTERNAL garden    model inside the canyon
- CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
+  CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
 !                                                     ! 'OLD' = direct
 !                                                     ! 'NEW' = Taylor serie, order 1
 
@@ -624,7 +623,7 @@ ZWS_RD_MAX(:) = ZWS_RD_MAX(:) * PDF_RD(:)
 !*      3.     Surface drag
 !              ------------
 !
- CALL URBAN_DRAG(icell, iblock, TOP, T, B, OGARDEN_EXT, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
+ CALL URBAN_DRAG(icell, iblock, TOP, T, B, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
                  PU_CANYON, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ_LOWCAN, &
                  ZTS_RF, ZTS_RD, ZTS_WL, PTS_GARDEN, PQS_GARDEN, PDN_RF, PDN_RD, PTAU,    &
                  PEXNS, PEXNA, PTA, PQA, PPS, PRHOA, PZREF, PUREF,      &

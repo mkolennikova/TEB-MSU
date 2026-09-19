@@ -22,12 +22,12 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 				ZDN_TOWN, ZMELT_BLT_SUM, ZSNOWD_TOWN_NOW, ZSNOWD_TOWN, ZSO_ALB_TOWN, ZTH_ALB_TOWN,            &
 				CBEM, LBEM_AC, HNATVENT, CCOOL_COIL, CHEAT_COIL, ZGR, ZTCOOL_TARGET, ZTHEAT_TARGET, ZV_VENT,  &
 				ZINF, ZCOP_RAT, ZCAP_SYS_RAT, ZM_SYS_RAT, GSHAD_DAY, GNATVENT_NIGHT,                          &
-				ZH_WASTE, ZHVAC_COOL, ZHVAC_HEAT, LGREENROOF, ZFRAC_GR, ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZH_GR_EXT,  &
+				ZH_WASTE, ZHVAC_COOL, ZHVAC_HEAT, LGREENROOF, ZFRAC_GR, ZZ0_GR_EXT, ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZH_GR_EXT,  &
 				ZLE_GR_EXT, ZEVAP_GR_EXT,        &
 				ZRUNOFF_GR_EXT, LGARDEN, ZZ0_GD_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD,   &
 				ZCD_GD, ZRUNOFF_GD_EXT, ITYPE_WIND, ZFAI, ZDQS_TOWN, ZGFLUX_TOWN, ZH_ROOF_FR, ZH_ROAD_FR,         &
 				ZH_WALL_FR, ZAC_ROOF, ZAC_ROAD, ZAC_WALL, ZAC_TOP, ZCH_RF, ZCH_RD, ZCH_WL, ZCH_TOP, ZU_TOP,   &
-                ZUSTAR_TOWN, ZCD_GARDEN_ATM, ZCH_GARDEN_ATM, ZH_TRAFFIC_NOW, ZRN_TOWN, ZU_CANYON, ZTS_ROAD, LGARDEN_EXT, &
+                ZUSTAR_TOWN, ZCD_GARDEN_ATM, ZCH_GARDEN_ATM, ZH_TRAFFIC_NOW, ZRN_TOWN, ZU_CANYON, ZTS_ROAD, TYPE_GARDEN, &
 				LGREENROOF_EXT, HROAD_DIR, HWALL_OPT, ZROAD_DIR, ZRESIDENTIAL, ZDT_RES, ZDT_OFF, ZCAP_SYS_HEAT, &
 				LSOLAR_PANEL, ZFRAC_PANEL, LPAR_RD_IRRIG, ZRD_START_MONTH, ZRD_END_MONTH, ZRD_START_HOUR,        &
 				ZRD_END_HOUR, ZRD_24H_IRRIG, ZPROD_BLD, ZUTC_HOUR, LSHADE,                                     &
@@ -50,7 +50,11 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 !MV202609 anthropogenic heat diagnostics
                           ZLE_WASTE,                        &
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-                          RUNOFF_ROAD, RUNOFF_ROOF)
+                          RUNOFF_ROAD, RUNOFF_ROOF, &
+!MV202609 garden diagnostics
+                          PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
+                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
+                          PAC_GARDEN)
 							
 ! ======================================================================
 ! 
@@ -243,6 +247,7 @@ REAL,DIMENSION(1,1:8)             :: ZFAI              !IN Frontal area index
 
 ! Input parameters for Greenroof from TERRA
 REAL,DIMENSION(1)                 :: ZFRAC_GR          !IN fraction of greenroofs on roofs             
+REAL,DIMENSION(1)                 :: ZZ0_GR_EXT        !IN greenroof roughness length (external model)
 LOGICAL                           :: LGREENROOF        !IN Flag to use a green roofs scheme  
 LOGICAL                           :: LGREENROOF_EXT    !IN Flag to use a green roofs scheme (external)
 REAL,DIMENSION(1)                 :: ZALB_GR_EXT       !IN green roof albedo
@@ -255,7 +260,7 @@ REAL,DIMENSION(1)                 :: ZRUNOFF_GR_EXT    !IN greenroof surface run
 
 ! Input parameters for Garden from TERRA           
 LOGICAL                           :: LGARDEN           !IN Flag to use a garden scheme
-LOGICAL                           :: LGARDEN_EXT       !IN Flag to use a garden scheme (external)    
+CHARACTER(LEN=9)                  :: TYPE_GARDEN       !IN garden model type ('PROXY_OLD','PROXY_NEW','EXT')
 REAL,DIMENSION(1)                 :: ZZ0_GD_EXT        !IN garden roughness length (external model)
 REAL,DIMENSION(1)                 :: ZALB_GD_EXT       !IN garden albedo (external model)
 REAL,DIMENSION(1)                 :: ZEMIS_GD_EXT      !IN garden emissivity (external model)
@@ -398,6 +403,16 @@ REAL,DIMENSION(1)                 :: PAC_ROAD_ATM_WAT !OUT road water conductanc
 REAL,DIMENSION(1)                 :: PDN_RD           !OUT road snow fraction (-)
 REAL,DIMENSION(1)                 :: LE_ROAD_WAT      !OUT road latent heat flux of the snow-free road (W/m2 road)
 REAL,DIMENSION(1)                 :: LE_ROAD_SNOW     !OUT road latent heat flux of the snow-covered road (W/m2 road)
+!MV202609 garden diagnostics
+REAL,DIMENSION(1)                 :: PTSRAD_GARDEN    !OUT garden surface temperature (K)
+REAL,DIMENSION(1)                 :: PRN_GARDEN       !OUT net radiation over the garden (W/m2 garden)
+REAL,DIMENSION(1)                 :: PH_GARDEN        !OUT sensible heat flux over the garden (W/m2 garden)
+REAL,DIMENSION(1)                 :: PLE_GARDEN       !OUT latent heat flux over the garden (W/m2 garden)
+REAL,DIMENSION(1)                 :: PEVAP_GARDEN     !OUT total evaporation over the garden (kg/m2/s)
+REAL,DIMENSION(1)                 :: PQSAT_GARDEN     !OUT garden saturation specific humidity (kg/kg)
+REAL,DIMENSION(1)                 :: PHU_GARDEN       !OUT garden aggregated relative humidity (-)
+REAL,DIMENSION(1)                 :: PAC_AGG_GARDEN   !OUT garden aggregated conductance (m/s)
+REAL,DIMENSION(1)                 :: PAC_GARDEN       !OUT garden aerodynamic conductance (m/s)
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 REAL,DIMENSION(1)                 :: PDN_RF           !OUT roof snow fraction (-)
 REAL,DIMENSION(1)                 :: LE_ROOF_WAT      !OUT roof latent heat flux of the snow-free roof (W/m2 roof)
@@ -493,6 +508,15 @@ REAL,DIMENSION(1)  :: ZLE_ROOF_WAT      ! roof latent heat flux of the snow-free
 REAL,DIMENSION(1)  :: ZLE_ROOF_SNOW     ! roof latent heat flux of the snow-covered roof (W/m2 roof)   
 REAL,DIMENSION(1)  :: ZAC_GARDEN        ! garden aerodynamical conductance             
 REAL,DIMENSION(1)  :: ZAC_GARDEN_WAT    ! garden aerodynamical conductance for vapor   
+!MV202609 garden diagnostics
+REAL,DIMENSION(1)  :: ZPTSRAD_GARDEN    ! garden surface temperature (K)
+REAL,DIMENSION(1)  :: ZPRN_GARDEN       ! net radiation over the garden (W/m2 garden)
+REAL,DIMENSION(1)  :: ZPH_GARDEN        ! sensible heat flux over the garden (W/m2 garden)
+REAL,DIMENSION(1)  :: ZPLE_GARDEN       ! latent heat flux over the garden (W/m2 garden)
+REAL,DIMENSION(1)  :: ZPEVAP_GARDEN     ! total evaporation over the garden (kg/m2/s)
+REAL,DIMENSION(1)  :: ZPQSAT_GARDEN     ! garden saturation specific humidity (kg/kg)
+REAL,DIMENSION(1)  :: ZPHU_GARDEN       ! garden aggregated relative humidity (-)
+REAL,DIMENSION(1)  :: ZPAC_AGG_GARDEN   ! garden aggregated conductance (m/s)
 REAL,DIMENSION(1)  :: ZAC_GREENROOF     ! green roofs aerodynamical conductance        
 REAL,DIMENSION(1)  :: ZAC_GREENROOF_WAT ! green roofs aerodynamical conductance for vapor                                    
 REAL,DIMENSION(1)  :: ZUW_ROOF          ! Momentum flux for roofs                      
@@ -1119,7 +1143,7 @@ IF (ntstep == 1) THEN
 		PRINT*, '    LGREENROOF_EXT= ', LGREENROOF_EXT
 		PRINT*, '  Gardens:'
 		PRINT*, '    LGARDEN       = ', LGARDEN
-		PRINT*, '    LGARDEN_EXT   = ', LGARDEN_EXT
+		PRINT*, '    TYPE_GARDEN   = ', TYPE_GARDEN
 		PRINT*, '  Solar panels:'
 		PRINT*, '    LSOLAR_PANEL  = ', LSOLAR_PANEL
 		PRINT*, '    ZFRAC_PANEL   = ', ZFRAC_PANEL(1)
@@ -1243,7 +1267,7 @@ ZGARDEN_O_GRND = ZGARDEN / (ZROAD + ZGARDEN)
 IF (LGREENROOF_EXT) THEN
   ZRUNOFF_GR_EXT  = ZRUNOFF_GR_EXT / dt
 ENDIF
-IF (LGARDEN_EXT) THEN
+IF (TYPE_GARDEN == 'EXT') THEN
   ZRUNOFF_GD_EXT    = ZRUNOFF_GD_EXT / dt
 ENDIF	
 !
@@ -1400,7 +1424,7 @@ ENDIF
 !*****************************************************************************
 
 
-CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, LGARDEN_EXT, LGREENROOF, LGREENROOF_EXT, LSOLAR_PANEL,                &
+CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, LGREENROOF, LGREENROOF_EXT, LSOLAR_PANEL,                &
                      HZ0H, HIMPLICIT_WIND, HROAD_DIR, HWALL_OPT, TPTIME,      &
                      LBEM_AC, XTSUN, ZT_CANYON, ZQ_CANYON, ZU_CANYON,                  &
                      ZT_LOWCAN, ZQ_LOWCAN, ZU_LOWCAN, ZZ_LOWCAN,              &
@@ -1498,7 +1522,7 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, LGARDEN_EXT, LGREENROOF, LGREENR
                      ZDT_RES, ZDT_OFF,                                        &
                      ZCUR_TCOOL_TARGET, ZCUR_THEAT_TARGET, ZCUR_QIN ,         &
 					 ZDN_RF, ZDN_RD, ZMELT_BLT, ZSNOWD_RF, ZSNOWD_RD, ZLW_UP, &
-					 ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZH_GR_EXT, ZLE_GR_EXT, ZEVAP_GR_EXT,   &
+					 ZZ0_GR_EXT, ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZH_GR_EXT, ZLE_GR_EXT, ZEVAP_GR_EXT,   &
 					 ZRUNOFF_GR_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, &
 					 ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, ZRUNOFF_GD_EXT, ZCH_RD,    &
 					 ZCH_RF, ZCH_WL, ZCH_TOP, ZAC_TOP, ZILMO_ROAD_CAN, ZILMO_ROOF_EXCH,&
@@ -1516,7 +1540,10 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, LGARDEN_EXT, LGREENROOF, LGREENR
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                           ZLE_ROOF_WAT, ZLE_ROOF_SNOW, &
 !MV202609 tau scheme of the road
-                          LTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH)
+                          LTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
+!MV202609 garden diagnostics
+                     ZPTSRAD_GARDEN, ZPRN_GARDEN, ZPH_GARDEN, ZPLE_GARDEN,       &
+                     ZPEVAP_GARDEN, ZPQSAT_GARDEN, ZPHU_GARDEN, ZPAC_AGG_GARDEN)
 !*****************************************************************************
 !*****************************************************************************
 !*****************************************************************************
@@ -1575,6 +1602,18 @@ PAC_ROAD_ATM_WAT = ZAC_ROAD_ATM_WAT
 PDN_RD           = ZDN_RD
 LE_ROAD_WAT      = ZLE_ROAD_WAT
 LE_ROAD_SNOW     = ZLE_ROAD_SNOW
+!MV202609 garden diagnostics
+!* per-m2-of-garden surface diagnostics (net radiation, fluxes, surface
+!* temperature, conductance and saturation humidity)
+PTSRAD_GARDEN    = ZPTSRAD_GARDEN
+PRN_GARDEN       = ZPRN_GARDEN
+PH_GARDEN        = ZPH_GARDEN
+PLE_GARDEN       = ZPLE_GARDEN
+PEVAP_GARDEN     = ZPEVAP_GARDEN
+PQSAT_GARDEN     = ZPQSAT_GARDEN
+PHU_GARDEN       = ZPHU_GARDEN
+PAC_AGG_GARDEN   = ZPAC_AGG_GARDEN
+PAC_GARDEN       = ZAC_GARDEN
 !
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 !* roof water diagnostics: snow fraction and liquid/snow components of the roof

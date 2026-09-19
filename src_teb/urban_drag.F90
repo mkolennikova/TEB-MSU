@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !     #########
-    SUBROUTINE URBAN_DRAG(icell, iblock, TOP, T, B, OGARDEN_EXT, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
+    SUBROUTINE URBAN_DRAG(icell, iblock, TOP, T, B, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
                           PU_CANYON, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ_LOWCAN,   &
                           PTS_ROOF, PTS_ROAD, PTS_WALL, PTS_GARDEN, PQS_GARDEN,    &
                           PDELT_SNOW_ROOF, PDELT_SNOW_ROAD,  PTAU, PEXNS, PEXNA, PTA,    &
@@ -107,8 +107,7 @@ TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
 TYPE(TEB_t), INTENT(INOUT) :: T
 TYPE(BEM_t), INTENT(INOUT) :: B
 !
- LOGICAL,              INTENT(IN)  :: OGARDEN_EXT         ! Flag to use EXTERNAL garden model inside the canyon
- CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
+  CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
 !                                                     ! 'OLD' = direct
 !                                                     ! 'NEW' = Taylor serie, order 1
 !
@@ -235,7 +234,6 @@ REAL, DIMENSION(SIZE(PTA)) :: ZAVDELT_ROOF ! averaged water frac.
 REAL, DIMENSION(SIZE(PTA)) :: ZQ_ROOF      ! roof spec. hum.
 REAL, DIMENSION(SIZE(PTA)) :: ZZ0_ROOF     ! roof roughness length
 REAL, DIMENSION(SIZE(PTA)) :: ZZ0_ROAD     ! road roughness length
-REAL, DIMENSION(SIZE(PTA)) :: ZPZ0_GARDEN  ! garden roughness length
 REAL, DIMENSION(SIZE(PTA)) :: ZW_CAN       ! ver. wind in canyon
 REAL, DIMENSION(SIZE(PTA)) :: ZRI          ! Richardson number
 REAL, DIMENSION(SIZE(PTA)) :: ZLE_MAX      ! maximum latent heat flux available
@@ -281,7 +279,6 @@ REAL, DIMENSION(SIZE(PTA)) :: ZCHTCS_ROOF  ! forced convective heat transfer coe
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCN_WALL  ! natural convective heat transfer coef. for wall [W/(m2.K)]
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCS_WALL  ! forced natural convective heat transfer coef. for smooth wall [W/(m2.K)]
 REAL, DIMENSION(SIZE(PTA)) :: ZTS_GROUND   ! Surface temperature of ground (road + garden)
-REAL, DIMENSION(SIZE(PTA)) :: ZZ0_GROUND   ! Roughness length of ground (road + garden)
 REAL, DIMENSION(SIZE(PTA)) :: ZRA_GARDEN_ATM
 REAL, DIMENSION(SIZE(PTA)) :: ZILMO_GARDEN_ATM
 REAL, DIMENSION(SIZE(PTA)) :: ZVMOD_TOWN
@@ -315,8 +312,6 @@ IF (LHOOK) CALL DR_HOOK('URBAN_DRAG',0,ZHOOK_HANDLE)
 !
 ZZ0_ROOF(:)    = 0.15                      ! z0 for roofs
 ZZ0_ROAD(:)    = MIN(0.05,0.1*PZ_LOWCAN(:))! z0 for roads
-!ZZ0_GARDEN(:)  = 0.1   
-ZPZ0_GARDEN(:)  = 1.                       ! z0 for gardens
 !
 ZZ0_TOP(:) = T%XZ0_TOWN(:)
 !
@@ -328,7 +323,7 @@ PRI    (:) = XUNDEF
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* diagnostic exchange coefficients between the surfaces and the air of the
 !* canyon or of the forcing level (see section 8.3), full set of URBAN_EXCH_COEF
-!* outputs; the garden/atmosphere ones are filled only if OGARDEN_EXT
+!* outputs; the garden/atmosphere ones are filled only if TOP%CTYPE_GARDEN=='EXT'
 !
 PCD_ROAD_CAN   (:) = XUNDEF
 PCDN_ROAD_CAN  (:) = XUNDEF
@@ -582,7 +577,6 @@ ELSEWHERE
   ZTS_GROUND(:) = PTS_ROAD(:)
 END WHERE
 !
-!  ZZ0_GROUND(:) = ZZ0_ROAD(:) * T%XROAD  (:)/(T%XROAD(:)+T%XGARDEN(:)) + ZZ0_GARDEN(:) * T%XGARDEN  (:)/(T%XROAD(:)+T%XGARDEN(:))
    
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
   CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQ_LOWCAN, PEXNS, PEXNA,  &
@@ -591,10 +585,6 @@ END WHERE
 						PAC_ROAD_CAN, ZRA_ROAD_CAN, PCH_ROAD_CAN, ZZ0H_ROAD_CAN, ILMO_ROAD_CAN        )
   
   !
-  !CALL URBAN_EXCH_COEF('MASC95', ZZ0_O_Z0H, ZTS_GROUND, PQ_LOWCAN, PEXNS, PEXNA,  &
-  !                     PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
-  !                     PVMOD, ZZ0_GROUND, ZRI, PCD_ROAD_CAN, ZCDN,         &
-  !                     PAC_ROAD_CAN, ZRA_ROAD_CAN, PCH_ROAD_CAN, ZZ0H_ROAD_CAN        )
 					   
   
   DO JJ=1,SIZE(PTA)
@@ -648,7 +638,6 @@ CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQA, PEXNS, PEXNA, PTA, PQA,
 !PCH_ROAD_CAN(:) = PCH_ROAD_CAN(:) * 2.
 !PAC_ROAD_CAN(:) = PAC_ROAD_CAN(:) * 2.
 !IF (icell == 1 .AND. iblock == 1884) THEN
-!   print*, 'ZZ0_GROUND = ', ZZ0_GROUND 
 !   print*, 'ZZ0H_ROAD_CAN = ', ZZ0H_ROAD_CAN
 !   print*, 'PCH_ROAD_CAN = ', PCH_ROAD_CAN
 !ENDIF
@@ -732,9 +721,9 @@ DO JJ=1,SIZE(PTA)
 !IF (TOP%LGARDEN) THEN
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* garden/canyon exchange coefficients: computed only when the garden is provided
-!* by an EXTERNAL model (OGARDEN_EXT) - the same condition as for the
+!* by an EXTERNAL model (TOP%CTYPE_GARDEN == 'EXT') - the same condition as for the
 !* garden/atmosphere coefficients below.
-IF (OGARDEN_EXT) THEN
+IF (TOP%CTYPE_GARDEN == 'EXT') THEN
    
 CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
                        PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
@@ -750,14 +739,14 @@ ENDIF
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* garden/atmosphere (TERRA-type) exchange coefficients: diagnostic variables,
 !* computed ONLY together with the garden/canyon coefficients above, i.e. when
-!* the garden is provided by an EXTERNAL model (OGARDEN_EXT = .TRUE.): only then
+!* the garden is provided by an EXTERNAL model (TOP%CTYPE_GARDEN = 'EXT'): only then
 !* PTS_GARDEN and PQS_GARDEN describe a real garden surface state. With the
 !* internal (proxy-SVAT) garden the surface state is a placeholder
 !* (PTS_GARDEN = canyon air temperature from TEB_VEG_PROPERTIES, PQS_GARDEN = 0),
 !* so the forcing-level coefficients would be meaningless; they keep their XUNDEF
 !* initialisation in that case, as well as when no garden is modelled at all.
 !
-IF (OGARDEN_EXT) THEN
+IF (TOP%CTYPE_GARDEN == 'EXT') THEN
 CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
                        PTA, PQA, PZREF, PZREF,              &
                        PVMOD, PZ0_GARDEN_EXT, PRI_GARDEN_ATM, PCD_GARDEN_ATM, PCDN_GARDEN_ATM,         &

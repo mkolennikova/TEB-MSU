@@ -1,7 +1,7 @@
 !auto_modi:spll_teb_garden.D
 MODULE MODI_TEB_GARDEN
 INTERFACE
-    SUBROUTINE TEB_GARDEN (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGARDEN_EXT, OGREENROOF_EXT,                     &
+    SUBROUTINE TEB_GARDEN (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENROOF_EXT,                     &
                            HIMPLICIT_WIND, PBEM_AC, PTSUN, PT_CAN, PQ_CAN, PU_CAN, PT_LOWCAN, PQ_LOWCAN,   &
                            PU_LOWCAN, PZ_LOWCAN, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,    &
                            PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PPS, PPA, PEXNS, PEXNA, PTA, PQA, PRHOA, PCO2,     &
@@ -19,7 +19,7 @@ INTERFACE
 						   PAC_GR, PAC_RD_WAT, PAC_GD_WAT, PAC_GR_WAT, KDAY, PEMIT_LW_FAC,        &
 						   PEMIT_LW_GRND, PT_RAD_IND, PREF_SW_GRND, PREF_SW_FAC, PHU_BLD, PTIME,  &
 						   PPROD_BLD, PDN_RF, PDN_RD, PMELT_BLT, PSNOWD_RF, PSNOWD_RD, PLW_UP,    &
-						   PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT, PRUNOFF_GR_EXT,     &
+						   PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT, PRUNOFF_GR_EXT,     &
 						   PALB_GD_EXT, PEMIS_GD_EXT, PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT, PLE_GD_EXT, PEVAP_GD_EXT,         &
 						   PCH_GD, PCD_GD, PRUNOFF_GD_EXT, PCH_RD, PCH_RF, PCH_WL, PCH_TOP, PAC_TOP,  &
 						   ILMO_ROAD, ILMO_ROOF, ILMO_TOP, PCD_GARDEN_ATM, PCH_GARDEN_ATM,                         &
@@ -34,7 +34,10 @@ INTERFACE
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                           LE_ROOF_WAT, LE_ROOF_SNOW, &
 !MV202609 tau scheme of the road (revision: three-temperature construction)
-                          PT_CAN0, PT_CAN1, PPHI_CAN1)
+                          PT_CAN0, PT_CAN1, PPHI_CAN1,                             &
+!MV202609 garden diagnostics
+                          PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
+                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
@@ -54,7 +57,6 @@ TYPE(TEB_PANEL_t), INTENT(INOUT) :: TPN
 TYPE(TEB_IRRIG_t), INTENT(INOUT) :: TIR
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 !
-LOGICAL,              INTENT(IN)  :: OGARDEN_EXT      ! Flag to use EXTERNAL garden model inside the canyon
 LOGICAL,              INTENT(IN)  :: OGREENROOF_EXT   !IN Flag to use a green roofs scheme (external)
 CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND      ! wind implicitation option
 !                                                         ! 'OLD' = direct
@@ -98,6 +100,7 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PZREF              ! reference height of 
 REAL, DIMENSION(:)  , INTENT(IN)    :: PUREF              ! reference height of the first atm level (wind)
 REAL                , INTENT(IN)    :: PTSTEP             ! time step
 
+REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GR_EXT         ! green roof roughness length (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GR_EXT        ! green roof albedo (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GR_EXT       ! green roof emissivity (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PTSRAD_GR_EXT      ! greenroof radiative surface temp. (snow free) (external model)
@@ -215,6 +218,15 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROOF_SNOW     ! roof latent heat flux
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN0       ! canyon air temperature without tau [K]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN1       ! free layer (second canopy) air temperature [K]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PPHI_CAN1     ! free layer air temperature / theta* ratio of the MOST profile [-]
+!MV202609 garden diagnostics
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PTSRAD_GARDEN  ! garden surface temperature [K]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PRN_GARDEN     ! net radiation over the garden [W/m2 garden]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN      ! sensible heat flux over the garden [W/m2 garden]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN     ! latent heat flux over the garden [W/m2 garden]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GARDEN   ! total evaporation over the garden [kg/m2/s]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GARDEN   ! garden saturation specific humidity [kg/kg]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GARDEN     ! garden aggregated relative humidity [-]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_AGG_GARDEN ! garden aggregated conductance [m/s]
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)

@@ -42,14 +42,14 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				teb_itype_bem_cool, teb_itype_bem_heat, teb_frac_gz, teb_tcool_target,              &
 				teb_theat_target, teb_bem_vent, teb_bem_inf, teb_bem_cop, teb_cap_sys_rat,          &
 				teb_m_sys_rat, teb_shad_day, teb_natvent_night, teb_hwaste, teb_hvac_cool,          &
-				teb_hvac_heat, teb_lgreenroof,  teb_frac_gr, teb_alb_gr, teb_emis_gr, teb_ts_gr,    &
+				teb_hvac_heat, teb_lgreenroof,  teb_frac_gr, teb_z0_gr, teb_alb_gr, teb_emis_gr, teb_ts_gr,    &
 				teb_shfl_gr, teb_lhfl_gr, teb_qvfl_gr, teb_runoff_gr, teb_lgarden, teb_z0_gd,       &
 				teb_alb_gd, teb_emis_gd, teb_ts_gd, teb_qs_gd, teb_shfl_gd, teb_lhfl_gd,            &
 				teb_qvfl_gd, teb_tch_gd, teb_tcm_gd, teb_runoff_gd, teb_itype_wind, teb_fai,        &
 				teb_dqs_town, teb_gflux, teb_shfl_rf, teb_shfl_rd, teb_shfl_wl, teb_ac_rf,          &
 				teb_ac_rd, teb_ac_wl, teb_ac_top, teb_tch_rf, teb_tch_rd, teb_tch_wl, teb_tch_top,  &
 				teb_wind_top, teb_ustar_town, teb_cd_garden_atm, teb_ch_garden_atm, ahf_traffic_now,          &
-				teb_rn_town, teb_wind_canyon, teb_tsroad, teb_lgarden_ext, teb_lgreenroof_ext,      &
+				teb_rn_town, teb_wind_canyon, teb_tsroad, teb_type_garden, teb_lgreenroof_ext,      &
 				teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
 				teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
@@ -73,7 +73,11 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 !MV202609 anthropogenic heat diagnostics
                           teb_lewaste,                        &
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-                          teb_runoff_road, teb_runoff_roof)
+                          teb_runoff_road, teb_runoff_roof, &
+!MV202609 garden diagnostics
+                          teb_ts_garden, teb_rn_garden, teb_h_garden, teb_le_garden,       &
+                          teb_evap_garden, teb_qsat_garden, teb_phu_garden,               &
+                          teb_pac_agg_garden, teb_pac_garden)
 
 !-------------------------------------------------------------------------------
 ! Declarations
@@ -173,7 +177,8 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 	LOGICAL  :: teb_lgreenroof
 	LOGICAL  :: teb_lgreenroof_ext
 	REAL ,DIMENSION(nvec) :: teb_frac_gr
-    REAL ,DIMENSION(nvec) :: teb_alb_gr
+    REAL ,DIMENSION(nvec) :: teb_z0_gr
+REAL ,DIMENSION(nvec) :: teb_alb_gr
 	REAL ,DIMENSION(nvec) :: teb_emis_gr
 	REAL ,DIMENSION(nvec) :: teb_ts_gr
 	REAL ,DIMENSION(nvec) :: teb_shfl_gr
@@ -182,7 +187,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 	REAL ,DIMENSION(nvec) :: teb_runoff_gr
 
     LOGICAL  :: teb_lgarden
-	LOGICAL  :: teb_lgarden_ext
+	CHARACTER(LEN=9) :: teb_type_garden
     REAL ,DIMENSION(nvec) :: teb_z0_gd
     REAL ,DIMENSION(nvec) :: teb_alb_gd
 	REAL ,DIMENSION(nvec) :: teb_emis_gd
@@ -345,6 +350,16 @@ REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROAD_SNOW     ! road latent heat flux of
 REAL, DIMENSION(:), INTENT(OUT)   :: PDN_RF           ! roof snow fraction (-)
 REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROOF_WAT      ! roof latent heat flux of the snow-free roof (W/m2 roof)
 REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROOF_SNOW     ! roof latent heat flux of the snow-covered roof (W/m2 roof)
+!MV202609 garden diagnostics
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_ts_garden    ! garden surface temperature (K)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_rn_garden    ! net radiation over the garden (W/m2 garden)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_h_garden     ! sensible heat flux over the garden (W/m2 garden)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_le_garden    ! latent heat flux over the garden (W/m2 garden)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_evap_garden  ! total evaporation over the garden (kg/m2/s)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_qsat_garden  ! garden saturation specific humidity (kg/kg)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_phu_garden   ! garden aggregated relative humidity (-)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_pac_agg_garden ! garden aggregated conductance (m/s)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_pac_garden   ! garden aerodynamic conductance (m/s)
 LOGICAL,              INTENT(IN)  :: teb_ltau_scheme  ! flag to use the tau scheme for the road
 REAL,                 INTENT(IN)  :: teb_tau_hw_thresh! H/W giving tau = 0.5 (tau scheme)
 REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxation (tau scheme)
@@ -381,14 +396,14 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
 				teb_itype_bem_cool, teb_itype_bem_heat, teb_frac_gz(i), teb_tcool_target(i),                            &
 				teb_theat_target(i), teb_bem_vent(i), teb_bem_inf(i), teb_bem_cop(i), teb_cap_sys_rat(i),               &
 				teb_m_sys_rat(i), teb_shad_day(i), teb_natvent_night(i), teb_hwaste(i), teb_hvac_cool(i),               &
-				teb_hvac_heat(i), teb_lgreenroof, teb_frac_gr(i), teb_alb_gr(i), teb_emis_gr(i), teb_ts_gr(i),          &
+				teb_hvac_heat(i), teb_lgreenroof, teb_frac_gr(i), teb_z0_gr(i), teb_alb_gr(i), teb_emis_gr(i), teb_ts_gr(i),          &
 				teb_shfl_gr(i), teb_lhfl_gr(i), teb_qvfl_gr(i), teb_runoff_gr(i), teb_lgarden, teb_z0_gd(i),            &
 				teb_alb_gd(i), teb_emis_gd(i), teb_ts_gd(i), teb_qs_gd(i), teb_shfl_gd(i), teb_lhfl_gd(i),              &
 				teb_qvfl_gd(i), teb_tch_gd(i), teb_tcm_gd(i), teb_runoff_gd(i), teb_itype_wind, teb_fai(i,:),           &
 				teb_dqs_town(i), teb_gflux(i), teb_shfl_rf(i), teb_shfl_rd(i), teb_shfl_wl(i), teb_ac_rf(i),            &
 				teb_ac_rd(i), teb_ac_wl(i), teb_ac_top(i), teb_tch_rf(i), teb_tch_rd(i), teb_tch_wl(i), teb_tch_top(i), &
 				teb_wind_top(i), teb_ustar_town(i), teb_cd_garden_atm(i), teb_ch_garden_atm(i), ahf_traffic_now(i),               &
-				teb_rn_town(i), teb_wind_canyon(i), teb_tsroad(i), teb_lgarden_ext, teb_lgreenroof_ext, teb_hroad_dir,  &
+				teb_rn_town(i), teb_wind_canyon(i), teb_tsroad(i), teb_type_garden, teb_lgreenroof_ext, teb_hroad_dir,  &
 				teb_wall_opt, teb_road_dir(i), teb_zresidential(i), teb_dt_res(i), teb_dt_off(i), teb_cap_sys_heat(i),  &
 				teb_lsolar_panel, teb_fr_panel(i), teb_lroad_irrig, teb_rd_irrig_start_m(i), teb_rd_irrig_end_m(i),     &
 				teb_rd_irrig_start_h(i), teb_rd_irrig_end_h(i), teb_rd_irrig_sum(i), teb_solar_prod(i), teb_utc_hour,   &
@@ -412,7 +427,11 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
 !MV202609 anthropogenic heat diagnostics
                           teb_lewaste(i),                        &
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-                          teb_runoff_road(i), teb_runoff_roof(i))
+                          teb_runoff_road(i), teb_runoff_roof(i), &
+!MV202609 garden diagnostics
+                          teb_ts_garden(i), teb_rn_garden(i), teb_h_garden(i), teb_le_garden(i), &
+                          teb_evap_garden(i), teb_qsat_garden(i), teb_phu_garden(i),            &
+                          teb_pac_agg_garden(i), teb_pac_garden(i))
 	END DO
 	
 END SUBROUTINE teb_interface

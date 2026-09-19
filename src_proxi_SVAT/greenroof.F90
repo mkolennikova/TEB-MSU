@@ -11,7 +11,7 @@
                 PPET_A_COEF, PPEQ_A_COEF, PPET_B_COEF, PPEQ_B_COEF,                  &
                 PTSTEP, PZREF, PUREF,                                                &
                 PTA, PQA, PEXNS, PEXNA,PRHOA, PCO2, PPS, PRR, PSR, PZENITH,          &
-                PSW,PLW, PVMOD,                                                     &
+                PSW,PLW, PVMOD, PALB_GR, PEMIS_GR, PZ0_GR,                                                     &
                 PRN_GREENROOF,PH_GREENROOF,PLE_GREENROOF,PGFLUX_GREENROOF,           &
                 PSFCO2,PEVAP_GREENROOF, PUW_GREENROOF,                               &
                 PAC_GREENROOF,PQSAT_GREENROOF,PTS_GREENROOF,                         &
@@ -101,7 +101,9 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PZENITH            ! solar zenithal angle
 REAL, DIMENSION(:)  , INTENT(IN)    :: PSW                ! incoming total solar rad on an horizontal surface
 REAL, DIMENSION(:)  , INTENT(IN)    :: PLW                ! atmospheric infrared radiation
 REAL, DIMENSION(:)  , INTENT(IN)    :: PVMOD              ! module of horizontal wind near first atm. level
-!REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GR            ! green roof albedo
+REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GR            ! green roof albedo (namelist urb_alb_grf)
+REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GR           ! green roof emissivity (namelist urb_emis_grf; not used by this proxy)
+REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GR             ! green roof roughness length (m) (namelist urb_z0_grf)
 
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GREENROOF         ! net radiation over greenroofs
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PH_GREENROOF          ! sensible heat flux over greenroofs
@@ -129,8 +131,8 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GREENROOF      ! greenroof irrigat
 !*      1.     Proxi model based on a fixed Bowen ratio
 !              ----------------------------------------
 !
-!* albedo fixed to 0.15
-PRN_GREENROOF(:) = (1.-0.15) * PSW(:)
+!* albedo from the namelist (urb_alb_grf)
+PRN_GREENROOF(:) = (1.-PALB_GR(:)) * PSW(:)
 !
 !* Bowen ratio fixed to 1.
 PH_GREENROOF (:) = 0.5 * PRN_GREENROOF(:)
@@ -145,8 +147,8 @@ PSFCO2(:) = 0.
 !* evaporation
 PEVAP_GREENROOF(:) = PLE_GREENROOF(:) / XLVTT
 !
-!* Friction flux: assumes neutral formulation with roughness length of 0.01m
-PUW_GREENROOF(:) = - (XKARMAN/LOG(PUREF(:)/0.01))**2 * PVMOD(:)**2
+!* Friction flux: assumes neutral formulation with the greenroof roughness
+PUW_GREENROOF(:) = - (XKARMAN/LOG(PUREF(:)/PZ0_GR(:)))**2 * PVMOD(:)**2
 !
 !* Aerodynamical conductance: neglected because used further only for
 !  implicitation of canyon air temperature when the heat flux depends on the

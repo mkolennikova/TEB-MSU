@@ -6,6 +6,8 @@ USE MODI_OL_TIME_INTERP_ATM
 USE MODD_SURF_PAR, ONLY: XUNDEF
 USE MODD_CSTS,     ONLY : XCPD, XSTEFAN, XPI, XDAY, XKARMAN,   &
                           XLVTT, XLSTT, XLMTT, XRV, XRD, XG, XP00
+USE MODD_PROXI_SVAT_PAR, ONLY : XZ0_GD, XZ0_GR   ! roughness lengths: defaults of urb_z0_gdn/urb_z0_grf
+
 USE MODD_FORC_ATM, ONLY: CSV         ,&! name of all scalar variables
                          XDIR_ALB    ,&! direct albedo for each band
                          XSCA_ALB    ,&! diffuse albedo for each band
@@ -116,6 +118,19 @@ REAL ,DIMENSION(nvec) :: urb_h_bld                      !IN Building height  (  
 !MV202609 z0 and zd to namelist
 CHARACTER(LEN=16)     :: urb_z0_town                    !IN z0 of the urban surface (0.5 | 0.5m | 0.1H | H/3 | <name>)
 CHARACTER(LEN=16)     :: urb_zd_town                    !IN displacement height    (same forms as urb_z0_town)
+!* roughness length, albedo and emissivity of the two vegetation surfaces
+!* (garden and greenroof) to namelist: one single value per surface and per
+!* property, shared by the internal proxy schemes and by the external
+!* models, and used by the radiation budget of the canyon
+!* (URBAN_SOLAR_ABS, URBAN_LW_COEF). Defaults when the item is absent from
+!* the namelist file: XZ0_GD / XZ0_GR (MODD_PROXI_SVAT_PAR) for the
+!* roughness lengths and 0.15 / 0.98 for the albedo / emissivity.
+REAL                  :: urb_z0_gdn                     !IN garden roughness length (m)     ( > 0 )
+REAL                  :: urb_alb_gdn                    !IN garden albedo                   ( [0,1) )
+REAL                  :: urb_emis_gdn                   !IN garden emissivity               ( (0,1] )
+REAL                  :: urb_z0_grf                     !IN greenroof roughness length (m)  ( > 0 )
+REAL                  :: urb_alb_grf                    !IN greenroof albedo                ( [0,1) )
+REAL                  :: urb_emis_grf                   !IN greenroof emissivity            ( (0,1] )
 CHARACTER(LEN=4)      :: teb_hroad_dir                  !IN road direction option :                      
                                                         ! 'UNIF' : uniform roads                       
                                                         ! 'ORIE' : specified road orientation          
@@ -173,6 +188,7 @@ REAL     :: teb_tau_hw_width                            !IN width of the tanh re
 LOGICAL  :: teb_lgreenroof                              !IN Flag to use a green roofs scheme
 LOGICAL  :: teb_lgreenroof_ext                          !IN Flag to use external green roofs scheme
 REAL ,DIMENSION(nvec) :: teb_frac_gr                    !IN fraction of greenroofs on roofs             
+REAL ,DIMENSION(nvec) :: teb_z0_gr                      !IN green roof roughness length
 REAL ,DIMENSION(nvec) :: teb_alb_gr                     !IN green roof albedo
 REAL ,DIMENSION(nvec) :: teb_emis_gr                    !IN green roof emissivity 
 REAL ,DIMENSION(nvec) :: teb_ts_gr                      !IN greenroof radiative surface temp. (snow free)
@@ -183,7 +199,7 @@ REAL ,DIMENSION(nvec) :: teb_runoff_gr                  !IN greenroof surface ru
 
 ! Input parameters for Garden from TERRA           
 LOGICAL  :: teb_lgarden                                 !IN Flag to use a garden scheme
-LOGICAL  :: teb_lgarden_ext                             !IN Flag to use external garden scheme
+CHARACTER(LEN=9) :: teb_type_garden                     !IN Garden model type: 'PROXY_OLD', 'PROXY_NEW', 'EXT'
 REAL ,DIMENSION(nvec) :: teb_z0_gd                      !IN garden roughness length
 REAL ,DIMENSION(nvec) :: teb_alb_gd                     !IN garden albedo
 REAL ,DIMENSION(nvec) :: teb_emis_gd                    !IN garden emissivity 
@@ -259,6 +275,16 @@ REAL ,DIMENSION(nvec) :: teb_runoff_town                !OUT runoff for town
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 REAL ,DIMENSION(nvec) :: teb_runoff_road                !OUT water runoff of the road (kg/m2/s)
 REAL ,DIMENSION(nvec) :: teb_runoff_roof                !OUT water runoff of the roof (kg/m2/s)
+!MV202609 garden diagnostics
+REAL ,DIMENSION(nvec) :: teb_ts_garden                  !OUT garden surface temperature (K)
+REAL ,DIMENSION(nvec) :: teb_rn_garden                  !OUT net radiation over the garden (W/m2 garden)
+REAL ,DIMENSION(nvec) :: teb_h_garden                   !OUT sensible heat flux over the garden (W/m2 garden)
+REAL ,DIMENSION(nvec) :: teb_le_garden                  !OUT latent heat flux over the garden (W/m2 garden)
+REAL ,DIMENSION(nvec) :: teb_evap_garden                !OUT total evaporation over the garden (kg/m2/s)
+REAL ,DIMENSION(nvec) :: teb_qsat_garden                !OUT garden saturation specific humidity (kg/kg)
+REAL ,DIMENSION(nvec) :: teb_phu_garden                 !OUT garden aggregated relative humidity (-)
+REAL ,DIMENSION(nvec) :: teb_pac_agg_garden             !OUT garden aggregated conductance (m/s)
+REAL ,DIMENSION(nvec) :: teb_pac_garden                 !OUT garden aerodynamic conductance (m/s)
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 REAL                  :: ZRO_ROAD_ACC                   ! runoff of the road accumulated over the model sub-steps (kg/m2/s)
 REAL                  :: ZRO_ROOF_ACC                   ! runoff of the roof accumulated over the model sub-steps (kg/m2/s)
@@ -424,7 +450,9 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
 					teb_theat_target, teb_zresidential, teb_dt_res, teb_dt_off,        &
                     teb_bem_inf, teb_bem_vent, teb_bem_cop, teb_cap_sys_rat,           &
                     teb_m_sys_rat, teb_cap_sys_heat, ahf_traffic, ahf_industry,        &
-                    teb_itype_wind, teb_fai, teb_lgarden, teb_lgreenroof, teb_frac_gr, &
+                    teb_itype_wind, teb_fai, teb_lgarden, teb_type_garden, &
+                    urb_z0_gdn, urb_alb_gdn, urb_emis_gdn,                                                 &
+                    teb_lgreenroof, teb_frac_gr, urb_z0_grf, urb_alb_grf, urb_emis_grf,                                       &
                     teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                   &
                     teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h,    &
                     teb_rd_irrig_end_h, teb_rd_irrig_sum, teb_utc_hour, teb_lshade, &
@@ -456,7 +484,7 @@ CHARACTER(LEN=*), PARAMETER :: nml_param_items =                                
      'teb_frac_gz,teb_tcool_target,teb_theat_target,teb_zresidential,teb_dt_res,'//  &
      'teb_dt_off,teb_bem_inf,teb_bem_vent,teb_bem_cop,teb_cap_sys_rat,'//           &
      'teb_m_sys_rat,teb_cap_sys_heat,ahf_traffic,ahf_industry,teb_itype_wind,'//    &
-     'teb_fai,teb_lgarden,teb_lgreenroof,teb_frac_gr,teb_lsolar_panel,teb_fr_panel,'&
+     'teb_fai,teb_lgarden,teb_type_garden,urb_z0_gdn,urb_alb_gdn,urb_emis_gdn,teb_lgreenroof,teb_frac_gr,urb_z0_grf,urb_alb_grf,urb_emis_grf,teb_lsolar_panel,teb_fr_panel,'&
      //'teb_lroad_irrig,teb_rd_irrig_start_m,teb_rd_irrig_end_m,teb_rd_irrig_start_h,'&
      //'teb_rd_irrig_end_h,teb_rd_irrig_sum,teb_utc_hour,teb_lshade,urb_z0_town,'// &
      'urb_zd_town,teb_ltau_scheme,teb_tau_hw_thresh,teb_tau_hw_width'
@@ -608,6 +636,12 @@ urb_h_bld(:)     = 20.              ! Canyon height (m)
 !MV202609 z0 and zd to namelist
 urb_z0_town      = '0.1H'           ! z0 of the urban surface (0.1*H - as before)
 urb_zd_town      = 'H/3'            ! displacement height (H/3 - as before)
+urb_z0_gdn       = XZ0_GD            ! Garden roughness length (m)
+urb_alb_gdn      = 0.15              ! Garden albedo
+urb_emis_gdn     = 0.98              ! Garden emissivity
+urb_z0_grf       = XZ0_GR            ! Greenroof roughness length (m)
+urb_alb_grf      = 0.15              ! Greenroof albedo
+urb_emis_grf     = 0.98              ! Greenroof emissivity
 teb_road_dir(:)  = 0.0              ! Road direction (° from North, clockwise)
 teb_hroad_dir    = 'UNIF'           ! Road direction
                                     ! 'UNIF' : uniform roads
@@ -694,8 +728,10 @@ teb_tau_hw_width     = 0.25         ! width of the tanh relaxation (tau scheme)
 teb_lgreenroof       = .FALSE.      ! Greenroof activation
 teb_lgreenroof_ext   = .FALSE.      ! Greenroof activation (external scheme)
 teb_frac_gr     (:)  = 0.0          ! Fraction of greenroofs on roofs  
+!* teb_z0_gr (greenroof roughness length) is set after the namelist is read:
+!* see the validation of the items urb_z0_grf / urb_alb_grf / urb_emis_grf.
 teb_alb_gr      (:)  = 0.15         ! Greenroof albedo
-teb_emis_gr     (:)  = 0.9          ! Greenroof emissivity 
+teb_emis_gr     (:)  = 0.98         ! Greenroof emissivity 
 teb_ts_gr       (:)  = 275.         ! Greenroof radiative surface temp. (snow free)
 teb_shfl_gr     (:)  = 0.           ! Sensible heat flux over greenroofs 
 teb_lhfl_gr     (:)  = 0.           ! Latent heat flux over greenroofs 
@@ -707,10 +743,11 @@ teb_runoff_gr   (:)  = 0.	        ! Greenroof surface runoff
 !============================================================
 !============================================================	
 teb_lgarden          = .TRUE.       ! Garden activation
-teb_lgarden_ext      = .FALSE.      ! Garden activation (external scheme)
-teb_z0_gd       (:)  = 0.8          ! Garden roughness length
+teb_type_garden      = 'PROXY_NEW'  ! Garden model type: 'PROXY_OLD', 'PROXY_NEW', 'EXT'
+!* teb_z0_gd (garden roughness length) is set after the namelist is read:
+!* see the validation of the items urb_z0_gdn / urb_alb_gdn / urb_emis_gdn below.
 teb_alb_gd      (:)  = 0.15         ! Garden albedo
-teb_emis_gd     (:)  = 0.9          ! Garden emissivity 
+teb_emis_gd     (:)  = 0.98         ! Garden emissivity 
 teb_ts_gd       (:)  = 275.         ! Garden radiative surface temp. (snow free)
 teb_qs_gd       (:)  = 0.00380      ! Garden specific humidity
 teb_shfl_gd     (:)  = 0.           ! Sensible heat flux over garden 
@@ -840,6 +877,71 @@ END IF
 WRITE(*,'(A,F10.1,A,F12.1,A,I0,A)') ' TEB-Ru offline: dt = ', dt, ' s, forc_step = ', &
      forc_step, ' s -> INB_ATM = ', NINT(forc_step / dt), ' model sub-steps per forcing step'
 
+!MV202609 garden model type
+!* the type of the garden model must be one of the three supported values;
+!* 'EXT' means that the garden fluxes come from an external model (no internal
+!* garden parameterization is used).
+IF (teb_type_garden /= 'PROXY_OLD' .AND. teb_type_garden /= 'PROXY_NEW' .AND. &
+    teb_type_garden /= 'EXT') THEN
+    WRITE(*,*) 'ERROR: unknown teb_type_garden = ', TRIM(teb_type_garden)
+    WRITE(*,*) "       supported values: 'PROXY_OLD', 'PROXY_NEW', 'EXT'"
+    STOP 1
+END IF
+WRITE(*,'(A,A)') ' TEB-Ru offline: teb_type_garden = ', TRIM(teb_type_garden)
+
+!MV202609 roughness length, albedo and emissivity of the garden and of the
+!* greenroof (namelist items urb_z0_gdn / urb_alb_gdn / urb_emis_gdn and
+!* urb_z0_grf / urb_alb_grf / urb_emis_grf).
+!* One single value per surface, used by all the models: it is given to the
+!* external models (teb_z0_gd / teb_alb_gd / teb_emis_gd -> ZZ0_GD_EXT ... ->
+!* PZ0_GARDEN_EXT / PALB_GD_EXT / PEMIS_GD_EXT, and the same for the greenroof
+!* with ZZ0_GR_EXT / PZ0_GR_EXT / PALB_GR_EXT / PEMIS_GR_EXT), to the arguments
+!* of the internal proxy schemes (PZ0_GD / PALB_GD / PEMIS_GD of GARDEN and
+!* PZ0_GR / PALB_GR / PEMIS_GR of GREENROOF) and to the radiation budget of
+!* the canyon (URBAN_SOLAR_ABS, URBAN_LW_COEF).
+!* Unphysical values are hard errors: they would silently degrade the
+!* aerodynamic conductance (Ca ~ 1/log(z/z0)**2) or the radiation budget.
+IF (urb_z0_gdn <= 0. .OR. urb_z0_gdn >= XUNDEF) THEN
+    WRITE(*,*) 'ERROR: urb_z0_gdn = ', urb_z0_gdn, ' m is not a valid garden roughness length'
+    WRITE(*,*) '       urb_z0_gdn must be > 0 and < XUNDEF'
+    STOP 1
+END IF
+IF (urb_z0_grf <= 0. .OR. urb_z0_grf >= XUNDEF) THEN
+    WRITE(*,*) 'ERROR: urb_z0_grf = ', urb_z0_grf, ' m is not a valid greenroof roughness length'
+    WRITE(*,*) '       urb_z0_grf must be > 0 and < XUNDEF'
+    STOP 1
+END IF
+IF (urb_alb_gdn < 0. .OR. urb_alb_gdn >= 1.) THEN
+    WRITE(*,*) 'ERROR: urb_alb_gdn = ', urb_alb_gdn, ' is not a valid garden albedo'
+    WRITE(*,*) '       urb_alb_gdn must be >= 0 and < 1'
+    STOP 1
+END IF
+IF (urb_emis_gdn <= 0. .OR. urb_emis_gdn > 1.) THEN
+    WRITE(*,*) 'ERROR: urb_emis_gdn = ', urb_emis_gdn, ' is not a valid garden emissivity'
+    WRITE(*,*) '       urb_emis_gdn must be > 0 and <= 1'
+    STOP 1
+END IF
+IF (urb_alb_grf < 0. .OR. urb_alb_grf >= 1.) THEN
+    WRITE(*,*) 'ERROR: urb_alb_grf = ', urb_alb_grf, ' is not a valid greenroof albedo'
+    WRITE(*,*) '       urb_alb_grf must be >= 0 and < 1'
+    STOP 1
+END IF
+IF (urb_emis_grf <= 0. .OR. urb_emis_grf > 1.) THEN
+    WRITE(*,*) 'ERROR: urb_emis_grf = ', urb_emis_grf, ' is not a valid greenroof emissivity'
+    WRITE(*,*) '       urb_emis_grf must be > 0 and <= 1'
+    STOP 1
+END IF
+teb_z0_gd(:)   = urb_z0_gdn
+teb_alb_gd(:)  = urb_alb_gdn
+teb_emis_gd(:) = urb_emis_gdn
+teb_z0_gr(:)   = urb_z0_grf
+teb_alb_gr(:)  = urb_alb_grf
+teb_emis_gr(:) = urb_emis_grf
+WRITE(*,'(A,F8.3,A)') ' TEB-Ru offline: urb_z0_gdn = ', urb_z0_gdn, ' m (all garden versions)'
+WRITE(*,'(A,F8.3,A)') ' TEB-Ru offline: urb_z0_grf = ', urb_z0_grf, ' m (all greenroof versions)'
+WRITE(*,'(A,F8.3,A,F8.3)') ' TEB-Ru offline: garden    alb/emis = ', urb_alb_gdn, ' / ', urb_emis_gdn
+WRITE(*,'(A,F8.3,A,F8.3)') ' TEB-Ru offline: greenroof alb/emis = ', urb_alb_grf, ' / ', urb_emis_grf
+
 !===========================================================================
 !===========================================================================
 ! READ ATMOSPHERIC FORCING FROM FILES
@@ -896,7 +998,7 @@ teb_hour_seconds = teb_hour * 3600. + teb_min * 60. + teb_sec
 ! PCD/PCDN = drag coefficients, PRI = Richardson number, ZZ0H = roughness length
 ! for heat, PAC/PCH = conductance and heat transfer coefficient.
 ! The garden canyon/atmosphere coefficients are computed only with the external
-! garden model (teb_lgarden_ext = .TRUE.); with the internal garden
+! garden model (teb_type_garden = 'EXT'); with the internal garden
 ! PCH_GARDEN_CAN is set to 0 in TEB_GARDEN and the *_GARDEN_ATM stay XUNDEF.
 ! The diagnostic turbulent heat fluxes of the road with the canyon air
 ! (H_ROAD_CAN, LE_ROAD_CAN) and directly with the air of the forcing level
@@ -994,6 +1096,16 @@ nout = nout + 1; out_names(nout) = 'WSNOW_RF'
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 nout = nout + 1; out_names(nout) = 'RUNOFF_ROAD'
 nout = nout + 1; out_names(nout) = 'RUNOFF_ROOF'
+!MV202609 garden diagnostics (per m2 of garden)
+nout = nout + 1; out_names(nout) = 'TS_GARDEN'
+nout = nout + 1; out_names(nout) = 'RN_GARDEN'
+nout = nout + 1; out_names(nout) = 'H_GARDEN'
+nout = nout + 1; out_names(nout) = 'LE_GARDEN'
+nout = nout + 1; out_names(nout) = 'EVAP_GARDEN'
+nout = nout + 1; out_names(nout) = 'QSAT_GARDEN'
+nout = nout + 1; out_names(nout) = 'PHU_GARDEN'
+nout = nout + 1; out_names(nout) = 'PAC_AGG_GARDEN'
+nout = nout + 1; out_names(nout) = 'PAC_GARDEN'
 !MV202609 solar position diagnostics
 !* the zenith/azimuth angles of the sun that the physics of the current step uses
 !* (computed by SUNPOS in CALL_DRIVER at every model sub-step, so the values
@@ -1133,14 +1245,14 @@ DO nstep= 1,nsteps - 1
 				teb_itype_bem_cool, teb_itype_bem_heat, teb_frac_gz, teb_tcool_target,              &
 				teb_theat_target, teb_bem_vent, teb_bem_inf, teb_bem_cop, teb_cap_sys_rat,          &
 				teb_m_sys_rat, teb_shad_day, teb_natvent_night, teb_hwaste, teb_hvac_cool,          &
-				teb_hvac_heat, teb_lgreenroof,  teb_frac_gr, teb_alb_gr, teb_emis_gr, teb_ts_gr,    &
+				teb_hvac_heat, teb_lgreenroof,  teb_frac_gr, teb_z0_gr, teb_alb_gr, teb_emis_gr, teb_ts_gr,    &
 				teb_shfl_gr, teb_lhfl_gr, teb_qvfl_gr, teb_runoff_gr, teb_lgarden, teb_z0_gd,       &
 				teb_alb_gd, teb_emis_gd, teb_ts_gd, teb_qs_gd, teb_shfl_gd, teb_lhfl_gd,            &
 				teb_qvfl_gd, teb_tch_gd, teb_tcm_gd, teb_runoff_gd, teb_itype_wind, teb_fai,        &
 				teb_dqs_town, teb_gflux, teb_shfl_rf, teb_shfl_rd, teb_shfl_wl, teb_ac_rf,          &
 				teb_ac_rd, teb_ac_wl, teb_ac_top, teb_tch_rf, teb_tch_rd, teb_tch_wl, teb_tch_top,  &
 				teb_wind_top, teb_ustar_town, teb_cd_garden_atm, teb_ch_garden_atm, ahf_traffic_now,          &
-				teb_rn_town, teb_wind_canyon, teb_tsroad, teb_lgarden_ext, teb_lgreenroof_ext,      &
+				teb_rn_town, teb_wind_canyon, teb_tsroad, teb_type_garden, teb_lgreenroof_ext,      &
 				teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
 				teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
@@ -1164,7 +1276,11 @@ DO nstep= 1,nsteps - 1
 !MV202609 anthropogenic heat diagnostics
                           teb_lewaste,                        &
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-                          teb_runoff_road, teb_runoff_roof)
+                          teb_runoff_road, teb_runoff_roof, &
+!MV202609 garden diagnostics
+                          teb_ts_garden, teb_rn_garden, teb_h_garden, teb_le_garden,       &
+                          teb_evap_garden, teb_qsat_garden, teb_phu_garden,               &
+                          teb_pac_agg_garden, teb_pac_garden)
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
    ZRO_ROAD_ACC = ZRO_ROAD_ACC + teb_runoff_road(1)
    ZRO_ROOF_ACC = ZRO_ROOF_ACC + teb_runoff_roof(1)
@@ -1260,6 +1376,16 @@ CALL CSV_APPEND(out_line, teb_wsnow_roof(1,1))
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 CALL CSV_APPEND(out_line, ZRO_ROAD_ACC / INB_ATM)
 CALL CSV_APPEND(out_line, ZRO_ROOF_ACC / INB_ATM)
+!MV202609 garden diagnostics (per m2 of garden)
+CALL CSV_APPEND(out_line, teb_ts_garden(1))
+CALL CSV_APPEND(out_line, teb_rn_garden(1))
+CALL CSV_APPEND(out_line, teb_h_garden(1))
+CALL CSV_APPEND(out_line, teb_le_garden(1))
+CALL CSV_APPEND(out_line, teb_evap_garden(1))
+CALL CSV_APPEND(out_line, teb_qsat_garden(1))
+CALL CSV_APPEND(out_line, teb_phu_garden(1))
+CALL CSV_APPEND(out_line, teb_pac_agg_garden(1))
+CALL CSV_APPEND(out_line, teb_pac_garden(1))
 !MV202609 solar position diagnostics (degrees; last sub-step of the interval)
 CALL CSV_APPEND(out_line, XZENITH(1) * 180. / XPI)
 CALL CSV_APPEND(out_line, 90. - XZENITH(1) * 180. / XPI)

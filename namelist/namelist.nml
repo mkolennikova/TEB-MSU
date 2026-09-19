@@ -58,8 +58,22 @@
  teb_fai=0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
  teb_lgarden=.FALSE.,
  fr_garden=0.0,
+ teb_type_garden='PROXY_NEW',
+ !MV202609 surface properties of the garden and of the greenroof:
+ !  urb_z0_gdn / urb_alb_gdn / urb_emis_gdn - garden roughness length (m),
+ !  albedo, emissivity; urb_z0_grf / urb_alb_grf / urb_emis_grf - the same
+ !  for the greenroof. One value per surface, used by all the models
+ !  (internal proxies and external ones) and by the canyon radiation budget.
+ !  Defaults: 0.1 / 0.15 / 0.98 (garden), 0.01 / 0.15 / 0.98 (greenroof).
+ !  Albedo must be in [0,1), emissivity in (0,1]; other values stop the run.
+ urb_z0_gdn=0.1,
+ urb_alb_gdn=0.15,
+ urb_emis_gdn=0.98,
  teb_lgreenroof=.FALSE.,
  teb_frac_gr=0.0,
+ urb_z0_grf=0.01,
+ urb_alb_grf=0.15,
+ urb_emis_grf=0.98,
  teb_lsolar_panel=.FALSE.,
  teb_fr_panel=0.,
  teb_lroad_irrig=.FALSE.,

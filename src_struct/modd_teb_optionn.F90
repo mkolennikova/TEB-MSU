@@ -80,6 +80,12 @@ TYPE TEB_OPTIONS_t
   LOGICAL                        :: LGREENROOF   ! T: green roofs (call ISBA from TEB)
   LOGICAL                        :: LHYDRO       ! T: urban subsoil and hydrology processes
   LOGICAL                        :: LSOLAR_PANEL ! T: solar panels on roofs
+!MV202609 garden model type
+! type of the garden model (namelist teb_type_garden):
+!   'PROXY_OLD' : fixed Bowen-ratio proxy (the historical scheme)
+!   'PROXY_NEW' : diagnostic closed surface energy balance (default)
+!   'EXT'       : external garden model (fluxes provided by an external model)
+  CHARACTER(LEN=9)               :: CTYPE_GARDEN ! TEB option for the garden model
 !MV202609 tau scheme of the road
 ! tau scheme for the road: the actual road fluxes are the weighted mean of the
 ! road/canyon and road/forcing-level fluxes, with the weights tau and 1-tau,
@@ -151,6 +157,7 @@ YTEB_OPTIONS%CCH_BEM=' '
 YTEB_OPTIONS%CBEM=' '
 YTEB_OPTIONS%CTREE=' '
 YTEB_OPTIONS%LGREENROOF=.FALSE.
+YTEB_OPTIONS%CTYPE_GARDEN='PROXY_NEW'
 YTEB_OPTIONS%LHYDRO=.FALSE.
 YTEB_OPTIONS%LSOLAR_PANEL=.FALSE.
 YTEB_OPTIONS%LTAU_SCHEME=.FALSE.

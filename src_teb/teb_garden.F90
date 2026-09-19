@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !     #########
-    SUBROUTINE TEB_GARDEN (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGARDEN_EXT, OGREENROOF_EXT,      &
+    SUBROUTINE TEB_GARDEN (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENROOF_EXT,      &
                            HIMPLICIT_WIND, PBEM_AC, PTSUN, PT_CAN, PQ_CAN, PU_CAN, PT_LOWCAN, PQ_LOWCAN,   &
                            PU_LOWCAN, PZ_LOWCAN, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,    &
                            PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PPS, PPA, PEXNS, PEXNA, PTA, PQA, PRHOA, PCO2,     &
@@ -21,7 +21,7 @@
 						   PAC_GR, PAC_RD_WAT, PAC_GD_WAT, PAC_GR_WAT, KDAY, PEMIT_LW_FAC,        &
 						   PEMIT_LW_GRND, PT_RAD_IND, PREF_SW_GRND, PREF_SW_FAC, PHU_BLD, PTIME,  &
 						   PPROD_BLD, PDN_RF, PDN_RD, PMELT_BLT, PSNOWD_RF, PSNOWD_RD, PLW_UP,    &
-						   PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT, PRUNOFF_GR_EXT,     &
+						   PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT, PRUNOFF_GR_EXT,     &
 						   PALB_GD_EXT, PEMIS_GD_EXT, PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT,       &
 						   PLE_GD_EXT, PEVAP_GD_EXT,         &
 						   PCH_GD, PCD_GD, PRUNOFF_GD_EXT, PCH_RD, PCH_RF, PCH_WL, PCH_TOP, PAC_TOP,  &
@@ -37,7 +37,10 @@
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                           LE_ROOF_WAT, LE_ROOF_SNOW, &
 !MV202609 tau scheme of the road (revision: three-temperature construction)
-                          PT_CAN0, PT_CAN1, PPHI_CAN1)
+                          PT_CAN0, PT_CAN1, PPHI_CAN1,                             &
+!MV202609 garden diagnostics
+                          PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
+                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN*  
@@ -123,7 +126,6 @@ TYPE(TEB_PANEL_t), INTENT(INOUT) :: TPN
 TYPE(TEB_IRRIG_t), INTENT(INOUT) :: TIR
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 !
- LOGICAL,              INTENT(IN)  :: OGARDEN_EXT         ! Flag to use EXTERNAL garden model inside the canyon
  LOGICAL,              INTENT(IN)  :: OGREENROOF_EXT      ! Flag to use EXTERNAL greenroof model 
  CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND      ! wind implicitation option
 !                                                         ! 'OLD' = direct
@@ -170,6 +172,7 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PZREF              ! reference height of 
 REAL, DIMENSION(:)  , INTENT(IN)    :: PUREF              ! reference height of the first atm level (wind)
 REAL                , INTENT(IN)    :: PTSTEP             ! time step
 !
+REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GR_EXT         ! green roof roughness length (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GR_EXT        ! green roof albedo
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GR_EXT       ! green roof emissivity 
 REAL, DIMENSION(:)  , INTENT(IN)    :: PTSRAD_GR_EXT      ! greenroof radiative surface temp. (snow free) 
@@ -293,6 +296,15 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROOF_SNOW     ! roof latent heat flux
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN0       ! canyon air temperature without tau [K]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN1       ! free layer (second canopy) air temperature [K]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PPHI_CAN1     ! free layer air temperature / theta* ratio of the MOST profile [-]
+!MV202609 garden diagnostics
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PTSRAD_GARDEN  ! garden surface temperature [K]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PRN_GARDEN     ! net radiation over the garden [W/m2 garden]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN      ! sensible heat flux over the garden [W/m2 garden]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN     ! latent heat flux over the garden [W/m2 garden]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GARDEN   ! total evaporation over the garden [kg/m2/s]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GARDEN   ! garden saturation specific humidity [kg/kg]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GARDEN     ! garden aggregated relative humidity [-]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_AGG_GARDEN ! garden aggregated conductance [m/s]
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
@@ -632,7 +644,7 @@ ZTSRAD_GR = XUNDEF
 
 !!
 IF (TOP%LGARDEN) THEN
-  IF (.NOT. OGARDEN_EXT) THEN
+  IF (TOP%CTYPE_GARDEN /= 'EXT') THEN
     ZALB_GD   = XUNDEF
     ZEMIS_GD  = XUNDEF
     ZTSRAD_GD = XUNDEF
@@ -640,10 +652,13 @@ IF (TOP%LGARDEN) THEN
                         ZTSRAD_GD, ZEMIS_GD, ZALB_GD,       &
                         PTA=PT_LOWCAN                       )
   ELSE
-    ZALB_GD   = PALB_GD_EXT
-    ZEMIS_GD  = PEMIS_GD_EXT
     ZTSRAD_GD = PTSRAD_GD_EXT
   ENDIF	
+    !* the albedo and the emissivity come from the namelist
+    !* (urb_alb_gdn / urb_emis_gdn) in EVERY mode, so that the radiation
+    !* budget of TEB and the internal proxy (GARDEN) use the same values
+    ZALB_GD  = PALB_GD_EXT
+    ZEMIS_GD = PEMIS_GD_EXT
 ENDIF
 
 !
@@ -657,11 +672,12 @@ IF (TOP%LGREENROOF) THEN
                            ZTSRAD_GR, ZEMIS_GR, ZALB_GR,        &
                            PTA=PTA                              )
   ELSE
-    ZALB_GR   = PALB_GR_EXT
-    ZEMIS_GR  = PEMIS_GR_EXT
     ZTSRAD_GR = PTSRAD_GR_EXT
   ENDIF	
 
+    !* albedo and emissivity from the namelist (urb_alb_grf / urb_emis_grf)
+    ZALB_GR  = PALB_GR_EXT
+    ZEMIS_GR = PEMIS_GR_EXT
 ENDIF
 !
 !-------------------------------------------------------------------------------
@@ -754,7 +770,7 @@ ELSE
   ZTAU(:) = 1.
 ENDIF
 !
-  CALL TEB  (icell, iblock, TOP, T, BOP, B, TIR, DMT, OGARDEN_EXT, HIMPLICIT_WIND, PBEM_AC,     &
+  CALL TEB  (icell, iblock, TOP, T, BOP, B, TIR, DMT, HIMPLICIT_WIND, PBEM_AC,     &
              PTSUN, PT_CAN, PQ_CAN, PU_CAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN,       &
              PZ_LOWCAN, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,              &
              PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PPS, PPA, PEXNS, PEXNA, PTA, PQA, PRHOA, PLW_RAD, &
@@ -839,6 +855,22 @@ END IF
                        PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM )
 !
 PSFCO2(:) = T%XGARDEN(:) * ZSFCO2_GD(:) + T%XBLD(:) * T%XGREENROOF(:) * ZSFCO2_GR(:) ! no CO2 flux from built and road yet.
+!
+!-------------------------------------------------------------------------------
+!
+!*     11.1   Garden diagnostics (per m2 of garden)
+!              ------------------------------------
+!* Per-m2-of-garden values of the garden surface (as computed by the garden
+!* model selected with teb_type_garden); they are diagnostics only.
+!
+PTSRAD_GARDEN (:) = ZTSRAD_GD(:)
+PRN_GARDEN    (:) = ZRN_GD(:)
+PH_GARDEN     (:) = ZH_GD(:)
+PLE_GARDEN    (:) = ZLE_GD(:)
+PEVAP_GARDEN  (:) = ZEVAP_GD(:)
+PQSAT_GARDEN  (:) = ZQSAT_GD(:)
+PHU_GARDEN    (:) = ZHU_AGG_GD(:)
+PAC_AGG_GARDEN(:) = ZAC_AGG_GD(:)
 !
 !-------------------------------------------------------------------------------
 !
@@ -945,10 +977,11 @@ ZPEQ_B_COEF(:) = PQ_LOWCAN(:)
 !
 IF (TOP%LGARDEN) THEN
 !
-  CALL GARDEN(HIMPLICIT_WIND, TOP%TTIME, PTSUN, PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, &
+  CALL GARDEN(TOP%CTYPE_GARDEN, HIMPLICIT_WIND, TOP%TTIME, PTSUN, PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, &
               ZPET_A_COEF, ZPEQ_A_COEF, ZPET_B_COEF, ZPEQ_B_COEF, PTSTEP, PZ_LOWCAN,    &
               PT_LOWCAN, PQ_LOWCAN, PEXNS, PRHOA, PCO2, PPS, PRR, PSR, PZENITH,         &
-              ZREC_SW_GD, ZREC_LW_GD, PU_LOWCAN, ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,     &
+              ZREC_SW_GD, ZREC_LW_GD, PU_LOWCAN, PZ0_GARDEN_EXT, PALB_GD_EXT, PEMIS_GD_EXT,     &
+              ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,     &
               ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,     &
               ZAC_AGG_GD, ZHU_AGG_GD, ZDRAIN_GD, ZIRRIG_GD )
 
@@ -960,7 +993,7 @@ IF (TOP%LGARDEN) THEN
   PCH_GD(:) = 0.
   PCD_GD(:) = 0.
   
-  IF (OGARDEN_EXT) THEN
+  IF (TOP%CTYPE_GARDEN == 'EXT') THEN
     ZH_GD(:) = PH_GD_EXT(:)
 	ZLE_GD(:) = PLE_GD_EXT(:)
 	ZEVAP_GD(:) = PEVAP_GD_EXT(:)
@@ -1010,7 +1043,8 @@ IF (TOP%LGREENROOF) THEN
   CALL GREENROOF(HIMPLICIT_WIND, TOP%TTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF,         &
                  ZPET_A_COEF, ZPEQ_A_COEF, ZPET_B_COEF, ZPEQ_B_COEF, PTSTEP, PZREF,  &
                  PUREF, PTA, PQA, PEXNS, PEXNA,PRHOA, PCO2, PPS, PRR, PSR, PZENITH,  &
-                 ZREC_SW_RF, ZREC_LW_RF, PVMOD, ZRN_GR, ZH_GR, ZLE_GR,               &
+                 ZREC_SW_RF, ZREC_LW_RF, PVMOD, PALB_GR_EXT, PEMIS_GR_EXT, PZ0_GR_EXT,   &
+                 ZRN_GR, ZH_GR, ZLE_GR,               &
                  ZGFLUX_GR, ZSFCO2_GR, ZEVAP_GR, ZUW_GR,                             &
                  PAC_GR, ZQSAT_GR, ZTSRAD_GR, ZAC_AGG_GR, ZHU_AGG_GR,                &
                  DMT%XG_GREENROOF_ROOF, ZRUNOFF_GR, ZDRAIN_GR, ZIRRIG_GR ) 

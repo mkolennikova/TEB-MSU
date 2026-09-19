@@ -7,7 +7,7 @@ MODULE MODI_TEB_GARDEN_STRUCT
 !
 INTERFACE
 !
-    SUBROUTINE TEB_GARDEN_STRUCT (icell, iblock, OGARDEN, OGARDEN_EXT, OGREENROOF, OGREENROOF_EXT, OSOLAR_PANEL,          &
+    SUBROUTINE TEB_GARDEN_STRUCT (icell, iblock, OGARDEN, TYPE_GARDEN, OGREENROOF, OGREENROOF_EXT, OSOLAR_PANEL,          &
                      HZ0H, HIMPLICIT_WIND, HROAD_DIR, HWALL_OPT, TPTIME, PBEM_AC,      &
                      PTSUN, PT_CAN, PQ_CAN, PU_CAN,                           &
                      PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ_LOWCAN, PTI_BLD,     &
@@ -101,7 +101,7 @@ INTERFACE
                      PDT_RES, PDT_OFF,                                        &
                      PCUR_TCOOL_TARGET, PCUR_THEAT_TARGET, PCUR_QIN ,         &
 					 PDN_RF, PDN_RD, PMELT_BLT, PSNOWD_RF, PSNOWD_RD, PLW_UP, &
-					 PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT,   &
+					 PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT,   &
 					 PRUNOFF_GR_EXT, PALB_GD_EXT, PEMIS_GD_EXT, PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT, &
 					 PLE_GD_EXT, PEVAP_GD_EXT, PCH_GD, PCD_GD, PRUNOFF_GD_EXT, PCH_RD,    &
 					 PCH_RF, PCH_WL, PCH_TOP, PAC_TOP, ILMO_ROAD, ILMO_ROOF,  &
@@ -113,13 +113,16 @@ INTERFACE
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
 !MV202609 tau scheme of the road
-                                                    PT_CAN0, PT_CAN1, PPHI_CAN1, &
+                                                    PT_CAN0, PT_CAN1, PPHI_CAN1,                             &
 !MV202609 tau scheme of the road (revision: three-temperature construction)
 !MV202609 tau scheme of the road (revision: puddle diagnostics)
                                                      PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                                                      LE_ROOF_WAT, LE_ROOF_SNOW, &
-                          OTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH)
+                          OTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
+!MV202609 garden diagnostics
+                          PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
+                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN_STRUCT*  
@@ -171,10 +174,10 @@ IMPLICIT NONE
  INTEGER                             :: icell                                                      
  INTEGER                             :: iblock
  LOGICAL,              INTENT(IN)    :: OGARDEN           ! Flag to use a garden    model inside the canyon
- LOGICAL,              INTENT(IN)    :: OGARDEN_EXT       ! Flag to use EXTERNAL garden    model inside the canyon
  LOGICAL,              INTENT(IN)    :: OGREENROOF        ! Flag to use a greenroof model on roofs
  LOGICAL,              INTENT(IN)    :: OGREENROOF_EXT    ! Flag to use a greenroof model on roofs (external model)
  LOGICAL,              INTENT(IN)    :: OSOLAR_PANEL      ! Flag to use a Solar Panel model on roofs
+ CHARACTER(LEN=*),     INTENT(IN)    :: TYPE_GARDEN       ! type of the garden model
  CHARACTER(LEN=6)    , INTENT(IN)    :: HZ0H              ! TEB option for z0h roof & road
 !                                                         ! 'MASC95' : Mascart et al 1995
 !                                                         ! 'BRUT82' : Brustaert     1982
@@ -286,6 +289,7 @@ REAL, DIMENSION(:,:), INTENT(IN)    :: PD_WALL            ! depth of wall layers
 REAL, DIMENSION(:)  , INTENT(IN)    :: PSVF_WALL          ! wall sky view factor
 REAL, DIMENSION(:)  , INTENT(IN)    :: PSVF_GARDEN        ! green area sky view factor
      !
+REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GR_EXT         ! greenroof roughness length (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GR_EXT        ! green roof albedo (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GR_EXT       ! green roof emissivity (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PTSRAD_GR_EXT      ! greenroof radiative surface temp. (snow free) (external model)
@@ -456,6 +460,15 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_ATM     ! road latent heat flux, r
 REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN0          ! canyon air temperature without tau [K]
 REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN1          ! free layer (second canopy) air temperature [K]
 REAL, DIMENSION(:), INTENT(OUT)   :: PPHI_CAN1        ! free layer air temperature / theta* ratio of the MOST profile [-]
+!MV202609 garden diagnostics
+REAL, DIMENSION(:), INTENT(OUT)   :: PTSRAD_GARDEN    ! garden surface temperature [K]
+REAL, DIMENSION(:), INTENT(OUT)   :: PRN_GARDEN       ! net radiation over the garden [W/m2 garden]
+REAL, DIMENSION(:), INTENT(OUT)   :: PH_GARDEN        ! sensible heat flux over the garden [W/m2 garden]
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN       ! latent heat flux over the garden [W/m2 garden]
+REAL, DIMENSION(:), INTENT(OUT)   :: PEVAP_GARDEN     ! total evaporation over the garden [kg/m2/s]
+REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_GARDEN     ! garden saturation specific humidity [kg/kg]
+REAL, DIMENSION(:), INTENT(OUT)   :: PHU_GARDEN       ! garden aggregated relative humidity [-]
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_AGG_GARDEN   ! garden aggregated conductance [m/s]
 !MV202609 tau scheme of the road
 LOGICAL,              INTENT(IN)  :: OTAU_SCHEME      ! flag to use the tau scheme for the road
 REAL,                 INTENT(IN)  :: XTAU_HW_THRESH   ! H/W giving tau = 0.5 (tau scheme)
