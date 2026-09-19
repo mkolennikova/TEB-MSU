@@ -131,8 +131,110 @@ Notes:
 |:---------|:-----|:----------------|:--------|
 | `teb_lgarden` | Flag | True / False | Activate garden module |
 | `fr_garden` | External parameter | - | Garden area fraction |
+| `teb_type_garden` | Character | `'PROXY_OLD'` / `'PROXY_NEW'` / `'EXT'` | Garden model type (default `'PROXY_NEW'`) |
+| `urb_z0_gdn` | External parameter | m | Garden roughness length, used by **all** the garden models (default `0.1` = `MODD_PROXI_SVAT_PAR:XZ0_GD`; must be `> 0` and `< XUNDEF`, otherwise the run stops) |
+| `urb_alb_gdn` | External parameter | - | Garden albedo (default `0.15`; must be `>= 0` and `< 1`, otherwise the run stops) |
+| `urb_emis_gdn` | External parameter | - | Garden emissivity (default `0.98`; must be `> 0` and `<= 1`, otherwise the run stops) |
 | `teb_lgreenroof` | Flag | True / False | Activate green roof module |
 | `teb_frac_gr` | External parameter | - | Green roof fraction |
+| `urb_z0_grf` | External parameter | m | Green roof roughness length, used by **all** the greenroof models (default `0.01` = `MODD_PROXI_SVAT_PAR:XZ0_GR`; validated like the garden one) |
+| `urb_alb_grf` | External parameter | - | Green roof albedo (default `0.15`) |
+| `urb_emis_grf` | External parameter | - | Green roof emissivity (default `0.98`) |
+
+#### Garden model type (`teb_type_garden`)
+
+Used only when `teb_lgarden = .TRUE.`:
+
+| Value | Model |
+|:------|:------|
+| `'PROXY_NEW'` | **Default.** Diagnostic surface energy balance solved for the garden surface temperature by Newton iteration (`Rn = H + LE`, i.e. no heat flux into the soil; surface relative humidity `PHU`; zero-flux CO2; non-zero aerodynamic conductance feeding back on the canyon air; a minimum wind speed of 0.5 m/s keeps `Ts` anchored to the air). |
+| `'PROXY_OLD'` | Historical proxy with a fixed Bowen ratio (0.25) and the namelist albedo (`urb_alb_gdn`), driven by the short-wave radiation only; conduction and aerodynamic conductance neglected. |
+| `'EXT'` | The garden fluxes are provided by an external model (the internal call is a placeholder). Any other value stops the run. |
+
+#### Surface properties of the garden and of the greenroof
+
+One single value **per surface and per property**, shared by all the models of that
+surface (the internal proxy schemes and the external ones) and by the radiation
+budget of the canyon, so that TEB and the internal schemes use the same values by
+construction:
+
+| Surface | Roughness length (m) | Albedo | Emissivity |
+|:--------|:---------------------|:-------|:-----------|
+| Garden (`gdn`) | `urb_z0_gdn` = `0.1` (`XZ0_GD`) | `urb_alb_gdn` = `0.15` | `urb_emis_gdn` = `0.98` |
+| Green roof (`grf`) | `urb_z0_grf` = `0.01` (`XZ0_GR`) | `urb_alb_grf` = `0.15` | `urb_emis_grf` = `0.98` |
+
+The values are validated by the driver (roughness length `> 0` and `< XUNDEF`, albedo
+in `[0, 1)`, emissivity in `(0, 1]`) and printed in the banner (`TEB-Ru offline:
+urb_z0_gdn = ...`, `urb_z0_grf = ...`, `garden alb/emis = ...`, `greenroof alb/emis
+= ...`); an out-of-range value stops the run (`STOP 1`).
+
+Propagation: the roughness lengths travel along
+`teb_z0_gd`/`teb_z0_gr` → `ZZ0_GD_EXT`/`ZZ0_GR_EXT` → `PZ0_GARDEN_EXT`/`PZ0_GR_EXT` →
+`PZ0_GD` of `GARDEN` and `PZ0_GR` of `GREENROOF`; the albedo and the emissivity travel
+along `PALB_GD_EXT`/`PEMIS_GD_EXT` (garden) and `PALB_GR_EXT`/`PEMIS_GR_EXT`
+(greenroof) → `PALB_GD`/`PEMIS_GD` and `PALB_GR`/`PEMIS_GR` of the two schemes, and
+into the canyon radiation budget: `URBAN_SOLAR_ABS` (`ZALB_GD`, `ZALB_GRF`) and
+`URBAN_LW_COEF` (`ZEMIS_GD`, `ZEMIS_GR`).
+
+**What changes with respect to the constants.** Before the unification the internal
+garden proxies used the `TEB_VEG_PROPERTIES` constants (albedo `0.15`, emissivity
+`0.98`) while the `'EXT'` mode received the driver default emissivity `0.9`, and the
+greenroof roughness length was hard-coded (`0.01`). The unified defaults keep the
+internal modes bit-for-bit identical (`python/compare_garden_scheme.py`, A/B: 0
+differing columns over 12 cases x 92 columns), but they **do change** `'EXT'` runs
+(emissivity `0.9` → `0.98`: 41…45 columns, up to about 53 W/m² on the road/canyon
+latent heat flux in LCZ 2, `RN_GARDEN` up to about 9.7 W/m²) - use
+`urb_emis_gdn = 0.9` to reproduce the old `'EXT'` numbers. The greenroof defaults
+(`0.01`, `0.15`, `0.98`) reproduce the previous hard-coded values; with the greenroof
+ON the greenroof albedo acts on the roof/canyon short-wave budget (`URBAN_SOLAR_ABS`,
+3 exported columns change in LCZ 2: `RN_TOWN`, `H_TOWN`, `LE_TOWN`), while the
+greenroof emissivity (town equivalent emissivity `PEMIS_TWN`/`PTS_TWN`, used by the
+town snow scheme, and the greenroof long-wave absorption diagnostic) and the
+greenroof roughness length (the blended roof momentum flux `PUW_RF` and the Dupuit
+drag `PDUWDU_RF`, which are not exported and do not feed back) do not modify any
+exported column of a snow-free run. The garden parameters, by contrast, are all
+active (albedo + emissivity in the garden and canyon budgets, roughness length in
+the garden conductance and in `URBAN_DRAG`). See
+`python/garden_surface_par_sensitivity.py`.
+
+
+##### Garden roughness length (`urb_z0_gdn`)
+
+The driver uses it as the default of `teb_z0_gd` (see the propagation above);
+inside the canyon it fixes the aerodynamic conductance
+
+```
+Ca = (k / ln(zref/z0))² · max(V, 0.5 m/s)      zref = H/2 (canyon reference level)
+```
+
+so a larger `z0` means a stronger garden/canyon exchange: larger `Ca`, larger
+`|H|` and `LE` (per m² of garden), smaller `Ts − Ta` contrast. With `'PROXY_OLD'`
+the value is inert (`PAC_GARDEN = 0`, the historical Bowen proxy does not use the
+conductance); with `'EXT'` it sets the garden/canyon conductance used by TEB's
+implicit canyon budget.
+
+| Value (m) | Meaning |
+|:----------|:--------|
+| `0.1` | Default (`MODD_PROXI_SVAT_PAR:XZ0_GD`), reference value of the internal proxies |
+| `0.8` | Well vegetated (rough) garden, used in `python/garden_z0_sensitivity.py` |
+
+#### Garden output columns
+
+Written by every garden model (per m² of garden); when `teb_lgarden = .FALSE.`
+they are undefined (`XUNDEF`):
+
+| Column | Dimension | Comment |
+|:-------|:----------|:--------|
+| `TS_GARDEN` | K | Garden surface (radiative) temperature |
+| `RN_GARDEN` | W/m² | Net radiation over the garden |
+| `H_GARDEN` | W/m² | Sensible heat flux over the garden |
+| `LE_GARDEN` | W/m² | Latent heat flux over the garden |
+| `EVAP_GARDEN` | kg/m²/s | Total evaporation over the garden |
+| `QSAT_GARDEN` | kg/kg | Saturation specific humidity at `TS_GARDEN` |
+| `PHU_GARDEN` | - | Aggregated relative humidity of the garden surface |
+| `PAC_AGG_GARDEN` | m/s | Aggregated aerodynamic conductance (latent heat) |
+| `PAC_GARDEN` | m/s | Aerodynamic conductance of the garden used by the canyon budget (`0` for `'PROXY_OLD'`; for `'EXT'` it is the garden/canyon conductance computed by `URBAN_DRAG` from `urb_z0_gdn`) |
+
 
 ### Solar Panels
 
