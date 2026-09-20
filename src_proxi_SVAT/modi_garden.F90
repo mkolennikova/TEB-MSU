@@ -7,60 +7,135 @@
 ! The CeCILL-C licence is compatible with L-GPL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 MODULE MODI_GARDEN
+!
+!*** Interfaces of the three garden routines of src_proxi_SVAT/garden.F90:
+!***   GARDEN_TAU - garden of the model with the tau split (called by TEB)
+!***   GARDEN     - reduced diagnostic garden without the tau split
+!***   GARDEN_PCD - diagnostic garden with an external exchange coefficient
+!***                (no reference height and no roughness length among its
+!***                arguments: both are already inside the coefficient)
+!*** Only GARDEN_TAU returns the tau-branch decomposition (PH_GARDEN_CAN/ATM,
+!*** PLE_GARDEN_CAN/ATM): GARDEN and GARDEN_PCD return a single set of fluxes.
+!
 INTERFACE
-    SUBROUTINE GARDEN(TYPE_GARDEN, HIMPLICIT_WIND, TPTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF, &
-                PPET_A_COEF, PPEQ_A_COEF, PPET_B_COEF, PPEQ_B_COEF,                  &
-                PTSTEP, PZ_LOWCAN,                                                   &
-                PT_LOWCAN, PQ_LOWCAN, PEXNS, PRHOA, PCO2, PPS, PRR, PSR, PZENITH,    &
-                PSW, PLW, PU_LOWCAN, PZ0_GD, PALB_GD, PEMIS_GD,                                 &
-                PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                &
-                PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                             &
-                PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                  &
-                PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN         )  
-USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
+!
+    SUBROUTINE GARDEN_TAU(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD, &
+                PUREF, PVMOD, PTA, PQA, PTAU, LTAU_SPLIT,                                  &
+                PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                   &
+                PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                      &
+                PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                                   &
+                PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                        &
+                PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN,              &
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+                PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM               )
  CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
- CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
-TYPE(DATE_TIME)     , INTENT(IN)    :: TPTIME             ! current date and time from teb
-REAL, DIMENSION(:)  , INTENT(IN)    :: PTSUN              ! solar time      (s from midnight)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PPEW_A_COEF        ! implicit coefficients
-REAL, DIMENSION(:)  , INTENT(IN)    :: PPEW_B_COEF        ! for wind coupling
-REAL, DIMENSION(:)  , INTENT(IN)    :: PPEQ_A_COEF        ! implicit coefficients
-REAL, DIMENSION(:)  , INTENT(IN)    :: PPEQ_B_COEF        ! for humidity
-REAL, DIMENSION(:)  , INTENT(IN)    :: PPET_A_COEF        ! implicit coefficients
-REAL, DIMENSION(:)  , INTENT(IN)    :: PPET_B_COEF        ! for temperature
-REAL                , INTENT(IN)    :: PTSTEP             ! time step
-REAL, DIMENSION(:)  , INTENT(IN)    :: PZ_LOWCAN          ! height of atm. var. near the road
-REAL, DIMENSION(:)  , INTENT(IN)    :: PT_LOWCAN          ! temp. near the road
-REAL, DIMENSION(:)  , INTENT(IN)    :: PQ_LOWCAN          ! hum. near the road
-REAL, DIMENSION(:)  , INTENT(IN)    :: PPS                ! pressure at the surface
-REAL, DIMENSION(:)  , INTENT(IN)    :: PEXNS              ! surface exner function
-REAL, DIMENSION(:)  , INTENT(IN)    :: PRHOA              ! air density at the lowest level
-REAL, DIMENSION(:)  , INTENT(IN)    :: PCO2               ! CO2 concentration in the air    (kg/m3)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PRR                ! rain rate
-REAL, DIMENSION(:)  , INTENT(IN)    :: PSR                ! snow rate
-REAL, DIMENSION(:)  , INTENT(IN)    :: PZENITH            ! solar zenithal angle
-REAL, DIMENSION(:),   INTENT(IN)    :: PSW                ! incoming total solar rad on an horizontal surface
-REAL, DIMENSION(:)  , INTENT(IN)    :: PLW                ! atmospheric infrared radiation
-REAL, DIMENSION(:)  , INTENT(IN)    :: PU_LOWCAN          ! wind near the road
-REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GD             ! garden roughness length (m)  (namelist urb_z0_gdn)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GD            ! garden albedo                (namelist urb_alb_gdn)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GD           ! garden emissivity            (namelist urb_emis_gdn)
-!REAL, DIMENSION(:)  , INTENT(IN)    :: PQV_GD             ! garden specific humidity
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GARDEN         ! net radiation over green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GARDEN          ! sensible heat flux over green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GARDEN         ! latent heat flux over green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PGFLUX_GARDEN      ! flux through the green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PSFCO2             ! flux of CO2 positive toward the atmosphere (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PEVAP_GARDEN       ! total evaporation over gardens (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PUW_GARDEN         ! friction flux (m2/s2)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_GARDEN     ! runoff over garden (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GARDEN         ! aerodynamical conductance
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN       ! saturation humidity
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN         ! radiative surface temp. (snow free)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_AGG_GARDEN     ! aggreg. aeodynamic resistance for green areas for latent heat flux
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN     ! aggreg. relative humidity for green areas for latent heat flux
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN      ! garden total (vertical) drainage
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irrigation rate
+REAL, DIMENSION(:)  , INTENT(IN)  :: PZ_LOWCAN        ! height of the reference air (m)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN        ! reference air temperature (K)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PQ_LOWCAN        ! reference air humidity (kg/kg)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PU_LOWCAN        ! reference wind (m/s)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length (m)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PUREF            ! height of the wind of the forcing level (m)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PVMOD            ! wind speed at the forcing level (m/s)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PTA              ! air temperature of the forcing level (K)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PQA              ! air specific humidity of the forcing level (kg/kg)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PTAU             ! tau weight of the canyon path (-)
+LOGICAL             , INTENT(IN)  :: LTAU_SPLIT       ! .TRUE.: split the garden exchange by tau
+REAL, DIMENSION(:)  , INTENT(IN)  :: PALB_GD          ! garden albedo
+REAL, DIMENSION(:)  , INTENT(IN)  :: PEMIS_GD         ! garden emissivity
+REAL, DIMENSION(:)  , INTENT(IN)  :: PRHOA            ! air density at the lowest level
+REAL, DIMENSION(:)  , INTENT(IN)  :: PPS              ! pressure at the surface
+REAL, DIMENSION(:)  , INTENT(IN)  :: PSW              ! received solar radiation
+REAL, DIMENSION(:)  , INTENT(IN)  :: PLW              ! received infrared radiation
+REAL, DIMENSION(:)  , INTENT(OUT) :: PRN_GARDEN       ! net radiation over green areas
+REAL, DIMENSION(:)  , INTENT(OUT) :: PH_GARDEN        ! sensible heat flux over green areas
+REAL, DIMENSION(:)  , INTENT(OUT) :: PLE_GARDEN       ! latent heat flux over green areas
+REAL, DIMENSION(:)  , INTENT(OUT) :: PGFLUX_GARDEN    ! flux through the green areas
+REAL, DIMENSION(:)  , INTENT(OUT) :: PSFCO2           ! flux of CO2 (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PEVAP_GARDEN     ! total evaporation (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PUW_GARDEN       ! friction flux (m2/s2)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PRUNOFF_GARDEN   ! runoff over garden (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PAC_GARDEN       ! aerodynamical conductance (m/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PQSAT_GARDEN     ! saturation humidity (kg/kg)
+REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN     ! radiative surface temp. (snow free) (K)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PAC_AGG_GARDEN   ! aggregated conductance (m/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PHU_AGG_GARDEN   ! aggregated relative humidity (-)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PDRAIN_GARDEN    ! garden total (vertical) drainage (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PIRRIG_GARDEN    ! garden summer irrigation rate (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PH_GARDEN_CAN    ! sensible heat flux, canyon branch (W/m2)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PH_GARDEN_ATM    ! sensible heat flux, atmosphere branch (W/m2)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PLE_GARDEN_CAN   ! latent heat flux, canyon branch (W/m2)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PLE_GARDEN_ATM   ! latent heat flux, atmosphere branch (W/m2)
+END SUBROUTINE GARDEN_TAU
+!
+    SUBROUTINE GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,    &
+                PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                  &
+                PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
+                PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                                  &
+                PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                       &
+                PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN              )
+ CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
+REAL, DIMENSION(:)  , INTENT(IN)  :: PZ_LOWCAN        ! height of the reference air (m)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN        ! reference air temperature (K)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PQ_LOWCAN        ! reference air humidity (kg/kg)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PU_LOWCAN        ! reference wind (m/s)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length (m)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PALB_GD          ! garden albedo
+REAL, DIMENSION(:)  , INTENT(IN)  :: PEMIS_GD         ! garden emissivity
+REAL, DIMENSION(:)  , INTENT(IN)  :: PRHOA            ! air density at the lowest level
+REAL, DIMENSION(:)  , INTENT(IN)  :: PPS              ! pressure at the surface
+REAL, DIMENSION(:)  , INTENT(IN)  :: PSW              ! received solar radiation
+REAL, DIMENSION(:)  , INTENT(IN)  :: PLW              ! received infrared radiation
+REAL, DIMENSION(:)  , INTENT(OUT) :: PRN_GARDEN       ! net radiation over green areas
+REAL, DIMENSION(:)  , INTENT(OUT) :: PH_GARDEN        ! sensible heat flux over green areas
+REAL, DIMENSION(:)  , INTENT(OUT) :: PLE_GARDEN       ! latent heat flux over green areas
+REAL, DIMENSION(:)  , INTENT(OUT) :: PGFLUX_GARDEN    ! flux through the green areas
+REAL, DIMENSION(:)  , INTENT(OUT) :: PSFCO2           ! flux of CO2 (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PEVAP_GARDEN     ! total evaporation (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PUW_GARDEN       ! friction flux (m2/s2)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PRUNOFF_GARDEN   ! runoff over garden (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PAC_GARDEN       ! aerodynamical conductance (m/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PQSAT_GARDEN     ! saturation humidity (kg/kg)
+REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN     ! radiative surface temp. (snow free) (K)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PAC_AGG_GARDEN   ! aggregated conductance (m/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PHU_AGG_GARDEN   ! aggregated relative humidity (-)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PDRAIN_GARDEN    ! garden total (vertical) drainage (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PIRRIG_GARDEN    ! garden summer irrigation rate (kg/m2/s)
 END SUBROUTINE GARDEN
+!
+!MV202609 diagnostic garden with an external exchange coefficient (experiment interface)
+    SUBROUTINE GARDEN_PCD(TYPE_GARDEN, PPCD_GD, PV_GD, PT_REF, PQ_REF,                    &
+                PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                  &
+                PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
+                PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                                  &
+                PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                       &
+                PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN              )
+ CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
+REAL, DIMENSION(:)  , INTENT(IN)  :: PPCD_GD          ! exchange coefficient (-)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PV_GD            ! wind of the reference state (m/s)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PT_REF           ! reference air temperature (K)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PQ_REF           ! reference air humidity (kg/kg)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PALB_GD          ! garden albedo
+REAL, DIMENSION(:)  , INTENT(IN)  :: PEMIS_GD         ! garden emissivity
+REAL, DIMENSION(:)  , INTENT(IN)  :: PRHOA            ! air density at the lowest level
+REAL, DIMENSION(:)  , INTENT(IN)  :: PPS              ! pressure at the surface
+REAL, DIMENSION(:)  , INTENT(IN)  :: PSW              ! received solar radiation
+REAL, DIMENSION(:)  , INTENT(IN)  :: PLW              ! received infrared radiation
+REAL, DIMENSION(:)  , INTENT(OUT) :: PRN_GARDEN       ! net radiation over green areas
+REAL, DIMENSION(:)  , INTENT(OUT) :: PH_GARDEN        ! sensible heat flux over green areas
+REAL, DIMENSION(:)  , INTENT(OUT) :: PLE_GARDEN       ! latent heat flux over green areas
+REAL, DIMENSION(:)  , INTENT(OUT) :: PGFLUX_GARDEN    ! flux through the green areas
+REAL, DIMENSION(:)  , INTENT(OUT) :: PSFCO2           ! flux of CO2 (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PEVAP_GARDEN     ! total evaporation (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PUW_GARDEN       ! friction flux (m2/s2)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PRUNOFF_GARDEN   ! runoff over garden (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PAC_GARDEN       ! aerodynamical conductance (m/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PQSAT_GARDEN     ! saturation humidity (kg/kg)
+REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN     ! radiative surface temp. (snow free) (K)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PAC_AGG_GARDEN   ! aggregated conductance (m/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PHU_AGG_GARDEN   ! aggregated relative humidity (-)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PDRAIN_GARDEN    ! garden total (vertical) drainage (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PIRRIG_GARDEN    ! garden summer irrigation rate (kg/m2/s)
+END SUBROUTINE GARDEN_PCD
+!
 END INTERFACE
 END MODULE MODI_GARDEN

@@ -84,7 +84,11 @@ TYPE TEB_OPTIONS_t
 ! type of the garden model (namelist teb_type_garden):
 !   'PROXY_OLD' : fixed Bowen-ratio proxy (the historical scheme)
 !   'PROXY_NEW' : diagnostic closed surface energy balance (default)
-!   'EXT'       : external garden model (fluxes provided by an external model)
+!   'EXT'       : external garden model (fluxes provided by an external model),
+!                 the diagnostic garden coefficients of URBAN_DRAG use the full
+!                 URBAN_EXCH_COEF set (Richardson number, z0h)
+!   'EXT_NEU'   : same external garden, but the coefficients use the neutral
+!                 formulation of the internal garden (no stratification, no z0h)
   CHARACTER(LEN=9)               :: CTYPE_GARDEN ! TEB option for the garden model
 !MV202609 tau scheme of the road
 ! tau scheme for the road: the actual road fluxes are the weighted mean of the

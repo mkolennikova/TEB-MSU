@@ -13,6 +13,8 @@ INTERFACE
                                 PDN_RD, PLE_WL_A, PLE_WL_B, PLEW_RF, PLESN_RF,     &
                                 PLEW_RD, PLESN_RD, PHSN_RD,                        &
                                 PTSRAD_GD, PRN_GD, PH_GD, PLE_GD, PGFLUX_GD, PEVAP_GD,&
+!MV202609 tau scheme of the garden (atmosphere branch of the garden fluxes)
+                                PH_GD_ATM, PLE_GD_ATM,                       &
                                 PRUNOFF_GD, PEVAP_GR, PRUNOFF_GR, PDRAIN_GR,       &
                                 PRN_GRND, PH_GRND, PLE_GRND, PGFLX_GRND,           &
                                 PRN_TWN, PH_TWN, PLE_TWN, PGFLX_TWN, PEVAP_TWN,    &
@@ -118,6 +120,9 @@ REAL, DIMENSION(:), INTENT(IN)    :: PTSRAD_GD     ! green area surface temperat
 REAL, DIMENSION(:), INTENT(IN)    :: PRN_GD        ! net radiation over green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PH_GD         ! sensible heat flux over green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PLE_GD        ! latent heat flux over green areas
+!MV202609 tau scheme of the garden (atmosphere branch of the garden fluxes)
+REAL, DIMENSION(:), INTENT(IN)    :: PH_GD_ATM     ! garden sensible heat flux towards the atmosphere [W m-2 garden]
+REAL, DIMENSION(:), INTENT(IN)    :: PLE_GD_ATM    ! garden latent  heat flux towards the atmosphere [W m-2 garden]
 REAL, DIMENSION(:), INTENT(IN)    :: PGFLUX_GD     ! flux through the green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PEVAP_GD      ! evaporation over gardens
 REAL, DIMENSION(:), INTENT(IN)    :: PRUNOFF_GD    ! surface runoff over green areas      (kg/m2/s)

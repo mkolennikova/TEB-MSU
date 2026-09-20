@@ -15,6 +15,8 @@
                                 PDN_RD, PLE_WL_A, PLE_WL_B, PLEW_RF, PLESN_RF,     &
                                 PLEW_RD, PLESN_RD, PHSN_RD,                        &
                                 PTSRAD_GD, PRN_GD, PH_GD, PLE_GD, PGFLUX_GD, PEVAP_GD,&
+!MV202609 tau scheme of the garden (atmosphere branch of the garden fluxes)
+                                PH_GD_ATM, PLE_GD_ATM,                       &
                                 PRUNOFF_GD, PEVAP_GR, PRUNOFF_GR, PDRAIN_GR,       &
                                 PRN_GRND, PH_GRND, PLE_GRND, PGFLX_GRND,           &
                                 PRN_TWN, PH_TWN, PLE_TWN, PGFLX_TWN, PEVAP_TWN,    &
@@ -179,6 +181,9 @@ REAL, DIMENSION(:), INTENT(IN)    :: PTSRAD_GD     ! green area surface temperat
 REAL, DIMENSION(:), INTENT(IN)    :: PRN_GD        ! net radiation over green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PH_GD         ! sensible heat flux over green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PLE_GD        ! latent heat flux over green areas
+!MV202609 tau scheme of the garden (atmosphere branch of the garden fluxes)
+REAL, DIMENSION(:), INTENT(IN)    :: PH_GD_ATM     ! garden sensible heat flux towards the atmosphere [W m-2 garden]
+REAL, DIMENSION(:), INTENT(IN)    :: PLE_GD_ATM    ! garden latent  heat flux towards the atmosphere [W m-2 garden]
 REAL, DIMENSION(:), INTENT(IN)    :: PGFLUX_GD     ! flux through the green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PEVAP_GD      ! evaporation over gardens
 REAL, DIMENSION(:), INTENT(IN)    :: PRUNOFF_GD    ! surface runoff over green areas      (kg/m2/s)
@@ -548,7 +553,7 @@ DO JJ=1,SIZE(T%XROAD)
 !
     ZWLWIN_EFF = (1.-B%XGR(JJ)) * 0.5 * ( T%XT_WALL_A(JJ,1) + T%XT_WALL_B(JJ,1) )      &
                +      B%XGR(JJ)  * B%XT_WIN1(JJ)
-    ZH_CAN1    = ZRD(JJ) * PH_ROAD_ATM(JJ) + ZGD(JJ) * PH_GD(JJ)                       &
+    ZH_CAN1    = ZRD(JJ) * PH_ROAD_ATM(JJ) + ZGD(JJ) * PH_GD_ATM(JJ)                   &
                + PRHOA(JJ) * XCPD * PAC_WL(JJ) * PWL_O_GRND(JJ)                        &
                * ( ZWLWIN_EFF - PT_LOWCAN(JJ) )                                        &
                + PH_TRAFFIC(JJ) / (1.-T%XBLD(JJ))                                      &
@@ -613,7 +618,7 @@ DO JJ=1,SIZE(T%XROAD)
 !* T_CAN1 humidity: same construction as the air temperature, with the moisture
 !* input of the free layer and the same MOST profile at H/2 (psi_q = psi_h)
 !
-    ZLE_CAN1 = ZRD(JJ) * PLE_ROAD_ATM(JJ) + ZGD(JJ) * PLE_GD(JJ)                       &
+    ZLE_CAN1 = ZRD(JJ) * PLE_ROAD_ATM(JJ) + ZGD(JJ) * PLE_GD_ATM(JJ)                   &
              + PLE_TRAFFIC(JJ) / (1.-T%XBLD(JJ))
     IF (TOP%CBEM=="BEM") THEN
       ZLE_CAN1 = ZLE_CAN1 + DMT%XLE_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ))

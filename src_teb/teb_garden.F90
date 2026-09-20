@@ -40,7 +40,9 @@
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                             &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
-                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN)
+                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN*  
@@ -305,6 +307,14 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GARDEN   ! total evaporation over 
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GARDEN   ! garden saturation specific humidity [kg/kg]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GARDEN     ! garden aggregated relative humidity [-]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_AGG_GARDEN ! garden aggregated conductance [m/s]
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+!* potential garden fluxes per m2 of garden (see GARDEN): the flux that the single
+!* garden surface would release if the whole exchange went through the canyon air
+!* (CAN) or directly to the air of the forcing level (ATM). Diagnostics only.
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN_CAN  ! garden sensible heat flux, garden -> canyon air [W m-2]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN_ATM  ! garden sensible heat flux, garden -> forcing level [W m-2]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN_CAN ! garden latent  heat flux, garden -> canyon air [W m-2]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN_ATM ! garden latent  heat flux, garden -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
@@ -487,6 +497,9 @@ REAL, DIMENSION(SIZE(PTA)) :: ZEMIT_LW_RF       ! LW flux emitted UPWARDS   by t
 !
 REAL, DIMENSION(SIZE(PTA)) :: ZRN_GD, ZDRAIN_GD, ZIRRIG_GD, ZGFLUX_GD
 REAL, DIMENSION(SIZE(PTA)) :: ZH_GD, ZLE_GD, ZEVAP_GD, ZTSRAD_GD, ZRUNOFF_GD
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+REAL, DIMENSION(SIZE(PTA)) :: ZPH_GD_CAN, ZPH_GD_ATM     ! garden sensible heat flux, canyon / atmosphere branch
+REAL, DIMENSION(SIZE(PTA)) :: ZPLE_GD_CAN, ZPLE_GD_ATM   ! garden latent  heat flux, canyon / atmosphere branch
 REAL, DIMENSIOn(SIZE(PTA)) :: ZQV_GD
 REAL, DIMENSIOn(SIZE(PTA)) :: ZRN_GR, ZGFLUX_GR
 
@@ -644,7 +657,7 @@ ZTSRAD_GR = XUNDEF
 
 !!
 IF (TOP%LGARDEN) THEN
-  IF (TOP%CTYPE_GARDEN /= 'EXT') THEN
+  IF (TOP%CTYPE_GARDEN /= 'EXT' .AND. TOP%CTYPE_GARDEN /= 'EXT_NEU') THEN
     ZALB_GD   = XUNDEF
     ZEMIS_GD  = XUNDEF
     ZTSRAD_GD = XUNDEF
@@ -748,27 +761,34 @@ END IF
 !
 !-------------------------------------------------------------------------------
 !
-! The subroutine is splitted in 2 because of compilation optimization issues
- CALL TEB_GARDEN2
-
- 
- !
-!*     9.      Treatment of built covers
-!              -------------------------
-!
-
-!MV202609 tau scheme of the road
-!* tau is the fraction of the road exchange performed with the canyon air, the
+!MV202609 tau scheme of the road (and of the garden)
+!* tau is the fraction of the surface exchange performed with the canyon air, the
 !* remaining part (1-tau) exchanging directly with the air of the forcing level.
 !* tau is a tanh relaxation of the canyon H/W ratio (see TAU_URBAN below):
 !* tau -> 0 for very sparse buildings and tau = 1 for a dense canyon. With the
 !* scheme disabled tau = 1, which reproduces the former behaviour exactly.
+!* It is evaluated here, before TEB_GARDEN2, because it is used both by the garden
+!* (inside TEB_GARDEN2) and by the road (in TEB below).
 !
 IF (TOP%LTAU_SCHEME) THEN
   ZTAU(:) = TAU_URBAN(T%XCAN_HW_RATIO(:), TOP%XTAU_HW_THRESH, TOP%XTAU_HW_WIDTH, T%XBLD_HEIGHT(:))
 ELSE
   ZTAU(:) = 1.
 ENDIF
+!
+!-------------------------------------------------------------------------------
+!
+! The subroutine is splitted in 2 because of compilation optimization issues
+ CALL TEB_GARDEN2
+
+ !
+!*     9.      Treatment of built covers
+!              -------------------------
+!
+
+!MV202609 tau scheme of the road
+!* (tau itself is computed above, before TEB_GARDEN2, and is used by the garden
+!* and by the road energy budget of TEB below)
 !
   CALL TEB  (icell, iblock, TOP, T, BOP, B, TIR, DMT, HIMPLICIT_WIND, PBEM_AC,     &
              PTSUN, PT_CAN, PQ_CAN, PU_CAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN,       &
@@ -842,6 +862,8 @@ END IF
                        ZRD_FRAC, ZGD_FRAC, ZTOTS_O_HORS, ZDF_RF, PDN_RF, ZDF_RD, PDN_RD,  &
                        PLE_WL_A, PLE_WL_B, PLEW_RF, PLESN_RF, PLEW_RD, PLESN_RD, PHSN_RD, &
                        ZTSRAD_GD, ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD, ZEVAP_GD,             &
+!MV202609 tau scheme of the garden (atmosphere branch in the free layer)
+                       ZPH_GD_ATM, ZPLE_GD_ATM,                                            &
                        ZRUNOFF_GD, ZEVAP_GR, ZRUNOFF_GR, ZDRAIN_GR,                       &
                        PRN_GRND, PH_GRND, PLE_GRND, PGFLX_GRND, PRN_TWN, PH_TWN, PLE_TWN, &
                        PGFLX_TWN, PEVAP_TWN, ZEMIT_LW_RD,ZEMIT_LW_GD, PEMIT_LW_GRND, ZEMIS_GD, PLW_UP, &
@@ -871,6 +893,11 @@ PEVAP_GARDEN  (:) = ZEVAP_GD(:)
 PQSAT_GARDEN  (:) = ZQSAT_GD(:)
 PHU_GARDEN    (:) = ZHU_AGG_GD(:)
 PAC_AGG_GARDEN(:) = ZAC_AGG_GD(:)
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+PH_GARDEN_CAN (:) = ZPH_GD_CAN(:)
+PH_GARDEN_ATM (:) = ZPH_GD_ATM(:)
+PLE_GARDEN_CAN(:) = ZPLE_GD_CAN(:)
+PLE_GARDEN_ATM(:) = ZPLE_GD_ATM(:)
 !
 !-------------------------------------------------------------------------------
 !
@@ -977,13 +1004,18 @@ ZPEQ_B_COEF(:) = PQ_LOWCAN(:)
 !
 IF (TOP%LGARDEN) THEN
 !
-  CALL GARDEN(TOP%CTYPE_GARDEN, HIMPLICIT_WIND, TOP%TTIME, PTSUN, PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, &
-              ZPET_A_COEF, ZPEQ_A_COEF, ZPET_B_COEF, ZPEQ_B_COEF, PTSTEP, PZ_LOWCAN,    &
-              PT_LOWCAN, PQ_LOWCAN, PEXNS, PRHOA, PCO2, PPS, PRR, PSR, PZENITH,         &
-              ZREC_SW_GD, ZREC_LW_GD, PU_LOWCAN, PZ0_GARDEN_EXT, PALB_GD_EXT, PEMIS_GD_EXT,     &
-              ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,     &
-              ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,     &
-              ZAC_AGG_GD, ZHU_AGG_GD, ZDRAIN_GD, ZIRRIG_GD )
+  CALL GARDEN_TAU(TOP%CTYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GARDEN_EXT, &
+!MV202609 tau scheme of the garden
+!* the split (tau vs 1 - tau) is applied only to the internal diagnostic proxy:
+!* 'PROXY_OLD' and 'EXT' have a single flux which is reported in both branches
+              PUREF, PVMOD, PTA, PQA,                                                     &
+              ZTAU, ( TOP%LTAU_SCHEME .AND. TOP%CTYPE_GARDEN == 'PROXY_NEW' ),           &
+              PALB_GD_EXT, PEMIS_GD_EXT, PRHOA, PPS, ZREC_SW_GD, ZREC_LW_GD,             &
+              ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,                                          &
+              ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,      &
+              ZAC_AGG_GD, ZHU_AGG_GD, ZDRAIN_GD, ZIRRIG_GD,                              &
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+              ZPH_GD_CAN, ZPH_GD_ATM, ZPLE_GD_CAN, ZPLE_GD_ATM )
 
   PAC_GD_WAT(:) = PAC_GD(:)
   DMT%XABS_SW_GARDEN(:) = (1.-ZALB_GD(:)) * ZREC_SW_GD
@@ -993,7 +1025,7 @@ IF (TOP%LGARDEN) THEN
   PCH_GD(:) = 0.
   PCD_GD(:) = 0.
   
-  IF (TOP%CTYPE_GARDEN == 'EXT') THEN
+  IF (TOP%CTYPE_GARDEN == 'EXT' .OR. TOP%CTYPE_GARDEN == 'EXT_NEU') THEN
     ZH_GD(:) = PH_GD_EXT(:)
 	ZLE_GD(:) = PLE_GD_EXT(:)
 	ZEVAP_GD(:) = PEVAP_GD_EXT(:)
@@ -1007,6 +1039,13 @@ IF (TOP%LGARDEN) THEN
 	ZEMIT_LW_GD(:) = XSTEFAN * ZTSRAD_GD(:)**4 + (1 - ZEMIS_GD(:)) / ZEMIS_GD(:) * DMT%XABS_LW_GARDEN(:)
     ! COSMO+TEB GARDEN
     ZRN_GD(:) =  DMT%XABS_SW_GARDEN(:) + DMT%XABS_LW_GARDEN(:)
+    !MV202609 tau scheme of the garden
+    !* the external model provides a single set of fluxes (already computed for the
+    !* averaged forcing), so both branches of the tau split carry the same flux
+    ZPH_GD_CAN (:) = ZH_GD(:)
+    ZPH_GD_ATM (:) = ZH_GD(:)
+    ZPLE_GD_CAN(:) = ZLE_GD(:)
+    ZPLE_GD_ATM(:) = ZLE_GD(:)
   ENDIF
 ELSE
   !
@@ -1016,7 +1055,7 @@ ELSE
   ZGFLUX_GD (:) = 0.
   ZEVAP_GD  (:) = 0.
   ZRUNOFF_GD(:) = 0. 
-  ! 
+  !
   ZTSRAD_GD (:) = XUNDEF
   !
   ZUW_GD     (:) = 0.
@@ -1029,6 +1068,11 @@ ELSE
   ZHU_AGG_GD (:) = XUNDEF
   PAC_GD_WAT (:) = XUNDEF 
   ZEMIT_LW_GD(:) = 0.
+  !MV202609 tau scheme of the garden
+  ZPH_GD_CAN (:) = 0.
+  ZPH_GD_ATM (:) = 0.
+  ZPLE_GD_CAN(:) = 0.
+  ZPLE_GD_ATM(:) = 0.
   !
   DMT%XABS_SW_GARDEN (:) = XUNDEF
   DMT%XABS_LW_GARDEN (:) = XUNDEF

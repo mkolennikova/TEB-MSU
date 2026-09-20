@@ -131,7 +131,7 @@ Notes:
 |:---------|:-----|:----------------|:--------|
 | `teb_lgarden` | Flag | True / False | Activate garden module |
 | `fr_garden` | External parameter | - | Garden area fraction |
-| `teb_type_garden` | Character | `'PROXY_OLD'` / `'PROXY_NEW'` / `'EXT'` | Garden model type (default `'PROXY_NEW'`) |
+| `teb_type_garden` | Character | `'PROXY_OLD'` / `'PROXY_NEW'` / `'EXT'` / `'EXT_NEU'` | Garden model type (default `'PROXY_NEW'`) |
 | `urb_z0_gdn` | External parameter | m | Garden roughness length, used by **all** the garden models (default `0.1` = `MODD_PROXI_SVAT_PAR:XZ0_GD`; must be `> 0` and `< XUNDEF`, otherwise the run stops) |
 | `urb_alb_gdn` | External parameter | - | Garden albedo (default `0.15`; must be `>= 0` and `< 1`, otherwise the run stops) |
 | `urb_emis_gdn` | External parameter | - | Garden emissivity (default `0.98`; must be `> 0` and `<= 1`, otherwise the run stops) |
@@ -149,7 +149,8 @@ Used only when `teb_lgarden = .TRUE.`:
 |:------|:------|
 | `'PROXY_NEW'` | **Default.** Diagnostic surface energy balance solved for the garden surface temperature by Newton iteration (`Rn = H + LE`, i.e. no heat flux into the soil; surface relative humidity `PHU`; zero-flux CO2; non-zero aerodynamic conductance feeding back on the canyon air; a minimum wind speed of 0.5 m/s keeps `Ts` anchored to the air). |
 | `'PROXY_OLD'` | Historical proxy with a fixed Bowen ratio (0.25) and the namelist albedo (`urb_alb_gdn`), driven by the short-wave radiation only; conduction and aerodynamic conductance neglected. |
-| `'EXT'` | The garden fluxes are provided by an external model (the internal call is a placeholder). Any other value stops the run. |
+| `'EXT'` | The garden fluxes are provided by an external model (the internal call is a placeholder). The diagnostic garden exchange coefficients of `URBAN_DRAG` (`PCD*_GARDEN_*`) use the full `URBAN_EXCH_COEF` set: Richardson number, `z0h = z0/4`, `WIND_THRESHOLD`. Any other value stops the run. |
+| `'EXT_NEU'` | Same external garden, but the garden exchange coefficients follow the **neutral** formulation of the internal diagnostic garden (`(kappa/ln(z/z0))**2`, wind floor `XVMIN_GD = 0.5 m/s`, no `z0h`), so `PCD = PCH = PCDN` and `PRI`/`ZZ0H` stay undefined (`XUNDEF`). This is the coefficient set a coupled external garden model is meant to be driven with: it is identical to the canyon-path coefficient of `'PROXY_NEW'` and to the emulator of the offline driver. |
 
 #### Surface properties of the garden and of the greenroof
 
@@ -233,7 +234,62 @@ they are undefined (`XUNDEF`):
 | `QSAT_GARDEN` | kg/kg | Saturation specific humidity at `TS_GARDEN` |
 | `PHU_GARDEN` | - | Aggregated relative humidity of the garden surface |
 | `PAC_AGG_GARDEN` | m/s | Aggregated aerodynamic conductance (latent heat) |
-| `PAC_GARDEN` | m/s | Aerodynamic conductance of the garden used by the canyon budget (`0` for `'PROXY_OLD'`; for `'EXT'` it is the garden/canyon conductance computed by `URBAN_DRAG` from `urb_z0_gdn`) |
+| `PAC_GARDEN` | m/s | Aerodynamic conductance of the garden used by the canyon budget (`0` for `'PROXY_OLD'`; for `'EXT'` and `'EXT_NEU'` it is the garden/canyon conductance computed by `URBAN_DRAG` from `urb_z0_gdn`) |
+| `H_GARDEN_CAN` | W/m² | Garden sensible heat flux of the canyon branch (`_CAN`) of the tau scheme |
+| `H_GARDEN_ATM` | W/m² | Garden sensible heat flux of the direct garden/atmosphere branch (`_ATM`) |
+| `LE_GARDEN_CAN` | W/m² | Garden latent heat flux of the canyon branch (`_CAN`) |
+| `LE_GARDEN_ATM` | W/m² | Garden latent heat flux of the direct garden/atmosphere branch (`_ATM`) |
+
+**External garden model (emulator).** With `teb_type_garden = 'EXT'` (or `'EXT_NEU'`)
+the garden of TEB is prescribed from the outside (surface temperature, surface humidity and
+fluxes). In the offline driver `run_teb_offline.F90` this external model is
+EMULATED by the contained subroutine `PCD_GARDEN`, which is called at every model
+sub-step right after `CALL teb_interface` and which uses `GARDEN_PCD` (the same
+diagnostic surface energy balance as the internal garden scheme). The state
+(`TS_GARDEN`, `H_GARDEN`, `LE_GARDEN`, `EVAP_GARDEN`) is then read by TEB at the
+NEXT sub-step, so `TS_GARDEN` of one output line is the emulator state of the
+previous sub-step. The following columns are written only in this mode:
+
+| Column | Dimension | Comment |
+|:-------|:----------|:--------|
+| `EMU_TAU` | - | Weight of the canyon path of the garden exchange (the tanh relaxation of the canyon H/W ratio used by the tau scheme) |
+| `EMU_CD_EFF` | - | Effective momentum coefficient given to the external model: `Ca_canyon*max(V_canyon,Vmin)/max(V*,Vmin)^2` (TEB keeps the garden momentum on the canyon path only) |
+| `EMU_CH_EFF` | - | Effective heat/moisture coefficient: `Ca_eff/max(V*,Vmin)`, where `Ca_eff = tau*Ca_canyon+(1-tau)*Ca_atmosphere`: the coefficient absorbs the covariance term `tau(1-tau)(Cd_C-Cd_A)(V_A-V_C)` of the averaging, so that `EMU_CH_EFF*max(V*,Vmin) = EMU_CA_EFF` exactly |
+| `EMU_CH_NAIVE` | - | Tau-averaged (naive) coefficient `tau*Cd_C+(1-tau)*Cd_A`, i.e. what an averaging without the covariance correction would give |
+| `EMU_V`, `EMU_T`, `EMU_Q` | m/s, K, kg/kg | The one complete set (wind, air) given to the external model: `EMU_V` is the tau-averaged wind, `EMU_T`/`EMU_Q` the air of the canyon |
+| `EMU_CA_CAN`, `EMU_CA_EFF` | m/s | Conductance of the canyon path and tau-aggregated conductance |
+| `EMU_TS`, `EMU_H`, `EMU_LE`, `EMU_EVAP` | K, W/m², W/m², kg/m²/s | State and fluxes returned by the external model (prescribed to TEB at the next sub-step) |
+
+The diagnostic garden columns of `URBAN_DRAG` (`PCDN/PRI/ZZ0H_GARDEN_CAN`,
+`PAC/PCDN/PRI/ZZ0H/PCD/PCH_GARDEN_ATM`) are filled in **both** external modes, but
+with two different coefficient sets:
+
+* `'EXT'` - `URBAN_EXCH_COEF` (Richardson number, `z0h = urb_z0_gdn/4`,
+  `WIND_THRESHOLD`): the description of the coefficients a *coupled* host model
+  would need, not the coefficients actually used by the emulator;
+* `'EXT_NEU'` - the neutral formulation of the internal diagnostic garden
+  (`GARDEN_PCD_NEUTRAL`/`GARDEN_CA_NEUTRAL` of `src_proxi_SVAT/garden.F90`):
+  `PCD = PCH = PCDN`, `PRI_GARDEN_*` and `ZZ0H_GARDEN_*` keep `XUNDEF` and
+  `PAC_GARDEN_CAN` equals `EMU_CA_CAN` of the emulator exactly. This is the mode
+  in which the exported coefficients and the emulated model are consistent
+  (`'EXT'` includes stratification in the export while the emulator does not).
+
+
+**Interaction with the tau scheme of the road.** With `teb_ltau_scheme = .TRUE.` and
+`teb_type_garden = 'PROXY_NEW'` the garden exchange is split in exactly the same way
+as the road one: the tau-aggregated conductance and reference air feed the diagnostic
+surface energy balance (`Ca_eff = tau*Ca_canyon + (1-tau)*Ca_atmosphere`,
+`T_ref = (tau*Ca_canyon*T_canyon + (1-tau)*Ca_atmosphere*PTA)/Ca_eff`, the same for
+`q_ref`), so that the actual flux is identically
+`H_GARDEN = tau*H_GARDEN_CAN + (1-tau)*H_GARDEN_ATM` (and the same for `LE_GARDEN`),
+the canyon branch uses the low canyon air at the height `H/2` and the atmosphere
+branch the wind `PVMOD` at `PUREF` with the air `PTA`/`PQA`. The canyon branch feeds
+`T_CAN0`, the atmosphere branch feeds the free layer `T_CAN1`, and both branches are
+computed from the single garden surface temperature. With `'PROXY_OLD'` (the
+prescribed Bowen proxy does not depend on the meteorological forcing) and with
+`'EXT'` (a single set of fluxes, already computed for the averaged forcing) both
+branches are set equal to the actual flux, so the tau scheme does not change them.
+See `TEB_Ru_tau_scheme_T_CAN_reformulation.md`, part IV.
 
 
 ### Solar Panels

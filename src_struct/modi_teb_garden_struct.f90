@@ -122,7 +122,9 @@ INTERFACE
                           OTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
-                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN)
+                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN_STRUCT*  
@@ -469,6 +471,11 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PEVAP_GARDEN     ! total evaporation over t
 REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_GARDEN     ! garden saturation specific humidity [kg/kg]
 REAL, DIMENSION(:), INTENT(OUT)   :: PHU_GARDEN       ! garden aggregated relative humidity [-]
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_AGG_GARDEN   ! garden aggregated conductance [m/s]
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+REAL, DIMENSION(:), INTENT(OUT)   :: PH_GARDEN_CAN    ! garden sensible heat flux, garden -> canyon air [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PH_GARDEN_ATM    ! garden sensible heat flux, garden -> forcing level [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN_CAN   ! garden latent  heat flux, garden -> canyon air [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN_ATM   ! garden latent  heat flux, garden -> forcing level [W m-2]
 !MV202609 tau scheme of the road
 LOGICAL,              INTENT(IN)  :: OTAU_SCHEME      ! flag to use the tau scheme for the road
 REAL,                 INTENT(IN)  :: XTAU_HW_THRESH   ! H/W giving tau = 0.5 (tau scheme)

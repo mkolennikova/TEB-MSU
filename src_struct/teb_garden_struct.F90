@@ -118,7 +118,9 @@
                           OTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
-                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN)
+                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN_STRUCT*  
@@ -478,6 +480,11 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PEVAP_GARDEN     ! total evaporation over t
 REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_GARDEN     ! garden saturation specific humidity [kg/kg]
 REAL, DIMENSION(:), INTENT(OUT)   :: PHU_GARDEN       ! garden aggregated relative humidity [-]
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_AGG_GARDEN   ! garden aggregated conductance [m/s]
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+REAL, DIMENSION(:), INTENT(OUT)   :: PH_GARDEN_CAN    ! garden sensible heat flux, garden -> canyon air [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PH_GARDEN_ATM    ! garden sensible heat flux, garden -> forcing level [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN_CAN   ! garden latent  heat flux, garden -> canyon air [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN_ATM   ! garden latent  heat flux, garden -> forcing level [W m-2]
 !MV202609 tau scheme of the road
 LOGICAL,              INTENT(IN)  :: OTAU_SCHEME      ! flag to use the tau scheme for the road
 REAL,                 INTENT(IN)  :: XTAU_HW_THRESH   ! H/W giving tau = 0.5 (tau scheme)
@@ -749,6 +756,11 @@ PEVAP_GARDEN     = XUNDEF  ! total evaporation over the garden
 PQSAT_GARDEN     = XUNDEF  ! garden saturation specific humidity
 PHU_GARDEN       = XUNDEF  ! garden aggregated relative humidity
 PAC_AGG_GARDEN   = XUNDEF  ! garden aggregated conductance
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+PH_GARDEN_CAN    = XUNDEF  ! garden sensible heat flux, garden -> canyon air
+PH_GARDEN_ATM    = XUNDEF  ! garden sensible heat flux, garden -> forcing level
+PLE_GARDEN_CAN   = XUNDEF  ! garden latent  heat flux, garden -> canyon air
+PLE_GARDEN_ATM   = XUNDEF  ! garden latent  heat flux, garden -> forcing level
 PAC_GREENROOF    = XUNDEF  ! green roof conductance
 PAC_ROAD_WAT     = XUNDEF  ! road conductance for latent heat
 PAC_GARDEN_WAT   = XUNDEF  ! green area conductance for latent heat
@@ -960,7 +972,7 @@ TOP%CBEM      = HBEM            ! TEB option for the building energy model
                                 ! 'BEM':  Building Energy Model Bueno et al. 2011
 
 TOP%LGREENROOF   = OGREENROOF   ! T: green roofs (call ISBA from TEB)
-TOP%CTYPE_GARDEN = TYPE_GARDEN  ! garden model type ('PROXY_OLD','PROXY_NEW','EXT')
+TOP%CTYPE_GARDEN = TYPE_GARDEN  ! garden model type ('PROXY_OLD','PROXY_NEW','EXT','EXT_NEU')
 TOP%LSOLAR_PANEL = OSOLAR_PANEL ! T: solar panels on roofs
 !MV202609 tau scheme of the road
 TOP%LTAU_SCHEME    = OTAU_SCHEME    ! T: tau scheme for the road fluxes
@@ -1155,7 +1167,9 @@ CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENR
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                             &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
-                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN)
+                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM)
 !
 !-------------------------------------------------------------------------------
 !

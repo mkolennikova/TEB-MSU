@@ -7,6 +7,14 @@ USE MODD_SURF_PAR, ONLY: XUNDEF
 USE MODD_CSTS,     ONLY : XCPD, XSTEFAN, XPI, XDAY, XKARMAN,   &
                           XLVTT, XLSTT, XLMTT, XRV, XRD, XG, XP00
 USE MODD_PROXI_SVAT_PAR, ONLY : XZ0_GD, XZ0_GR   ! roughness lengths: defaults of urb_z0_gdn/urb_z0_grf
+!MV202609 garden emulation (teb_type_garden = 'EXT')
+!* the external garden model of the offline runs is EMULATED inside this driver
+!* by PCD_GARDEN (see below) with the same diagnostic surface energy balance as
+!* the internal garden scheme: GARDEN_PCD of src_proxi_SVAT/garden.F90, its
+!* numerical parameters (MODE_GARDEN_BALANCE) and QSAT of MODE_THERMOS
+USE MODI_GARDEN, ONLY : GARDEN_PCD
+USE MODE_THERMOS
+USE MODE_GARDEN_BALANCE, ONLY : XPHU_GD, XVMIN_GD
 
 USE MODD_FORC_ATM, ONLY: CSV         ,&! name of all scalar variables
                          XDIR_ALB    ,&! direct albedo for each band
@@ -210,6 +218,56 @@ REAL ,DIMENSION(nvec) :: teb_lhfl_gd                    !IN latent heat flux ove
 REAL ,DIMENSION(nvec) :: teb_qvfl_gd                    !IN total evaporation over garden (kg/m2/s)
 REAL ,DIMENSION(nvec) :: teb_runoff_gd                  !IN garden surface runoff
 
+!MV202609 garden emulation (teb_type_garden = 'EXT')
+!* State and diagnostics of the external garden model emulated by PCD_GARDEN
+!* (see the subroutine below). With an external garden the surface temperature
+!* and the fluxes of the garden are PROGNOSTIC variables of this driver: they
+!* are read by TEB at every model sub-step (through the 'EXT' interface) and
+!* updated by the emulator right after.
+!*   emu_tau        - weight of the canyon path of the garden exchange (-)
+!*   emu_pcd_can/atm, emu_v_can/atm, emu_ca_can/atm - the two paths of the tau
+!*                    split: neutral coefficient, wind and conductance
+!*   emu_ca_eff     - tau-aggregated conductance (m/s)
+!*   emu_v_star/t_star/q_star - one complete set (wind, air) given to the model
+!*   emu_ch_eff     - EFFECTIVE coefficient for heat and moisture, with the
+!*                    covariance term of the tau averaging removed (see below)
+!*   emu_cd_eff     - effective coefficient for momentum (the garden momentum of
+!*                    TEB stays on the canyon path only)
+!*   emu_ch_naive   - tau-averaged coefficient, i.e. what a naive averaging
+!*                    would give (diagnostic of the covariance correction)
+REAL ,DIMENSION(nvec) :: emu_tau                    !OUT tau of the garden exchange (-)
+REAL ,DIMENSION(nvec) :: emu_pcd_can                !OUT neutral drag coefficient (canyon path) (-)
+REAL ,DIMENSION(nvec) :: emu_pcd_atm                !OUT neutral drag coefficient (forcing level) (-)
+REAL ,DIMENSION(nvec) :: emu_v_can                  !OUT wind of the canyon path (m/s)
+REAL ,DIMENSION(nvec) :: emu_v_atm                  !OUT wind of the forcing level (m/s)
+REAL ,DIMENSION(nvec) :: emu_ca_can                 !OUT conductance of the canyon path (m/s)
+REAL ,DIMENSION(nvec) :: emu_ca_atm                 !OUT conductance of the forcing level (m/s)
+REAL ,DIMENSION(nvec) :: emu_ca_eff                 !OUT tau-aggregated conductance (m/s)
+REAL ,DIMENSION(nvec) :: emu_v_star                 !OUT tau-averaged wind given to the model (m/s)
+REAL ,DIMENSION(nvec) :: emu_t_star                 !OUT reference air temperature given to the model (K)
+REAL ,DIMENSION(nvec) :: emu_q_star                 !OUT reference air humidity given to the model (kg/kg)
+REAL ,DIMENSION(nvec) :: emu_ch_eff                 !OUT effective heat/moisture coefficient (-)
+REAL ,DIMENSION(nvec) :: emu_cd_eff                 !OUT effective momentum coefficient (-)
+REAL ,DIMENSION(nvec) :: emu_ch_naive               !OUT tau-averaged coefficient (diagnostic) (-)
+REAL ,DIMENSION(nvec) :: emu_psw                    !OUT solar radiation received by the garden (W/m2)
+REAL ,DIMENSION(nvec) :: emu_plw                    !OUT infrared radiation received by the garden (W/m2)
+REAL ,DIMENSION(nvec) :: emu_ts                     !OUT surface temperature returned by the emulator (K)
+REAL ,DIMENSION(nvec) :: emu_rn                     !OUT net radiation of the emulated garden (W/m2 garden)
+REAL ,DIMENSION(nvec) :: emu_h                      !OUT sensible heat flux of the emulated garden (W/m2 garden)
+REAL ,DIMENSION(nvec) :: emu_le                     !OUT latent heat flux of the emulated garden (W/m2 garden)
+REAL ,DIMENSION(nvec) :: emu_evap                   !OUT evaporation of the emulated garden (kg/m2/s)
+REAL ,DIMENSION(nvec) :: emu_qsat                   !OUT saturation humidity of the emulated garden (kg/kg)
+REAL ,DIMENSION(nvec) :: emu_phu                    !OUT aggregated relative humidity of the garden (-)
+REAL ,DIMENSION(nvec) :: emu_pac                    !OUT aerodynamic conductance of the garden (m/s)
+REAL ,DIMENSION(nvec) :: emu_puw                    !OUT friction flux of the emulated garden (m2/s2)
+REAL ,DIMENSION(nvec) :: emu_gflux                  !OUT (unused) flux through the garden
+REAL ,DIMENSION(nvec) :: emu_sfco2                  !OUT (unused) CO2 flux of the garden
+REAL ,DIMENSION(nvec) :: emu_runoff                 !OUT (unused) runoff of the garden
+REAL ,DIMENSION(nvec) :: emu_pac_agg                !OUT (unused) aggregated conductance of the garden
+REAL ,DIMENSION(nvec) :: emu_drain                  !OUT (unused) drainage of the garden
+REAL ,DIMENSION(nvec) :: emu_irrig                  !OUT (unused) irrigation of the garden
+LOGICAL               :: lemu_checked               !=.FALSE. until the first consistency check
+
 ! Input parameters for Solar Panels module           
 LOGICAL  :: teb_lsolar_panel                            !IN Flag to use a solar panels on roofs
 REAL ,DIMENSION(nvec) :: teb_fr_panel                   !IN fraction of solar panels on roofs
@@ -285,6 +343,11 @@ REAL ,DIMENSION(nvec) :: teb_qsat_garden                !OUT garden saturation s
 REAL ,DIMENSION(nvec) :: teb_phu_garden                 !OUT garden aggregated relative humidity (-)
 REAL ,DIMENSION(nvec) :: teb_pac_agg_garden             !OUT garden aggregated conductance (m/s)
 REAL ,DIMENSION(nvec) :: teb_pac_garden                 !OUT garden aerodynamic conductance (m/s)
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+REAL ,DIMENSION(nvec) :: teb_h_garden_can               !OUT garden sensible heat flux, garden -> canyon air (W/m2 garden)
+REAL ,DIMENSION(nvec) :: teb_h_garden_atm               !OUT garden sensible heat flux, garden -> forcing level (W/m2 garden)
+REAL ,DIMENSION(nvec) :: teb_le_garden_can              !OUT garden latent  heat flux, garden -> canyon air (W/m2 garden)
+REAL ,DIMENSION(nvec) :: teb_le_garden_atm              !OUT garden latent  heat flux, garden -> forcing level (W/m2 garden)
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 REAL                  :: ZRO_ROAD_ACC                   ! runoff of the road accumulated over the model sub-steps (kg/m2/s)
 REAL                  :: ZRO_ROOF_ACC                   ! runoff of the roof accumulated over the model sub-steps (kg/m2/s)
@@ -878,13 +941,15 @@ WRITE(*,'(A,F10.1,A,F12.1,A,I0,A)') ' TEB-Ru offline: dt = ', dt, ' s, forc_step
      forc_step, ' s -> INB_ATM = ', NINT(forc_step / dt), ' model sub-steps per forcing step'
 
 !MV202609 garden model type
-!* the type of the garden model must be one of the three supported values;
+!* the type of the garden model must be one of the supported values;
 !* 'EXT' means that the garden fluxes come from an external model (no internal
-!* garden parameterization is used).
+!* garden parameterization is used) whose exchange coefficients are described by
+!* the full URBAN_EXCH_COEF set, 'EXT_NEU' the same with the neutral coefficients
+!* of the internal diagnostic garden (src_proxi_SVAT/garden.F90).
 IF (teb_type_garden /= 'PROXY_OLD' .AND. teb_type_garden /= 'PROXY_NEW' .AND. &
-    teb_type_garden /= 'EXT') THEN
+    teb_type_garden /= 'EXT' .AND. teb_type_garden /= 'EXT_NEU') THEN
     WRITE(*,*) 'ERROR: unknown teb_type_garden = ', TRIM(teb_type_garden)
-    WRITE(*,*) "       supported values: 'PROXY_OLD', 'PROXY_NEW', 'EXT'"
+    WRITE(*,*) "       supported values: 'PROXY_OLD', 'PROXY_NEW', 'EXT', 'EXT_NEU'"
     STOP 1
 END IF
 WRITE(*,'(A,A)') ' TEB-Ru offline: teb_type_garden = ', TRIM(teb_type_garden)
@@ -979,6 +1044,26 @@ CALL INI_CSTS
 XCO2(:)  = 0.
 XRHOA(:) = ZPS(1,:) / ( ZTA(1,:)*XRD * ( 1.+((XRV/XRD)-1.)*ZQA(1,:) ) + hlev_teb(:)*XG )
 teb_hour_seconds = teb_hour * 3600. + teb_min * 60. + teb_sec
+
+!MV202609 garden emulation (teb_type_garden = 'EXT' or 'EXT_NEU')
+!* With an external garden the surface state and the fluxes of the garden are
+!* PROGNOSTIC variables of this driver: TEB reads them at every sub-step through
+!* the 'EXT' interface and PCD_GARDEN (see below) updates them, playing the role
+!* of the external model. Here they are initialized (the first approximation of
+!* the surface temperature is the air temperature, as in the internal garden
+!* scheme, and the fluxes start from zero: the first sub-step is a spin-up of
+!* the coupling). The constants of the physics are initialized just above (INI_CSTS).
+IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
+   lemu_checked = .FALSE.
+   teb_ts_gd(:)     = t(:)
+   teb_qs_gd(:)     = XPHU_GD*QSAT(teb_ts_gd(:), ps(:))
+   teb_shfl_gd(:)   = 0.
+   teb_lhfl_gd(:)   = 0.
+   teb_qvfl_gd(:)   = 0.
+   teb_runoff_gd(:) = 0.
+   WRITE(*,'(A)') ' TEB-Ru offline: garden = EXTERNAL, emulated by PCD_GARDEN' &
+        //' at every model sub-step (state: Ts = air temperature, fluxes = 0)'
+END IF
 
 ! -----------------------------------------------------------
 ! Outputs
@@ -1106,6 +1191,36 @@ nout = nout + 1; out_names(nout) = 'QSAT_GARDEN'
 nout = nout + 1; out_names(nout) = 'PHU_GARDEN'
 nout = nout + 1; out_names(nout) = 'PAC_AGG_GARDEN'
 nout = nout + 1; out_names(nout) = 'PAC_GARDEN'
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+nout = nout + 1; out_names(nout) = 'H_GARDEN_CAN'
+nout = nout + 1; out_names(nout) = 'H_GARDEN_ATM'
+nout = nout + 1; out_names(nout) = 'LE_GARDEN_CAN'
+nout = nout + 1; out_names(nout) = 'LE_GARDEN_ATM'
+!MV202609 garden emulation (teb_type_garden = 'EXT')
+!* State, forcing and coefficients of the external garden model emulated by
+!* PCD_GARDEN: EMU_TAU = weight of the canyon path, EMU_CD_EFF/EMU_CH_EFF =
+!* effective coefficients (covariance term of the tau averaging removed),
+!* EMU_CH_NAIVE = tau-averaged (naive) coefficient, EMU_V/EMU_T/EMU_Q = the one
+!* complete set (wind, air) given to the model, EMU_CA_CAN/EMU_CA_EFF = the two
+!* path conductances and their tau-average, EMU_TS/H/LE/EVAP = the state and the
+!* fluxes returned by the model (they are prescribed to TEB at the next
+!* sub-step, which is why TS_GARDEN of the next output line is EMU_TS of this one).
+!* These columns are written only with an external garden.
+IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
+   nout = nout + 1; out_names(nout) = 'EMU_TAU'
+   nout = nout + 1; out_names(nout) = 'EMU_CD_EFF'
+   nout = nout + 1; out_names(nout) = 'EMU_CH_EFF'
+   nout = nout + 1; out_names(nout) = 'EMU_CH_NAIVE'
+   nout = nout + 1; out_names(nout) = 'EMU_V'
+   nout = nout + 1; out_names(nout) = 'EMU_T'
+   nout = nout + 1; out_names(nout) = 'EMU_Q'
+   nout = nout + 1; out_names(nout) = 'EMU_CA_CAN'
+   nout = nout + 1; out_names(nout) = 'EMU_CA_EFF'
+   nout = nout + 1; out_names(nout) = 'EMU_TS'
+   nout = nout + 1; out_names(nout) = 'EMU_H'
+   nout = nout + 1; out_names(nout) = 'EMU_LE'
+   nout = nout + 1; out_names(nout) = 'EMU_EVAP'
+END IF
 !MV202609 solar position diagnostics
 !* the zenith/azimuth angles of the sun that the physics of the current step uses
 !* (computed by SUNPOS in CALL_DRIVER at every model sub-step, so the values
@@ -1280,7 +1395,18 @@ DO nstep= 1,nsteps - 1
 !MV202609 garden diagnostics
                           teb_ts_garden, teb_rn_garden, teb_h_garden, teb_le_garden,       &
                           teb_evap_garden, teb_qsat_garden, teb_phu_garden,               &
-                          teb_pac_agg_garden, teb_pac_garden)
+                          teb_pac_agg_garden,                                             &
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+                          teb_h_garden_can, teb_h_garden_atm,                             &
+                          teb_le_garden_can, teb_le_garden_atm,                           &
+                          teb_pac_garden)
+!MV202609 garden emulation (teb_type_garden = 'EXT')
+!* the external garden model: TEB has just used the garden state prescribed at
+!* the previous sub-step; the emulator now updates the state and the fluxes for
+!* the next one, from the coefficients, the air and the radiation that TEB has
+!* just computed (CALL_DRIVER sees only the 'EXT' interface, as with a real
+!* external model)
+   IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') CALL PCD_GARDEN
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
    ZRO_ROAD_ACC = ZRO_ROAD_ACC + teb_runoff_road(1)
    ZRO_ROOF_ACC = ZRO_ROOF_ACC + teb_runoff_roof(1)
@@ -1386,6 +1512,27 @@ CALL CSV_APPEND(out_line, teb_qsat_garden(1))
 CALL CSV_APPEND(out_line, teb_phu_garden(1))
 CALL CSV_APPEND(out_line, teb_pac_agg_garden(1))
 CALL CSV_APPEND(out_line, teb_pac_garden(1))
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+CALL CSV_APPEND(out_line, teb_h_garden_can(1))
+CALL CSV_APPEND(out_line, teb_h_garden_atm(1))
+CALL CSV_APPEND(out_line, teb_le_garden_can(1))
+CALL CSV_APPEND(out_line, teb_le_garden_atm(1))
+!MV202609 garden emulation (teb_type_garden = 'EXT')
+IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
+   CALL CSV_APPEND(out_line, emu_tau(1))
+   CALL CSV_APPEND(out_line, emu_cd_eff(1))
+   CALL CSV_APPEND(out_line, emu_ch_eff(1))
+   CALL CSV_APPEND(out_line, emu_ch_naive(1))
+   CALL CSV_APPEND(out_line, emu_v_star(1))
+   CALL CSV_APPEND(out_line, emu_t_star(1))
+   CALL CSV_APPEND(out_line, emu_q_star(1))
+   CALL CSV_APPEND(out_line, emu_ca_can(1))
+   CALL CSV_APPEND(out_line, emu_ca_eff(1))
+   CALL CSV_APPEND(out_line, emu_ts(1))
+   CALL CSV_APPEND(out_line, emu_h(1))
+   CALL CSV_APPEND(out_line, emu_le(1))
+   CALL CSV_APPEND(out_line, emu_evap(1))
+END IF
 !MV202609 solar position diagnostics (degrees; last sub-step of the interval)
 CALL CSV_APPEND(out_line, XZENITH(1) * 180. / XPI)
 CALL CSV_APPEND(out_line, 90. - XZENITH(1) * 180. / XPI)
@@ -1956,6 +2103,128 @@ SUBROUTINE PRINT_USAGE()
     WRITE(*,*) '  ./TEB_offline.exe -help'
     WRITE(*,*) ''
 END SUBROUTINE PRINT_USAGE
+
+!MV202609 garden emulation (teb_type_garden = 'EXT')
+!> Emulation of an EXTERNAL garden model: the garden of TEB is entirely
+!! prescribed from the outside in the 'EXT' mode (surface temperature, surface
+!! humidity and fluxes are read by TEB_GARDEN from teb_ts_gd / teb_qs_gd /
+!! teb_shfl_gd / teb_lhfl_gd / teb_qvfl_gd / teb_runoff_gd). Those variables are
+!! PROGNOSTIC here: they are initialized once before the time loop and updated
+!! by this subroutine at every model sub-step, right after TEB. CALL_DRIVER (and
+!! the whole physics of TEB) is unaware of the difference between this emulator
+!! and a real external model: it only sees the 'EXT' interface.
+!!
+!! The emulator itself is GARDEN_PCD of src_proxi_SVAT/garden.F90: the same
+!! diagnostic surface energy balance as the internal garden scheme, solved for
+!! one surface temperature given ONE conductance and ONE reference air. The host
+!! (this subroutine) prepares that input from what TEB has just computed:
+!!
+!!   the two paths of the tau split of the garden exchange (as in GARDEN_TAU):
+!!     Ca_C = PCD_C*max(V_C,Vmin),  PCD_C = (kappa/ln((H/2)/z0))**2,
+!!                                  V_C   = ZU_CANYON (teb_wind_canyon)
+!!     Ca_A = PCD_A*max(V_A,Vmin),  PCD_A = (kappa/ln(z_ref/z0))**2,
+!!                                  V_A   = |V_forcing|, z_ref = hlev_teb
+!!     Ca_eff = tau*Ca_C + (1-tau)*Ca_A
+!!   the single complete set given to the external model:
+!!     V*     = tau*V_C + (1-tau)*V_A          (tau-averaged wind)
+!!     T*, q* = T_CAN, q_CAN                   (first approximation: the tau
+!!                                             averaged air is left for later)
+!!   the EFFECTIVE exchange coefficients. The coefficient of the external model
+!!   multiplies its own wind: with the tau-averaged wind V* the naive average
+!!   Cd* = tau*Cd_C+(1-tau)*Cd_A misses the covariance term of the averaging,
+!!   tau(1-tau)*(Cd_C-Cd_A)*(V_A-V_C). Handing over the coefficient that
+!!   reproduces the tau-aggregated conductance removes it exactly:
+!!     CH_eff = Ca_eff/max(V*,Vmin)            => CH_eff*max(V*,Vmin) = Ca_eff
+!!     CD_eff = Ca_C*max(V_C,Vmin)/max(V*,Vmin)**2   (momentum: TEB keeps the
+!!              garden momentum on the canyon path only)
+!!   the radiation received by the garden, reconstructed exactly from the fluxes
+!!   absorbed by the garden (DMT%XABS_SW_GARDEN, XABS_LW_GARDEN computed by TEB
+!!   with the prescribed surface temperature):
+!!     XABS_SW = (1-alb)*SW_rec,  XABS_LW = emis*(LW_rec - sigma*Ts**4)
+!!
+!! The wind floor Vmin, the surface relative humidity and all the numerical
+!! parameters of the balance come from MODE_GARDEN_BALANCE, i.e. from the module
+!! used by the internal garden scheme: the emulator solves exactly the same
+!! problem and can be compared with it from run to run.
+SUBROUTINE PCD_GARDEN
+    INTEGER :: JI
+    DO JI = 1, nvec
+        !* tau of the garden exchange: the same tanh relaxation of the canyon
+        !* H/W ratio as TAU_URBAN of src_teb/teb_garden.F90 (which does not use
+        !* the building height), with the namelist parameters; tau = 1 when the
+        !* tau scheme is disabled
+        emu_tau(JI) = 1.
+        IF (teb_ltau_scheme) THEN
+            emu_tau(JI) = 0.5*(1.+TANH((urb_h2w(JI)-teb_tau_hw_thresh) &
+                          /MAX(teb_tau_hw_width,TINY(1.))))
+        END IF
+        !* canyon path: reference air at the low canyon level (height H/2, the
+        !* same height and the same roughness length as the internal scheme)
+        emu_pcd_can(JI) = 0.
+        emu_v_can(JI)   = 0.
+        IF (urb_h_bld(JI)/2. > teb_z0_gd(JI)) THEN
+            emu_pcd_can(JI) = (XKARMAN/LOG((urb_h_bld(JI)/2.)/teb_z0_gd(JI)))**2
+            emu_v_can(JI)   = MAX(teb_wind_canyon(JI), XVMIN_GD)
+        END IF
+        !* atmosphere path: reference air of the forcing level
+        emu_pcd_atm(JI) = 0.
+        emu_v_atm(JI)   = 0.
+        IF (hlev_teb(JI) > teb_z0_gd(JI)) THEN
+            emu_pcd_atm(JI) = (XKARMAN/LOG(hlev_teb(JI)/teb_z0_gd(JI)))**2
+            emu_v_atm(JI)   = MAX(SQRT(u(JI)**2+v(JI)**2), XVMIN_GD)
+        END IF
+        emu_ca_can(JI) = emu_pcd_can(JI)*emu_v_can(JI)
+        emu_ca_atm(JI) = emu_pcd_atm(JI)*emu_v_atm(JI)
+        emu_ca_eff(JI) = emu_tau(JI)*emu_ca_can(JI) + (1.-emu_tau(JI))*emu_ca_atm(JI)
+        !* the single complete set (wind, air) given to the external model
+        emu_v_star(JI) = emu_tau(JI)*emu_v_can(JI) + (1.-emu_tau(JI))*emu_v_atm(JI)
+        emu_t_star(JI) = teb_tcanyon(JI)      ! first approximation: canyon air
+        emu_q_star(JI) = teb_qcanyon(JI)
+        !* effective coefficients (covariance term of the tau averaging removed)
+        emu_ch_naive(JI) = emu_tau(JI)*emu_pcd_can(JI) + (1.-emu_tau(JI))*emu_pcd_atm(JI)
+        emu_ch_eff(JI)   = 0.
+        IF (emu_ca_eff(JI) > 0.) emu_ch_eff(JI) = emu_ca_eff(JI)/MAX(emu_v_star(JI), XVMIN_GD)
+        emu_cd_eff(JI)   = 0.
+        IF (emu_v_star(JI) > 0.) THEN
+            emu_cd_eff(JI) = emu_ca_can(JI)*emu_v_can(JI)/MAX(emu_v_star(JI),XVMIN_GD)**2
+        END IF
+        !* radiation received by the garden, from the fluxes absorbed by TEB
+        emu_psw(JI) = 0.
+        emu_plw(JI) = 0.
+        IF (1.-teb_alb_gd(JI) > 1.E-6) emu_psw(JI) = teb_sobs(JI)/(1.-teb_alb_gd(JI))
+        IF (teb_emis_gd(JI) > 1.E-6) THEN
+            emu_plw(JI) = teb_thbs(JI)/teb_emis_gd(JI) + XSTEFAN*teb_ts_gd(JI)**4
+        END IF
+    END DO
+    !* THE EXTERNAL MODEL: the surface balance at the set prepared above
+    !* (PTS_GARDEN, INOUT, carries the state: surface temperature on entry as the
+    !* initial guess of the Newton iteration, solution on exit)
+    CALL GARDEN_PCD('PROXY_NEW', emu_ch_eff, emu_v_star, emu_t_star, emu_q_star,   &
+                    teb_alb_gd, teb_emis_gd, rho, ps, emu_psw, emu_plw,            &
+                    emu_rn, emu_h, emu_le, emu_gflux, emu_sfco2, emu_evap,         &
+                    emu_puw, emu_runoff, emu_pac, emu_qsat, teb_ts_gd,             &
+                    emu_pac_agg, emu_phu, emu_drain, emu_irrig)
+    !* state and fluxes prescribed to TEB at the next model sub-step
+    emu_ts(:)        = teb_ts_gd(:)
+    teb_qs_gd(:)     = XPHU_GD*emu_qsat(:)
+    teb_shfl_gd(:)   = emu_h(:)
+    teb_lhfl_gd(:)   = emu_le(:)
+    teb_qvfl_gd(:)   = emu_evap(:)
+    teb_runoff_gd(:) = 0.
+    !* first call: the effective coefficient must reproduce the tau-aggregated
+    !* conductance exactly (the covariance term of the averaging is removed)
+    IF (.NOT. lemu_checked) THEN
+        lemu_checked = .TRUE.
+        WRITE(*,'(A,ES12.4,A,ES12.4,A)')                                        &
+             ' TEB-Ru offline: garden emulator: CH_eff*max(V*,Vmin)-Ca_eff = ', &
+             emu_ch_eff(1)*MAX(emu_v_star(1),XVMIN_GD) - emu_ca_eff(1),         &
+             ' (tau = ', emu_tau(1), ')'
+        WRITE(*,'(A,F10.6,A,F9.4,A,F10.7,A,F10.6,A)')                           &
+             ' TEB-Ru offline: garden emulator: V* = ', emu_v_star(1),          &
+             ' m/s, T* = ', emu_t_star(1), ' K, q* = ', emu_q_star(1),          &
+             ' kg/kg, CH_eff = ', emu_ch_eff(1), ' (-)'
+    END IF
+END SUBROUTINE PCD_GARDEN
 
 !> Append one real value to a CSV line: 'line = line//sep//value'
 !! List-directed output is used, so that the CSV file contains exactly the same digits

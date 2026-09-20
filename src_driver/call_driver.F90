@@ -54,6 +54,8 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
                           PAC_GARDEN)
 							
 ! ======================================================================
@@ -412,6 +414,11 @@ REAL,DIMENSION(1)                 :: PEVAP_GARDEN     !OUT total evaporation ove
 REAL,DIMENSION(1)                 :: PQSAT_GARDEN     !OUT garden saturation specific humidity (kg/kg)
 REAL,DIMENSION(1)                 :: PHU_GARDEN       !OUT garden aggregated relative humidity (-)
 REAL,DIMENSION(1)                 :: PAC_AGG_GARDEN   !OUT garden aggregated conductance (m/s)
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+REAL,DIMENSION(1)                 :: PH_GARDEN_CAN    !OUT garden sensible heat flux, garden -> canyon air (W/m2 garden)
+REAL,DIMENSION(1)                 :: PH_GARDEN_ATM    !OUT garden sensible heat flux, garden -> forcing level (W/m2 garden)
+REAL,DIMENSION(1)                 :: PLE_GARDEN_CAN   !OUT garden latent  heat flux, garden -> canyon air (W/m2 garden)
+REAL,DIMENSION(1)                 :: PLE_GARDEN_ATM   !OUT garden latent  heat flux, garden -> forcing level (W/m2 garden)
 REAL,DIMENSION(1)                 :: PAC_GARDEN       !OUT garden aerodynamic conductance (m/s)
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 REAL,DIMENSION(1)                 :: PDN_RF           !OUT roof snow fraction (-)
@@ -517,6 +524,11 @@ REAL,DIMENSION(1)  :: ZPEVAP_GARDEN     ! total evaporation over the garden (kg/
 REAL,DIMENSION(1)  :: ZPQSAT_GARDEN     ! garden saturation specific humidity (kg/kg)
 REAL,DIMENSION(1)  :: ZPHU_GARDEN       ! garden aggregated relative humidity (-)
 REAL,DIMENSION(1)  :: ZPAC_AGG_GARDEN   ! garden aggregated conductance (m/s)
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+REAL,DIMENSION(1)  :: ZPH_GARDEN_CAN    ! garden sensible heat flux, garden -> canyon air (W/m2 garden)
+REAL,DIMENSION(1)  :: ZPH_GARDEN_ATM    ! garden sensible heat flux, garden -> forcing level (W/m2 garden)
+REAL,DIMENSION(1)  :: ZPLE_GARDEN_CAN   ! garden latent  heat flux, garden -> canyon air (W/m2 garden)
+REAL,DIMENSION(1)  :: ZPLE_GARDEN_ATM   ! garden latent  heat flux, garden -> forcing level (W/m2 garden)
 REAL,DIMENSION(1)  :: ZAC_GREENROOF     ! green roofs aerodynamical conductance        
 REAL,DIMENSION(1)  :: ZAC_GREENROOF_WAT ! green roofs aerodynamical conductance for vapor                                    
 REAL,DIMENSION(1)  :: ZUW_ROOF          ! Momentum flux for roofs                      
@@ -1267,7 +1279,7 @@ ZGARDEN_O_GRND = ZGARDEN / (ZROAD + ZGARDEN)
 IF (LGREENROOF_EXT) THEN
   ZRUNOFF_GR_EXT  = ZRUNOFF_GR_EXT / dt
 ENDIF
-IF (TYPE_GARDEN == 'EXT') THEN
+IF (TYPE_GARDEN == 'EXT' .OR. TYPE_GARDEN == 'EXT_NEU') THEN
   ZRUNOFF_GD_EXT    = ZRUNOFF_GD_EXT / dt
 ENDIF	
 !
@@ -1543,7 +1555,9 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, LGREENROOF, LGREENR
                           LTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
 !MV202609 garden diagnostics
                      ZPTSRAD_GARDEN, ZPRN_GARDEN, ZPH_GARDEN, ZPLE_GARDEN,       &
-                     ZPEVAP_GARDEN, ZPQSAT_GARDEN, ZPHU_GARDEN, ZPAC_AGG_GARDEN)
+                     ZPEVAP_GARDEN, ZPQSAT_GARDEN, ZPHU_GARDEN, ZPAC_AGG_GARDEN, &
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+                     ZPH_GARDEN_CAN, ZPH_GARDEN_ATM, ZPLE_GARDEN_CAN, ZPLE_GARDEN_ATM)
 !*****************************************************************************
 !*****************************************************************************
 !*****************************************************************************
@@ -1613,6 +1627,11 @@ PEVAP_GARDEN     = ZPEVAP_GARDEN
 PQSAT_GARDEN     = ZPQSAT_GARDEN
 PHU_GARDEN       = ZPHU_GARDEN
 PAC_AGG_GARDEN   = ZPAC_AGG_GARDEN
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+PH_GARDEN_CAN    = ZPH_GARDEN_CAN
+PH_GARDEN_ATM    = ZPH_GARDEN_ATM
+PLE_GARDEN_CAN   = ZPLE_GARDEN_CAN
+PLE_GARDEN_ATM   = ZPLE_GARDEN_ATM
 PAC_GARDEN       = ZAC_GARDEN
 !
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)

@@ -77,7 +77,11 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 !MV202609 garden diagnostics
                           teb_ts_garden, teb_rn_garden, teb_h_garden, teb_le_garden,       &
                           teb_evap_garden, teb_qsat_garden, teb_phu_garden,               &
-                          teb_pac_agg_garden, teb_pac_garden)
+                          teb_pac_agg_garden,                                             &
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+                          teb_h_garden_can, teb_h_garden_atm,                             &
+                          teb_le_garden_can, teb_le_garden_atm,                           &
+                          teb_pac_garden)
 
 !-------------------------------------------------------------------------------
 ! Declarations
@@ -359,6 +363,11 @@ REAL, DIMENSION(nvec), INTENT(OUT) :: teb_evap_garden  ! total evaporation over 
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_qsat_garden  ! garden saturation specific humidity (kg/kg)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_phu_garden   ! garden aggregated relative humidity (-)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_pac_agg_garden ! garden aggregated conductance (m/s)
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_h_garden_can  ! garden sensible heat flux, garden -> canyon air (W/m2 garden)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_h_garden_atm  ! garden sensible heat flux, garden -> forcing level (W/m2 garden)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_le_garden_can ! garden latent  heat flux, garden -> canyon air (W/m2 garden)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_le_garden_atm ! garden latent  heat flux, garden -> forcing level (W/m2 garden)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_pac_garden   ! garden aerodynamic conductance (m/s)
 LOGICAL,              INTENT(IN)  :: teb_ltau_scheme  ! flag to use the tau scheme for the road
 REAL,                 INTENT(IN)  :: teb_tau_hw_thresh! H/W giving tau = 0.5 (tau scheme)
@@ -431,7 +440,11 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
 !MV202609 garden diagnostics
                           teb_ts_garden(i), teb_rn_garden(i), teb_h_garden(i), teb_le_garden(i), &
                           teb_evap_garden(i), teb_qsat_garden(i), teb_phu_garden(i),            &
-                          teb_pac_agg_garden(i), teb_pac_garden(i))
+                          teb_pac_agg_garden(i),                                                &
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+                          teb_h_garden_can(i), teb_h_garden_atm(i),                             &
+                          teb_le_garden_can(i), teb_le_garden_atm(i),                           &
+                          teb_pac_garden(i))
 	END DO
 	
 END SUBROUTINE teb_interface

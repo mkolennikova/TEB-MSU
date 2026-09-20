@@ -28,6 +28,9 @@
 !       'EXT'       : external garden model (TEB_GARDEN, URBAN_DRAG); the
 !                     values below are the defaults used by the offline
 !                     driver when no host model provides them
+!       'EXT_NEU'   : same external garden, but the diagnostic garden
+!                     coefficients of URBAN_DRAG follow the neutral formulation
+!                     of the internal scheme (GARDEN_PCD_NEUTRAL)
 !
 !     This avoids duplicating the same physical constant in GARDEN,
 !     GREENROOF, TEB_VEG_PROPERTIES and RUN_TEB_OFFLINE.
@@ -63,7 +66,7 @@ IMPLICIT NONE
 !*   - GARDEN     : PZ0_GD argument -> aerodynamical conductance Ca of the
 !*                  internal proxies ('PROXY_OLD' and 'PROXY_NEW')
 !*   - URBAN_DRAG : PZ0_GARDEN_EXT -> diagnostic garden roughness used by the
-!*                  *_GARDEN_CAN / *_GARDEN_ATM columns
+!*                  *_GARDEN_CAN / *_GARDEN_ATM columns ('EXT' and 'EXT_NEU')
 !
 REAL, PARAMETER :: XZ0_GD = 0.10
 !* Greenroof roughness length (m). Default of the namelist item urb_z0_grf

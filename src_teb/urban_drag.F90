@@ -91,6 +91,7 @@ USE MODI_WIND_THRESHOLD
 !USE MODE_SBLS
 USE MODE_THERMOS
 USE MODI_URBAN_EXCH_COEF
+USE MODE_GARDEN_BALANCE, ONLY : GARDEN_PCD_NEUTRAL, GARDEN_CA_NEUTRAL
 USE MODE_CONV_DOE
 !
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
@@ -322,8 +323,9 @@ PRI    (:) = XUNDEF
 !
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* diagnostic exchange coefficients between the surfaces and the air of the
-!* canyon or of the forcing level (see section 8.3), full set of URBAN_EXCH_COEF
-!* outputs; the garden/atmosphere ones are filled only if TOP%CTYPE_GARDEN=='EXT'
+!* canyon or of the forcing level (see section 8.3); the garden ones are filled
+!* for an external garden: 'EXT' with the full URBAN_EXCH_COEF set, 'EXT_NEU'
+!* with the neutral formulation of the internal garden (see section 8.5)
 !
 PCD_ROAD_CAN   (:) = XUNDEF
 PCDN_ROAD_CAN  (:) = XUNDEF
@@ -720,37 +722,62 @@ DO JJ=1,SIZE(PTA)
 
 !IF (TOP%LGARDEN) THEN
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
-!* garden/canyon exchange coefficients: computed only when the garden is provided
-!* by an EXTERNAL model (TOP%CTYPE_GARDEN == 'EXT') - the same condition as for the
-!* garden/atmosphere coefficients below.
-IF (TOP%CTYPE_GARDEN == 'EXT') THEN
-   
+!* garden exchange coefficients, canyon path and atmosphere path.
+!*
+!* 'EXT_NEU' - the garden of an external model with the NEUTRAL exchange
+!* coefficients of the internal diagnostic garden (src_proxi_SVAT/garden.F90):
+!*     PCD = (kappa/ln(z/z0))**2,   Ca = PCD*max(V, XVMIN_GD)
+!* with the same wind floor XVMIN_GD and NO thermal roughness (z0t): the same
+!* coefficient serves momentum and heat, so PCD = PCH = PCDN. PRI_GARDEN_* and
+!* ZZ0H_GARDEN_* are not defined in this formulation and keep their XUNDEF
+!* initialisation. This is the coefficient set a coupled external garden model is
+!* meant to be driven with: it coincides with the neutral coefficients of the
+!* internal garden and with the emulator of run_teb_offline.
+!*
+!* 'EXT' - the same two paths but with the full URBAN_EXCH_COEF set (Richardson
+!* number, z0h = z0/4, WIND_THRESHOLD), i.e. the description of the garden
+!* coefficients used for the bookkeeping of a coupled model.
+!
+IF (TOP%CTYPE_GARDEN == 'EXT_NEU') THEN
+   ! canyon path (low canyon level, the heights and the wind of the internal garden)
+   PCDN_GARDEN_CAN(:) = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:))
+   PCD_GARDEN_CAN (:) = PCDN_GARDEN_CAN(:)
+   PCH_GARDEN_CAN (:) = PCDN_GARDEN_CAN(:)
+   PAC_GARDEN_CAN (:) = GARDEN_CA_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:), PU_LOWCAN(:))
+   ! atmosphere path (reference air of the forcing level)
+   PCDN_GARDEN_ATM(:) = GARDEN_PCD_NEUTRAL(PUREF(:), PZ0_GARDEN_EXT(:))
+   PCD_GARDEN_ATM (:) = PCDN_GARDEN_ATM(:)
+   PCH_GARDEN_ATM (:) = PCDN_GARDEN_ATM(:)
+   PAC_GARDEN_ATM (:) = GARDEN_CA_NEUTRAL(PUREF(:), PZ0_GARDEN_EXT(:), PVMOD(:))
+   !
+ELSEIF (TOP%CTYPE_GARDEN == 'EXT') THEN
+   !* garden/canyon exchange coefficients: computed only when the garden is
+   !* provided by an EXTERNAL model (TOP%CTYPE_GARDEN == 'EXT')
+   !
 CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
                        PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
                        PU_LOWCAN, PZ0_GARDEN_EXT, PRI_GARDEN_CAN, PCD_GARDEN_CAN, PCDN_GARDEN_CAN,         &
                        PAC_GARDEN_CAN, ZRA_GARDEN_CAN, PCH_GARDEN_CAN, ZZ0H_GARDEN_CAN, ILMO_GARDEN        )	
-   
+   !
 !   CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTSRAD_GR, PRUNOFF_GR, PEXNS, PEXNA,  &
 !                       PTA, PQA, PZREF, PZREF,              &
 !                       PVMOD, PZ0_GARDEN, ZRI, PCD_GARDEN_ATM, PCDN_GARDEN_ATM,         &
 !                       PAC_GARDEN_ATM, ZRA_GARDEN_ATM, PCH_GARDEN_ATM, ZZ0H_GARDEN_ATM, ZILMO_GARDEN_ATM        )
-ENDIF
-!
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-!* garden/atmosphere (TERRA-type) exchange coefficients: diagnostic variables,
-!* computed ONLY together with the garden/canyon coefficients above, i.e. when
-!* the garden is provided by an EXTERNAL model (TOP%CTYPE_GARDEN = 'EXT'): only then
-!* PTS_GARDEN and PQS_GARDEN describe a real garden surface state. With the
-!* internal (proxy-SVAT) garden the surface state is a placeholder
-!* (PTS_GARDEN = canyon air temperature from TEB_VEG_PROPERTIES, PQS_GARDEN = 0),
-!* so the forcing-level coefficients would be meaningless; they keep their XUNDEF
-!* initialisation in that case, as well as when no garden is modelled at all.
-!
-IF (TOP%CTYPE_GARDEN == 'EXT') THEN
+   !
+   !* garden/atmosphere (TERRA-type) exchange coefficients: diagnostic variables,
+   !* computed ONLY together with the garden/canyon coefficients above, i.e. when
+   !* the garden is provided by an EXTERNAL model (TOP%CTYPE_GARDEN = 'EXT'): only then
+   !* PTS_GARDEN and PQS_GARDEN describe a real garden surface state. With the
+   !* internal (proxy-SVAT) garden the surface state is a placeholder
+   !* (PTS_GARDEN = canyon air temperature from TEB_VEG_PROPERTIES, PQS_GARDEN = 0),
+   !* so the forcing-level coefficients would be meaningless; they keep their XUNDEF
+   !* initialisation in that case, as well as when no garden is modelled at all.
+   !
 CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
                        PTA, PQA, PZREF, PZREF,              &
                        PVMOD, PZ0_GARDEN_EXT, PRI_GARDEN_ATM, PCD_GARDEN_ATM, PCDN_GARDEN_ATM,         &
                        PAC_GARDEN_ATM, ZRA_GARDEN_ATM, PCH_GARDEN_ATM, ZZ0H_GARDEN_ATM, ZILMO_GARDEN_ATM        )
+   !
 ENDIF
 
 		

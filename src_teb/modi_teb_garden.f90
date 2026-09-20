@@ -37,7 +37,9 @@ INTERFACE
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                             &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
-                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN)
+                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
@@ -227,6 +229,11 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GARDEN   ! total evaporation over 
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GARDEN   ! garden saturation specific humidity [kg/kg]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GARDEN     ! garden aggregated relative humidity [-]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_AGG_GARDEN ! garden aggregated conductance [m/s]
+!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN_CAN  ! garden sensible heat flux, garden -> canyon air [W m-2]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN_ATM  ! garden sensible heat flux, garden -> forcing level [W m-2]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN_CAN ! garden latent  heat flux, garden -> canyon air [W m-2]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN_ATM ! garden latent  heat flux, garden -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
