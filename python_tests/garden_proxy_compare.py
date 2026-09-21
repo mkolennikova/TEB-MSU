@@ -11,7 +11,7 @@ temperature).
 
 The two schemes compared are:
 
-A. Bowen proxy (the current ``src_proxi_SVAT/garden.F90``): a fixed Bowen ratio
+A. Bowen proxy (the current ``src/src_proxi_SVAT/garden.F90``): a fixed Bowen ratio
    driven by the short-wave radiation only::
 
        RN = (1 - 0.15) * SW
@@ -47,9 +47,9 @@ ideal gas law rho = p / (Rd * Tv), Tv = Ta * (1 + 0.61 * qa), Rd = 287.05 J/kg/K
 
 Usage
 -----
-    python python/garden_proxy_compare.py
-    python python/garden_proxy_compare.py --csv D:/TEB_work/Moscow/forcing_ERA5/era5_forcing_2022-08-01_2022-09-01.csv
-    python python/garden_proxy_compare.py --zref 10.0 --phu 0.8 --vmin 0.5
+    python python_tests/garden_proxy_compare.py
+    python python_tests/garden_proxy_compare.py --csv D:/TEB_work/Moscow/forcing_ERA5/era5_forcing_2022-08-01_2022-09-01.csv
+    python python_tests/garden_proxy_compare.py --zref 10.0 --phu 0.8 --vmin 0.5
 """
 from __future__ import annotations
 
@@ -67,6 +67,10 @@ import matplotlib.pyplot as plt
 
 HERE = Path(__file__).resolve().parent
 MODEL_DIR = HERE.parent
+
+PYTHON_DIR = MODEL_DIR / 'python'      # shared libraries of the repository
+if str(PYTHON_DIR) not in sys.path:
+    sys.path.append(str(PYTHON_DIR))
 
 
 # ---------------------------------------------------------------------------

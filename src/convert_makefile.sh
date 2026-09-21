@@ -1,5 +1,14 @@
 #!/bin/bash
 
+# NOTE: the script rewrites ./Makefile and ./Makefile.bak of the CURRENT directory,
+# therefore it must be run from src/ (the directory that now holds the Makefile):
+#
+#     cd src && ./convert_makefile.sh
+#
+# The script is a legacy helper that converted the original mkmf-generated Makefile:
+# it still works with its own OBJDIR = obj, while the current Makefile builds into
+# the repository-level ../build/obj and links ../build/TEB_offline.exe.
+#
 # Final script to convert Makefile:
 # - keep dependency rules, remove compilation commands
 # - add $(OBJDIR)/ prefix to targets and dependencies

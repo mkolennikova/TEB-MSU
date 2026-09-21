@@ -13,7 +13,7 @@ with ``zref = H/2`` the canyon reference height of TEB (``call_driver``:
 ``ZZ_LOWCAN = ZBLD_HEIGHT / 2``) and ``VMIN = 0.5 m/s`` (``XVMIN_GD``).
 
 This script runs the offline model on the Moscow ERA5 forcing for the three LCZs
-of ``python/sensitivity_zd.py`` with two values of ``urb_z0_gdn`` (the reference
+of ``python_tests/sensitivity_zd.py`` with two values of ``urb_z0_gdn`` (the reference
 0.1 m of the internal proxies and the rougher 0.8 m of a well vegetated garden)
 and checks that
 
@@ -63,11 +63,11 @@ Files (kept; use --force to re-run a case)
 
 Usage
 -----
-    python python/garden_z0_sensitivity.py
-    python python/garden_z0_sensitivity.py --list
-    python python/garden_z0_sensitivity.py --only LCZ2_gNEW_080,LCZ9_gNEW_080
-    python python/garden_z0_sensitivity.py --z0-list 0.1,0.4,0.8
-    python python/garden_z0_sensitivity.py --skip-run     # post-process only
+    python python_tests/garden_z0_sensitivity.py
+    python python_tests/garden_z0_sensitivity.py --list
+    python python_tests/garden_z0_sensitivity.py --only LCZ2_gNEW_080,LCZ9_gNEW_080
+    python python_tests/garden_z0_sensitivity.py --z0-list 0.1,0.4,0.8
+    python python_tests/garden_z0_sensitivity.py --skip-run     # post-process only
 """
 from __future__ import annotations
 
@@ -86,6 +86,9 @@ HERE = Path(__file__).resolve().parent
 MODEL_DIR = HERE.parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
+PYTHON_DIR = MODEL_DIR / 'python'      # shared libraries of the repository
+if str(PYTHON_DIR) not in sys.path:
+    sys.path.append(str(PYTHON_DIR))
 
 from sensitivity_zd import (                                          # noqa: E402
     LCZ, DEFAULT_WORK_DIR, run_case, series, stats_of,
@@ -328,7 +331,7 @@ def main(argv=None) -> int:
                    else site_dir / 'forcing_ERA5' / 'namelist_forcing.nml')
     out_root = (Path(args.out_root) if args.out_root
                 else site_dir / 'garden_z0_sensitivity')
-    exe = Path(args.exe) if args.exe else MODEL_DIR / 'TEB_offline.exe'
+    exe = Path(args.exe) if args.exe else MODEL_DIR / 'build' / 'TEB_offline.exe'
 
     all_cases = cases(z0_values)
     if args.only:
@@ -751,8 +754,8 @@ def main(argv=None) -> int:
     md.append('- `plots/z0_flux_delta.png` - z0 effect on the sensible (H) and latent (LE)'
               ' fluxes of the town and of the garden')
     md.append('')
-    md.append('See also `python/garden_z0_sensitivity.py` (this experiment),'
-              ' `python/compare_garden_scheme.py` (the garden schemes and the energy'
+    md.append('See also `python_tests/garden_z0_sensitivity.py` (this experiment),'
+              ' `python_tests/compare_garden_scheme.py` (the garden schemes and the energy'
               ' balance closure) and `TEB_Ru_garden_diagnostic_scheme.md`.')
     (out_root / 'README.md').write_text('\n'.join(md), encoding='utf-8')
 

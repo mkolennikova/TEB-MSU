@@ -181,7 +181,7 @@ into the canyon radiation budget: `URBAN_SOLAR_ABS` (`ZALB_GD`, `ZALB_GRF`) and
 garden proxies used the `TEB_VEG_PROPERTIES` constants (albedo `0.15`, emissivity
 `0.98`) while the `'EXT'` mode received the driver default emissivity `0.9`, and the
 greenroof roughness length was hard-coded (`0.01`). The unified defaults keep the
-internal modes bit-for-bit identical (`python/compare_garden_scheme.py`, A/B: 0
+internal modes bit-for-bit identical (`python_tests/compare_garden_scheme.py`, A/B: 0
 differing columns over 12 cases x 92 columns), but they **do change** `'EXT'` runs
 (emissivity `0.9` → `0.98`: 41…45 columns, up to about 53 W/m² on the road/canyon
 latent heat flux in LCZ 2, `RN_GARDEN` up to about 9.7 W/m²) - use
@@ -196,7 +196,7 @@ drag `PDUWDU_RF`, which are not exported and do not feed back) do not modify any
 exported column of a snow-free run. The garden parameters, by contrast, are all
 active (albedo + emissivity in the garden and canyon budgets, roughness length in
 the garden conductance and in `URBAN_DRAG`). See
-`python/garden_surface_par_sensitivity.py`.
+`python_tests/garden_surface_par_sensitivity.py`.
 
 
 ##### Garden roughness length (`urb_z0_gdn`)
@@ -217,7 +217,7 @@ implicit canyon budget.
 | Value (m) | Meaning |
 |:----------|:--------|
 | `0.1` | Default (`MODD_PROXI_SVAT_PAR:XZ0_GD`), reference value of the internal proxies |
-| `0.8` | Well vegetated (rough) garden, used in `python/garden_z0_sensitivity.py` |
+| `0.8` | Well vegetated (rough) garden, used in `python_tests/garden_z0_sensitivity.py` |
 
 #### Garden output columns
 
@@ -268,7 +268,7 @@ with two different coefficient sets:
   `WIND_THRESHOLD`): the description of the coefficients a *coupled* host model
   would need, not the coefficients actually used by the emulator;
 * `'EXT_NEU'` - the neutral formulation of the internal diagnostic garden
-  (`GARDEN_PCD_NEUTRAL`/`GARDEN_CA_NEUTRAL` of `src_proxi_SVAT/garden.F90`):
+  (`GARDEN_PCD_NEUTRAL`/`GARDEN_CA_NEUTRAL` of `src/src_proxi_SVAT/garden.F90`):
   `PCD = PCH = PCDN`, `PRI_GARDEN_*` and `ZZ0H_GARDEN_*` keep `XUNDEF` and
   `PAC_GARDEN_CAN` equals `EMU_CA_CAN` of the emulator exactly. This is the mode
   in which the exported coefficients and the emulated model are consistent
@@ -397,7 +397,7 @@ elevation of the day is a strong function of the season (Moscow: ~52° on 1 Augu
 on 1 January). They are checked against the `pysolar` library with
 
 ```bash
-python python/check_solar_position.py <output_dir>/TEB_output.csv --forcing-nml <forcing namelist>
+python python_tests/check_solar_position.py <output_dir>/TEB_output.csv --forcing-nml <forcing namelist>
 ```
 
 which validates the internal consistency of the angles, the elevation and azimuth
@@ -424,7 +424,7 @@ model sub-step `dt` of the forcing interval (i.e. at `time - dt`).
 | `Forc_DIR_SW`, `Forc_SCA_SW` | W/m² | Direct and diffuse shortwave radiation |
 
 Reading the output with the Python utilities
-([`python/output_utils.py`](python/output_utils.py)):
+([`python/output_utils.py`](../python/output_utils.py)):
 
 ```python
 import output_utils

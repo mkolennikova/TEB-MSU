@@ -263,7 +263,7 @@ def prepare_namelist(
 
     # Date components
     # NB: teb_year / teb_month / teb_day / teb_hour / teb_min are INTEGER namelist
-    # items in the driver (src_driver/run_teb_offline.F90), so they must be written
+    # items in the driver (src/src_driver/run_teb_offline.F90), so they must be written
     # as integers: a real value (e.g. 'teb_hour = 0.0') makes the namelist READ
     # fail (IOSTAT /= 0) and every entry that follows it (teb_min, teb_month,
     # teb_year) silently keeps the driver default (2004/2!) - the model then runs

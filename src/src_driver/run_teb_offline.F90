@@ -10,7 +10,7 @@ USE MODD_PROXI_SVAT_PAR, ONLY : XZ0_GD, XZ0_GR   ! roughness lengths: defaults o
 !MV202609 garden emulation (teb_type_garden = 'EXT')
 !* the external garden model of the offline runs is EMULATED inside this driver
 !* by PCD_GARDEN (see below) with the same diagnostic surface energy balance as
-!* the internal garden scheme: GARDEN_PCD of src_proxi_SVAT/garden.F90, its
+!* the internal garden scheme: GARDEN_PCD of src/src_proxi_SVAT/garden.F90, its
 !* numerical parameters (MODE_GARDEN_BALANCE) and QSAT of MODE_THERMOS
 USE MODI_GARDEN, ONLY : GARDEN_PCD
 USE MODE_THERMOS
@@ -531,7 +531,7 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
 !* the READ stopped before it, or whether it is not present in the file at all
 !* (in which case the value of the program - i.e. the driver default - is used).
 !* The equality of these two lists with the NAMELIST statements above is checked
-!* by python/check_namelist.py.
+!* by python_tests/check_namelist.py.
 CHARACTER(LEN=*), PARAMETER :: nml_forcing_items =                                  &
      'forcing_path,lon_teb,lat_teb,hlev_teb,teb_year,teb_month,teb_day,teb_hour,'// &
      'teb_min,nsteps,forc_step'
@@ -945,7 +945,7 @@ WRITE(*,'(A,F10.1,A,F12.1,A,I0,A)') ' TEB-Ru offline: dt = ', dt, ' s, forc_step
 !* 'EXT' means that the garden fluxes come from an external model (no internal
 !* garden parameterization is used) whose exchange coefficients are described by
 !* the full URBAN_EXCH_COEF set, 'EXT_NEU' the same with the neutral coefficients
-!* of the internal diagnostic garden (src_proxi_SVAT/garden.F90).
+!* of the internal diagnostic garden (src/src_proxi_SVAT/garden.F90).
 IF (teb_type_garden /= 'PROXY_OLD' .AND. teb_type_garden /= 'PROXY_NEW' .AND. &
     teb_type_garden /= 'EXT' .AND. teb_type_garden /= 'EXT_NEU') THEN
     WRITE(*,*) 'ERROR: unknown teb_type_garden = ', TRIM(teb_type_garden)
@@ -2085,7 +2085,7 @@ END FUNCTION NML_FORCING_VALUES
 
 SUBROUTINE PRINT_USAGE()
     WRITE(*,*) ''
-    WRITE(*,*) 'Usage: ./TEB_offline.exe [options]'
+    WRITE(*,*) 'Usage: build/TEB_offline.exe [options]'
     WRITE(*,*) ''
     WRITE(*,*) 'Options:'
     WRITE(*,*) '  -forcing_nml <path>    Path to forcing namelist file'
@@ -2097,10 +2097,10 @@ SUBROUTINE PRINT_USAGE()
     WRITE(*,*) '  -h, -help, --help      Show this help message'
     WRITE(*,*) ''
     WRITE(*,*) 'Examples:'
-    WRITE(*,*) '  ./TEB_offline.exe'
-    WRITE(*,*) '  ./TEB_offline.exe -forcing_nml my_forcing.nml -param_nml my_params.nml'
-    WRITE(*,*) '  ./TEB_offline.exe -forcing_nml my_forcing.nml -output my_results/'
-    WRITE(*,*) '  ./TEB_offline.exe -help'
+    WRITE(*,*) '  build/TEB_offline.exe'
+    WRITE(*,*) '  build/TEB_offline.exe -forcing_nml my_forcing.nml -param_nml my_params.nml'
+    WRITE(*,*) '  build/TEB_offline.exe -forcing_nml my_forcing.nml -output my_results/'
+    WRITE(*,*) '  build/TEB_offline.exe -help'
     WRITE(*,*) ''
 END SUBROUTINE PRINT_USAGE
 
@@ -2114,7 +2114,7 @@ END SUBROUTINE PRINT_USAGE
 !! the whole physics of TEB) is unaware of the difference between this emulator
 !! and a real external model: it only sees the 'EXT' interface.
 !!
-!! The emulator itself is GARDEN_PCD of src_proxi_SVAT/garden.F90: the same
+!! The emulator itself is GARDEN_PCD of src/src_proxi_SVAT/garden.F90: the same
 !! diagnostic surface energy balance as the internal garden scheme, solved for
 !! one surface temperature given ONE conductance and ONE reference air. The host
 !! (this subroutine) prepares that input from what TEB has just computed:
@@ -2150,7 +2150,7 @@ SUBROUTINE PCD_GARDEN
     INTEGER :: JI
     DO JI = 1, nvec
         !* tau of the garden exchange: the same tanh relaxation of the canyon
-        !* H/W ratio as TAU_URBAN of src_teb/teb_garden.F90 (which does not use
+        !* H/W ratio as TAU_URBAN of src/src_teb/teb_garden.F90 (which does not use
         !* the building height), with the namelist parameters; tau = 1 when the
         !* tau scheme is disabled
         emu_tau(JI) = 1.

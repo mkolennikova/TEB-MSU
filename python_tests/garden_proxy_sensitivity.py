@@ -22,9 +22,9 @@ Output (kept, not deleted):
 
 Usage
 -----
-    python python/garden_proxy_sensitivity.py
-    python python/garden_proxy_sensitivity.py --phu-list 0.2,0.4,0.6,0.8
-    python python/garden_proxy_sensitivity.py --z0-list 0.01,0.1,1.0
+    python python_tests/garden_proxy_sensitivity.py
+    python python_tests/garden_proxy_sensitivity.py --phu-list 0.2,0.4,0.6,0.8
+    python python_tests/garden_proxy_sensitivity.py --z0-list 0.01,0.1,1.0
 """
 from __future__ import annotations
 
@@ -42,6 +42,9 @@ import matplotlib.pyplot as plt
 HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
+PYTHON_DIR = HERE.parent / 'python'    # shared libraries of the repository
+if str(PYTHON_DIR) not in sys.path:
+    sys.path.append(str(PYTHON_DIR))
 
 import garden_proxy_compare as g  # noqa: E402  (reuse thermo + scheme functions)
 

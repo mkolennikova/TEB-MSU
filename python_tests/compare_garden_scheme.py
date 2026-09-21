@@ -5,7 +5,7 @@ Extended testing of the garden scheme of TEB-Ru over Moscow local climate zones.
 Purpose
 -------
 Run the garden model in the configurations of the Moscow LCZs (LCZ 2, LCZ 9 and
-the extreme SPARSE case of ``python/sensitivity_zd.py``) with the three garden
+the extreme SPARSE case of ``python_tests/sensitivity_zd.py``) with the three garden
 options of the namelist key ``teb_type_garden`` and check that
 
   * the new diagnostic proxy (``PROXY_NEW``) works in very different canyon
@@ -42,17 +42,17 @@ Files (kept; use --force to re-run a case)
 
 Usage
 -----
-    python python/compare_garden_scheme.py
-    python python/compare_garden_scheme.py --list
-    python python/compare_garden_scheme.py --only LCZ2_gNEW,LCZ9_gOLD
-    python python/compare_garden_scheme.py --skip-run      # post-process only
-    python python/compare_garden_scheme.py --force         # re-run existing
-    python python/compare_garden_scheme.py --fr-garden 0.4
-    python python/compare_garden_scheme.py --z0-garden 0.8
+    python python_tests/compare_garden_scheme.py
+    python python_tests/compare_garden_scheme.py --list
+    python python_tests/compare_garden_scheme.py --only LCZ2_gNEW,LCZ9_gOLD
+    python python_tests/compare_garden_scheme.py --skip-run      # post-process only
+    python python_tests/compare_garden_scheme.py --force         # re-run existing
+    python python_tests/compare_garden_scheme.py --fr-garden 0.4
+    python python_tests/compare_garden_scheme.py --z0-garden 0.8
 
 The namelist item ``urb_z0_gdn`` (garden roughness length, used by all the garden
 versions) is left to the model default when ``--z0-garden`` is not given; see
-``python/garden_z0_sensitivity.py`` for the dedicated sensitivity experiment.
+``python_tests/garden_z0_sensitivity.py`` for the dedicated sensitivity experiment.
 """
 from __future__ import annotations
 
@@ -72,6 +72,9 @@ HERE = Path(__file__).resolve().parent
 MODEL_DIR = HERE.parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
+PYTHON_DIR = MODEL_DIR / 'python'      # shared libraries of the repository
+if str(PYTHON_DIR) not in sys.path:
+    sys.path.append(str(PYTHON_DIR))
 
 from sensitivity_zd import (                                          # noqa: E402
     LCZ, DEFAULT_WORK_DIR, run_case, series, stats_of,
@@ -298,7 +301,7 @@ def main(argv=None) -> int:
                    else site_dir / 'forcing_ERA5' / 'namelist_forcing.nml')
     out_root = (Path(args.out_root) if args.out_root
                 else site_dir / 'compare_garden_scheme')
-    exe = Path(args.exe) if args.exe else MODEL_DIR / 'TEB_offline.exe'
+    exe = Path(args.exe) if args.exe else MODEL_DIR / 'build' / 'TEB_offline.exe'
 
     all_cases = cases()
     if args.only:

@@ -1,8 +1,18 @@
 # Makefile created by mkmf.pl $Id: mkmf,v 14.0 2007/03/20 22:13:27 fms Exp $ 
 
+# The build is run from this directory (src/), from the repository root:
+#
+#     make -C src clean
+#     make -C src
+#
+# All the dependencies below (src_teb/..., ../build/obj/...) are therefore relative
+# to src/. The object files, the module files and the executable are written to the
+# repository-level build/ directory, which is created automatically and is not
+# tracked. The executable is started from the repository root, next to namelist/,
+# input/ and output/, because the driver reads those with relative paths (cwd of the run).
 include gfortran_args
-EXEC = TEB_offline.exe
-OBJDIR = obj
+EXEC = ../build/TEB_offline.exe
+OBJDIR = ../build/obj
 
 # Ensure module files go to OBJDIR and include paths are set
 ifeq ($(FC),ifort)

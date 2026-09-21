@@ -88,7 +88,7 @@ paired `A_atm` with the canyon-air temperature.
 | `teb_tau_hw_width` | ширина tanh-перехода | `0.25` |
 
 **Вес τ** вычисляется один раз на шаг в `TEB_GARDEN`
-(`src_teb/teb_garden.F90:722-729`):
+(`src/src_teb/teb_garden.F90:722-729`):
 
 ```fortran
 !MV202609 tau scheme of the road
@@ -118,9 +118,9 @@ END FUNCTION TAU_URBAN
 
 | место | что взвешивается |
 | --- | --- |
-| `src_teb/teb.F90:765-783` | эффективная проводимость дороги и эталонный воздух для `ROAD_LAYER_E_BUDGET` |
-| `src_teb/avg_urban_fluxes.F90:474, 475, 481` | вес дороги (и снега на дороге) в бюджете **температуры** воздуха каньона |
-| `src_teb/avg_urban_fluxes.F90:510, 511, 515` | вес дороги в бюджете **влажности** воздуха каньона |
+| `src/src_teb/teb.F90:765-783` | эффективная проводимость дороги и эталонный воздух для `ROAD_LAYER_E_BUDGET` |
+| `src/src_teb/avg_urban_fluxes.F90:474, 475, 481` | вес дороги (и снега на дороге) в бюджете **температуры** воздуха каньона |
+| `src/src_teb/avg_urban_fluxes.F90:510, 511, 515` | вес дороги в бюджете **влажности** воздуха каньона |
 
 ## 2. Обозначения
 
@@ -144,7 +144,7 @@ END FUNCTION TAU_URBAN
 
 ## 3. Математика
 
-### 3.1 Бюджет дороги (`src_teb/teb.F90:752-784`)
+### 3.1 Бюджет дороги (`src/src_teb/teb.F90:752-784`)
 
 ```fortran
 !MV202609 tau scheme of the road
@@ -194,7 +194,7 @@ LE_ROAD = τ·LE_ROAD_CAN + (1−τ)·LE_ROAD_ATM
 проверено численно на всех кейсах (невязка ~1e-5…1e-3 Вт/м², т.е. на уровне
 точности вывода CSV).
 
-### 3.3 Бюджет воздуха каньона (`src_teb/avg_urban_fluxes.F90:471-493`)
+### 3.3 Бюджет воздуха каньона (`src/src_teb/avg_urban_fluxes.F90:471-493`)
 
 Транскрипция кода (индексы массивов опущены):
 
@@ -230,7 +230,7 @@ T_c = [ A_rd_w·T_rd + A_wl·T_wl_eff + A_gd·T_gd + A_top·T_a + Q/(ρ·cp) ]
       / [ A_rd_w + A_wl + A_gd + A_top ]
 ```
 
-### 3.4 Бюджет влажности каньона (`src_teb/avg_urban_fluxes.F90:510-519`)
+### 3.4 Бюджет влажности каньона (`src/src_teb/avg_urban_fluxes.F90:510-519`)
 
 ```fortran
 ZINTER = PTAU*PAC_RD_WAT*PDF_RD*PDELT_RD*ZRD + PAC_AGG_GD*PHU_AGG_GD*ZGD + PAC_TOP
@@ -601,12 +601,12 @@ H_ROAD = ρ·cp·A_1(τ)·(T_rd − T_c)             (единственный �
 
 | файл | место | что делать |
 | --- | --- | --- |
-| `src_teb/teb.F90` | `752-784` | ветвление по `ITYPE_TAU`: 1 — как сейчас; 2 — `R1(τ)`, `A_1(τ)`, `A_1_w(τ)`, `ZT_REF = PT_LOWCAN`, `ZQ_REF = PQ_LOWCAN`, guard-ы |
-| `src_teb/teb.F90` | выходные аргументы `TEB` | вернуть веса `A_1`, `A_1_w` (и снежный вес) |
-| `src_teb/teb_garden.F90` (+ `modi_teb_garden.f90`) | `726-729`, `732`, `790` | `ITYPE_TAU > 0` для `ZTAU`; проброс весов из `TEB` в `AVG_URBAN_FLUXES` |
-| `src_teb/avg_urban_fluxes.F90` (+ `modi_avg_urban_fluxes.f90`) | `474, 475, 481` (температура), `510, 511, 515` (влажность) | `PTAU·PAC_RD` → переданный вес |
-| `src_driver/run_teb_offline.F90` | блок вывода | колонки `PAC_WL`, `PAC_TOP` (проверка сети); `H_ROAD_ATM` уже есть |
-| `python/compare_tau_scheme.py`, namelist | — | `teb_itype_tau` (0/1/2); суффиксы кейсов `_tau` (itype 1) / `_tau2` (itype 2) |
+| `src/src_teb/teb.F90` | `752-784` | ветвление по `ITYPE_TAU`: 1 — как сейчас; 2 — `R1(τ)`, `A_1(τ)`, `A_1_w(τ)`, `ZT_REF = PT_LOWCAN`, `ZQ_REF = PQ_LOWCAN`, guard-ы |
+| `src/src_teb/teb.F90` | выходные аргументы `TEB` | вернуть веса `A_1`, `A_1_w` (и снежный вес) |
+| `src/src_teb/teb_garden.F90` (+ `modi_teb_garden.f90`) | `726-729`, `732`, `790` | `ITYPE_TAU > 0` для `ZTAU`; проброс весов из `TEB` в `AVG_URBAN_FLUXES` |
+| `src/src_teb/avg_urban_fluxes.F90` (+ `modi_avg_urban_fluxes.f90`) | `474, 475, 481` (температура), `510, 511, 515` (влажность) | `PTAU·PAC_RD` → переданный вес |
+| `src/src_driver/run_teb_offline.F90` | блок вывода | колонки `PAC_WL`, `PAC_TOP` (проверка сети); `H_ROAD_ATM` уже есть |
+| `python_tests/compare_tau_scheme.py`, namelist | — | `teb_itype_tau` (0/1/2); суффиксы кейсов `_tau` (itype 1) / `_tau2` (itype 2) |
 
 Внешние интерфейсы драйвера (namelist, `sfc_teb`, `call_driver`) не меняются — всё
 происходит внутри `TEB_GARDEN_STRUCT`.
@@ -684,7 +684,7 @@ H_ROAD = ρ·cp·A_1(τ)·(T_rd − T_c)             (единственный �
    дороги и ограничен физическим отношением `A_atm/A_series0`. Целевые метрики:
    (а) «нет застройки ⇒ `ΔT_CAN = θ*/κ`»; (б) «плотный каньон ⇒ совпадение с
    референсом»; (в) требуемое изменение `H_ROAD`/`H_TOWN` в разрежённом пределе.
-4. **Проверки антропогенных потоков** (`python/check_anthro_heat.py`) остаются в
+4. **Проверки антропогенных потоков** (`python_tests/check_anthro_heat.py`) остаются в
    силе: R-A не касается `AHF_TRAFFIC`, `H_WASTE`/`LE_WASTE` и городского бюджета —
    чувствительности к трафику и BEM должны сохраниться (входит в регрессионный
    набор).
@@ -699,12 +699,12 @@ H_ROAD = ρ·cp·A_1(τ)·(T_rd − T_c)             (единственный �
 | 4 | сетевое замыкание узла | `A_1·(T_rd − T_c) = A_top·(T_c − T_a) − (стены + сад + антропоген)` | невязка ≤ 1e-10 |
 | 5 | аномалия vs MOST | таблица `ΔT_can`, `θ*/κ`, суточные диапазоны по всем 6 кейсам | для SPARSE/LCZ9 сохранение аномалии (0.8…0.95 K, с суточным ходом), для LCZ2 — совпадение с референсом |
 | 6 | эффект по потокам | сравнение `ΔH_ROAD`, `ΔH_TOWN`, `ΔQ_CAN` (схема 1 vs v2) по 12 кейсам | тот же порядок; по проводимости ≤ ~1.3× (`A_atm/A_series0`) |
-| 7 | антропогенные потоки | `python/check_anthro_heat.py` на новых прогонах | чувствительности к трафику/BEM и τ-инвариантность сохранены |
+| 7 | антропогенные потоки | `python_tests/check_anthro_heat.py` на новых прогонах | чувствительности к трафику/BEM и τ-инвариантность сохранены |
 | 8 | робастность | проверка `T_CAN ∈ [min, max]` участвующих температур; отсутствие NaN и SIGFPE (в т.ч. сухая дорога) | нет нарушений |
 | 9 | сетевые соотношения | по выводам: `A_can_s > A_rd`, `1/(R1_s + 1/A_top) = A_atm`, `κ·u*/A_top ≈ 1` | выполняются на всех кейсах (валидация допущения §9.5.2) |
 
 Для тестов 3–4 и 9 нужны 2 новые колонки вывода (`PAC_WL`, `PAC_TOP`); стоимость —
-`make FC=gfortran` + перепрогон 12 кейсов (≈4 мин).
+`make -C src FC=gfortran` + перепрогон 12 кейсов (≈4 мин).
 
 ## 13. Открытые вопросы
 
@@ -746,10 +746,10 @@ H_ROAD = ρ·cp·A_1(τ)·(T_rd − T_c)             (единственный �
 
 Ревизия меняет **только способ вычисления температуры воздуха**, которую «видят»
 поверхности каньона. Потоковая сторона схемы (τ-агрегация проводимостей
-`ZPAC_RD`/`ZT_REF` в `src_teb/teb.F90:760-784` и диагностики
+`ZPAC_RD`/`ZT_REF` в `src/src_teb/teb.F90:760-784` и диагностики
 `H_ROAD_CAN`/`H_ROAD_ATM`) остаётся такой же, как в v1, и переключатель не
 меняется: `teb_ltau_scheme` → `TOP%LTAU_SCHEME` → `ZTAU`
-(`src_teb/teb_garden.F90:726-730`), при выключенной схеме `ZTAU = 1.`
+(`src/src_teb/teb_garden.F90:726-730`), при выключенной схеме `ZTAU = 1.`
 
 Вместо одного узла каньона с τ-весами в проводимостях (v1:
 `avg_urban_fluxes.F90`, строки 474-481 и 510-515) вводятся **три** величины.
@@ -772,7 +772,7 @@ T_CAN   = PTAU * T_CAN0 + (1 - PTAU) * T_CAN1                 ! то, что в�
   внутри слоя;
 * `T_CAN` — τ-релаксация обеих величин: то, что подставляется в бюджеты
   поверхностей на следующем шаге (`ZT_LOWCAN = ZT_CANYON`,
-  `src_driver/call_driver.F90:1345`) и выводится как `T_CANYON`.
+  `src/src_driver/call_driver.F90:1345`) и выводится как `T_CANYON`.
 
 Зачем это нужно (проблемы v1 — §7-§8): артефакты трафика, мусорного тепла и сада
 возникали потому, что их вклад целиком попадал в воздух каньона, которого для
@@ -785,7 +785,7 @@ T_CAN   = PTAU * T_CAN0 + (1 - PTAU) * T_CAN1                 ! то, что в�
 
 ## 16. `T_CAN0` — воздух каньона без τ
 
-Узел каньона (`src_teb/avg_urban_fluxes.F90`); структура выражений сохранена
+Узел каньона (`src/src_teb/avg_urban_fluxes.F90`); структура выражений сохранена
 дословно, убраны только множители `PTAU`:
 
 ```fortran
@@ -856,11 +856,11 @@ PT_CAN1     = PTA + (ZTH_CAN1/XKARMAN) * PHI_CAN1
   Проверено численно по отладочному выводу: воспроизводится точно;
 * `PVMOD` — тот же ветер, что используется проводимостями модели;
 * `PTA` в `AVG_URBAN_FLUXES` — это воздух **на уровне крыши**
-  (`ZTA = PTA·PEXNS/PEXNA`, `src_teb/teb_garden.F90:592`), а не форсинговая
+  (`ZTA = PTA·PEXNS/PEXNA`, `src/src_teb/teb_garden.F90:592`), а не форсинговая
   температура; `T_CAN1`, как и `T_CAN0`, согласован именно с ним (на стенде
   `ZTA − Forc_TA = +0.10 K`);
 * уровень `H/2` выбран потому, что в TEB это стандартный уровень для переменных
-  каньона (`ZZ_LOWCAN = ZBLD_HEIGHT/2` в `src_driver/call_driver.F90:1202`);
+  каньона (`ZZ_LOWCAN = ZBLD_HEIGHT/2` в `src/src_driver/call_driver.F90:1202`);
 * `PSI_H_BD` — функция устойчивости для тепла семейства Businger–Dyer с
   коэффициентами, использованными в коде (`SURFACE_CD`/`SURFACE_AERO_COND`):
   неустойчиво `2·ln[(1+sqrt(1−15ζ))/2]`, устойчиво `−5ζ`; вложенная функция в
@@ -916,20 +916,20 @@ TEB устроены остальные переменные каньона. Р�
 
 | Файл | Что сделано |
 | --- | --- |
-| `src_teb/avg_urban_fluxes.F90` | узел каньона без τ (`PT_CAN0`, `PQ_CAN0`); приток слоя `ZH_CAN1`/`LE_CAN1`; профиль MOST (`u*`, `theta*`, `L`, `PHI_CAN1`) и вложенная `PSI_H_BD`; бленд `PT_CAN`/`PQ_CAN`; новые аргументы и выходы |
-| `src_teb/modi_avg_urban_fluxes.f90` | интерфейс: входы `PH_ROAD_ATM`, `PLE_ROAD_ATM`, `PCD_ROAD_ATM`, `ZZ0H_ROAD_ATM`, `PZREF`, `PVMOD`; выходы `PT_CAN0`, `PT_CAN1`, `PPHI_CAN1`, `PQ_CAN0`, `PQ_CAN1` |
-| `src_teb/teb_garden.F90`, `modi_teb_garden.f90` | прокидка аргументов, локальные `ZQ_CAN0`/`ZQ_CAN1`, выходы `PT_CAN0`/`PT_CAN1`/`PPHI_CAN1` |
-| `src_struct/teb_garden_struct.F90`, `modi_teb_garden_struct.f90` | те же выходы через обёртку |
-| `src_driver/call_driver.F90`, `sfc_teb.F90`, `run_teb_offline.F90` | выходы и три новые колонки CSV: `T_CAN0`, `T_CAN1`, `PHI_CAN1` |
-| `python/compare_tau_scheme.py` | новые переменные в сравнении, диурнальный график `tau_tcan1_diurnal.png`, описание ревизии в README стенда |
-| **не менялись** | `src_teb/teb.F90` (потоковая сторона и диагностики v1), `urban_drag.F90`, `modd_teb_optionn.F90`, namelist'ы, переключатель `teb_ltau_scheme` |
+| `src/src_teb/avg_urban_fluxes.F90` | узел каньона без τ (`PT_CAN0`, `PQ_CAN0`); приток слоя `ZH_CAN1`/`LE_CAN1`; профиль MOST (`u*`, `theta*`, `L`, `PHI_CAN1`) и вложенная `PSI_H_BD`; бленд `PT_CAN`/`PQ_CAN`; новые аргументы и выходы |
+| `src/src_teb/modi_avg_urban_fluxes.f90` | интерфейс: входы `PH_ROAD_ATM`, `PLE_ROAD_ATM`, `PCD_ROAD_ATM`, `ZZ0H_ROAD_ATM`, `PZREF`, `PVMOD`; выходы `PT_CAN0`, `PT_CAN1`, `PPHI_CAN1`, `PQ_CAN0`, `PQ_CAN1` |
+| `src/src_teb/teb_garden.F90`, `modi_teb_garden.f90` | прокидка аргументов, локальные `ZQ_CAN0`/`ZQ_CAN1`, выходы `PT_CAN0`/`PT_CAN1`/`PPHI_CAN1` |
+| `src/src_struct/teb_garden_struct.F90`, `modi_teb_garden_struct.f90` | те же выходы через обёртку |
+| `src/src_driver/call_driver.F90`, `sfc_teb.F90`, `run_teb_offline.F90` | выходы и три новые колонки CSV: `T_CAN0`, `T_CAN1`, `PHI_CAN1` |
+| `python_tests/compare_tau_scheme.py` | новые переменные в сравнении, диурнальный график `tau_tcan1_diurnal.png`, описание ревизии в README стенда |
+| **не менялись** | `src/src_teb/teb.F90` (потоковая сторона и диагностики v1), `urban_drag.F90`, `modd_teb_optionn.F90`, namelist'ы, переключатель `teb_ltau_scheme` |
 
 ## 20. Верификация: числа и воспроизведение
 
 Стенд: 6 морфологий (LCZ2 — плотный каньон, τ = 1.000; LCZ9 — разрежённая,
 τ = 0.057; SPARSE — крайне разрежённая, `fr_bld = 0.01`, τ = 0.019) × 2 схемы
 ветра, 32 дня, `--no-garden`, `ahf_traffic = 0`, BEM включён. Прогоны:
-`python python/compare_tau_scheme.py --no-garden` (прогоны + статистика + графики),
+`python python_tests/compare_tau_scheme.py --no-garden` (прогоны + статистика + графики),
 пределы τ — через `--tau-hw-thresh`.
 
 ### 20.1 Бит-в-бит при τ = 1
@@ -1007,7 +1007,7 @@ v1 по всем 61 общим числовым колонкам: `max|Δ| = 0.0
 (τ = 1), что удобно для контроля. Свободный слой обозначается **CAN1** по аналогии
 с **CAN0** (классический воздух каньона).
 
-Заодно исправлен предел массива заголовков CSV в `src_driver/run_teb_offline.F90`
+Заодно исправлен предел массива заголовков CSV в `src/src_driver/run_teb_offline.F90`
 (`nout_max` 64 → 128) с явной проверкой `nout > nout_max`: при 66 колонках прежний
 предел переполнялся, из-за чего заголовок CSV портился (лишние поля и потеря
 последнего имени).
@@ -1065,7 +1065,7 @@ v1 по всем 61 общим числовым колонкам: `max|Δ| = 0.0
 ## 23. Снежные члены каньонного узла: аудит и правки (v1.2)
 
 Правки этого раздела — продолжение снежной ветви (§21.1): оба дефекта в
-`src_teb/avg_urban_fluxes.F90` наследованы (первый — с первого коммита, второй —
+`src/src_teb/avg_urban_fluxes.F90` наследованы (первый — с первого коммита, второй —
 из исходного TEB), но затрагивают именно те строки, которые вводила снежная
 ветвь.
 
@@ -1138,14 +1138,14 @@ v1 по всем 61 общим числовым колонкам: `max|Δ| = 0.0
 оставались неинициализированными: в CSV-выводе эти колонки содержали мусор
 (значения до 10¹⁸…10²¹ и метки `XUNDEF` в 6–17 % часов), из-за чего
 конфигурация BEM off была непригодна для проверок замыкания городка
-(`python/check_anthro_heat.py`). Физика при этом не страдала: во всех расчётных
+(`python_tests/check_anthro_heat.py`). Физика при этом не страдала: во всех расчётных
 ветвях эти массивы используются под `IF (TOP%CBEM=="BEM")`
 (`AVG_URBAN_FLUXES`, `URBAN_FLUXES`, `TEB`), поэтому `H_TOWN` при BEM off был
 корректен и раньше. Дефект унаследован (воспроизводится и в архивных летних
 прогонах `Moscow/compare_tau_scheme_def`, снятых до τ-ревизии).
 
 Правка — явное обнуление в ветви `CASE("DEF")` процедуры `TEB`
-(`src_teb/teb.F90`), рядом с другими «нулевыми» величинами этой ветви:
+(`src/src_teb/teb.F90`), рядом с другими «нулевыми» величинами этой ветви:
 
 ```fortran
    DMT%XH_WASTE (:) = 0.
@@ -1274,7 +1274,7 @@ PAC_ROAD_ATM_WAT = f · PAC_ROAD_ATM
 
 ### 25.5. Проверки (v1.3.1)
 
-* `python/check_puddle_water.py <csv> --dt 3600` — инварианты по CSV:
+* `python_tests/check_puddle_water.py <csv> --dt 3600` — инварианты по CSV:
   T1 τ-декомпозиция (max |невязка| ≤ 3.6·10⁻¹¹ Вт/м²); T2 равенство ветвевых
   факторов ограничения `f` (≤ 5.6·10⁻¹⁷); T3 «при f < 1 фактический
   `LE_ROAD` = `ZLE_MAX` = `WS_ROAD`·XLVTT/Δt» (≤ 6.3·10⁻¹⁵ на активных часах);
@@ -1338,7 +1338,7 @@ PAC_ROAD_ATM_WAT = f · PAC_ROAD_ATM
 
 Сад остаётся **одной поверхностью** с одной температурой `Ts`; τ интерполирует её
 связь с двумя воздушными массами — ровно так же, как `ZPAC_RD`/`ZT_REF` делают это
-для бюджета дороги (`src_teb/teb.F90:781-805`):
+для бюджета дороги (`src/src_teb/teb.F90:781-805`):
 
 ```fortran
 Ca_C = (k/ln(PZ_LOWCAN/z0))**2 * max(PU_LOWCAN, 0.5)   ! каньон: высота H/2
@@ -1434,7 +1434,7 @@ Rn_GARDEN = H_GARDEN + LE_GARDEN                        (G = 0)
 | τ, восстановленная из данных `(H_GARDEN−H_GARDEN_ATM)/(H_CAN−H_ATM)` | совпадает с аналитической: σ ≤ 1.6e-13 (шум вывода CSV) |
 | пределы | τ → 1: `H_GARDEN = H_GARDEN_CAN` (0.0); τ → 0: `H_GARDEN = H_GARDEN_ATM` (2.1e-12), `T_CAN = T_CAN1` (0.0 K) |
 | энергобаланс города (§20.4) | при τ = 1 среднее/мин/макс невязки совпадают со старым бинарником до последнего знака; при τ < 1 остаётся того же порядка |
-| стенд `python/compare_garden_scheme.py` (B1–B6), 12 кейсов | B1 ≤ 1.9e-11, B2 ≤ 1.1e-13, B5 = 0.0, B6 = 0 срабатываний; значения `max_abs` совпадают с архивом |
+| стенд `python_tests/compare_garden_scheme.py` (B1–B6), 12 кейсов | B1 ≤ 1.9e-11, B2 ≤ 1.1e-13, B5 = 0.0, B6 = 0 срабатываний; значения `max_abs` совпадают с архивом |
 
 Числовой эффект (средние за август, Вт/м² на м² сада):
 
@@ -1450,15 +1450,15 @@ Rn_GARDEN = H_GARDEN + LE_GARDEN                        (G = 0)
 
 ### 26.7. Диагностики и правки в коде
 
-Новые столбцы CSV (`src_driver/run_teb_offline.F90`, сразу после `PAC_GARDEN`):
+Новые столбцы CSV (`src/src_driver/run_teb_offline.F90`, сразу после `PAC_GARDEN`):
 `H_GARDEN_CAN`, `H_GARDEN_ATM`, `LE_GARDEN_CAN`, `LE_GARDEN_ATM` (per m² сада).
 
 | файл | что сделано |
 | --- | --- |
-| `src_proxi_SVAT/garden.F90` (+ `modi_garden.F90`) | τ-версия выделена в подпрограмму **`GARDEN_TAU`** (входы `LTAU_SPLIT`, `PTAU`, `PUREF`, `PVMOD`, `PTA`, `PQA`; `Ca_C`, `Ca_A`, `Ca_eff`, `T_ref`, `q_ref`; одна Ньютон-итерация на смешанной связи — вызов решателя `GARDEN_BALANCE`; ветвевые выходы и трение); решатель и параметры схемы — в модуле `MODE_GARDEN_BALANCE` (в том же файле); рядом живут `GARDEN` (сокращённый сад без τ: считает `PCD` и вызывает `GARDEN_PCD`) и `GARDEN_PCD` (внешние `PCD`, `V`, `T_ref`, `q_ref`; **ни высоты, ни `z0` в аргументах**) — они служат только интерфейсом для экспериментов и **из TEB не вызываются**, и возвращают **один** набор потоков (ветви `_CAN`/`_ATM` формирует только `GARDEN_TAU`: в не-τ ветви она дублирует в них свой единственный поток, так что `H = τ·H_CAN+(1−τ)·H_ATM` выполняется тождественно). Аргументные списки всех трёх рутин компактны (легаси-параметры удалены), вызов в `teb_garden.F90` сокращён |
-| `src_teb/teb_garden.F90` (+ `modi_teb_garden.f90`) | `ZTAU` перенесён **выше** `TEB_GARDEN2` (нужен саду); проброс входов в `GARDEN`; `LTAU_SPLIT = LTAU_SCHEME .AND. 'PROXY_NEW'`; для `EXT` ветви равны `ZH_GD/ZLE_GD`; четыре новых выхода |
-| `src_teb/avg_urban_fluxes.F90` (+ `modi`) | `ZH_CAN1`: `PH_GD → PH_GD_ATM`; `ZLE_CAN1`: `PLE_GD → PLE_GD_ATM`; `T_CAN0`/`PQ_CAN0`/баланс города — без изменений |
-| `src_struct/teb_garden_struct.F90`, `modi_teb_garden_struct.f90`, `src_driver/sfc_teb.F90`, `call_driver.F90`, `run_teb_offline.F90` | прокидка четырёх новых выходов и колонок CSV |
+| `src/src_proxi_SVAT/garden.F90` (+ `modi_garden.F90`) | τ-версия выделена в подпрограмму **`GARDEN_TAU`** (входы `LTAU_SPLIT`, `PTAU`, `PUREF`, `PVMOD`, `PTA`, `PQA`; `Ca_C`, `Ca_A`, `Ca_eff`, `T_ref`, `q_ref`; одна Ньютон-итерация на смешанной связи — вызов решателя `GARDEN_BALANCE`; ветвевые выходы и трение); решатель и параметры схемы — в модуле `MODE_GARDEN_BALANCE` (в том же файле); рядом живут `GARDEN` (сокращённый сад без τ: считает `PCD` и вызывает `GARDEN_PCD`) и `GARDEN_PCD` (внешние `PCD`, `V`, `T_ref`, `q_ref`; **ни высоты, ни `z0` в аргументах**) — они служат только интерфейсом для экспериментов и **из TEB не вызываются**, и возвращают **один** набор потоков (ветви `_CAN`/`_ATM` формирует только `GARDEN_TAU`: в не-τ ветви она дублирует в них свой единственный поток, так что `H = τ·H_CAN+(1−τ)·H_ATM` выполняется тождественно). Аргументные списки всех трёх рутин компактны (легаси-параметры удалены), вызов в `teb_garden.F90` сокращён |
+| `src/src_teb/teb_garden.F90` (+ `modi_teb_garden.f90`) | `ZTAU` перенесён **выше** `TEB_GARDEN2` (нужен саду); проброс входов в `GARDEN`; `LTAU_SPLIT = LTAU_SCHEME .AND. 'PROXY_NEW'`; для `EXT` ветви равны `ZH_GD/ZLE_GD`; четыре новых выхода |
+| `src/src_teb/avg_urban_fluxes.F90` (+ `modi`) | `ZH_CAN1`: `PH_GD → PH_GD_ATM`; `ZLE_CAN1`: `PLE_GD → PLE_GD_ATM`; `T_CAN0`/`PQ_CAN0`/баланс города — без изменений |
+| `src/src_struct/teb_garden_struct.F90`, `modi_teb_garden_struct.f90`, `src/src_driver/sfc_teb.F90`, `call_driver.F90`, `run_teb_offline.F90` | прокидка четырёх новых выходов и колонок CSV |
 | `Makefile`, namelist | без изменений (новых зависимостей и ключей нет) |
 
 **Эмулятор внешней модели сада в offline-драйвере.** Отдельным шагом (без новых

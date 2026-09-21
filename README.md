@@ -51,16 +51,33 @@ To build and run TEB-Ru locally:
 git clone https://github.com/mkolennikova/TEB-Ru.git
 cd TEB-Ru
 
-# Check compiler flags in gfortran_args
+# Check compiler flags in src/gfortran_args
 # The model automatically detects ifort or gfortran
 
-# Build the model
-make clean
-make
+# Build the model (the Fortran sources and the Makefile live in src/;
+# the object files and the executable are written to build/)
+make -C src clean
+make -C src
 
-# Run the model
-./TEB_offline.exe
+# Run the model (from the repository root, next to namelist/ and input/)
+./build/TEB_offline.exe
 ```
+
+## Repository Layout
+
+| Path | Content |
+| --- | --- |
+| `src/` | Fortran sources (`src_driver/`, `src_teb/`, `src_struct/`, `src_solar/`, `src_proxi_SVAT/`), the `Makefile`, `gfortran_args` and the makefile conversion script |
+| `python/` | Python libraries shared by the notebooks: output handling (`output_utils.py`), forcing preparation (`forcing_ERA5.py`, `forcing_utils.py`) and the notebook helpers (`run_utils.py`, `install_utils.py`) |
+| `python_tests/` | Python test benches and comparison/sensitivity experiments verifying the model revisions |
+| `build/` | Build output of `make`: `obj/` (object and module files) and `TEB_offline.exe`; created automatically and not tracked |
+| `docs/` | Model documentation: variable description (Markdown and spreadsheet) and the description of the garden and τ-scheme experiments |
+| `namelist/`, `input/`, `output_ref/` | Namelists, reference atmospheric forcing and reference output of the test case |
+| `output/` | Output of the last run (created at run time, not tracked) |
+| `run_in_collab.ipynb`, `run_on_windows.ipynb` | Step-by-step notebooks: Google Colab pipeline and local Windows build/run |
+
+The executable is started from the repository root (`./build/TEB_offline.exe`), because the driver
+reads `namelist/` and `input/` and writes `output/` relative to the working directory.
 
 ## Configuration
 
@@ -85,11 +102,11 @@ items of the forcing namelist have **no default value** any more and are validat
 (range check): a run without a valid start date cannot start. The start date, the end
 date of the run, the forcing window and the location are echoed in the log.
 The date used by a finished run can also be verified from its output with
-[`python/check_solar_position.py`](python/check_solar_position.py), which compares the
+[`python_tests/check_solar_position.py`](python_tests/check_solar_position.py), which compares the
 `SOLAR_ZENITH`/`SOLAR_ELEV`/`SOLAR_AZIM` columns of `TEB_output.csv` with the
 [`pysolar`](https://pysolar.readthedocs.io) library.
 
-Description of model options from [namelist.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/namelist/namelist.nml), as wel as model output variables is avaible in [here](https://github.com/mkolennikova/TEB-Ru/blob/main/TEB_Ru_variables_description.md). 
+Description of model options from [namelist.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/namelist/namelist.nml), as wel as model output variables is avaible in [here](https://github.com/mkolennikova/TEB-Ru/blob/main/docs/TEB_Ru_variables_description.md). 
 
 ### Model Output
 
@@ -98,7 +115,7 @@ each step, to a single semicolon-separated file `<output_dir>/TEB_output.csv`
 (`-output <dir>` on the command line, `output/` by default). The file contains one line
 per forcing step: first the time column `time` (ISO 8601, the end of the forcing
 interval, e.g. `2004-02-20 00:30:00`), then the model variables, then the forcing
-columns `Forc_*` (see [TEB_Ru_variables_description.md](TEB_Ru_variables_description.md)).
+columns `Forc_*` (see [TEB_Ru_variables_description.md](docs/TEB_Ru_variables_description.md)).
 The columns depend on the model options (e.g. `HVAC_*` only with the Building Energy
 Model, `SOLAR_PROD` only with solar panels).
 
@@ -114,7 +131,7 @@ df = output_utils.read_output('output_old/', fmt='txt',   # legacy <VAR>.txt fil
 
 ### Compiler Flags
 
-Compiler settings are defined in [`gfortran_args`](https://github.com/mkolennikova/TEB-Ru/blob/main/gfortran_args). The model automatically detects the available compiler:
+Compiler settings are defined in [`src/gfortran_args`](https://github.com/mkolennikova/TEB-Ru/blob/main/src/gfortran_args). The model automatically detects the available compiler:
 
 - `ifort` – Intel Fortran Compiler (if available)
 - `gfortran` – GNU Fortran Compiler (fallback)
@@ -122,7 +139,7 @@ Compiler settings are defined in [`gfortran_args`](https://github.com/mkolenniko
 Key compilation flags:
 - `-ffree-line-length-0` – Allow unlimited line length (avoids line truncation errors)
 - `-fdefault-real-8` – Use double precision real numbers
-- `-J$(OBJDIR)` – Place module files in the `obj/` directory
+- `-J$(OBJDIR)` – Place module files in the `build/obj` directory
 
 ## References
 
