@@ -5,7 +5,7 @@ format, cross-references, the marking of code changes and the checks to run befo
 commit. They record the conventions already used in the repository; if you have to
 deviate, explain why in the commit message.
 
-> Code state: commit `c37b29c` (2026-09-20), branch `MV_devs`.
+> Code state: commit `91308a7` (2026-09-22), branch `MV_devs`.
 
 ---
 
@@ -18,7 +18,7 @@ deviate, explain why in the commit message.
 | `TEB_Ru_tau_scheme_T_CAN_reformulation.md` | the **current** state of the tau scheme: concept, mathematics, implementation, properties, limitations, invariants | history, versions, rejected variants, run numbers |
 | `TEB_Ru_garden_diagnostic_scheme.md` | the **current** state of the diagnostic garden scheme (same structure) | the same |
 | `TEB_Ru_source_defects.md` | defects of the **original** model only (D1–D7) | defects of the driver, of the benches, of our own changes, open candidates |
-| `TEB_Ru_change_history.md` | commit-referenced history (registry `№1…№N`), rejected variants, measurement protocols, defects outside the original model (I1–I4), numerical defects of our own changes (N1), open items (C1–C4) | the description of the current scheme |
+| `TEB_Ru_change_history.md` | commit-referenced history (registry `№1…№N`), rejected variants, measurement protocols, defects outside the original model (I1–I4), numerical defects of our own changes (N1–N2), open items (C1–C5) | the description of the current scheme |
 | `TEB_Ru_documentation_rules.md` | this file (English); the scheme, history and defect documents are in Russian | — |
 
 ---
@@ -37,7 +37,7 @@ deviate, explain why in the commit message.
   Effect tables and run protocols live in Appendix A of the change history.
 * **Defects.** A defect of the original model goes to `TEB_Ru_source_defects.md`
   (label `Dn`). A defect of the driver, of the forcing reader or of a bench goes to
-  the change history (label `In`); a numerical defect of our own change is `N1`; a
+  the change history (label `In`); a numerical defect of our own change is `Nn` (`N1`, `N2`); a
   known but unfixed item is `Cn`.
 * Documents must not duplicate each other: reference the section instead of copying it.
 

@@ -15,7 +15,7 @@ upstream `TEB-model/teb`, ветка `master`, состояние 2022) и за�
 `TEB_Ru_garden_diagnostic_scheme.md`; привязка исправлений к коммитам — в
 `TEB_Ru_change_history.md`.
 
-> Состояние кода: коммит `c37b29c` (2026-09-20), ветка `MV_devs`.
+> Состояние кода: коммит `91308a7` (2026-09-22), ветка `MV_devs`.
 
 ---
 
