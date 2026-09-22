@@ -289,7 +289,8 @@ computed from the single garden surface temperature. With `'PROXY_OLD'` (the
 prescribed Bowen proxy does not depend on the meteorological forcing) and with
 `'EXT'` (a single set of fluxes, already computed for the averaged forcing) both
 branches are set equal to the actual flux, so the tau scheme does not change them.
-See `TEB_Ru_tau_scheme_T_CAN_reformulation.md`, part IV.
+See `TEB_Ru_garden_diagnostic_scheme.md` (section 2.3) and
+`TEB_Ru_tau_scheme_T_CAN_reformulation.md` (sections 4.3 and 4.7).
 
 
 ### Solar Panels

@@ -71,7 +71,7 @@ make -C src
 | `python/` | Python libraries shared by the notebooks: output handling (`output_utils.py`), forcing preparation (`forcing_ERA5.py`, `forcing_utils.py`) and the notebook helpers (`run_utils.py`, `install_utils.py`) |
 | `python_tests/` | Python test benches and comparison/sensitivity experiments verifying the model revisions |
 | `build/` | Build output of `make`: `obj/` (object and module files) and `TEB_offline.exe`; created automatically and not tracked |
-| `docs/` | Model documentation: variable description (Markdown and spreadsheet) and the description of the garden and τ-scheme experiments |
+| `docs/` | Model documentation: the variable description (Markdown and spreadsheet), the description of the implemented τ-scheme (`TEB_Ru_tau_scheme_T_CAN_reformulation.md`), of the diagnostic garden scheme (`TEB_Ru_garden_diagnostic_scheme.md`), of the defects of the original TEB found and fixed in TEB-Ru (`TEB_Ru_source_defects.md`), the commit-referenced change history (`TEB_Ru_change_history.md`) and the documentation rules (`TEB_Ru_documentation_rules.md`) |
 | `namelist/`, `input/`, `output_ref/` | Namelists, reference atmospheric forcing and reference output of the test case |
 | `output/` | Output of the last run (created at run time, not tracked) |
 | `run_in_collab.ipynb`, `run_on_windows.ipynb` | Step-by-step notebooks: Google Colab pipeline and local Windows build/run |
