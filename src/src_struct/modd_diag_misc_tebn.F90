@@ -72,6 +72,18 @@ TYPE DIAG_MISC_TEB_t
   REAL, POINTER, DIMENSION(:)   :: XLE_ROAD    ! road latent heat flux            (W/m2)
   REAL, POINTER, DIMENSION(:)   :: XLE_STRLROOF !structural roof latent heat flux (W/m2)
   REAL, POINTER, DIMENSION(:)   :: XLE_BLT     ! built surf latent heat flux      (W/m2)
+!MV202609 tau scheme of the road (snow-to-atmosphere branch diagnostics)
+!* Branch diagnostics of the snow-on-road exchange: they are computed by the snow
+!* scheme of TEB (URBAN_SNOW_EVOL, an INTENT(OUT) argument of TEB) and they are
+!* READ by the canyon air nodes (AVG_URBAN_FLUXES, TEB_GARDEN2) of the SAME
+!* sub-step, which runs BEFORE the snow scheme: they are the value of the previous
+!* sub-step, so they must be PERSISTENT. As automatic arrays of TEB_GARDEN_STRUCT
+!* they were read before being written (undefined values, seen only when the road
+!* snow fraction is non-zero; the garbage could also be NaN and trap the run).
+  REAL, POINTER, DIMENSION(:)   :: XPHSN_RD_CAN ! snow -> canyon air sensible heat (W/m2)
+  REAL, POINTER, DIMENSION(:)   :: XPHSN_RD_ATM ! snow -> forcing level sensible heat (W/m2)
+  REAL, POINTER, DIMENSION(:)   :: XPLESN_RD_CAN ! snow -> canyon air latent heat (W/m2)
+  REAL, POINTER, DIMENSION(:)   :: XPLESN_RD_ATM ! snow -> forcing level latent heat (W/m2)
 !
   REAL, POINTER, DIMENSION(:)   :: XRUNOFF_TOWN      ! aggregated water runoff for town      (kg/m2/s)
   REAL, POINTER, DIMENSION(:)   :: XIRRIG_GARDEN     ! summer ground irrigation rate         (kg/m2/s)
@@ -195,6 +207,11 @@ IF (LHOOK) CALL DR_HOOK("MODD_DIAG_MISC_TEB_N:DIAG_MISC_TEB_INIT",0,ZHOOK_HANDLE
   NULLIFY(YDIAG_MISC_TEB%XLE_ROAD)
   NULLIFY(YDIAG_MISC_TEB%XLE_STRLROOF)
   NULLIFY(YDIAG_MISC_TEB%XLE_BLT)
+!MV202609 tau scheme of the road (snow-to-atmosphere branch diagnostics)
+  NULLIFY(YDIAG_MISC_TEB%XPHSN_RD_CAN)
+  NULLIFY(YDIAG_MISC_TEB%XPHSN_RD_ATM)
+  NULLIFY(YDIAG_MISC_TEB%XPLESN_RD_CAN)
+  NULLIFY(YDIAG_MISC_TEB%XPLESN_RD_ATM)
   NULLIFY(YDIAG_MISC_TEB%XRUNOFF_TOWN)
   NULLIFY(YDIAG_MISC_TEB%XIRRIG_GARDEN)
   NULLIFY(YDIAG_MISC_TEB%XRUNOFF_ROAD)

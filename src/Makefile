@@ -71,7 +71,9 @@ $(OBJDIR)/modd_surf_atm.o: src_teb/modd_surf_atm.F90
 $(OBJDIR)/modd_surf_conf.o: src_driver/modd_surf_conf.F90
 $(OBJDIR)/modd_surf_par.o: src_teb/modd_surf_par.F90
 $(OBJDIR)/modd_teb_irrign.o: src_struct/modd_teb_irrign.F90 $(OBJDIR)/hook.o
-$(OBJDIR)/modd_teb_optionn.o: src_struct/modd_teb_optionn.F90 $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/hook.o
+#MV202609 garden thermal roughness (z0h): modd_teb_optionn and teb_garden use the
+# shared neutral formulation of the garden (modd_proxi_svat_par, garden)
+$(OBJDIR)/modd_teb_optionn.o: src_struct/modd_teb_optionn.F90 $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/hook.o $(OBJDIR)/modd_proxi_svat_par.o
 $(OBJDIR)/modd_teb_paneln.o: src_struct/modd_teb_paneln.F90 $(OBJDIR)/hook.o
 $(OBJDIR)/modd_tebn.o: src_struct/modd_tebn.F90 $(OBJDIR)/modd_type_snow.o $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/hook.o
 $(OBJDIR)/modd_type_date_surf.o: src_teb/modd_type_date_surf.F90
@@ -146,7 +148,7 @@ $(OBJDIR)/surface_aero_cond.o: src_teb/surface_aero_cond.F90 $(OBJDIR)/modd_csts
 $(OBJDIR)/surface_cd.o: src_teb/surface_cd.F90 $(OBJDIR)/modd_csts.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/hook.o
 $(OBJDIR)/surface_ri.o: src_teb/surface_ri.F90 $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_atm.o $(OBJDIR)/modi_wind_threshold.o $(OBJDIR)/hook.o
 $(OBJDIR)/teb.o: src_teb/teb.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_snow_par.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/mode_surf_snow_frac.o $(OBJDIR)/modi_snow_cover_1layer.o $(OBJDIR)/modi_urban_drag.o $(OBJDIR)/modi_urban_snow_evol.o $(OBJDIR)/modi_roof_layer_e_budget.o $(OBJDIR)/modi_road_layer_e_budget.o $(OBJDIR)/modi_facade_e_budget.o $(OBJDIR)/modi_urban_fluxes.o $(OBJDIR)/modi_urban_hydro.o $(OBJDIR)/modi_bld_e_budget.o $(OBJDIR)/modi_wind_threshold.o $(OBJDIR)/modi_bem.o $(OBJDIR)/modi_teb_irrig.o $(OBJDIR)/hook.o
-$(OBJDIR)/teb_garden.o: src_teb/teb_garden.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_snow_par.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/mode_surf_snow_frac.o $(OBJDIR)/modi_solar_panel.o $(OBJDIR)/modi_teb_veg_properties.o $(OBJDIR)/modi_window_shading_availability.o $(OBJDIR)/modi_urban_solar_abs.o $(OBJDIR)/modi_urban_lw_coef.o $(OBJDIR)/modi_garden.o $(OBJDIR)/modi_greenroof.o $(OBJDIR)/modi_teb.o $(OBJDIR)/modi_avg_urban_fluxes.o $(OBJDIR)/modi_bld_occ_calendar.o $(OBJDIR)/hook.o
+$(OBJDIR)/teb_garden.o: src_teb/teb_garden.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_snow_par.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/mode_surf_snow_frac.o $(OBJDIR)/modi_solar_panel.o $(OBJDIR)/modi_teb_veg_properties.o $(OBJDIR)/modi_window_shading_availability.o $(OBJDIR)/modi_urban_solar_abs.o $(OBJDIR)/modi_urban_lw_coef.o $(OBJDIR)/modi_garden.o $(OBJDIR)/modi_greenroof.o $(OBJDIR)/modi_teb.o $(OBJDIR)/modi_avg_urban_fluxes.o $(OBJDIR)/modi_bld_occ_calendar.o $(OBJDIR)/hook.o $(OBJDIR)/garden.o
 $(OBJDIR)/teb_garden_struct.o: src_struct/teb_garden_struct.F90 $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modi_alloc_teb_struct.o $(OBJDIR)/modi_dealloc_teb_struct.o $(OBJDIR)/modi_teb_garden.o
 $(OBJDIR)/teb_irrig.o: src_teb/teb_irrig.F90 $(OBJDIR)/hook.o
 $(OBJDIR)/teb_veg_properties.o: src_proxi_SVAT/teb_veg_properties.F90
@@ -181,6 +183,46 @@ tags: $(SRC)
 	ctags $(SRC)
 $(EXEC): $(OBJ) | $(OBJDIR)
 	$(LD) $(OBJ) -o $(EXEC) $(LDFLAGS)
+
+# ----- Workaround for the UCRT setlocale defect (item C5) -----
+# The libgfortran formatted REAL output saves the setlocale(LC_NUMERIC, NULL)
+# pointer and the UCRT invalidates it on the next setlocale call: a rare
+# layout-dependent SIGSEGV in the first formatted REAL write (see
+# docs/TEB_Ru_change_history.md, §5.7 (C5) and §5.8).
+#
+# The workaround links libgfortran statically and routes its setlocale
+# references to src_driver/wrap_setlocale.c, which answers the name == NULL
+# query with a permanent buffer. It is enabled automatically on Windows with
+# gfortran, i.e. where the defect exists, and is not enabled on other systems:
+# glibc and the macOS runtime keep the returned string in static storage, so the
+# save/restore pattern cannot reach unmapped memory there. The results are
+# bit-identical with and without the workaround; the choice can be overridden:
+#
+#     make -C src WRAP_LOCALE=1      # force (other Windows toolchain, Cygwin)
+#     make -C src WRAP_LOCALE=0      # disable (plain reference build)
+#
+WRAP_HOST = $(findstring Windows_NT,$(OS))
+ifeq ($(origin WRAP_LOCALE),undefined)
+    ifneq (,$(WRAP_HOST))
+        WRAP_LOCALE := 1
+    else
+        WRAP_LOCALE := 0
+    endif
+endif
+ifeq ($(WRAP_LOCALE),1)
+    ifneq (,$(findstring gfortran,$(FC)))
+        LOCALEWRAP = $(OBJDIR)/wrap_setlocale.o
+        LDFLAGS += -static-libgfortran $(LOCALEWRAP) -Wl,--wrap=setlocale
+        $(info WRAP_LOCALE: on - UCRT setlocale workaround (C5), static libgfortran)
+$(EXEC): $(LOCALEWRAP)
+$(OBJDIR)/wrap_setlocale.o: src_driver/wrap_setlocale.c | $(OBJDIR)
+	$(CC) -O0 -g -c $< -o $@
+    else
+        $(warning WRAP_LOCALE=1 not applied: the workaround needs the gfortran runtime - build with FC=gfortran (got FC=$(FC)))
+    endif
+else
+    $(info WRAP_LOCALE: off - plain build, no setlocale workaround)
+endif
 
 # ----- Generic rules for building into obj/ (fallback) -----
 vpath %.F90 src_driver src_teb src_struct src_proxi_SVAT src_solar

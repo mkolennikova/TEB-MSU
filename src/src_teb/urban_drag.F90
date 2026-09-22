@@ -92,6 +92,10 @@ USE MODI_WIND_THRESHOLD
 USE MODE_THERMOS
 USE MODI_URBAN_EXCH_COEF
 USE MODE_GARDEN_BALANCE, ONLY : GARDEN_PCD_NEUTRAL, GARDEN_CA_NEUTRAL
+!MV202609 garden thermal roughness (z0h)
+!* neutral thermal (scalar) coefficient and conductance of the garden: the
+!* 'EXT_NEU' coefficients are the ones the internal diagnostic garden uses
+USE MODE_GARDEN_BALANCE, ONLY : GARDEN_PCH_NEUTRAL, GARDEN_CAH_NEUTRAL
 USE MODE_CONV_DOE
 !
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
@@ -726,35 +730,45 @@ DO JJ=1,SIZE(PTA)
 !*
 !* 'EXT_NEU' - the garden of an external model with the NEUTRAL exchange
 !* coefficients of the internal diagnostic garden (src_proxi_SVAT/garden.F90):
-!*     PCD = (kappa/ln(z/z0))**2,   Ca = PCD*max(V, XVMIN_GD)
-!* with the same wind floor XVMIN_GD and NO thermal roughness (z0t): the same
-!* coefficient serves momentum and heat, so PCD = PCH = PCDN. PRI_GARDEN_* and
-!* ZZ0H_GARDEN_* are not defined in this formulation and keep their XUNDEF
-!* initialisation. This is the coefficient set a coupled external garden model is
-!* meant to be driven with: it coincides with the neutral coefficients of the
-!* internal garden and with the emulator of run_teb_offline.
+!*     PCD = (kappa/ln(z/z0))**2,   PCH = kappa**2/(ln(z/z0)*ln(z/z0h))
+!*     Ca_h = PCH*max(V, XVMIN_GD),   z0h = z0/TOP%XZ0_O_Z0H_GD
+!* with the same wind floor XVMIN_GD and the same thermal roughness z0h as the
+!* internal garden: the momentum coefficient serves the friction, the thermal one
+!* the heat and the moisture, so PCD = PCDN > PCH (equality at z0h = z0).
+!* PRI_GARDEN_* is not defined in this formulation (no Richardson number) and
+!* keeps its XUNDEF initialisation, while ZZ0H_GARDEN_* is the thermal roughness
+!* used. This is the coefficient set a coupled external garden model is meant to
+!* be driven with: it coincides with the coefficients of the internal garden and
+!* with the emulator of run_teb_offline.
 !*
 !* 'EXT' - the same two paths but with the full URBAN_EXCH_COEF set (Richardson
-!* number, z0h = z0/4, WIND_THRESHOLD), i.e. the description of the garden
-!* coefficients used for the bookkeeping of a coupled model.
+!* number, the same z0h = z0/TOP%XZ0_O_Z0H_GD, WIND_THRESHOLD), i.e. the
+!* description of the garden coefficients used for the bookkeeping of a coupled
+!* model.
 !
 IF (TOP%CTYPE_GARDEN == 'EXT_NEU') THEN
    ! canyon path (low canyon level, the heights and the wind of the internal garden)
-   PCDN_GARDEN_CAN(:) = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:))
+   PCDN_GARDEN_CAN(:) = GARDEN_PCD_NEUTRAL    (PZ_LOWCAN(:), PZ0_GARDEN_EXT(:))
    PCD_GARDEN_CAN (:) = PCDN_GARDEN_CAN(:)
-   PCH_GARDEN_CAN (:) = PCDN_GARDEN_CAN(:)
-   PAC_GARDEN_CAN (:) = GARDEN_CA_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:), PU_LOWCAN(:))
+   PCH_GARDEN_CAN (:) = GARDEN_PCH_NEUTRAL    (PZ_LOWCAN(:), PZ0_GARDEN_EXT(:), TOP%XZ0_O_Z0H_GD)
+   PAC_GARDEN_CAN (:) = GARDEN_CAH_NEUTRAL    (PZ_LOWCAN(:), PZ0_GARDEN_EXT(:), TOP%XZ0_O_Z0H_GD, PU_LOWCAN(:))
+   ZZ0H_GARDEN_CAN(:) = PZ0_GARDEN_EXT(:) / MAX(TOP%XZ0_O_Z0H_GD, 1.)
    ! atmosphere path (reference air of the forcing level)
-   PCDN_GARDEN_ATM(:) = GARDEN_PCD_NEUTRAL(PUREF(:), PZ0_GARDEN_EXT(:))
+   PCDN_GARDEN_ATM(:) = GARDEN_PCD_NEUTRAL    (PUREF(:), PZ0_GARDEN_EXT(:))
    PCD_GARDEN_ATM (:) = PCDN_GARDEN_ATM(:)
-   PCH_GARDEN_ATM (:) = PCDN_GARDEN_ATM(:)
-   PAC_GARDEN_ATM (:) = GARDEN_CA_NEUTRAL(PUREF(:), PZ0_GARDEN_EXT(:), PVMOD(:))
+   PCH_GARDEN_ATM (:) = GARDEN_PCH_NEUTRAL    (PUREF(:), PZ0_GARDEN_EXT(:), TOP%XZ0_O_Z0H_GD)
+   PAC_GARDEN_ATM (:) = GARDEN_CAH_NEUTRAL    (PUREF(:), PZ0_GARDEN_EXT(:), TOP%XZ0_O_Z0H_GD, PVMOD(:))
+   ZZ0H_GARDEN_ATM(:) = PZ0_GARDEN_EXT(:) / MAX(TOP%XZ0_O_Z0H_GD, 1.)
    !
 ELSEIF (TOP%CTYPE_GARDEN == 'EXT') THEN
    !* garden/canyon exchange coefficients: computed only when the garden is
    !* provided by an EXTERNAL model (TOP%CTYPE_GARDEN == 'EXT')
+   !MV202609 garden thermal roughness (z0h)
+   !* the z0/z0h ratio is the one of the namelist item urb_z0_o_z0h_gdn (it used
+   !* to be the hard-coded value 4.), so that the coefficients exported here and
+   !* the ones used by the internal diagnostic garden cannot disagree
    !
-CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
+CALL URBAN_EXCH_COEF(TOP%CZ0H, TOP%XZ0_O_Z0H_GD, PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
                        PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
                        PU_LOWCAN, PZ0_GARDEN_EXT, PRI_GARDEN_CAN, PCD_GARDEN_CAN, PCDN_GARDEN_CAN,         &
                        PAC_GARDEN_CAN, ZRA_GARDEN_CAN, PCH_GARDEN_CAN, ZZ0H_GARDEN_CAN, ILMO_GARDEN        )	
@@ -773,7 +787,7 @@ CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
    !* so the forcing-level coefficients would be meaningless; they keep their XUNDEF
    !* initialisation in that case, as well as when no garden is modelled at all.
    !
-CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
+CALL URBAN_EXCH_COEF(TOP%CZ0H, TOP%XZ0_O_Z0H_GD, PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
                        PTA, PQA, PZREF, PZREF,              &
                        PVMOD, PZ0_GARDEN_EXT, PRI_GARDEN_ATM, PCD_GARDEN_ATM, PCDN_GARDEN_ATM,         &
                        PAC_GARDEN_ATM, ZRA_GARDEN_ATM, PCH_GARDEN_ATM, ZZ0H_GARDEN_ATM, ZILMO_GARDEN_ATM        )

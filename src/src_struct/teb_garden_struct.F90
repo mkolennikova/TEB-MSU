@@ -116,6 +116,8 @@
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                                                      LE_ROOF_WAT, LE_ROOF_SNOW, &
                           OTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
+!MV202609 garden thermal roughness (z0h)
+                          XZ0_O_Z0H_GD, &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
@@ -377,8 +379,13 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PHSNOW_ROAD        ! sensible heat flux o
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PLESNOW_ROAD       ! latent heat flux over snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PGSNOW_ROAD        ! flux under the snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PMELT_ROAD         ! snow melt
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
-!* local branch diagnostics of the road snow exchange (internal to the wrapper)
+!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch diagnostics)
+!* branch diagnostics of the road snow exchange: they are READ by the canyon air
+!* nodes inside TEB_GARDEN (TEB_GARDEN2 -> AVG_URBAN_FLUXES) and WRITTEN by the
+!* snow scheme at the end of the same call (TEB -> URBAN_SNOW_EVOL). The arrays
+!* below only carry them across the call: their persistent storage is the DMT
+!* structure (zero at the beginning of the run), from which they are loaded before
+!* the call and into which they are stored after it (see the CALL TEB_GARDEN).
 REAL, DIMENSION(SIZE(PWS_ROAD)) :: PHSN_RD_CAN        ! sensible heat flux over snow, snow -> canyon air
 REAL, DIMENSION(SIZE(PWS_ROAD)) :: PHSN_RD_ATM        ! sensible heat flux over snow, snow -> forcing level
 REAL, DIMENSION(SIZE(PWS_ROAD)) :: PLESN_RD_CAN       ! latent heat flux over snow, snow -> canyon air
@@ -489,6 +496,8 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN_ATM   ! garden latent  heat flux
 LOGICAL,              INTENT(IN)  :: OTAU_SCHEME      ! flag to use the tau scheme for the road
 REAL,                 INTENT(IN)  :: XTAU_HW_THRESH   ! H/W giving tau = 0.5 (tau scheme)
 REAL,                 INTENT(IN)  :: XTAU_HW_WIDTH    ! width of the tanh relaxation (tau scheme)
+!MV202609 garden thermal roughness (z0h)
+REAL,                 INTENT(IN)  :: XZ0_O_Z0H_GD      ! garden z0/z0h ratio (-), >= 1
 !                                                         !    and structural roof
 !
 ! new arguments created after BEM
@@ -978,6 +987,8 @@ TOP%LSOLAR_PANEL = OSOLAR_PANEL ! T: solar panels on roofs
 TOP%LTAU_SCHEME    = OTAU_SCHEME    ! T: tau scheme for the road fluxes
 TOP%XTAU_HW_THRESH = XTAU_HW_THRESH ! H/W giving tau = 0.5 (tau scheme)
 TOP%XTAU_HW_WIDTH  = XTAU_HW_WIDTH  ! width of the tanh relaxation (tau scheme)
+!MV202609 garden thermal roughness (z0h)
+TOP%XZ0_O_Z0H_GD   = XZ0_O_Z0H_GD   ! garden z0/z0h ratio (-)
 ! 
 ! type of initialization of vegetation: from cover types (ecoclimap) or parameters prescribed
 !
@@ -1131,6 +1142,20 @@ TIR%XRD_24H_IRRIG   = PRD_24H_IRRIG   ! roads : total irrigation over 24 hours (
 !
 DMT%XZ0_TOWN = PZ0_TOWN   ! town roughness length
 !-------------------------------------------------------------------------------
+!MV202609 tau scheme of the road (snow-to-atmosphere branch diagnostics)
+!* The branch diagnostics of the snow-on-road exchange are read by the canyon air
+!* nodes at the BEGINNING of TEB_GARDEN (TEB_GARDEN2 -> AVG_URBAN_FLUXES) and are
+!* written by the snow scheme at its END (TEB -> URBAN_SNOW_EVOL): the canyon air
+!* of a sub-step sees the snow exchange of the PREVIOUS sub-step, exactly like the
+!* other branch diagnostics (PAC_ROAD_ATM etc.). They are therefore taken from the
+!* persistent structure DMT (zero on the first sub-step) and stored back here.
+!
+PHSN_RD_CAN (:) = DMT%XPHSN_RD_CAN (:)
+PHSN_RD_ATM (:) = DMT%XPHSN_RD_ATM (:)
+PLESN_RD_CAN(:) = DMT%XPLESN_RD_CAN(:)
+PLESN_RD_ATM(:) = DMT%XPLESN_RD_ATM(:)
+!
+!-------------------------------------------------------------------------------
 !
 CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENROOF_EXT,               &
                            HIMPLICIT_WIND, PBEM_AC, PTSUN, PT_CAN, PQ_CAN, PU_CAN, PT_LOWCAN, PQ_LOWCAN,                    &
@@ -1174,6 +1199,15 @@ CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENR
 !-------------------------------------------------------------------------------
 !
 ! update of BEM prognostic variables
+!
+!MV202609 tau scheme of the road (snow-to-atmosphere branch diagnostics)
+!* the snow scheme of TEB has just filled the branch diagnostics of the snow
+!* exchange: they are kept for the canyon air nodes of the next sub-step
+!
+DMT%XPHSN_RD_CAN (:) = PHSN_RD_CAN (:)
+DMT%XPHSN_RD_ATM (:) = PHSN_RD_ATM (:)
+DMT%XPLESN_RD_CAN(:) = PLESN_RD_CAN(:)
+DMT%XPLESN_RD_ATM(:) = PLESN_RD_ATM(:)
 !
  PTI_BLD = B%XTI_BLD 
  PQI_BLD = B%XQI_BLD 

@@ -79,12 +79,12 @@ deviate, explain why in the commit message.
 | --- | --- |
 | commits (history registry) | `№1…№N`, contiguous, in `git log` order |
 | tau scheme versions | `v1`, `v1.1`, `v1.2`, `v1.2.1`, `v1.3`, `v1.3.1`, `v1.4` |
-| garden scheme versions | `G1`, `G2`, `G3` |
+| garden scheme versions | `G1`, `G2`, `G3`, `G4` |
 | defects of the original model | `D1…D7` |
 | defects of the driver, the forcing reader, the benches | `I1…I4` |
-| numerical defects of our own changes | `N1` |
-| known but unfixed items | `C1…C4` |
-| bench checks | `B1…B6`, `Z1…Z4`, `S1…S4`, `T1…T5`, `T-a…T-f`, `G1…G10`, `I1…I9` |
+| numerical defects of our own changes | `N1`, `N2` |
+| known but unfixed items | `C1…C5` |
+| bench checks | `B1…B6`, `Z1…Z4`, `S1…S4`, `T1…T5`, `T-a…T-f`, `G1…G12`, `H1…H6`, `I1…I9` |
 
 * Every version and every mode in the table "version / mode → commits" must have a
   commit. A new mode without a history entry is a documentation error.

@@ -12,16 +12,24 @@
 !                 canyon air and the air of the forcing level. THIS IS THE ONLY
 !                 ROUTINE CALLED BY TEB.
 !   GARDEN      - reduced diagnostic garden without the tau split: the
-!                 dimensionless coefficient PCD of the neutral log profile is
-!                 computed from the reference height and the roughness length and
-!                 GARDEN_PCD is called (behaviour of the model before the tau
-!                 scheme of the garden was introduced). Used by the offline
-!                 experiments.
-!   GARDEN_PCD  - same diagnostic garden, but the dimensionless coefficient PCD
-!                 and the reference state (T, q, wind) are provided by the
-!                 caller: no height and no roughness length appear among its
-!                 arguments (they are already inside PCD). Used by the coupling
-!                 experiments with an externally provided coefficient.
+!                 dimensionless coefficients of the neutral log profiles are
+!                 computed from the reference height and the garden roughness
+!                 lengths (PCD for the momentum, PCH for heat and moisture with
+!                 the thermal roughness z0h = z0/PZ0_O_Z0H) and GARDEN_PCD is
+!                 called (behaviour of the model before the tau scheme of the
+!                 garden was introduced). Used by the offline experiments.
+!   GARDEN_PCD  - same diagnostic garden, but the dimensionless coefficients and
+!                 the reference state (T, q, wind) are provided by the caller: no
+!                 height and no roughness length appear among its arguments (they
+!                 are already inside the coefficients). Used by the coupling
+!                 experiments with externally provided coefficients.
+!
+! The friction flux of the garden is always computed from the MOMENTUM
+! coefficient PCD (z0), while the surface energy balance (H, LE) and the coupling
+! of the garden with the air of the canyon use the THERMAL (scalar) coefficient
+! PCH (z0h): see GARDEN_PCD_NEUTRAL / GARDEN_PCH_NEUTRAL below. With z0h = z0
+! (PZ0_O_Z0H = 1) the two coincide and the formulation without thermal roughness
+! is reproduced exactly.
 !
 ! ONLY GARDEN_TAU returns the tau-branch decomposition (PH_GARDEN_CAN/ATM,
 ! PLE_GARDEN_CAN/ATM): it is the only routine that knows the two path
@@ -43,14 +51,23 @@
 !!
 !!    PURPOSE
 !!    -------
-!!      Parameters of the diagnostic garden scheme and its single Newton solver,
-!!      used by the three garden routines of this file:
+!!      Parameters of the diagnostic garden scheme, its single Newton solver and
+!!      the neutral log coefficients shared by its users, used by the three
+!!      garden routines of this file:
 !!
-!!        GARDEN_TAU  computes the tau-aggregated conductance and reference air
-!!                    and calls GARDEN_BALANCE with them directly
-!!        GARDEN_PCD  builds the conductance Ca = PCD*max(V, Vmin) from the
-!!                    coefficient and the wind given by its caller and calls
-!!                    GARDEN_BALANCE
+!!        GARDEN_TAU  computes the tau-aggregated (thermal) conductance and
+!!                    reference air and calls GARDEN_BALANCE with them directly
+!!        GARDEN_PCD  builds the thermal conductance Ca_h = PCH*max(V, Vmin) from
+!!                    the coefficients and the wind given by its caller (and the
+!!                    friction conductance from the momentum coefficient PCD) and
+!!                    calls GARDEN_BALANCE
+!!        GARDEN      computes both neutral-log coefficients PCD and PCH from the
+!!                    reference height, the garden roughness z0 and the thermal
+!!                    roughness z0h = z0/PZ0_O_Z0H
+!!
+!!      The neutral formulation below (PCD, PCH, Ca) is the SINGLE source of the
+!!      garden exchange coefficients: the internal garden, the external garden of
+!!      URBAN_DRAG ('EXT_NEU') and the emulator of the offline driver all call it.
 !!
 !!**  IMPLICIT ARGUMENTS
 !!    ------------------
@@ -64,6 +81,7 @@
 !!    MODIFICATIONS
 !!    -------------
 !!      Original    01/2026   extraction of the shared balance
+!!                  09/2026   thermal roughness z0h of the garden (PCH, Ca_h)
 !-------------------------------------------------------------------------------
 !
 USE MODD_CSTS, ONLY : XCPD, XLVTT, XSTEFAN, XKARMAN
@@ -76,9 +94,10 @@ REAL, PARAMETER :: XPHU_GD   = 0.80
 !* Minimum wind speed of the diagnostic scheme (m/s): the surface must not be
 !* decoupled from the air when the wind vanishes, otherwise the surface
 !* temperature is not anchored by the turbulent fluxes any more. It is applied by
-!* GARDEN_PCD_NEUTRAL / GARDEN_CA_NEUTRAL below, i.e. it is the single wind floor
-!* of the neutral garden formulation - both for the internal garden (GARDEN,
-!* GARDEN_TAU) and for the external garden of URBAN_DRAG ('EXT_NEU').
+!* GARDEN_PCD_NEUTRAL / GARDEN_PCH_NEUTRAL and their conductances below, i.e. it
+!* is the single wind floor of the neutral garden formulation - both for the
+!* internal garden (GARDEN, GARDEN_TAU) and for the external garden of URBAN_DRAG
+!* ('EXT_NEU').
 REAL, PARAMETER :: XVMIN_GD  = 0.5
 !* Numerical parameters of the diagnostic Newton iteration
 INTEGER, PARAMETER :: NITER_GD   = 8
@@ -93,10 +112,11 @@ CONTAINS
 !
 !-------------------------------------------------------------------------------
 !
-!* Neutral aerodynamic coefficient of the diagnostic garden:
+!* Neutral aerodynamic coefficient of the diagnostic garden for MOMENTUM:
 !*     PCD = (kappa/ln(z/z0))**2          (neutral log profile, 0 when z <= z0)
-!* It carries NO thermal roughness (z0t): the same coefficient describes the
-!* momentum and the heat exchange, exactly as in the garden scheme.
+!* It carries NO thermal roughness: the friction flux of the garden is computed
+!* from it (z0h is a scalar roughness and does not act on the momentum). The
+!* exchange of heat and moisture uses GARDEN_PCH_NEUTRAL below.
 !* ELEMENTAL, so it works on scalars as well as on whole arrays.
 !
 ELEMENTAL FUNCTION GARDEN_PCD_NEUTRAL(PZ, PZ0) RESULT(PPCD)
@@ -110,8 +130,8 @@ IF (PZ > PZ0) PPCD = (XKARMAN/LOG(PZ/PZ0))**2
 END FUNCTION GARDEN_PCD_NEUTRAL
 !-------------------------------------------------------------------------------
 !
-!* Aerodynamic conductance of the neutral garden at the wind PV:
-!*     Ca = PCD*max(PV, XVMIN_GD)
+!* Aerodynamic conductance of the neutral garden for MOMENTUM at the wind PV:
+!*     Ca_m = PCD*max(PV, XVMIN_GD)
 !* The wind floor XVMIN_GD keeps the surface coupled to the air at low wind; it
 !* is the SAME floor for every user of the neutral formulation (internal garden
 !* and the external garden 'EXT_NEU' of URBAN_DRAG).
@@ -125,6 +145,57 @@ REAL :: PCA
 PCA = GARDEN_PCD_NEUTRAL(PZ, PZ0) * MAX(PV, XVMIN_GD)
 !
 END FUNCTION GARDEN_CA_NEUTRAL
+!-------------------------------------------------------------------------------
+!
+!* Neutral THERMAL (scalar) coefficient of the diagnostic garden: heat and
+!* moisture are exchanged through the thermal roughness z0h = z0/PZ0_O_Z0H:
+!*     PCH = kappa**2 / ( ln(z/z0) * ln(z/z0h) ) = PCD * ZFH
+!*     ZFH = ln(z/z0)/ln(z/z0h) <= 1        (PZ0_O_Z0H = z0/z0h >= 1)
+!* This is the neutral limit of the coefficient computed by SURFACE_AERO_COND,
+!* i.e. of the one used by the road, the roof and the town of TEB, and by the
+!* garden of an external model in URBAN_DRAG ('EXT'): the ratio of the momentum
+!* and scalar profiles multiplies the momentum coefficient by ZFH.
+!* With PZ0_O_Z0H = 1 (z0h = z0) the coefficient is EXACTLY PCD, i.e. the
+!* formulation without thermal roughness is reproduced bit for bit.
+!* It vanishes exactly where the momentum coefficient vanishes (z <= z0), so a
+!* degenerate roughness disconnects the garden entirely.
+!
+ELEMENTAL FUNCTION GARDEN_PCH_NEUTRAL(PZ, PZ0, PZ0_O_Z0H) RESULT(PPCH)
+REAL, INTENT(IN) :: PZ         ! reference height of the air (m)
+REAL, INTENT(IN) :: PZ0        ! roughness length for momentum (m)
+REAL, INTENT(IN) :: PZ0_O_Z0H  ! z0/z0h ratio (-), >= 1
+REAL :: PPCH, ZZ0H
+!
+PPCH = 0.
+IF (PZ > PZ0) THEN
+   ZZ0H = PZ0 / MAX(PZ0_O_Z0H, 1.)
+   IF (ZZ0H >= PZ0) THEN
+      !* z0h = z0: no thermal roughness, the scalar coefficient is EXACTLY the
+      !* momentum one, so that this formulation reproduces the garden without
+      !* thermal roughness bit for bit (same expression, same rounding)
+      PPCH = GARDEN_PCD_NEUTRAL(PZ, PZ0)
+   ELSE
+      PPCH = XKARMAN**2 / ( LOG(PZ/PZ0) * LOG(PZ/ZZ0H) )
+   END IF
+END IF
+!
+END FUNCTION GARDEN_PCH_NEUTRAL
+!-------------------------------------------------------------------------------
+!
+!* Aerodynamic conductance for heat and moisture of the neutral garden:
+!*     Ca_h = PCH*max(PV, XVMIN_GD)
+!* Same wind floor as GARDEN_CA_NEUTRAL, so that Ca_h/Ca_m = ZFH exactly.
+!
+ELEMENTAL FUNCTION GARDEN_CAH_NEUTRAL(PZ, PZ0, PZ0_O_Z0H, PV) RESULT(PCAH)
+REAL, INTENT(IN) :: PZ         ! reference height of the air (m)
+REAL, INTENT(IN) :: PZ0        ! roughness length for momentum (m)
+REAL, INTENT(IN) :: PZ0_O_Z0H  ! z0/z0h ratio (-), >= 1
+REAL, INTENT(IN) :: PV         ! wind at the reference height (m/s)
+REAL :: PCAH
+!
+PCAH = GARDEN_PCH_NEUTRAL(PZ, PZ0, PZ0_O_Z0H) * MAX(PV, XVMIN_GD)
+!
+END FUNCTION GARDEN_CAH_NEUTRAL
 !-------------------------------------------------------------------------------
 !
 SUBROUTINE GARDEN_BALANCE(PCA, PT_REF, PQ_REF, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
@@ -190,7 +261,7 @@ END SUBROUTINE GARDEN_BALANCE
 END MODULE MODE_GARDEN_BALANCE
 !
 !     #############
-    SUBROUTINE GARDEN_PCD(TYPE_GARDEN, PPCD_GD, PV_GD, PT_REF, PQ_REF,                       &
+    SUBROUTINE GARDEN_PCD(TYPE_GARDEN, PPCD_GD, PPCH_GD, PV_GD, PT_REF, PQ_REF,              &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                    &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                       &
                 PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                   &
@@ -202,16 +273,22 @@ END MODULE MODE_GARDEN_BALANCE
 !!
 !!    PURPOSE
 !!    -------
-!!      Diagnostic garden driven by an EXTERNAL exchange coefficient: the
-!!      dimensionless coefficient PCD of the neutral log profile and the
+!!      Diagnostic garden driven by EXTERNAL exchange coefficients: the
+!!      dimensionless coefficients of the neutral log profiles and the
 !!      reference state (PT_REF, PQ_REF and the wind PV_GD) are provided by the
 !!      caller, so that this routine can represent a garden model that receives
 !!      its coefficients (and possibly an averaged forcing) from the host.
 !!      This routine NEVER computes an exchange coefficient: in particular it
 !!      takes NO reference height and NO roughness length, because both are
-!!      already inside the PCD it receives.
-!!      The aerodynamic conductance is Ca = PCD*max(V, Vmin) and the friction
-!!      flux is Ca*max(V, Vmin).
+!!      already inside the coefficients it receives.
+!!      The MOMENTUM coefficient PPCD_GD gives the friction flux
+!!      Ca_m = PPCD*max(V, Vmin), PUW = -Ca_m*max(V, Vmin); the THERMAL (scalar)
+!!      coefficient PPCH_GD gives the aerodynamic conductance used by the surface
+!!      energy balance for heat and moisture, Ca_h = PPCH*max(V, Vmin), which is
+!!      also the conductance returned for the coupling of the garden with the
+!!      canyon air (T_CAN and Q_CAN of TEB). The two are equal when the thermal
+!!      roughness is equal to the momentum one (PPCH = PPCD): the caller decides,
+!!      GARDEN_PCD applies the coefficients it is given.
 !!      'PROXY_OLD' / 'EXT' select the historical fixed Bowen-ratio proxy: it
 !!      does not use the coefficient in the energy balance at all (only the
 !!      friction flux uses it).
@@ -252,11 +329,18 @@ IMPLICIT NONE
 !* Type of the garden parameterization (from the namelist teb_type_garden)
  CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
 !MV202609 external exchange coefficient of the garden
-!* Dimensionless coefficient of the neutral log profile PCD (the reference height
-!* and the roughness length are already inside it) and the reference state of the
-!* garden: the conductance used by the balance is Ca = PCD*max(PV_GD, XVMIN_GD)
-!* and the friction flux is Ca*max(PV_GD, XVMIN_GD).
-REAL, DIMENSION(:)  , INTENT(IN)    :: PPCD_GD            ! garden exchange coefficient (-)
+!* Dimensionless coefficients of the neutral log profiles (the reference height
+!* and the roughness lengths are already inside them) and the reference state of
+!* the garden: the conductance used by the balance for heat and moisture is
+!* Ca_h = PPCH_GD*max(PV_GD, XVMIN_GD), the friction flux is
+!* -PPCD_GD*max(PV_GD, XVMIN_GD)**2.
+!MV202609 garden thermal roughness (z0h)
+!* Two coefficients since the thermal roughness z0h is accounted for: PPCD_GD for
+!* the momentum (friction), PPCH_GD for heat and moisture (<= PPCD_GD whenever
+!* z0h >= z0). With PPCH_GD = PPCD_GD the two paths are the single one of the
+!* formulation without thermal roughness.
+REAL, DIMENSION(:)  , INTENT(IN)    :: PPCD_GD            ! garden momentum exchange coefficient (-)
+REAL, DIMENSION(:)  , INTENT(IN)    :: PPCH_GD            ! garden thermal (scalar) exchange coefficient (-)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PV_GD              ! wind of the reference state (m/s)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PT_REF             ! reference air temperature (K)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PQ_REF             ! reference air humidity (kg/kg)
@@ -286,7 +370,8 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irriga
 !
 !*      0.2    Declarations of local variables
 !
-REAL, DIMENSION(SIZE(PT_REF)) :: ZCA_GD    ! aerodynamic conductance (m/s)
+REAL, DIMENSION(SIZE(PT_REF)) :: ZCA_GD    ! thermal (scalar) conductance (m/s)
+REAL, DIMENSION(SIZE(PT_REF)) :: ZCA_M_GD  ! momentum conductance for the friction (m/s)
 REAL, DIMENSION(SIZE(PT_REF)) :: ZV_GD     ! wind used by the conductance (m/s)
 INTEGER :: JI_GD
 !
@@ -299,17 +384,20 @@ IF (TYPE_GARDEN == 'PROXY_NEW') THEN
 !*             ------------------------------------------
 !*       Rn = H + LE solved for Ts by Newton iteration (no heat flux into the
 !*       soil: the garden is a diagnostic proxy without a soil reservoir).
-!*       The conductance is built from the INPUT coefficient and wind:
-!*       Ca = PCD*max(V, Vmin)  (Vmin keeps the surface coupled at low wind).
+!*       The conductances are built from the INPUT coefficients and wind:
+!*       Ca_h = PPCH*max(V, Vmin) for heat and moisture (balance and coupling
+!*       with the canyon air), Ca_m = PPCD*max(V, Vmin) for the friction flux
+!*       (Vmin keeps the surface coupled at low wind).
 !-------------------------------------------------------------------------------
 !
-!* 2.1  aerodynamic conductance and friction
+!* 2.1  aerodynamic conductances (thermal and momentum) and friction
 DO JI_GD = 1, SIZE(PT_REF)
-   ZV_GD(JI_GD)  = MAX(PV_GD(JI_GD), XVMIN_GD)
-   ZCA_GD(JI_GD) = PPCD_GD(JI_GD) * ZV_GD(JI_GD)
+   ZV_GD(JI_GD)    = MAX(PV_GD(JI_GD), XVMIN_GD)
+   ZCA_M_GD(JI_GD) = PPCD_GD(JI_GD) * ZV_GD(JI_GD)
+   ZCA_GD(JI_GD)   = PPCH_GD(JI_GD) * ZV_GD(JI_GD)
 END DO
 PAC_GARDEN(:) = ZCA_GD(:)
-PUW_GARDEN(:) = -ZCA_GD(:) * ZV_GD(:)
+PUW_GARDEN(:) = -ZCA_M_GD(:) * ZV_GD(:)
 !
 !* 2.2  surface energy balance at the given conductance and reference air
 CALL GARDEN_BALANCE(ZCA_GD, PT_REF, PQ_REF, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
@@ -350,7 +438,8 @@ PGFLUX_GARDEN(:) = 0.
 !* evaporation
 PEVAP_GARDEN(:) = PLE_GARDEN(:) / XLVTT
 !
-!* Friction flux: neutral formulation with the input coefficient and wind
+!* Friction flux: neutral formulation with the MOMENTUM coefficient and wind
+!* (the historical proxy does not use the scalar coefficient PPCH_GD)
 PUW_GARDEN(:) = - PPCD_GD(:) * PV_GD(:)**2
 !
 !* Aerodynamical conductance: neglected because used further only for
@@ -380,6 +469,7 @@ END SUBROUTINE GARDEN_PCD
 !
 !     #########
     SUBROUTINE GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,    &
+                PZ0_O_Z0H,                                                                &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                  &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
                 PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                 &
@@ -393,10 +483,12 @@ END SUBROUTINE GARDEN_PCD
 !!    -------
 !!      Reduced diagnostic garden of TEB-Ru, without the tau split: this is the
 !!      behaviour of the model before the tau scheme of the garden exchange was
-!!      introduced. The dimensionless coefficient of the neutral log profile
-!!      PCD = (kappa/ln(zref/z0))**2 is computed here from the reference height
-!!      and the garden roughness length, and GARDEN_PCD is called with it (that
-!!      routine performs the surface balance itself).
+!!      introduced. The dimensionless coefficients of the neutral log profiles
+!!      are computed here from the reference height and the garden roughness
+!!      lengths: PCD = (kappa/ln(zref/z0))**2 for the momentum (friction) and
+!!      PCH = kappa**2/(ln(zref/z0)*ln(zref/z0h)) for heat and moisture, with the
+!!      thermal roughness z0h = z0/PZ0_O_Z0H; GARDEN_PCD is called with the two of
+!!      them (that routine performs the surface balance itself).
 !!      'PROXY_OLD' / 'EXT' select the historical fixed Bowen-ratio proxy, which
 !!      does not use any exchange coefficient at all.
 !!      This routine is NOT called by the model (TEB calls GARDEN_TAU): it is the
@@ -435,6 +527,10 @@ REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN        ! reference air temperatur
 REAL, DIMENSION(:)  , INTENT(IN)  :: PQ_LOWCAN        ! reference air humidity (kg/kg)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PU_LOWCAN        ! reference wind (m/s)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length (m)
+!MV202609 garden thermal roughness (z0h)
+!* z0/z0h ratio of the garden (-), >= 1: the scalar (thermal) roughness is
+!* z0h = PZ0_GD/PZ0_O_Z0H, see GARDEN_PCH_NEUTRAL
+REAL,               INTENT(IN)  :: PZ0_O_Z0H        ! garden z0/z0h ratio (-)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PALB_GD          ! garden albedo
 REAL, DIMENSION(:)  , INTENT(IN)  :: PEMIS_GD         ! garden emissivity
 REAL, DIMENSION(:)  , INTENT(IN)  :: PRHOA            ! air density at the lowest level
@@ -460,26 +556,30 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irriga
 !
 !*      0.2    Declarations of local variables
 !
-REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPCD_GD   ! neutral-log coefficient (-)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPCD_GD   ! neutral-log momentum coefficient (-)
+!MV202609 garden thermal roughness (z0h)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPCH_GD   ! neutral-log thermal (scalar) coefficient (-)
 INTEGER :: JI_GD
 !
 !-------------------------------------------------------------------------------
 !
-!*      1.     Dimensionless coefficient of the neutral log profile
-!*             PCD = (kappa/ln(zref/z0))**2   (0 when z0 is not below zref),
-!*             from the shared neutral formulation of this module
+!*      1.     Dimensionless coefficients of the neutral log profiles
+!*             PCD = (kappa/ln(zref/z0))**2 and
+!*             PCH = kappa**2/(ln(zref/z0)*ln(zref/z0h))  (both 0 when z0 is not
+!*             below zref), from the shared neutral formulation of this module
 !
 DO JI_GD = 1, SIZE(PT_LOWCAN)
    ZPCD_GD(JI_GD) = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(JI_GD), PZ0_GD(JI_GD))
+   ZPCH_GD(JI_GD) = GARDEN_PCH_NEUTRAL(PZ_LOWCAN(JI_GD), PZ0_GD(JI_GD), PZ0_O_Z0H)
 END DO
 !
 !-------------------------------------------------------------------------------
 !
-!*      2.     Surface balance of the garden (the coefficient, the wind and the
+!*      2.     Surface balance of the garden (the coefficients, the wind and the
 !*             reference air are handed over to GARDEN_PCD)
 !              ----------------------------------------------------------
 !
-CALL GARDEN_PCD(TYPE_GARDEN, ZPCD_GD, PU_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PALB_GD, PEMIS_GD,  &
+CALL GARDEN_PCD(TYPE_GARDEN, ZPCD_GD, ZPCH_GD, PU_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PALB_GD, PEMIS_GD,  &
                 PRHOA, PPS, PSW, PLW,                                                       &
                 PRN_GARDEN, PH_GARDEN, PLE_GARDEN, PGFLUX_GARDEN, PSFCO2, PEVAP_GARDEN,     &
                 PUW_GARDEN, PRUNOFF_GARDEN, PAC_GARDEN, PQSAT_GARDEN, PTS_GARDEN,           &
@@ -491,6 +591,7 @@ END SUBROUTINE GARDEN
 !
 !     #############
     SUBROUTINE GARDEN_TAU(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD, &
+                PZ0_O_Z0H,                                                                &
                 PUREF, PVMOD, PTA, PQA, PTAU, LTAU_SPLIT,                                  &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                   &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                      &
@@ -561,6 +662,10 @@ REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN        ! reference air temperatur
 REAL, DIMENSION(:)  , INTENT(IN)  :: PQ_LOWCAN        ! reference air humidity (kg/kg)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PU_LOWCAN        ! reference wind (m/s)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length (m)
+!MV202609 garden thermal roughness (z0h)
+!* z0/z0h ratio of the garden (-), >= 1: the scalar (thermal) roughness is
+!* z0h = PZ0_GD/PZ0_O_Z0H, see GARDEN_PCH_NEUTRAL
+REAL,               INTENT(IN)  :: PZ0_O_Z0H        ! garden z0/z0h ratio (-)
 !MV202609 tau scheme of the garden
 !* Reference state of the air of the forcing level (used by the tau split)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PUREF            ! height of the wind of the forcing level (m)
@@ -599,8 +704,9 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GARDEN_ATM     ! latent heat flux, at
 !
 !*      0.2    Declarations of local variables
 !
-REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_GD   ! canyon-path conductance (m/s)
-REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_ATM  ! atmosphere-path conductance (m/s)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_GD   ! canyon-path thermal (scalar) conductance (m/s)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_M_GD ! canyon-path momentum conductance, friction (m/s)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_ATM  ! atmosphere-path thermal conductance (m/s)
 REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_EFF  ! tau-aggregated conductance (m/s)
 REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZT_REF   ! tau-mixed reference air temperature (K)
 REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZQ_REF   ! tau-mixed reference air humidity (kg/kg)
@@ -627,22 +733,26 @@ IF (TYPE_GARDEN == 'PROXY_NEW' .AND. LTAU_SPLIT) THEN
 !*       kept, so that the single-forcing behaviour is reproduced exactly.
 !-------------------------------------------------------------------------------
 !
-!* 2.1  canyon-path conductance (reference air PT_LOWCAN/PQ_LOWCAN at the height
-!*      PZ_LOWCAN) and atmosphere-path conductance (PTA/PQA with the wind PVMOD
-!*      at the height PUREF); a minimum wind speed keeps the surface coupled
+!* 2.1  canyon-path THERMAL conductance for heat and moisture (reference air
+!*      PT_LOWCAN/PQ_LOWCAN at the height PZ_LOWCAN) and atmosphere-path THERMAL
+!*      conductance (PTA/PQA with the wind PVMOD at the height PUREF); a minimum
+!*      wind speed keeps the surface coupled. The friction flux of the garden
+!*      uses the MOMENTUM conductance of the canyon path (z0h does not act on
+!*      the momentum)
 DO JI_GD = 1, SIZE(PT_LOWCAN)
-   ZV_GD(JI_GD)  = MAX(PU_LOWCAN(JI_GD), XVMIN_GD)
-   ZCA_GD(JI_GD) = GARDEN_CA_NEUTRAL(PZ_LOWCAN(JI_GD), PZ0_GD(JI_GD), PU_LOWCAN(JI_GD))
+   ZV_GD(JI_GD)    = MAX(PU_LOWCAN(JI_GD), XVMIN_GD)
+   ZCA_M_GD(JI_GD) = GARDEN_CA_NEUTRAL (PZ_LOWCAN(JI_GD), PZ0_GD(JI_GD), PU_LOWCAN(JI_GD))
+   ZCA_GD(JI_GD)   = GARDEN_CAH_NEUTRAL(PZ_LOWCAN(JI_GD), PZ0_GD(JI_GD), PZ0_O_Z0H, PU_LOWCAN(JI_GD))
 END DO
 PAC_GARDEN(:) = ZCA_GD(:)
-PUW_GARDEN(:) = -ZCA_GD(:) * ZV_GD(:)
+PUW_GARDEN(:) = -ZCA_M_GD(:) * ZV_GD(:)
 !
 ZCA_ATM(:) = 0.
 ZCA_EFF(:) = ZCA_GD(:)
 ZT_REF (:) = PT_LOWCAN(:)
 ZQ_REF (:) = PQ_LOWCAN(:)
 DO JI_GD = 1, SIZE(PT_LOWCAN)
-   ZCA_ATM(JI_GD) = GARDEN_CA_NEUTRAL(PUREF(JI_GD), PZ0_GD(JI_GD), PVMOD(JI_GD))
+   ZCA_ATM(JI_GD) = GARDEN_CAH_NEUTRAL(PUREF(JI_GD), PZ0_GD(JI_GD), PZ0_O_Z0H, PVMOD(JI_GD))
    IF (PTAU(JI_GD) < 1.) THEN
       ZCA_EFF(JI_GD) = PTAU(JI_GD) * ZCA_GD(JI_GD) + (1.-PTAU(JI_GD)) * ZCA_ATM(JI_GD)
       IF (ZCA_EFF(JI_GD) > 0.) THEN
@@ -687,6 +797,7 @@ ELSE
 !* 'PROXY_NEW' without the tau split and the historical Bowen-ratio proxy
 !* ('PROXY_OLD' / 'EXT'): the reduced diagnostic garden of GARDEN
 CALL GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,             &
+            PZ0_O_Z0H,                                                                    &
             PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                     &
             PRN_GARDEN, PH_GARDEN, PLE_GARDEN, PGFLUX_GARDEN, PSFCO2, PEVAP_GARDEN,      &
             PUW_GARDEN, PRUNOFF_GARDEN, PAC_GARDEN, PQSAT_GARDEN, PTS_GARDEN,            &

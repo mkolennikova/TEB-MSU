@@ -120,6 +120,8 @@ INTERFACE
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                                                      LE_ROOF_WAT, LE_ROOF_SNOW, &
                           OTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
+!MV202609 garden thermal roughness (z0h)
+                          XZ0_O_Z0H_GD, &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
@@ -480,6 +482,8 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN_ATM   ! garden latent  heat flux
 LOGICAL,              INTENT(IN)  :: OTAU_SCHEME      ! flag to use the tau scheme for the road
 REAL,                 INTENT(IN)  :: XTAU_HW_THRESH   ! H/W giving tau = 0.5 (tau scheme)
 REAL,                 INTENT(IN)  :: XTAU_HW_WIDTH    ! width of the tanh relaxation (tau scheme)
+!MV202609 garden thermal roughness (z0h)
+REAL,                 INTENT(IN)  :: XZ0_O_Z0H_GD      ! garden z0/z0h ratio (-), >= 1
 !                                                         !    and structural roof
 !
 ! new arguments created after BEM

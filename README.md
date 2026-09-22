@@ -141,6 +141,13 @@ Key compilation flags:
 - `-fdefault-real-8` – Use double precision real numbers
 - `-J$(OBJDIR)` – Place module files in the `build/obj` directory
 
+On Windows the build additionally links `libgfortran` statically and applies a small
+workaround for a locale defect of the UCRT runtime (`src/src_driver/wrap_setlocale.c`):
+the formatted output of real numbers of `libgfortran` saves a `setlocale` pointer that
+the UCRT invalidates, which causes rare `SIGSEGV` failures of long runs. The workaround
+does not change the results (`WRAP_LOCALE=0` disables it explicitly); details and
+measurements are in §5.8 of [`docs/TEB_Ru_change_history.md`](docs/TEB_Ru_change_history.md).
+
 ## References
 
 1. [Bueno, B., Pigeon, G., Norford, L.K., Zibouche, K., Marchadier, C., 2012. Development and evaluation of a building energy model integrated in the TEB scheme. Geoscientific Model Development 5, 433–448.](https://doi.org/10.5194/gmd-5-433-2012)

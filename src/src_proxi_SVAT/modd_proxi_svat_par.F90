@@ -69,6 +69,21 @@ IMPLICIT NONE
 !*                  *_GARDEN_CAN / *_GARDEN_ATM columns ('EXT' and 'EXT_NEU')
 !
 REAL, PARAMETER :: XZ0_GD = 0.10
+!MV202609 garden thermal roughness (z0h)
+!* Garden thermal (scalar) roughness ratio z0/z0h (-), i.e. z0h = z0/XZ0_O_Z0H_GD.
+!* It is used as the DEFAULT value of the namelist item urb_z0_o_z0h_gdn
+!* (RUN_TEB_OFFLINE), which is the value actually used by all the garden versions:
+!*   - GARDEN / GARDEN_TAU : the diagnostic surface energy balance exchanges heat
+!*                  and moisture through the scalar coefficient
+!*                  PCH = kappa**2/(ln(z/z0)*ln(z/z0h)) (the momentum keeps z0:
+!*                  only the friction flux uses PCD), see GARDEN_PCH_NEUTRAL
+!*   - URBAN_DRAG : the same z0h is exported by the 'EXT_NEU' garden and is
+!*                  handed over to URBAN_EXCH_COEF by the 'EXT' garden (where it
+!*                  replaces the former hard-coded value 4.)
+!* The ratio must be >= 1 (z0h <= z0: the momentum roughness is the upper bound
+!* of the scalar one in this formulation); with XZ0_O_Z0H_GD = 1 the garden is
+!* exactly the one without thermal roughness.
+REAL, PARAMETER :: XZ0_O_Z0H_GD = 4.0
 !* Greenroof roughness length (m). Default of the namelist item urb_z0_grf
 !* (RUN_TEB_OFFLINE); the physical value is propagated as the PZ0_GR argument
 !* of the GREENROOF scheme (and as ZUW_GR to the roof momentum flux).

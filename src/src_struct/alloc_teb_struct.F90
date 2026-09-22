@@ -342,6 +342,14 @@ ALLOCATE(DMT%XLE_ROOF(1))    ! roof latent heat flux            (W/m2)
 ALLOCATE(DMT%XLE_ROAD(1))    ! road latent heat flux            (W/m2)
 ALLOCATE(DMT%XLE_STRLROOF(1)) !structural roof latent heat flux (W/m2)
 ALLOCATE(DMT%XLE_BLT(1))     ! built surf latent heat flux      (W/m2)
+!MV202609 tau scheme of the road (snow-to-atmosphere branch diagnostics)
+!* persistent branch diagnostics of the snow-on-road exchange: they are read by
+!* the canyon air nodes of the NEXT sub-step (see MODD_DIAG_MISC_TEBN), so they
+!* are allocated AND set to zero here (they must not start as undefined memory)
+ALLOCATE(DMT%XPHSN_RD_CAN(1));  DMT%XPHSN_RD_CAN(:)  = 0.
+ALLOCATE(DMT%XPHSN_RD_ATM(1));  DMT%XPHSN_RD_ATM(:)  = 0.
+ALLOCATE(DMT%XPLESN_RD_CAN(1)); DMT%XPLESN_RD_CAN(:) = 0.
+ALLOCATE(DMT%XPLESN_RD_ATM(1)); DMT%XPLESN_RD_ATM(:) = 0.
 !
 ALLOCATE(DMT%XRUNOFF_TOWN(1))      ! aggregated water runoff for town      (kg/m2/s)
 ALLOCATE(DMT%XIRRIG_GARDEN(1))     ! summer ground irrigation rate         (kg/m2/s)

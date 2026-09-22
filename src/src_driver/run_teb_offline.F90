@@ -6,7 +6,7 @@ USE MODI_OL_TIME_INTERP_ATM
 USE MODD_SURF_PAR, ONLY: XUNDEF
 USE MODD_CSTS,     ONLY : XCPD, XSTEFAN, XPI, XDAY, XKARMAN,   &
                           XLVTT, XLSTT, XLMTT, XRV, XRD, XG, XP00
-USE MODD_PROXI_SVAT_PAR, ONLY : XZ0_GD, XZ0_GR   ! roughness lengths: defaults of urb_z0_gdn/urb_z0_grf
+USE MODD_PROXI_SVAT_PAR, ONLY : XZ0_GD, XZ0_GR, XZ0_O_Z0H_GD   ! defaults of the garden/greenroof surface items
 !MV202609 garden emulation (teb_type_garden = 'EXT')
 !* the external garden model of the offline runs is EMULATED inside this driver
 !* by PCD_GARDEN (see below) with the same diagnostic surface energy balance as
@@ -14,7 +14,11 @@ USE MODD_PROXI_SVAT_PAR, ONLY : XZ0_GD, XZ0_GR   ! roughness lengths: defaults o
 !* numerical parameters (MODE_GARDEN_BALANCE) and QSAT of MODE_THERMOS
 USE MODI_GARDEN, ONLY : GARDEN_PCD
 USE MODE_THERMOS
-USE MODE_GARDEN_BALANCE, ONLY : XPHU_GD, XVMIN_GD
+!MV202609 garden thermal roughness (z0h)
+!* neutral log coefficients of the garden: the emulator uses the very same
+!* formulation as the internal garden scheme (PCD for momentum, PCH for heat and
+!* moisture with the thermal roughness z0h)
+USE MODE_GARDEN_BALANCE, ONLY : XPHU_GD, XVMIN_GD, GARDEN_PCD_NEUTRAL, GARDEN_PCH_NEUTRAL
 
 USE MODD_FORC_ATM, ONLY: CSV         ,&! name of all scalar variables
                          XDIR_ALB    ,&! direct albedo for each band
@@ -134,6 +138,8 @@ CHARACTER(LEN=16)     :: urb_zd_town                    !IN displacement height 
 !* the namelist file: XZ0_GD / XZ0_GR (MODD_PROXI_SVAT_PAR) for the
 !* roughness lengths and 0.15 / 0.98 for the albedo / emissivity.
 REAL                  :: urb_z0_gdn                     !IN garden roughness length (m)     ( > 0 )
+!MV202609 garden thermal roughness (z0h)
+REAL                  :: urb_z0_o_z0h_gdn                !IN garden z0/z0h ratio (-)         ( >= 1 )
 REAL                  :: urb_alb_gdn                    !IN garden albedo                   ( [0,1) )
 REAL                  :: urb_emis_gdn                   !IN garden emissivity               ( (0,1] )
 REAL                  :: urb_z0_grf                     !IN greenroof roughness length (m)  ( > 0 )
@@ -145,7 +151,7 @@ CHARACTER(LEN=4)      :: teb_hroad_dir                  !IN road direction optio
 CHARACTER(LEN=4)      :: teb_wall_opt                   !IN Wall option                                  
                                                         ! 'UNIF' : uniform walls                       
 									                    ! 'TWO ' : 2 opposite  walls
-REAL,DIMENSION(nvec)  :: teb_road_dir                   !IN road direction (° from North, clockwise)													   
+REAL,DIMENSION(nvec)  :: teb_road_dir                   !IN road direction (В° from North, clockwise)													   
 REAL ,DIMENSION(nvec) :: urb_hcap_rd                    !IN Volumetric heat capacity of road material (Jm-3K-1)
 REAL ,DIMENSION(nvec) :: urb_hcap_rf                    !IN Volumetric heat capacity of roof material (Jm-3K-1)
 REAL ,DIMENSION(nvec) :: urb_hcap_wl                    !IN Volumetric heat capacity of wall material (Jm-3K-1)
@@ -236,8 +242,11 @@ REAL ,DIMENSION(nvec) :: teb_runoff_gd                  !IN garden surface runof
 !*   emu_ch_naive   - tau-averaged coefficient, i.e. what a naive averaging
 !*                    would give (diagnostic of the covariance correction)
 REAL ,DIMENSION(nvec) :: emu_tau                    !OUT tau of the garden exchange (-)
-REAL ,DIMENSION(nvec) :: emu_pcd_can                !OUT neutral drag coefficient (canyon path) (-)
-REAL ,DIMENSION(nvec) :: emu_pcd_atm                !OUT neutral drag coefficient (forcing level) (-)
+REAL ,DIMENSION(nvec) :: emu_pcd_can                !OUT neutral drag coefficient for momentum (canyon path) (-)
+REAL ,DIMENSION(nvec) :: emu_pcd_atm                !OUT neutral drag coefficient for momentum (forcing level) (-)
+!MV202609 garden thermal roughness (z0h)
+REAL ,DIMENSION(nvec) :: emu_pch_can                !OUT neutral thermal (scalar) coefficient (canyon path) (-)
+REAL ,DIMENSION(nvec) :: emu_pch_atm                !OUT neutral thermal (scalar) coefficient (forcing level) (-)
 REAL ,DIMENSION(nvec) :: emu_v_can                  !OUT wind of the canyon path (m/s)
 REAL ,DIMENSION(nvec) :: emu_v_atm                  !OUT wind of the forcing level (m/s)
 REAL ,DIMENSION(nvec) :: emu_ca_can                 !OUT conductance of the canyon path (m/s)
@@ -514,7 +523,8 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
                     teb_bem_inf, teb_bem_vent, teb_bem_cop, teb_cap_sys_rat,           &
                     teb_m_sys_rat, teb_cap_sys_heat, ahf_traffic, ahf_industry,        &
                     teb_itype_wind, teb_fai, teb_lgarden, teb_type_garden, &
-                    urb_z0_gdn, urb_alb_gdn, urb_emis_gdn,                                                 &
+!MV202609 garden thermal roughness (z0h)
+                    urb_z0_gdn, urb_z0_o_z0h_gdn, urb_alb_gdn, urb_emis_gdn,                                                 &
                     teb_lgreenroof, teb_frac_gr, urb_z0_grf, urb_alb_grf, urb_emis_grf,                                       &
                     teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                   &
                     teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h,    &
@@ -547,7 +557,7 @@ CHARACTER(LEN=*), PARAMETER :: nml_param_items =                                
      'teb_frac_gz,teb_tcool_target,teb_theat_target,teb_zresidential,teb_dt_res,'//  &
      'teb_dt_off,teb_bem_inf,teb_bem_vent,teb_bem_cop,teb_cap_sys_rat,'//           &
      'teb_m_sys_rat,teb_cap_sys_heat,ahf_traffic,ahf_industry,teb_itype_wind,'//    &
-     'teb_fai,teb_lgarden,teb_type_garden,urb_z0_gdn,urb_alb_gdn,urb_emis_gdn,teb_lgreenroof,teb_frac_gr,urb_z0_grf,urb_alb_grf,urb_emis_grf,teb_lsolar_panel,teb_fr_panel,'&
+     'teb_fai,teb_lgarden,teb_type_garden,urb_z0_gdn,urb_z0_o_z0h_gdn,urb_alb_gdn,urb_emis_gdn,teb_lgreenroof,teb_frac_gr,urb_z0_grf,urb_alb_grf,urb_emis_grf,teb_lsolar_panel,teb_fr_panel,'&
      //'teb_lroad_irrig,teb_rd_irrig_start_m,teb_rd_irrig_end_m,teb_rd_irrig_start_h,'&
      //'teb_rd_irrig_end_h,teb_rd_irrig_sum,teb_utc_hour,teb_lshade,urb_z0_town,'// &
      'urb_zd_town,teb_ltau_scheme,teb_tau_hw_thresh,teb_tau_hw_width'
@@ -559,6 +569,7 @@ CHARACTER(LEN=*), PARAMETER :: nml_param_items =                                
 !============================================================
 !============================================================
 !============================================================
+
 
 
 !===========================================================================
@@ -700,12 +711,14 @@ urb_h_bld(:)     = 20.              ! Canyon height (m)
 urb_z0_town      = '0.1H'           ! z0 of the urban surface (0.1*H - as before)
 urb_zd_town      = 'H/3'            ! displacement height (H/3 - as before)
 urb_z0_gdn       = XZ0_GD            ! Garden roughness length (m)
+!MV202609 garden thermal roughness (z0h)
+urb_z0_o_z0h_gdn = XZ0_O_Z0H_GD      ! Garden thermal roughness ratio z0/z0h (-)
 urb_alb_gdn      = 0.15              ! Garden albedo
 urb_emis_gdn     = 0.98              ! Garden emissivity
 urb_z0_grf       = XZ0_GR            ! Greenroof roughness length (m)
 urb_alb_grf      = 0.15              ! Greenroof albedo
 urb_emis_grf     = 0.98              ! Greenroof emissivity
-teb_road_dir(:)  = 0.0              ! Road direction (° from North, clockwise)
+teb_road_dir(:)  = 0.0              ! Road direction (В° from North, clockwise)
 teb_hroad_dir    = 'UNIF'           ! Road direction
                                     ! 'UNIF' : uniform roads
                                     ! 'ORIE' : specified road orientation
@@ -971,6 +984,17 @@ IF (urb_z0_gdn <= 0. .OR. urb_z0_gdn >= XUNDEF) THEN
     WRITE(*,*) '       urb_z0_gdn must be > 0 and < XUNDEF'
     STOP 1
 END IF
+!MV202609 garden thermal roughness (z0h)
+!* Thermal (scalar) roughness of the garden, z0h = urb_z0_gdn/urb_z0_o_z0h_gdn:
+!* heat and moisture of the garden exchange through it, the momentum keeps
+!* urb_z0_gdn. The ratio must be >= 1 (z0h <= z0) and finite: a smaller value
+!* would give a scalar roughness above the momentum one, which the neutral
+!* formulation of GARDEN_PCH_NEUTRAL does not describe.
+IF (urb_z0_o_z0h_gdn < 1. .OR. urb_z0_o_z0h_gdn >= XUNDEF) THEN
+    WRITE(*,*) 'ERROR: urb_z0_o_z0h_gdn = ', urb_z0_o_z0h_gdn, ' is not a valid garden z0/z0h ratio'
+    WRITE(*,*) '       urb_z0_o_z0h_gdn must be >= 1 (z0h = urb_z0_gdn/urb_z0_o_z0h_gdn <= urb_z0_gdn)'
+    STOP 1
+END IF
 IF (urb_z0_grf <= 0. .OR. urb_z0_grf >= XUNDEF) THEN
     WRITE(*,*) 'ERROR: urb_z0_grf = ', urb_z0_grf, ' m is not a valid greenroof roughness length'
     WRITE(*,*) '       urb_z0_grf must be > 0 and < XUNDEF'
@@ -1003,6 +1027,11 @@ teb_z0_gr(:)   = urb_z0_grf
 teb_alb_gr(:)  = urb_alb_grf
 teb_emis_gr(:) = urb_emis_grf
 WRITE(*,'(A,F8.3,A)') ' TEB-Ru offline: urb_z0_gdn = ', urb_z0_gdn, ' m (all garden versions)'
+!MV202609 garden thermal roughness (z0h)
+!* the thermal (scalar) roughness actually used for heat and moisture by all the
+!* garden versions: z0h = urb_z0_gdn/urb_z0_o_z0h_gdn
+WRITE(*,'(A,F8.3,A,F9.5,A)') ' TEB-Ru offline: urb_z0_o_z0h_gdn = ', urb_z0_o_z0h_gdn,   &
+                             ' -> z0h(garden) = ', urb_z0_gdn/urb_z0_o_z0h_gdn, ' m'
 WRITE(*,'(A,F8.3,A)') ' TEB-Ru offline: urb_z0_grf = ', urb_z0_grf, ' m (all greenroof versions)'
 WRITE(*,'(A,F8.3,A,F8.3)') ' TEB-Ru offline: garden    alb/emis = ', urb_alb_gdn, ' / ', urb_emis_gdn
 WRITE(*,'(A,F8.3,A,F8.3)') ' TEB-Ru offline: greenroof alb/emis = ', urb_alb_grf, ' / ', urb_emis_grf
@@ -1374,6 +1403,8 @@ DO nstep= 1,nsteps - 1
 				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade,                          &
 !MV202609 z0 and zd to namelist
 				urb_z0_town, urb_zd_town,                         &
+!MV202609 garden thermal roughness (z0h)
+                urb_z0_o_z0h_gdn,                                 &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
                           PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
@@ -1875,6 +1906,7 @@ LOGICAL FUNCTION NML_LINE_HAS(line, name)
     CHARACTER(LEN=*), INTENT(IN) :: line  ! lowercase line
     CHARACTER(LEN=*), INTENT(IN) :: name  ! lowercase item name
     INTEGER :: ip, jp, k, ln, ll
+    LOGICAL :: lstart
     NML_LINE_HAS = .FALSE.
     ln = LEN_TRIM(name)
     ll = LEN_TRIM(line)
@@ -1883,7 +1915,19 @@ LOGICAL FUNCTION NML_LINE_HAS(line, name)
         ip = INDEX(line(jp:ll), name(1:ln))
         IF (ip == 0) RETURN
         ip = jp + ip - 1
-        IF (ip == 1 .OR. .NOT. NML_IS_NAME_CHAR(line(ip-1:ip-1))) THEN
+!MV202609 strict namelist reading (fix): the character preceding the item must not
+!* be a name character, but there is no character at all when the item starts the
+!* line (ip = 1). The test must not evaluate LINE(0:0) in that case: Fortran does
+!* not guarantee the short-circuit evaluation of .OR. (gfortran evaluates both
+!* operands), and reading one byte before the string faults intermittently
+!* (SIGSEGV) depending on the memory layout - the string here is a slice of a
+!* heap buffer of namelist lines.
+        IF (ip == 1) THEN
+            lstart = .TRUE.
+        ELSE
+            lstart = .NOT. NML_IS_NAME_CHAR(line(ip-1:ip-1))
+        END IF
+        IF (lstart) THEN
             k = ip + ln
             DO WHILE (k <= ll .AND. line(k:k) == ' ')
                 k = k + 1
@@ -2119,12 +2163,18 @@ END SUBROUTINE PRINT_USAGE
 !! one surface temperature given ONE conductance and ONE reference air. The host
 !! (this subroutine) prepares that input from what TEB has just computed:
 !!
-!!   the two paths of the tau split of the garden exchange (as in GARDEN_TAU):
-!!     Ca_C = PCD_C*max(V_C,Vmin),  PCD_C = (kappa/ln((H/2)/z0))**2,
-!!                                  V_C   = ZU_CANYON (teb_wind_canyon)
-!!     Ca_A = PCD_A*max(V_A,Vmin),  PCD_A = (kappa/ln(z_ref/z0))**2,
-!!                                  V_A   = |V_forcing|, z_ref = hlev_teb
-!!     Ca_eff = tau*Ca_C + (1-tau)*Ca_A
+!!   the two paths of the tau split of the garden exchange (as in GARDEN_TAU),
+!!   the THERMAL (scalar) conductance of each path being the one that carries the
+!!   heat and the moisture (thermal roughness z0h = z0/urb_z0_o_z0h_gdn), while
+!!   the momentum coefficient keeps z0:
+!!     Ca_h_C = PCH_C*max(V_C,Vmin), PCH_C = kappa**2/(ln((H/2)/z0)*ln((H/2)/z0h)),
+!!                                   V_C   = ZU_CANYON (teb_wind_canyon)
+!!     Ca_h_A = PCH_A*max(V_A,Vmin), PCH_A = kappa**2/(ln(z_ref/z0)*ln(z_ref/z0h)),
+!!                                   V_A   = |V_forcing|, z_ref = hlev_teb
+!!     Ca_eff = tau*Ca_h_C + (1-tau)*Ca_h_A
+!!     PCD_C  = (kappa/ln((H/2)/z0))**2   (momentum, canyon path only)
+!!   (PCH and PCD are GARDEN_PCH_NEUTRAL / GARDEN_PCD_NEUTRAL of
+!!   src/src_proxi_SVAT/garden.F90: the same formulation as the internal garden)
 !!   the single complete set given to the external model:
 !!     V*     = tau*V_C + (1-tau)*V_A          (tau-averaged wind)
 !!     T*, q* = T_CAN, q_CAN                   (first approximation: the tau
@@ -2135,7 +2185,8 @@ END SUBROUTINE PRINT_USAGE
 !!   tau(1-tau)*(Cd_C-Cd_A)*(V_A-V_C). Handing over the coefficient that
 !!   reproduces the tau-aggregated conductance removes it exactly:
 !!     CH_eff = Ca_eff/max(V*,Vmin)            => CH_eff*max(V*,Vmin) = Ca_eff
-!!     CD_eff = Ca_C*max(V_C,Vmin)/max(V*,Vmin)**2   (momentum: TEB keeps the
+!!              (Ca_eff is the THERMAL conductance: heat and moisture)
+!!     CD_eff = PCD_C*max(V_C,Vmin)**2/max(V*,Vmin)**2   (momentum: TEB keeps the
 !!              garden momentum on the canyon path only)
 !!   the radiation received by the garden, reconstructed exactly from the fluxes
 !!   absorbed by the garden (DMT%XABS_SW_GARDEN, XABS_LW_GARDEN computed by TEB
@@ -2159,34 +2210,38 @@ SUBROUTINE PCD_GARDEN
                           /MAX(teb_tau_hw_width,TINY(1.))))
         END IF
         !* canyon path: reference air at the low canyon level (height H/2, the
-        !* same height and the same roughness length as the internal scheme)
-        emu_pcd_can(JI) = 0.
+        !* same height, the same roughness length and the same thermal roughness
+        !* as the internal scheme: the shared neutral formulation)
+        !MV202609 garden thermal roughness (z0h)
+        !* PCD (momentum, friction only) and PCH (heat and moisture, z0h) come
+        !* from the module of the internal garden, so that the emulated garden and
+        !* the internal one use exactly the same coefficients
+        emu_pcd_can(JI) = GARDEN_PCD_NEUTRAL(urb_h_bld(JI)/2., teb_z0_gd(JI))
+        emu_pch_can(JI) = GARDEN_PCH_NEUTRAL(urb_h_bld(JI)/2., teb_z0_gd(JI), urb_z0_o_z0h_gdn)
         emu_v_can(JI)   = 0.
-        IF (urb_h_bld(JI)/2. > teb_z0_gd(JI)) THEN
-            emu_pcd_can(JI) = (XKARMAN/LOG((urb_h_bld(JI)/2.)/teb_z0_gd(JI)))**2
-            emu_v_can(JI)   = MAX(teb_wind_canyon(JI), XVMIN_GD)
-        END IF
+        IF (emu_pcd_can(JI) > 0.) emu_v_can(JI) = MAX(teb_wind_canyon(JI), XVMIN_GD)
         !* atmosphere path: reference air of the forcing level
-        emu_pcd_atm(JI) = 0.
+        emu_pcd_atm(JI) = GARDEN_PCD_NEUTRAL(hlev_teb(JI), teb_z0_gd(JI))
+        emu_pch_atm(JI) = GARDEN_PCH_NEUTRAL(hlev_teb(JI), teb_z0_gd(JI), urb_z0_o_z0h_gdn)
         emu_v_atm(JI)   = 0.
-        IF (hlev_teb(JI) > teb_z0_gd(JI)) THEN
-            emu_pcd_atm(JI) = (XKARMAN/LOG(hlev_teb(JI)/teb_z0_gd(JI)))**2
-            emu_v_atm(JI)   = MAX(SQRT(u(JI)**2+v(JI)**2), XVMIN_GD)
-        END IF
-        emu_ca_can(JI) = emu_pcd_can(JI)*emu_v_can(JI)
-        emu_ca_atm(JI) = emu_pcd_atm(JI)*emu_v_atm(JI)
+        IF (emu_pcd_atm(JI) > 0.) emu_v_atm(JI) = MAX(SQRT(u(JI)**2+v(JI)**2), XVMIN_GD)
+        !* tau aggregation of the THERMAL conductances (they carry the balance)
+        emu_ca_can(JI) = emu_pch_can(JI)*emu_v_can(JI)
+        emu_ca_atm(JI) = emu_pch_atm(JI)*emu_v_atm(JI)
         emu_ca_eff(JI) = emu_tau(JI)*emu_ca_can(JI) + (1.-emu_tau(JI))*emu_ca_atm(JI)
         !* the single complete set (wind, air) given to the external model
         emu_v_star(JI) = emu_tau(JI)*emu_v_can(JI) + (1.-emu_tau(JI))*emu_v_atm(JI)
         emu_t_star(JI) = teb_tcanyon(JI)      ! first approximation: canyon air
         emu_q_star(JI) = teb_qcanyon(JI)
-        !* effective coefficients (covariance term of the tau averaging removed)
-        emu_ch_naive(JI) = emu_tau(JI)*emu_pcd_can(JI) + (1.-emu_tau(JI))*emu_pcd_atm(JI)
+        !* effective coefficients (covariance term of the tau averaging removed);
+        !* the heat/moisture one is built from the thermal conductances, the
+        !* momentum one from the momentum coefficient of the canyon path
+        emu_ch_naive(JI) = emu_tau(JI)*emu_pch_can(JI) + (1.-emu_tau(JI))*emu_pch_atm(JI)
         emu_ch_eff(JI)   = 0.
         IF (emu_ca_eff(JI) > 0.) emu_ch_eff(JI) = emu_ca_eff(JI)/MAX(emu_v_star(JI), XVMIN_GD)
         emu_cd_eff(JI)   = 0.
         IF (emu_v_star(JI) > 0.) THEN
-            emu_cd_eff(JI) = emu_ca_can(JI)*emu_v_can(JI)/MAX(emu_v_star(JI),XVMIN_GD)**2
+            emu_cd_eff(JI) = emu_pcd_can(JI)*emu_v_can(JI)**2/MAX(emu_v_star(JI),XVMIN_GD)**2
         END IF
         !* radiation received by the garden, from the fluxes absorbed by TEB
         emu_psw(JI) = 0.
@@ -2199,7 +2254,7 @@ SUBROUTINE PCD_GARDEN
     !* THE EXTERNAL MODEL: the surface balance at the set prepared above
     !* (PTS_GARDEN, INOUT, carries the state: surface temperature on entry as the
     !* initial guess of the Newton iteration, solution on exit)
-    CALL GARDEN_PCD('PROXY_NEW', emu_ch_eff, emu_v_star, emu_t_star, emu_q_star,   &
+    CALL GARDEN_PCD('PROXY_NEW', emu_cd_eff, emu_ch_eff, emu_v_star, emu_t_star, emu_q_star,   &
                     teb_alb_gd, teb_emis_gd, rho, ps, emu_psw, emu_plw,            &
                     emu_rn, emu_h, emu_le, emu_gflux, emu_sfco2, emu_evap,         &
                     emu_puw, emu_runoff, emu_pac, emu_qsat, teb_ts_gd,             &
@@ -2243,6 +2298,7 @@ SUBROUTINE CSV_APPEND(line, value)
     line(l+1:l+1) = out_sep
     line(l+2:) = TRIM(ADJUSTL(buf))
 END SUBROUTINE CSV_APPEND
+
 
 END PROGRAM run_teb_offline
 

@@ -34,6 +34,10 @@
 !             ------------
 !
 USE MODD_TYPE_DATE_SURF
+!MV202609 garden thermal roughness (z0h)
+!* default value of the garden z0/z0h ratio (single source of truth, shared with
+!* the namelist item urb_z0_o_z0h_gdn of the offline driver)
+USE MODD_PROXI_SVAT_PAR, ONLY : XZ0_O_Z0H_GD
 !
 !
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
@@ -88,8 +92,19 @@ TYPE TEB_OPTIONS_t
 !                 the diagnostic garden coefficients of URBAN_DRAG use the full
 !                 URBAN_EXCH_COEF set (Richardson number, z0h)
 !   'EXT_NEU'   : same external garden, but the coefficients use the neutral
-!                 formulation of the internal garden (no stratification, no z0h)
+!                 formulation of the internal garden (no stratification, the same
+!                 thermal roughness z0h)
   CHARACTER(LEN=9)               :: CTYPE_GARDEN ! TEB option for the garden model
+!MV202609 garden thermal roughness (z0h)
+! Thermal (scalar) roughness of the garden: z0h = urb_z0_gdn/XZ0_O_Z0H_GD, i.e.
+! the ratio z0/z0h of the namelist item urb_z0_o_z0h_gdn (>= 1, default
+! XZ0_O_Z0H_GD = 4.0 of MODD_PROXI_SVAT_PAR). Heat and moisture of the garden use
+! the neutral scalar coefficient PCH = kappa**2/(ln(z/z0)*ln(z/z0h)), the
+! momentum keeps z0; with XZ0_O_Z0H_GD = 1 the garden is exactly the one without
+! thermal roughness. It is the single source of the value used by the internal
+! garden (GARDEN_TAU), by the exported coefficients of URBAN_DRAG ('EXT' and
+! 'EXT_NEU') and by the emulator of the offline driver.
+  REAL                           :: XZ0_O_Z0H_GD ! garden z0/z0h ratio (-)
 !MV202609 tau scheme of the road
 ! tau scheme for the road: the actual road fluxes are the weighted mean of the
 ! road/canyon and road/forcing-level fluxes, with the weights tau and 1-tau,
@@ -162,6 +177,8 @@ YTEB_OPTIONS%CBEM=' '
 YTEB_OPTIONS%CTREE=' '
 YTEB_OPTIONS%LGREENROOF=.FALSE.
 YTEB_OPTIONS%CTYPE_GARDEN='PROXY_NEW'
+!MV202609 garden thermal roughness (z0h)
+YTEB_OPTIONS%XZ0_O_Z0H_GD=XZ0_O_Z0H_GD
 YTEB_OPTIONS%LHYDRO=.FALSE.
 YTEB_OPTIONS%LSOLAR_PANEL=.FALSE.
 YTEB_OPTIONS%LTAU_SCHEME=.FALSE.

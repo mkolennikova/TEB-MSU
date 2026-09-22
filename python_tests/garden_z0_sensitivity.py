@@ -6,8 +6,9 @@ The roughness length of the garden is a namelist item of ALL the garden versions
 (``urb_z0_gdn``, default 0.1 m = MODD_PROXI_SVAT_PAR:XZ0_GD). It fixes the
 aerodynamic conductance of the garden
 
-    Ca = (k / ln(zref/z0))**2 * max(V, VMIN)      ['PROXY_NEW', diagnostic balance]
-    friction flux only                            ['PROXY_OLD' and 'EXT']
+    Ca = k**2/(ln(zref/z0)*ln(zref/z0h)) * max(V, VMIN)   ['PROXY_NEW', balance]
+                                                            (z0h = z0/urb_z0_o_z0h_gdn)
+    friction only                                 ['PROXY_OLD' and 'EXT']
 
 with ``zref = H/2`` the canyon reference height of TEB (``call_driver``:
 ``ZZ_LOWCAN = ZBLD_HEIGHT / 2``) and ``VMIN = 0.5 m/s`` (``XVMIN_GD``).
@@ -21,10 +22,16 @@ and checks that
       output for the two roughness lengths),
   Z2  the historical Bowen proxy is z0-independent as well (it sets
       ``PAC_GARDEN = 0``, i.e. it does not use the aerodynamic conductance),
-  Z4  with ``PROXY_NEW`` the model conductance follows the analytic log law:
-      ``PAC_GARDEN(z0=0.8) / PAC_GARDEN(z0=0.1) = [ln(zref/0.1)/ln(zref/0.8)]**2``
-      (the canyon wind does not depend on the garden z0, so the ratio is exact
-      at every time step; the canyon reference height is recovered from it),
+  Z4  with ``PROXY_NEW`` the model conductance follows the analytic law of the
+      garden: since the thermal roughness was introduced the conductance is the
+      SCALAR one, ``PAC_GARDEN = k**2/(ln(zref/z0)*ln(zref/z0h)) * max(V, VMIN)``
+      with ``z0h = z0/urb_z0_o_z0h_gdn`` (namelist item, default 4.0), so
+      ``PAC_GARDEN(z0=0.8)/PAC_GARDEN(z0=0.1) = 2.7923`` for ``zref = 10 m``
+      (instead of the ``3.3244`` of the formulation without thermal roughness);
+      the ratio is exact at every time step (the canyon wind does not depend on
+      the garden z0) and the canyon reference height is recovered from it by
+      bisection. Set ``urb_z0_o_z0h_gdn = 1`` in the base namelist to check the
+      formulation without thermal roughness (``PCH = PCD``),
   Z3  with 'EXT' the garden conductance that TEB uses in the canyon budget (and
       that is exported in the ``PAC_GARDEN`` column) is NOT produced by the
       internal proxy: TEB's ``PAC_GARDEN`` sits in the ``PAC_GARDEN_CAN`` slot of
@@ -230,13 +237,20 @@ def diff_columns(df_a: pd.DataFrame, df_b: pd.DataFrame, tol: float = 0.0):
     return out
 
 
-def ca_analysis(pac_ref, pac_new, z0_ref: float, z0_new: float, zref: float):
+def ca_analysis(pac_ref, pac_new, z0_ref: float, z0_new: float, zref: float,
+                ratio_z0h: float = 4.0):
     """Analytic check of the aerodynamic conductance of 'PROXY_NEW' (Z3).
 
-    ``PAC_GARDEN = (k/ln(zref/z0))**2 * max(V, VMIN)``: for two roughness lengths
-    the ratio of the conductances must be
+    Since the thermal roughness was introduced the conductance of the garden is
+    the SCALAR one built from ``z0h = z0/ratio_z0h``:
 
-        r = Ca(z0_new)/Ca(z0_ref) = [ln(zref/z0_ref) / ln(zref/z0_new)]**2
+        PAC_GARDEN = k**2/(ln(zref/z0)*ln(zref/z0h)) * max(V, VMIN)
+
+    so for two roughness lengths (the same ``z0/z0h`` ratio in both runs) the
+    ratio of the conductances must be
+
+        r = Ca(z0_new)/Ca(z0_ref)
+          = [ln(zref/z0_ref)*ln(zref/z0_ref/R)]/[ln(zref/z0_new)*ln(zref/z0_new/R)]
 
     at EVERY step, because the canyon wind V (which enters both runs through
     ``max(V, VMIN)`` and is the same in the two runs) does not depend on the
@@ -244,9 +258,8 @@ def ca_analysis(pac_ref, pac_new, z0_ref: float, z0_new: float, zref: float):
     budget, and the garden/canyon heat exchange modifies the air temperature and
     humidity only, not the wind.
 
-    The canyon reference height is recovered from the measured ratio:
-    ``s = sqrt(r) = ln(zref/z0_ref)/ln(zref/z0_new)``, so that
-    ``ln(zref/z0_ref) = ln(z0_new/z0_ref) * s/(s - 1)`` for ``z0_new > z0_ref``.
+    The canyon reference height is recovered from the measured ratio by solving
+    the equation above for ``zref`` (bisection on ``[max(z0)+1e-6, 1e4]`` m).
 
     Returns None when the two runs have no common meaningful step.
     """
@@ -258,13 +271,34 @@ def ca_analysis(pac_ref, pac_new, z0_ref: float, z0_new: float, zref: float):
     if not m.any():
         return None
     r = y[m] / x[m]
-    s = np.sqrt(r)
-    dl = float(np.log(z0_new / z0_ref))
-    ok = np.abs(s - 1.0) > 1e-3
+
+    def ca(z0: float, z):
+        """Scalar conductance kernel k**2/(ln(z/z0)*ln(z/z0h)) of the garden.
+
+        Array-safe (the bisection below applies it to whole arrays of ratios);
+        zero where the profile is not defined (``z <= z0`` or ``z <= z0h``).
+        """
+        z0h = z0 / max(ratio_z0h, 1.0)
+        z = np.asarray(z, dtype=float)
+        with np.errstate(divide='ignore', invalid='ignore'):
+            out = 1.0 / (np.log(z / z0) * np.log(z / z0h))
+        return np.where((z > z0) & (z > z0h), out, 0.0)
+
+    r_an = float(ca(z0_new, zref) / ca(z0_ref, zref))
+    # implied zref: Ca ratio as a function of zref, inverted by bisection
+    z_lo = max(z0_ref, z0_new) + 1.0e-6
+    z_hi = 1.0e4
+    r_at = lambda z: np.asarray(ca(z0_new, z) / ca(z0_ref, z), dtype=float)  # noqa: E731
     z_implied = np.array([])
-    if ok.any():
-        z_implied = z0_ref * np.exp(dl * s[ok] / (s[ok] - 1.0))
-    r_an = (np.log(zref / z0_new) / np.log(zref / z0_ref)) ** -2
+    if float(r_at(z_lo)) > 0.0:
+        lo = np.full(r.shape, z_lo)
+        hi = np.full(r.shape, z_hi)
+        for _ in range(80):
+            mid = 0.5 * (lo + hi)
+            above = r_at(mid) > r          # r(z) decreases with z
+            lo = np.where(above, mid, lo)
+            hi = np.where(above, hi, mid)
+        z_implied = 0.5 * (lo + hi)
     res = dict(
         n=int(m.sum()),
         ratio_median=float(np.median(r)),
@@ -273,6 +307,7 @@ def ca_analysis(pac_ref, pac_new, z0_ref: float, z0_new: float, zref: float):
         ratio_analytic=float(r_an),
         ratio_rel_error=float(abs(np.median(r) - r_an) / r_an),
         zref_expected=float(zref),
+        z0h_ratio=float(ratio_z0h),
         n_zref=int(z_implied.size),
     )
     if z_implied.size:
@@ -320,6 +355,18 @@ def main(argv=None) -> int:
         print('ERROR: --z0-list needs at least two values (reference + perturbed)')
         return 2
     z0_ref, z0_new = z0_values[0], z0_values[-1]
+
+    #: z0/z0h ratio of the garden used by the runs (`urb_z0_o_z0h_gdn`). The bench
+    #: does not write the item, so the runs use the driver default
+    #: (MODD_PROXI_SVAT_PAR:XZ0_O_Z0H_GD = 4); if the base namelist sets it, that
+    #: value is used by the analytic checks below.
+    z0h_ratio = 4.0
+    try:
+        import f90nml
+        _p = f90nml.read(str(base))
+        z0h_ratio = float(_p['tebparam'].get('urb_z0_o_z0h_gdn', z0h_ratio))
+    except Exception:
+        pass
 
     work = Path(args.work_dir)
     site_dir = work / args.site
@@ -455,7 +502,7 @@ def main(argv=None) -> int:
             elif mode_tag == 'gNEW':
                 ca = ca_analysis(series(runs[c_ref]['dir'], 'PAC_GARDEN'),
                                  series(runs[c_new]['dir'], 'PAC_GARDEN'),
-                                 z0_ref, z0_new, zref)
+                                 z0_ref, z0_new, zref, z0h_ratio)
                 if ca is not None:
                     ca_rows.append(dict(lcz=lcz_tag, z0_ref=z0_ref,
                                         z0_new=z0_new, **ca))
@@ -569,7 +616,10 @@ def main(argv=None) -> int:
         zref = float(LCZ[lcz_tag]['h_bld']) / 2.0
         pac_ref = series(runs[c_ref]['dir'], 'PAC_GARDEN')
         pac_new = series(runs[c_new]['dir'], 'PAC_GARDEN')
-        r_an = (np.log(zref / z0_new) / np.log(zref / z0_ref)) ** -2
+        def _ca(z0: float) -> float:
+            z0h = z0 / max(z0h_ratio, 1.0)
+            return 1.0 / (np.log(zref / z0) * np.log(zref / z0h))
+        r_an = _ca(z0_new) / _ca(z0_ref)
         ax.plot(np.asarray(pac_new) / np.asarray(pac_ref), lw=.7, color='#d62728',
                 label=f'measured PAC({z0_new:g})/PAC({z0_ref:g})')
         ax.axhline(r_an, color='k', ls='--', lw=1.1, label=f'analytic {r_an:.4f}')
@@ -700,7 +750,8 @@ def main(argv=None) -> int:
               ' hence no separate `PAC_GARDEN_CAN` column), so `urb_z0_gdn` also acts'
               ' on the town in EXT mode |')
     md.append('| Z4 | `PROXY_NEW`: the model conductance must follow'
-              ' `Ca = (k/ln(zref/z0))**2 * max(V, 0.5 m/s)`; `zref = H/2` (the canyon'
+              ' `Ca_h = k**2/(ln(zref/z0)*ln(zref/z0h)) * max(V, 0.5 m/s)` with'
+              ' `z0h = z0/urb_z0_o_z0h_gdn`; `zref = H/2` (the canyon'
               ' reference height of TEB) is recovered from the measured ratio |')
     md.append('')
     if len(checks_df):

@@ -56,6 +56,8 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade,                         &
 !MV202609 z0 and zd to namelist
 				urb_z0_town, urb_zd_town,                         &
+!MV202609 garden thermal roughness (z0h)
+                urb_z0_o_z0h_gdn,                                 &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
                           PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
@@ -141,6 +143,8 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 !MV202609 z0 and zd to namelist
 	CHARACTER(LEN=16)     :: urb_z0_town                    !IN z0 of the urban surface (0.5 | 0.5m | 0.1H | H/3 | <name>)
 	CHARACTER(LEN=16)     :: urb_zd_town                    !IN displacement height    (same forms as urb_z0_town)
+!MV202609 garden thermal roughness (z0h)
+	REAL                  :: urb_z0_o_z0h_gdn                !IN garden z0/z0h ratio (-)         ( >= 1 )
     CHARACTER(LEN=4)      :: teb_hroad_dir                  !IN road direction option :                      
                                                             ! 'UNIF' : uniform roads                       
                                                             ! 'ORIE' : specified road orientation          
@@ -419,6 +423,8 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
 				teb_lshade,                                                                       &
 !MV202609 z0 and zd to namelist
 				urb_z0_town, urb_zd_town,                         &
+!MV202609 garden thermal roughness (z0h)
+                urb_z0_o_z0h_gdn,                                 &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
                           PCD_ROAD_CAN(i), PCDN_ROAD_CAN(i), PRI_ROAD_CAN(i), ZZ0H_ROAD_CAN(i), &
                           PAC_ROAD_ATM(i), PCH_ROAD_ATM(i), PCD_ROAD_ATM(i), PCDN_ROAD_ATM(i), &

@@ -132,7 +132,9 @@ Notes:
 | `teb_lgarden` | Flag | True / False | Activate garden module |
 | `fr_garden` | External parameter | - | Garden area fraction |
 | `teb_type_garden` | Character | `'PROXY_OLD'` / `'PROXY_NEW'` / `'EXT'` / `'EXT_NEU'` | Garden model type (default `'PROXY_NEW'`) |
-| `urb_z0_gdn` | External parameter | m | Garden roughness length, used by **all** the garden models (default `0.1` = `MODD_PROXI_SVAT_PAR:XZ0_GD`; must be `> 0` and `< XUNDEF`, otherwise the run stops) |
+<!-- MV202609 garden thermal roughness (z0h) -->
+| `urb_z0_gdn` | External parameter | m | Garden roughness length for **momentum**, used by **all** the garden models (default `0.1` = `MODD_PROXI_SVAT_PAR:XZ0_GD`; must be `> 0` and `< XUNDEF`, otherwise the run stops) |
+| `urb_z0_o_z0h_gdn` | External parameter | - | Garden `z0/z0h` ratio (`z0h = urb_z0_gdn/urb_z0_o_z0h_gdn` is the **thermal, scalar** roughness of the garden: heat and moisture exchange through it, the momentum keeps `urb_z0_gdn`; default `4.0` = `MODD_PROXI_SVAT_PAR:XZ0_O_Z0H_GD`; must be `>= 1` and `< XUNDEF`, otherwise the run stops; `1.0` reproduces the garden without thermal roughness bit for bit) |
 | `urb_alb_gdn` | External parameter | - | Garden albedo (default `0.15`; must be `>= 0` and `< 1`, otherwise the run stops) |
 | `urb_emis_gdn` | External parameter | - | Garden emissivity (default `0.98`; must be `> 0` and `<= 1`, otherwise the run stops) |
 | `teb_lgreenroof` | Flag | True / False | Activate green roof module |
@@ -147,10 +149,10 @@ Used only when `teb_lgarden = .TRUE.`:
 
 | Value | Model |
 |:------|:------|
-| `'PROXY_NEW'` | **Default.** Diagnostic surface energy balance solved for the garden surface temperature by Newton iteration (`Rn = H + LE`, i.e. no heat flux into the soil; surface relative humidity `PHU`; zero-flux CO2; non-zero aerodynamic conductance feeding back on the canyon air; a minimum wind speed of 0.5 m/s keeps `Ts` anchored to the air). |
+| `'PROXY_NEW'` | **Default.** Diagnostic surface energy balance solved for the garden surface temperature by Newton iteration (`Rn = H + LE`, i.e. no heat flux into the soil; surface relative humidity `PHU`; zero-flux CO2; non-zero aerodynamic conductance feeding back on the canyon air; a minimum wind speed of 0.5 m/s keeps `Ts` anchored to the air). Heat and moisture exchange through the neutral scalar coefficient `PCH = kappa**2/(ln(z/z0)*ln(z/z0h))` (thermal roughness `z0h = urb_z0_gdn/urb_z0_o_z0h_gdn`), the friction flux through `PCD = (kappa/ln(z/z0))**2`. |
 | `'PROXY_OLD'` | Historical proxy with a fixed Bowen ratio (0.25) and the namelist albedo (`urb_alb_gdn`), driven by the short-wave radiation only; conduction and aerodynamic conductance neglected. |
-| `'EXT'` | The garden fluxes are provided by an external model (the internal call is a placeholder). The diagnostic garden exchange coefficients of `URBAN_DRAG` (`PCD*_GARDEN_*`) use the full `URBAN_EXCH_COEF` set: Richardson number, `z0h = z0/4`, `WIND_THRESHOLD`. Any other value stops the run. |
-| `'EXT_NEU'` | Same external garden, but the garden exchange coefficients follow the **neutral** formulation of the internal diagnostic garden (`(kappa/ln(z/z0))**2`, wind floor `XVMIN_GD = 0.5 m/s`, no `z0h`), so `PCD = PCH = PCDN` and `PRI`/`ZZ0H` stay undefined (`XUNDEF`). This is the coefficient set a coupled external garden model is meant to be driven with: it is identical to the canyon-path coefficient of `'PROXY_NEW'` and to the emulator of the offline driver. |
+| `'EXT'` | The garden fluxes are provided by an external model (the internal call is a placeholder). The diagnostic garden exchange coefficients of `URBAN_DRAG` (`PCD*_GARDEN_*`) use the full `URBAN_EXCH_COEF` set: Richardson number, `z0h = z0/urb_z0_o_z0h_gdn`, `WIND_THRESHOLD`. Any other value stops the run. |
+| `'EXT_NEU'` | Same external garden, but the garden exchange coefficients follow the **neutral** formulation of the internal diagnostic garden (`PCD`/`Ca_m` for momentum, `PCH`/`Ca_h` for heat and moisture with the same thermal roughness `z0h` and the same wind floor `XVMIN_GD = 0.5 m/s`), so `PCD = PCDN > PCH = PCDN*ZFH`, `ZZ0H_GARDEN_*` is the thermal roughness used and only `PRI` stays undefined (`XUNDEF`). This is the coefficient set a coupled external garden model is meant to be driven with: it is identical to the canyon-path coefficients of `'PROXY_NEW'` and to the emulator of the offline driver. |
 
 #### Surface properties of the garden and of the greenroof
 
@@ -164,10 +166,11 @@ construction:
 | Garden (`gdn`) | `urb_z0_gdn` = `0.1` (`XZ0_GD`) | `urb_alb_gdn` = `0.15` | `urb_emis_gdn` = `0.98` |
 | Green roof (`grf`) | `urb_z0_grf` = `0.01` (`XZ0_GR`) | `urb_alb_grf` = `0.15` | `urb_emis_grf` = `0.98` |
 
-The values are validated by the driver (roughness length `> 0` and `< XUNDEF`, albedo
-in `[0, 1)`, emissivity in `(0, 1]`) and printed in the banner (`TEB-Ru offline:
-urb_z0_gdn = ...`, `urb_z0_grf = ...`, `garden alb/emis = ...`, `greenroof alb/emis
-= ...`); an out-of-range value stops the run (`STOP 1`).
+The values are validated by the driver (roughness length `> 0` and `< XUNDEF`, ratio
+`z0/z0h >= 1` and `< XUNDEF`, albedo in `[0, 1)`, emissivity in `(0, 1]`) and printed
+in the banner (`TEB-Ru offline: urb_z0_gdn = ...`, `urb_z0_o_z0h_gdn = ... -> z0h(garden) = ...`,
+`urb_z0_grf = ...`, `garden alb/emis = ...`, `greenroof alb/emis = ...`); an
+out-of-range value stops the run (`STOP 1`).
 
 Propagation: the roughness lengths travel along
 `teb_z0_gd`/`teb_z0_gr` → `ZZ0_GD_EXT`/`ZZ0_GR_EXT` → `PZ0_GARDEN_EXT`/`PZ0_GR_EXT` →
@@ -199,25 +202,38 @@ the garden conductance and in `URBAN_DRAG`). See
 `python_tests/garden_surface_par_sensitivity.py`.
 
 
-##### Garden roughness length (`urb_z0_gdn`)
+<!-- MV202609 garden thermal roughness (z0h) -->
+##### Garden roughness length (`urb_z0_gdn`) and thermal roughness (`urb_z0_o_z0h_gdn`)
 
-The driver uses it as the default of `teb_z0_gd` (see the propagation above);
-inside the canyon it fixes the aerodynamic conductance
+The driver uses `urb_z0_gdn` as the default of `teb_z0_gd` (see the propagation above);
+inside the canyon it fixes the momentum coefficient and, together with the ratio
+`urb_z0_o_z0h_gdn` (`z0h = urb_z0_gdn/urb_z0_o_z0h_gdn`), the scalar (thermal)
+coefficient of the exchange:
 
 ```
-Ca = (k / ln(zref/z0))² · max(V, 0.5 m/s)      zref = H/2 (canyon reference level)
+PCD = (k / ln(zref/z0))²                       momentum (friction flux only)
+PCH = k² / (ln(zref/z0)·ln(zref/z0h)) = PCD·ZFH   heat and moisture
+Ca_h = PCH · max(V, 0.5 m/s)                   conductance used by the balance
+                                               zref = H/2 (canyon reference level)
 ```
 
-so a larger `z0` means a stronger garden/canyon exchange: larger `Ca`, larger
-`|H|` and `LE` (per m² of garden), smaller `Ts − Ta` contrast. With `'PROXY_OLD'`
-the value is inert (`PAC_GARDEN = 0`, the historical Bowen proxy does not use the
-conductance); with `'EXT'` it sets the garden/canyon conductance used by TEB's
-implicit canyon budget.
+so a larger `z0` (or a smaller ratio, i.e. a larger `z0h`) means a stronger
+garden/canyon exchange of heat and moisture: larger `Ca_h`, larger `|H|` and `LE`
+(per m² of garden), smaller `Ts − Ta` contrast. With `'PROXY_OLD'` the values are
+inert (`PAC_GARDEN = 0`, the historical Bowen proxy does not use the conductance);
+with `'EXT'` `urb_z0_gdn` and the ratio set the garden/canyon conductance used by
+TEB's implicit canyon budget.
 
 | Value (m) | Meaning |
 |:----------|:--------|
 | `0.1` | Default (`MODD_PROXI_SVAT_PAR:XZ0_GD`), reference value of the internal proxies |
 | `0.8` | Well vegetated (rough) garden, used in `python_tests/garden_z0_sensitivity.py` |
+
+| `urb_z0_o_z0h_gdn` (-) | Meaning |
+|:-----------------------|:--------|
+| `1.0` | `z0h = z0`: the garden without thermal roughness, reproduced bit for bit (reference case of `python_tests/garden_z0h_sensitivity.py`) |
+| `4.0` | Default (`MODD_PROXI_SVAT_PAR:XZ0_O_Z0H_GD`): `PCH/PCD = ZFH = 0.71…0.77` for the reference heights of TEB |
+| `2`, `8` | Weaker / stronger thermal-roughness effect, used in the sensitivity bench |
 
 #### Garden output columns
 
@@ -234,7 +250,10 @@ they are undefined (`XUNDEF`):
 | `QSAT_GARDEN` | kg/kg | Saturation specific humidity at `TS_GARDEN` |
 | `PHU_GARDEN` | - | Aggregated relative humidity of the garden surface |
 | `PAC_AGG_GARDEN` | m/s | Aggregated aerodynamic conductance (latent heat) |
-| `PAC_GARDEN` | m/s | Aerodynamic conductance of the garden used by the canyon budget (`0` for `'PROXY_OLD'`; for `'EXT'` and `'EXT_NEU'` it is the garden/canyon conductance computed by `URBAN_DRAG` from `urb_z0_gdn`) |
+<!-- MV202609 garden thermal roughness (z0h) -->
+| `PAC_GARDEN` | m/s | Aerodynamic conductance of the garden **for heat and moisture** (the scalar coefficient `PCH` times `max(U_CANYON, 0.5)`) used by the canyon budget (`0` for `'PROXY_OLD'`) |
+| `PCD_GARDEN_CAN`, `PCH_GARDEN_CAN` | - | Garden/canyon exchange coefficients used by the garden of the model: momentum (`PCD`, friction only) and thermal (`PCH`, heat and moisture, from `urb_z0_o_z0h_gdn`); `0` when no internal garden is active |
+| `ZZ0H_GARDEN_CAN`, `ZZ0H_GARDEN_ATM` | m | Thermal roughness `z0h` used by the `'EXT_NEU'` garden coefficients (`XUNDEF` for the internal garden, whose `z0h` is visible through `PCH_GARDEN_CAN`) |
 | `H_GARDEN_CAN` | W/m² | Garden sensible heat flux of the canyon branch (`_CAN`) of the tau scheme |
 | `H_GARDEN_ATM` | W/m² | Garden sensible heat flux of the direct garden/atmosphere branch (`_ATM`) |
 | `LE_GARDEN_CAN` | W/m² | Garden latent heat flux of the canyon branch (`_CAN`) |
@@ -253,9 +272,9 @@ previous sub-step. The following columns are written only in this mode:
 | Column | Dimension | Comment |
 |:-------|:----------|:--------|
 | `EMU_TAU` | - | Weight of the canyon path of the garden exchange (the tanh relaxation of the canyon H/W ratio used by the tau scheme) |
-| `EMU_CD_EFF` | - | Effective momentum coefficient given to the external model: `Ca_canyon*max(V_canyon,Vmin)/max(V*,Vmin)^2` (TEB keeps the garden momentum on the canyon path only) |
-| `EMU_CH_EFF` | - | Effective heat/moisture coefficient: `Ca_eff/max(V*,Vmin)`, where `Ca_eff = tau*Ca_canyon+(1-tau)*Ca_atmosphere`: the coefficient absorbs the covariance term `tau(1-tau)(Cd_C-Cd_A)(V_A-V_C)` of the averaging, so that `EMU_CH_EFF*max(V*,Vmin) = EMU_CA_EFF` exactly |
-| `EMU_CH_NAIVE` | - | Tau-averaged (naive) coefficient `tau*Cd_C+(1-tau)*Cd_A`, i.e. what an averaging without the covariance correction would give |
+| `EMU_CD_EFF` | - | Effective momentum coefficient given to the external model: `PCD_canyon*max(V_canyon,Vmin)^2/max(V*,Vmin)^2` (TEB keeps the garden momentum on the canyon path only; the emulator friction uses this coefficient) |
+| `EMU_CH_EFF` | - | Effective heat/moisture coefficient: `Ca_eff/max(V*,Vmin)`, where `Ca_eff = tau*Ca_h_canyon+(1-tau)*Ca_h_atmosphere` are the **scalar** (thermal) conductances: the coefficient absorbs the covariance term `tau(1-tau)(Cd_C-Cd_A)(V_A-V_C)` of the averaging, so that `EMU_CH_EFF*max(V*,Vmin) = EMU_CA_EFF` exactly |
+| `EMU_CH_NAIVE` | - | Tau-averaged (naive) coefficient `tau*PCH_C+(1-tau)*PCH_A`, i.e. what an averaging without the covariance correction would give |
 | `EMU_V`, `EMU_T`, `EMU_Q` | m/s, K, kg/kg | The one complete set (wind, air) given to the external model: `EMU_V` is the tau-averaged wind, `EMU_T`/`EMU_Q` the air of the canyon |
 | `EMU_CA_CAN`, `EMU_CA_EFF` | m/s | Conductance of the canyon path and tau-aggregated conductance |
 | `EMU_TS`, `EMU_H`, `EMU_LE`, `EMU_EVAP` | K, W/m², W/m², kg/m²/s | State and fluxes returned by the external model (prescribed to TEB at the next sub-step) |
@@ -264,12 +283,14 @@ The diagnostic garden columns of `URBAN_DRAG` (`PCDN/PRI/ZZ0H_GARDEN_CAN`,
 `PAC/PCDN/PRI/ZZ0H/PCD/PCH_GARDEN_ATM`) are filled in **both** external modes, but
 with two different coefficient sets:
 
-* `'EXT'` - `URBAN_EXCH_COEF` (Richardson number, `z0h = urb_z0_gdn/4`,
+* `'EXT'` - `URBAN_EXCH_COEF` (Richardson number, `z0h = urb_z0_gdn/urb_z0_o_z0h_gdn`,
   `WIND_THRESHOLD`): the description of the coefficients a *coupled* host model
   would need, not the coefficients actually used by the emulator;
 * `'EXT_NEU'` - the neutral formulation of the internal diagnostic garden
-  (`GARDEN_PCD_NEUTRAL`/`GARDEN_CA_NEUTRAL` of `src/src_proxi_SVAT/garden.F90`):
-  `PCD = PCH = PCDN`, `PRI_GARDEN_*` and `ZZ0H_GARDEN_*` keep `XUNDEF` and
+  (`GARDEN_PCD_NEUTRAL`/`GARDEN_CA_NEUTRAL` for momentum,
+  `GARDEN_PCH_NEUTRAL`/`GARDEN_CAH_NEUTRAL` for heat and moisture, of
+  `src/src_proxi_SVAT/garden.F90`): `PCD = PCDN`, `PCH = PCDN*ZFH`, `PRI_GARDEN_*`
+  keeps `XUNDEF`, `ZZ0H_GARDEN_*` is the thermal roughness used, and
   `PAC_GARDEN_CAN` equals `EMU_CA_CAN` of the emulator exactly. This is the mode
   in which the exported coefficients and the emulated model are consistent
   (`'EXT'` includes stratification in the export while the emulator does not).

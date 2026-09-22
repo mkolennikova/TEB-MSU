@@ -105,6 +105,10 @@ USE MODI_WINDOW_SHADING_AVAILABILITY
 USE MODI_URBAN_SOLAR_ABS
 USE MODI_URBAN_LW_COEF
 USE MODI_GARDEN
+!MV202609 garden thermal roughness (z0h)
+!* neutral formulation of the garden exchange coefficients (single source
+!* shared with URBAN_DRAG and with the emulator of the offline driver)
+USE MODE_GARDEN_BALANCE, ONLY : GARDEN_PCD_NEUTRAL, GARDEN_PCH_NEUTRAL
 USE MODI_GREENROOF
 USE MODI_TEB
 USE MODI_AVG_URBAN_FLUXES
@@ -219,10 +223,13 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PRNSN_RD       ! net radiation over snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PHSN_RD        ! sensible heat flux over snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PLESN_RD       ! latent heat flux over snow
 !MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PHSN_RD_CAN    ! sensible heat flux over snow, snow -> canyon air
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PHSN_RD_ATM    ! sensible heat flux over snow, snow -> forcing level
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLESN_RD_CAN   ! latent heat flux over snow, snow -> canyon air
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLESN_RD_ATM   ! latent heat flux over snow, snow -> forcing level
+!* INOUT: the canyon air nodes of TEB_GARDEN2 read these branch diagnostics
+!* (AVG_URBAN_FLUXES) BEFORE the snow scheme of TEB writes them, so they carry the
+!* value of the previous sub-step (they are persistent in DMT, see TEB_GARDEN_STRUCT)
+REAL, DIMENSION(:)  , INTENT(INOUT) :: PHSN_RD_CAN    ! sensible heat flux over snow, snow -> canyon air
+REAL, DIMENSION(:)  , INTENT(INOUT) :: PHSN_RD_ATM    ! sensible heat flux over snow, snow -> forcing level
+REAL, DIMENSION(:)  , INTENT(INOUT) :: PLESN_RD_CAN   ! latent heat flux over snow, snow -> canyon air
+REAL, DIMENSION(:)  , INTENT(INOUT) :: PLESN_RD_ATM   ! latent heat flux over snow, snow -> forcing level
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PGSN_RD        ! flux under the snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PMELT_RD       ! snow melt
 !
@@ -1005,6 +1012,11 @@ ZPEQ_B_COEF(:) = PQ_LOWCAN(:)
 IF (TOP%LGARDEN) THEN
 !
   CALL GARDEN_TAU(TOP%CTYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GARDEN_EXT, &
+!MV202609 garden thermal roughness (z0h)
+!* z0/z0h ratio of the garden: the scalar (thermal) coefficient of the diagnostic
+!* balance is built from it (single value of TOP, the same one that URBAN_DRAG
+!* exports and that the emulator of the offline driver uses)
+              TOP%XZ0_O_Z0H_GD,                                                          &
 !MV202609 tau scheme of the garden
 !* the split (tau vs 1 - tau) is applied only to the internal diagnostic proxy:
 !* 'PROXY_OLD' and 'EXT' have a single flux which is reported in both branches
@@ -1022,8 +1034,21 @@ IF (TOP%LGARDEN) THEN
   DMT%XABS_LW_GARDEN(:) = ZEMIS_GD(:) * ZREC_LW_GD(:) - XSTEFAN * ZEMIS_GD(:) * ZTSRAD_GD(:)**4 
   ZEMIT_LW_GD(:) = XSTEFAN * ZTSRAD_GD(:)**4 + (1 - ZEMIS_GD(:)) / ZEMIS_GD(:) * DMT%XABS_LW_GARDEN(:)
   ZQV_GD(:) = 0.
+!MV202609 garden thermal roughness (z0h)
+!* exchange coefficients of the garden WITH THE CANYON AIR actually used by the
+!* diagnostic balance (canyon-path height PZ_LOWCAN and wind PU_LOWCAN): the
+!* momentum coefficient PCD (only the friction flux uses it) and the thermal
+!* coefficient PCH built from the scalar roughness z0h = z0/TOP%XZ0_O_Z0H_GD.
+!* They are exported in the PCD_GARDEN_CAN / PCH_GARDEN_CAN columns. The
+!* historical Bowen-ratio proxy and the external garden keep the former zero
+!* values (the proxy does not use a conductance at all, and the coefficients of
+!* an external garden are the ones computed by URBAN_DRAG).
   PCH_GD(:) = 0.
   PCD_GD(:) = 0.
+  IF (TOP%CTYPE_GARDEN == 'PROXY_NEW') THEN
+    PCD_GD(:) = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:))
+    PCH_GD(:) = GARDEN_PCH_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:), TOP%XZ0_O_Z0H_GD)
+  END IF
   
   IF (TOP%CTYPE_GARDEN == 'EXT' .OR. TOP%CTYPE_GARDEN == 'EXT_NEU') THEN
     ZH_GD(:) = PH_GD_EXT(:)

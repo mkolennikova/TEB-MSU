@@ -33,6 +33,8 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 				ZRD_END_HOUR, ZRD_24H_IRRIG, ZPROD_BLD, ZUTC_HOUR, LSHADE,                                     &
 !MV202609 z0 and zd to namelist
 				HZ0_TOWN, HZD_TOWN,                         &
+!MV202609 garden thermal roughness (z0h)
+                XZ0_O_Z0H_GD,                               &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
                           PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
@@ -223,6 +225,8 @@ CHARACTER(LEN=4)                  :: HWALL_OPT         !IN Wall option
 !MV202609 z0 and zd to namelist
 CHARACTER(LEN=16)                 :: HZ0_TOWN          !IN z0 of the urban surface (0.5 | 0.5m | 0.1H | H/3 | <name>)
 CHARACTER(LEN=16)                 :: HZD_TOWN          !IN displacement height    (same forms as HZ0_TOWN)
+!MV202609 garden thermal roughness (z0h)
+REAL                              :: XZ0_O_Z0H_GD      !IN garden z0/z0h ratio (-)         ( >= 1 )
 REAL,DIMENSION(1)                 :: ZROAD_DIR         !IN road direction (° from North, clockwise)													   
 										
 ! Input parameters for BEM                                                                                                                                       ! ||   ||
@@ -1553,6 +1557,8 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, LGREENROOF, LGREENR
                           ZLE_ROOF_WAT, ZLE_ROOF_SNOW, &
 !MV202609 tau scheme of the road
                           LTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
+!MV202609 garden thermal roughness (z0h)
+                          XZ0_O_Z0H_GD, &
 !MV202609 garden diagnostics
                      ZPTSRAD_GARDEN, ZPRN_GARDEN, ZPH_GARDEN, ZPLE_GARDEN,       &
                      ZPEVAP_GARDEN, ZPQSAT_GARDEN, ZPHU_GARDEN, ZPAC_AGG_GARDEN, &
