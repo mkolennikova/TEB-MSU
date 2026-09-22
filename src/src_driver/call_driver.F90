@@ -27,7 +27,7 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 				ZRUNOFF_GR_EXT, LGARDEN, ZZ0_GD_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD,   &
 				ZCD_GD, ZRUNOFF_GD_EXT, ITYPE_WIND, ZFAI, ZDQS_TOWN, ZGFLUX_TOWN, ZH_ROOF_FR, ZH_ROAD_FR,         &
 				ZH_WALL_FR, ZAC_ROOF, ZAC_ROAD, ZAC_WALL, ZAC_TOP, ZCH_RF, ZCH_RD, ZCH_WL, ZCH_TOP, ZU_TOP,   &
-                ZUSTAR_TOWN, ZCD_GARDEN_ATM, ZCH_GARDEN_ATM, ZH_TRAFFIC_NOW, ZRN_TOWN, ZU_CANYON, ZTS_ROAD, TYPE_GARDEN, &
+                ZUSTAR_TOWN, ZCD_GARDEN_ATM, ZCH_GARDEN_ATM, ZH_TRAFFIC_NOW, ZRN_TOWN, ZU_CANYON, ZTS_ROAD, TYPE_GARDEN, TYPE_GREENROOF, &
 				LGREENROOF_EXT, HROAD_DIR, HWALL_OPT, ZROAD_DIR, ZRESIDENTIAL, ZDT_RES, ZDT_OFF, ZCAP_SYS_HEAT, &
 				LSOLAR_PANEL, ZFRAC_PANEL, LPAR_RD_IRRIG, ZRD_START_MONTH, ZRD_END_MONTH, ZRD_START_HOUR,        &
 				ZRD_END_HOUR, ZRD_24H_IRRIG, ZPROD_BLD, ZUTC_HOUR, LSHADE,                                     &
@@ -35,6 +35,8 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 				HZ0_TOWN, HZD_TOWN,                         &
 !MV202609 garden thermal roughness (z0h)
                 XZ0_O_Z0H_GD,                               &
+!MV202609 greenroof model type, thermal roughness and surface humidity
+                XZ0_O_Z0H_GR, XPHU_GD, XPHU_GR,            &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
                           PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
@@ -58,7 +60,10 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
                           PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
-                          PAC_GARDEN)
+                          PAC_GARDEN,                                                   &
+!MV202609 greenroof diagnostics
+                          PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
+                          PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_AGG_GREENROOF)
 							
 ! ======================================================================
 ! 
@@ -227,6 +232,10 @@ CHARACTER(LEN=16)                 :: HZ0_TOWN          !IN z0 of the urban surfa
 CHARACTER(LEN=16)                 :: HZD_TOWN          !IN displacement height    (same forms as HZ0_TOWN)
 !MV202609 garden thermal roughness (z0h)
 REAL                              :: XZ0_O_Z0H_GD      !IN garden z0/z0h ratio (-)         ( >= 1 )
+!MV202609 greenroof model type, thermal roughness and surface humidity
+REAL                              :: XZ0_O_Z0H_GR      !IN greenroof z0/z0h ratio (-)      ( >= 1 )
+REAL                              :: XPHU_GD           !IN garden    surface relative humidity (-)
+REAL                              :: XPHU_GR           !IN greenroof surface relative humidity (-)
 REAL,DIMENSION(1)                 :: ZROAD_DIR         !IN road direction (° from North, clockwise)													   
 										
 ! Input parameters for BEM                                                                                                                                       ! ||   ||
@@ -267,6 +276,7 @@ REAL,DIMENSION(1)                 :: ZRUNOFF_GR_EXT    !IN greenroof surface run
 ! Input parameters for Garden from TERRA           
 LOGICAL                           :: LGARDEN           !IN Flag to use a garden scheme
 CHARACTER(LEN=9)                  :: TYPE_GARDEN       !IN garden model type ('PROXY_OLD','PROXY_NEW','EXT')
+CHARACTER(LEN=9)                  :: TYPE_GREENROOF    !IN greenroof model type ('PROXY_OLD','PROXY_NEW')
 REAL,DIMENSION(1)                 :: ZZ0_GD_EXT        !IN garden roughness length (external model)
 REAL,DIMENSION(1)                 :: ZALB_GD_EXT       !IN garden albedo (external model)
 REAL,DIMENSION(1)                 :: ZEMIS_GD_EXT      !IN garden emissivity (external model)
@@ -424,6 +434,15 @@ REAL,DIMENSION(1)                 :: PH_GARDEN_ATM    !OUT garden sensible heat 
 REAL,DIMENSION(1)                 :: PLE_GARDEN_CAN   !OUT garden latent  heat flux, garden -> canyon air (W/m2 garden)
 REAL,DIMENSION(1)                 :: PLE_GARDEN_ATM   !OUT garden latent  heat flux, garden -> forcing level (W/m2 garden)
 REAL,DIMENSION(1)                 :: PAC_GARDEN       !OUT garden aerodynamic conductance (m/s)
+!MV202609 greenroof diagnostics
+REAL,DIMENSION(1)                 :: PTSRAD_GREENROOF !OUT greenroof surface temperature (K)
+REAL,DIMENSION(1)                 :: PRN_GREENROOF    !OUT net radiation over the greenroof (W/m2 greenroof)
+REAL,DIMENSION(1)                 :: PH_GREENROOF     !OUT sensible heat flux over the greenroof (W/m2 greenroof)
+REAL,DIMENSION(1)                 :: PLE_GREENROOF    !OUT latent heat flux over the greenroof (W/m2 greenroof)
+REAL,DIMENSION(1)                 :: PEVAP_GREENROOF  !OUT total evaporation over the greenroof (kg/m2/s)
+REAL,DIMENSION(1)                 :: PQSAT_GREENROOF  !OUT greenroof saturation specific humidity (kg/kg)
+REAL,DIMENSION(1)                 :: PHU_GREENROOF    !OUT greenroof aggregated relative humidity (-)
+REAL,DIMENSION(1)                 :: PAC_AGG_GREENROOF!OUT greenroof aggregated conductance (m/s)
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 REAL,DIMENSION(1)                 :: PDN_RF           !OUT roof snow fraction (-)
 REAL,DIMENSION(1)                 :: LE_ROOF_WAT      !OUT roof latent heat flux of the snow-free roof (W/m2 roof)
@@ -533,6 +552,15 @@ REAL,DIMENSION(1)  :: ZPH_GARDEN_CAN    ! garden sensible heat flux, garden -> c
 REAL,DIMENSION(1)  :: ZPH_GARDEN_ATM    ! garden sensible heat flux, garden -> forcing level (W/m2 garden)
 REAL,DIMENSION(1)  :: ZPLE_GARDEN_CAN   ! garden latent  heat flux, garden -> canyon air (W/m2 garden)
 REAL,DIMENSION(1)  :: ZPLE_GARDEN_ATM   ! garden latent  heat flux, garden -> forcing level (W/m2 garden)
+!MV202609 greenroof diagnostics
+REAL,DIMENSION(1)  :: ZPTSRAD_GREENROOF ! greenroof surface temperature (K)
+REAL,DIMENSION(1)  :: ZPRN_GREENROOF    ! net radiation over the greenroof (W/m2 greenroof)
+REAL,DIMENSION(1)  :: ZPH_GREENROOF     ! sensible heat flux over the greenroof (W/m2 greenroof)
+REAL,DIMENSION(1)  :: ZPLE_GREENROOF    ! latent heat flux over the greenroof (W/m2 greenroof)
+REAL,DIMENSION(1)  :: ZPEVAP_GREENROOF  ! total evaporation over the greenroof (kg/m2/s)
+REAL,DIMENSION(1)  :: ZPQSAT_GREENROOF  ! greenroof saturation specific humidity (kg/kg)
+REAL,DIMENSION(1)  :: ZPHU_GREENROOF    ! greenroof aggregated relative humidity (-)
+REAL,DIMENSION(1)  :: ZPAC_AGG_GREENROOF! greenroof aggregated conductance (m/s)
 REAL,DIMENSION(1)  :: ZAC_GREENROOF     ! green roofs aerodynamical conductance        
 REAL,DIMENSION(1)  :: ZAC_GREENROOF_WAT ! green roofs aerodynamical conductance for vapor                                    
 REAL,DIMENSION(1)  :: ZUW_ROOF          ! Momentum flux for roofs                      
@@ -1440,7 +1468,7 @@ ENDIF
 !*****************************************************************************
 
 
-CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, LGREENROOF, LGREENROOF_EXT, LSOLAR_PANEL,                &
+CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, TYPE_GREENROOF, LGREENROOF, LGREENROOF_EXT, LSOLAR_PANEL,                &
                      HZ0H, HIMPLICIT_WIND, HROAD_DIR, HWALL_OPT, TPTIME,      &
                      LBEM_AC, XTSUN, ZT_CANYON, ZQ_CANYON, ZU_CANYON,                  &
                      ZT_LOWCAN, ZQ_LOWCAN, ZU_LOWCAN, ZZ_LOWCAN,              &
@@ -1559,11 +1587,16 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, LGREENROOF, LGREENR
                           LTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
 !MV202609 garden thermal roughness (z0h)
                           XZ0_O_Z0H_GD, &
+!MV202609 greenroof model type, thermal roughness and surface humidity
+                          XZ0_O_Z0H_GR, XPHU_GD, XPHU_GR, &
 !MV202609 garden diagnostics
                      ZPTSRAD_GARDEN, ZPRN_GARDEN, ZPH_GARDEN, ZPLE_GARDEN,       &
                      ZPEVAP_GARDEN, ZPQSAT_GARDEN, ZPHU_GARDEN, ZPAC_AGG_GARDEN, &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
-                     ZPH_GARDEN_CAN, ZPH_GARDEN_ATM, ZPLE_GARDEN_CAN, ZPLE_GARDEN_ATM)
+                     ZPH_GARDEN_CAN, ZPH_GARDEN_ATM, ZPLE_GARDEN_CAN, ZPLE_GARDEN_ATM, &
+!MV202609 greenroof diagnostics
+                      ZPTSRAD_GREENROOF, ZPRN_GREENROOF, ZPH_GREENROOF, ZPLE_GREENROOF, &
+                      ZPEVAP_GREENROOF, ZPQSAT_GREENROOF, ZPHU_GREENROOF, ZPAC_AGG_GREENROOF)
 !*****************************************************************************
 !*****************************************************************************
 !*****************************************************************************
@@ -1639,6 +1672,15 @@ PH_GARDEN_ATM    = ZPH_GARDEN_ATM
 PLE_GARDEN_CAN   = ZPLE_GARDEN_CAN
 PLE_GARDEN_ATM   = ZPLE_GARDEN_ATM
 PAC_GARDEN       = ZAC_GARDEN
+!MV202609 greenroof diagnostics
+PTSRAD_GREENROOF = ZPTSRAD_GREENROOF
+PRN_GREENROOF    = ZPRN_GREENROOF
+PH_GREENROOF     = ZPH_GREENROOF
+PLE_GREENROOF    = ZPLE_GREENROOF
+PEVAP_GREENROOF  = ZPEVAP_GREENROOF
+PQSAT_GREENROOF  = ZPQSAT_GREENROOF
+PHU_GREENROOF    = ZPHU_GREENROOF
+PAC_AGG_GREENROOF= ZPAC_AGG_GREENROOF
 !
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 !* roof water diagnostics: snow fraction and liquid/snow components of the roof

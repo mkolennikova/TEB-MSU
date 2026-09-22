@@ -49,7 +49,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				teb_dqs_town, teb_gflux, teb_shfl_rf, teb_shfl_rd, teb_shfl_wl, teb_ac_rf,          &
 				teb_ac_rd, teb_ac_wl, teb_ac_top, teb_tch_rf, teb_tch_rd, teb_tch_wl, teb_tch_top,  &
 				teb_wind_top, teb_ustar_town, teb_cd_garden_atm, teb_ch_garden_atm, ahf_traffic_now,          &
-				teb_rn_town, teb_wind_canyon, teb_tsroad, teb_type_garden, teb_lgreenroof_ext,      &
+				teb_rn_town, teb_wind_canyon, teb_tsroad, teb_type_garden, teb_type_greenroof, teb_lgreenroof_ext,      &
 				teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
 				teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
@@ -58,6 +58,8 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				urb_z0_town, urb_zd_town,                         &
 !MV202609 garden thermal roughness (z0h)
                 urb_z0_o_z0h_gdn,                                 &
+!MV202609 greenroof model type, thermal roughness and surface humidity
+                urb_z0_o_z0h_grf, urb_phu_gdn, urb_phu_grf,       &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
                           PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
@@ -83,7 +85,11 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
                           teb_h_garden_can, teb_h_garden_atm,                             &
                           teb_le_garden_can, teb_le_garden_atm,                           &
-                          teb_pac_garden)
+                          teb_pac_garden,                                                 &
+!MV202609 greenroof diagnostics
+                          teb_ts_greenroof, teb_rn_greenroof, teb_h_greenroof, teb_le_greenroof, &
+                          teb_evap_greenroof, teb_qsat_greenroof, teb_phu_greenroof,     &
+                          teb_pac_agg_greenroof)
 
 !-------------------------------------------------------------------------------
 ! Declarations
@@ -145,6 +151,10 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 	CHARACTER(LEN=16)     :: urb_zd_town                    !IN displacement height    (same forms as urb_z0_town)
 !MV202609 garden thermal roughness (z0h)
 	REAL                  :: urb_z0_o_z0h_gdn                !IN garden z0/z0h ratio (-)         ( >= 1 )
+!MV202609 greenroof model type, thermal roughness and surface humidity
+	REAL                  :: urb_z0_o_z0h_grf                !IN greenroof z0/z0h ratio (-)      ( >= 1 )
+	REAL                  :: urb_phu_gdn                     !IN garden    surface relative humidity (-)
+	REAL                  :: urb_phu_grf                     !IN greenroof surface relative humidity (-)
     CHARACTER(LEN=4)      :: teb_hroad_dir                  !IN road direction option :                      
                                                             ! 'UNIF' : uniform roads                       
                                                             ! 'ORIE' : specified road orientation          
@@ -196,6 +206,7 @@ REAL ,DIMENSION(nvec) :: teb_alb_gr
 
     LOGICAL  :: teb_lgarden
 	CHARACTER(LEN=9) :: teb_type_garden
+	CHARACTER(LEN=9) :: teb_type_greenroof
     REAL ,DIMENSION(nvec) :: teb_z0_gd
     REAL ,DIMENSION(nvec) :: teb_alb_gd
 	REAL ,DIMENSION(nvec) :: teb_emis_gd
@@ -373,6 +384,15 @@ REAL, DIMENSION(nvec), INTENT(OUT) :: teb_h_garden_atm  ! garden sensible heat f
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_le_garden_can ! garden latent  heat flux, garden -> canyon air (W/m2 garden)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_le_garden_atm ! garden latent  heat flux, garden -> forcing level (W/m2 garden)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_pac_garden   ! garden aerodynamic conductance (m/s)
+!MV202609 greenroof diagnostics
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_ts_greenroof   ! greenroof surface temperature (K)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_rn_greenroof   ! net radiation over the greenroof (W/m2 greenroof)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_h_greenroof    ! sensible heat flux over the greenroof (W/m2 greenroof)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_le_greenroof   ! latent heat flux over the greenroof (W/m2 greenroof)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_evap_greenroof ! total evaporation over the greenroof (kg/m2/s)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_qsat_greenroof ! greenroof saturation specific humidity (kg/kg)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_phu_greenroof  ! greenroof aggregated relative humidity (-)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_pac_agg_greenroof ! greenroof aggregated conductance (m/s)
 LOGICAL,              INTENT(IN)  :: teb_ltau_scheme  ! flag to use the tau scheme for the road
 REAL,                 INTENT(IN)  :: teb_tau_hw_thresh! H/W giving tau = 0.5 (tau scheme)
 REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxation (tau scheme)
@@ -416,7 +436,7 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
 				teb_dqs_town(i), teb_gflux(i), teb_shfl_rf(i), teb_shfl_rd(i), teb_shfl_wl(i), teb_ac_rf(i),            &
 				teb_ac_rd(i), teb_ac_wl(i), teb_ac_top(i), teb_tch_rf(i), teb_tch_rd(i), teb_tch_wl(i), teb_tch_top(i), &
 				teb_wind_top(i), teb_ustar_town(i), teb_cd_garden_atm(i), teb_ch_garden_atm(i), ahf_traffic_now(i),               &
-				teb_rn_town(i), teb_wind_canyon(i), teb_tsroad(i), teb_type_garden, teb_lgreenroof_ext, teb_hroad_dir,  &
+				teb_rn_town(i), teb_wind_canyon(i), teb_tsroad(i), teb_type_garden, teb_type_greenroof, teb_lgreenroof_ext, teb_hroad_dir,  &
 				teb_wall_opt, teb_road_dir(i), teb_zresidential(i), teb_dt_res(i), teb_dt_off(i), teb_cap_sys_heat(i),  &
 				teb_lsolar_panel, teb_fr_panel(i), teb_lroad_irrig, teb_rd_irrig_start_m(i), teb_rd_irrig_end_m(i),     &
 				teb_rd_irrig_start_h(i), teb_rd_irrig_end_h(i), teb_rd_irrig_sum(i), teb_solar_prod(i), teb_utc_hour,   &
@@ -425,6 +445,8 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
 				urb_z0_town, urb_zd_town,                         &
 !MV202609 garden thermal roughness (z0h)
                 urb_z0_o_z0h_gdn,                                 &
+!MV202609 greenroof model type, thermal roughness and surface humidity
+                urb_z0_o_z0h_grf, urb_phu_gdn, urb_phu_grf,       &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
                           PCD_ROAD_CAN(i), PCDN_ROAD_CAN(i), PRI_ROAD_CAN(i), ZZ0H_ROAD_CAN(i), &
                           PAC_ROAD_ATM(i), PCH_ROAD_ATM(i), PCD_ROAD_ATM(i), PCDN_ROAD_ATM(i), &
@@ -450,7 +472,11 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
                           teb_h_garden_can(i), teb_h_garden_atm(i),                             &
                           teb_le_garden_can(i), teb_le_garden_atm(i),                           &
-                          teb_pac_garden(i))
+                          teb_pac_garden(i),                                                   &
+!MV202609 greenroof diagnostics
+                          teb_ts_greenroof(i), teb_rn_greenroof(i), teb_h_greenroof(i), teb_le_greenroof(i), &
+                          teb_evap_greenroof(i), teb_qsat_greenroof(i), teb_phu_greenroof(i),  &
+                          teb_pac_agg_greenroof(i))
 	END DO
 	
 END SUBROUTINE teb_interface

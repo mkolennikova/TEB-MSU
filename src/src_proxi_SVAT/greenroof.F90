@@ -7,11 +7,11 @@
 ! The CeCILL-C licence is compatible with L-GPL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !     #########
-    SUBROUTINE GREENROOF(HIMPLICIT_WIND, TPTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF,    &
+    SUBROUTINE GREENROOF(TYPE_GREENROOF, HIMPLICIT_WIND, TPTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF,    &
                 PPET_A_COEF, PPEQ_A_COEF, PPET_B_COEF, PPEQ_B_COEF,                  &
                 PTSTEP, PZREF, PUREF,                                                &
                 PTA, PQA, PEXNS, PEXNA,PRHOA, PCO2, PPS, PRR, PSR, PZENITH,          &
-                PSW,PLW, PVMOD, PALB_GR, PEMIS_GR, PZ0_GR,                                                     &
+                PSW,PLW, PVMOD, PALB_GR, PEMIS_GR, PZ0_GR, PZ0_O_Z0H_GR, PPHU_GR,     &
                 PRN_GREENROOF,PH_GREENROOF,PLE_GREENROOF,PGFLUX_GREENROOF,           &
                 PSFCO2,PEVAP_GREENROOF, PUW_GREENROOF,                               &
                 PAC_GREENROOF,PQSAT_GREENROOF,PTS_GREENROOF,                         &
@@ -66,14 +66,22 @@
 !               ------------
 !
 USE MODD_CSTS, ONLY : XLVTT , &   ! Latent heat constant for evaporation
+                      XCPD,   &   ! specific heat of dry air
+                      XSTEFAN, &  ! Stefan-Boltzmann constant
                       XKARMAN     ! Von Karman constant
 USE MODE_THERMOS                  ! Function to compute humidity at saturation
+USE MODE_GARDEN_BALANCE           ! shared diagnostic balance, neutral coefficients,
+!                                 ! wind floor and flux clips of the garden scheme
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
 !
 IMPLICIT NONE
 !
 !*      0.1    Declarations of arguments
 !
+ !* Type of the greenroof parameterization (from the namelist teb_type_greenroof):
+ !*   'PROXY_NEW' : diagnostic closed surface energy balance (default)
+ !*   'PROXY_OLD' : historical fixed Bowen-ratio proxy (PH = 0.5*Rn, LE = 0.5*Rn)
+ CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GREENROOF    ! type of the greenroof model
  CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
 !                                                     ! 'OLD' = direct
 !                                                     ! 'NEW' = Taylor serie, order 1
@@ -104,6 +112,13 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PVMOD              ! module of horizontal
 REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GR            ! green roof albedo (namelist urb_alb_grf)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GR           ! green roof emissivity (namelist urb_emis_grf; not used by this proxy)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GR             ! green roof roughness length (m) (namelist urb_z0_grf)
+ !MV202609 greenroof thermal roughness (z0h) and tunable surface humidity
+ !* z0/z0h ratio (-), >= 1: the scalar (thermal) roughness is z0h = PZ0_GR/PZ0_O_Z0H_GR,
+ !* used by heat and moisture (the momentum keeps PZ0_GR), see GARDEN_PCH_NEUTRAL.
+ !* PPHU_GR is the relative humidity of the greenroof surface (namelist urb_phu_grf).
+ REAL,               INTENT(IN)    :: PZ0_O_Z0H_GR        ! greenroof z0/z0h ratio (-), >= 1
+ REAL,               INTENT(IN)    :: PPHU_GR             ! greenroof surface relative humidity (-)
+
 
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GREENROOF         ! net radiation over greenroofs
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PH_GREENROOF          ! sensible heat flux over greenroofs
@@ -125,48 +140,84 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GREENROOF      ! greenroof irrigat
 !
 !*      0.2    Declarations of local variables
 !
+!MV202609 local conductance and coefficients of the diagnostic greenroof
+REAL, DIMENSION(SIZE(PTA)) :: ZV_GR    ! wind with the floor XVMIN_GD (m/s)
+REAL, DIMENSION(SIZE(PTA)) :: ZPCD_GR  ! neutral-log momentum coefficient (-)
+REAL, DIMENSION(SIZE(PTA)) :: ZPCH_GR  ! neutral-log thermal (scalar) coefficient (-)
+REAL, DIMENSION(SIZE(PTA)) :: ZCA_M_GR ! momentum conductance (m/s), friction only
+REAL, DIMENSION(SIZE(PTA)) :: ZCA_GR   ! thermal conductance (m/s), heat and moisture
+INTEGER                    :: JI_GR    ! loop index
 !
 !-------------------------------------------------------------------------------
 !
-!*      1.     Proxi model based on a fixed Bowen ratio
-!              ----------------------------------------
+!*      1.     Greenroof parameterizations
+!              --------------------------
 !
-!* albedo from the namelist (urb_alb_grf)
-PRN_GREENROOF(:) = (1.-PALB_GR(:)) * PSW(:)
+!* albedo and emissivity come from the namelist (urb_alb_grf / urb_emis_grf)
 !
-!* Bowen ratio fixed to 1.
-PH_GREENROOF (:) = 0.5 * PRN_GREENROOF(:)
-PLE_GREENROOF(:) = 0.5 * PRN_GREENROOF(:)
+SELECT CASE (TYPE_GREENROOF)
 !
-!* Conduction heat flux is neglected
-PGFLUX_GREENROOF(:) = 0.
+CASE ('PROXY_NEW')
+!* 1.1  diagnostic closed surface energy balance (same solver as the garden,
+!*      but the greenroof is a ROOF surface: it exchanges only with the air of
+!*      the forcing level (PTA/PQA, wind PVMOD at the height PUREF), so there is
+!*      no canyon branch and no tau split)
+   DO JI_GR = 1, SIZE(PTA)
+      ZV_GR   (JI_GR) = MAX(PVMOD(JI_GR), XVMIN_GD)
+      ZPCD_GR (JI_GR) = GARDEN_PCD_NEUTRAL(PUREF(JI_GR), PZ0_GR(JI_GR))
+      ZPCH_GR (JI_GR) = GARDEN_PCH_NEUTRAL(PUREF(JI_GR), PZ0_GR(JI_GR), PZ0_O_Z0H_GR)
+      ZCA_M_GR(JI_GR) = ZPCD_GR(JI_GR) * ZV_GR(JI_GR)
+      ZCA_GR  (JI_GR) = ZPCH_GR(JI_GR) * ZV_GR(JI_GR)
+   END DO
+   PUW_GREENROOF(:) = -ZCA_M_GR(:) * ZV_GR(:)
+   PAC_GREENROOF(:) = ZCA_GR(:)
+   !
+   !* surface energy balance Rn(Ts) = H + LE with the reference air of the
+   !* forcing level and the surface humidity PPHU_GR (G = 0: no heat flux into
+   !* the structural roof)
+   CALL GARDEN_BALANCE(ZCA_GR, PTA, PQA, PPHU_GR, PRHOA, PPS, PSW, PLW, PALB_GR, PEMIS_GR,  &
+                       PTS_GREENROOF, PQSAT_GREENROOF, PH_GREENROOF, PLE_GREENROOF)
+   PGFLUX_GREENROOF(:) = 0.       ! no heat flux into the structural roof
+   PRN_GREENROOF(:)    = (1.-PALB_GR(:))*PSW(:) + PEMIS_GR(:)*(PLW(:) - XSTEFAN*PTS_GREENROOF(:)**4)
+   PEVAP_GREENROOF(:)  = PLE_GREENROOF(:) / XLVTT
+   !
+   !* flux clips (safety only, as in the garden)
+   PH_GREENROOF(:)     = MAX(-XHMAX_GD,  MIN(XHMAX_GD,  PH_GREENROOF(:)))
+   PLE_GREENROOF(:)    = MAX(XLEMIN_GD,  MIN(XLEMAX_GD, PLE_GREENROOF(:)))
+   PEVAP_GREENROOF(:)  = PLE_GREENROOF(:) / XLVTT
+   !
+   !* aggregated latent exchange (diagnostics; the greenroof does not couple
+   !* back to the canyon air: it is a roof surface)
+   PAC_AGG_GREENROOF(:) = ZCA_GR(:)
+   PHU_AGG_GREENROOF(:) = PPHU_GR
+   !
+CASE ('PROXY_OLD')
+!* 1.2  historical fixed Bowen-ratio proxy (PH = 0.5*Rn, LE = 0.5*Rn)
+   PRN_GREENROOF(:) = (1.-PALB_GR(:)) * PSW(:)
+   PH_GREENROOF (:) = 0.5 * PRN_GREENROOF(:)
+   PLE_GREENROOF(:) = 0.5 * PRN_GREENROOF(:)
+   PGFLUX_GREENROOF(:) = 0.
+   PEVAP_GREENROOF(:) = PLE_GREENROOF(:) / XLVTT
+   !
+   !* friction flux: neutral formulation with the greenroof roughness (as before)
+   PUW_GREENROOF(:) = - (XKARMAN/LOG(PUREF(:)/PZ0_GR(:)))**2 * PVMOD(:)**2
+   !
+   !* aerodynamical conductance: neglected (the Bowen proxy does not depend on Ts)
+   PAC_GREENROOF(:) = 0.
+   !
+   !* surface saturation humidity and temperature (placeholder, not solved)
+   PQSAT_GREENROOF(:) = QSAT(PTA(:),PPS(:))
+   !
+   !* aggregated latent exchange (diagnostics)
+   PAC_AGG_GREENROOF(:) = 0.    ! neglected (latent flux does not depend on surface humidity)
+   PHU_AGG_GREENROOF(:) = PPHU_GR   ! surface relative humidity from the namelist urb_phu_grf
+   !
+END SELECT
 !
-!* CO2 flux is neglected
+!* CO2 flux is neglected (no photosynthesis)
 PSFCO2(:) = 0.
 !
-!* evaporation
-PEVAP_GREENROOF(:) = PLE_GREENROOF(:) / XLVTT
-!
-!* Friction flux: assumes neutral formulation with the greenroof roughness
-PUW_GREENROOF(:) = - (XKARMAN/LOG(PUREF(:)/PZ0_GR(:)))**2 * PVMOD(:)**2
-!
-!* Aerodynamical conductance: neglected because used further only for
-!  implicitation of canyon air temperature when the heat flux depends on the
-!  surface temperature
-!
-PAC_GREENROOF(:) = 0.
-!
-!* surface saturation humidity
-PQSAT_GREENROOF(:) = QSAT(PTA(:),PPS(:))
-!
-!* Surface temperature : set equal to air temperature
-!PTS_GREENROOF(:) = PTA(:)
-!
-!* aerocynamical conductance for latent heat and surface humidity
-PAC_AGG_GREENROOF(:) = 0.    ! neglected (latent flux does not depend on surface humidity)
-PHU_AGG_GREENROOF(:) = 0.3   ! surface humidity set to 30%
-!
-!* Heat Flux at the bottom layer of the greenroof
+!* Heat Flux at the bottom layer of the greenroof (G = 0 in both schemes)
 PDEEP_FLUX(:) = 0.
 !
 !* greenroof hydrological diagnostics

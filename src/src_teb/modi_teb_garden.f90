@@ -39,7 +39,10 @@ INTERFACE
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
-                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM)
+                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
+!MV202609 greenroof diagnostics (per m2 of greenroof)
+                           PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
+                           PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_AGG_GREENROOF)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
@@ -235,6 +238,15 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN_CAN  ! garden sensible heat fl
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN_ATM  ! garden sensible heat flux, garden -> forcing level [W m-2]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN_CAN ! garden latent  heat flux, garden -> canyon air [W m-2]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN_ATM ! garden latent  heat flux, garden -> forcing level [W m-2]
+!MV202609 greenroof diagnostics
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PTSRAD_GREENROOF ! greenroof surface temperature [K]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PRN_GREENROOF    ! net radiation over the greenroof [W/m2 greenroof]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GREENROOF     ! sensible heat flux over the greenroof [W/m2 greenroof]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GREENROOF    ! latent heat flux over the greenroof [W/m2 greenroof]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GREENROOF  ! total evaporation over the greenroof [kg/m2/s]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GREENROOF  ! greenroof saturation specific humidity [kg/kg]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GREENROOF    ! greenroof aggregated relative humidity [-]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_AGG_GREENROOF! greenroof aggregated conductance [m/s]
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)

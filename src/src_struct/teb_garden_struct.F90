@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !     #########
-    SUBROUTINE TEB_GARDEN_STRUCT (icell, iblock, OGARDEN, TYPE_GARDEN, OGREENROOF, OGREENROOF_EXT, OSOLAR_PANEL,          &
+    SUBROUTINE TEB_GARDEN_STRUCT (icell, iblock, OGARDEN, TYPE_GARDEN, TYPE_GREENROOF, OGREENROOF, OGREENROOF_EXT, OSOLAR_PANEL,          &
                      HZ0H, HIMPLICIT_WIND, HROAD_DIR, HWALL_OPT, TPTIME, PBEM_AC,      &
                      PTSUN, PT_CAN, PQ_CAN, PU_CAN,                           &
                      PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ_LOWCAN, PTI_BLD,     &
@@ -118,11 +118,16 @@
                           OTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
 !MV202609 garden thermal roughness (z0h)
                           XZ0_O_Z0H_GD, &
+!MV202609 greenroof model type, thermal roughness and surface humidity
+                          XZ0_O_Z0H_GR, XPHU_GD, XPHU_GR, &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
-                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM)
+                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
+!MV202609 greenroof diagnostics
+                          PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
+                          PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_AGG_GREENROOF)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN_STRUCT*  
@@ -192,6 +197,7 @@ IMPLICIT NONE
  LOGICAL,              INTENT(IN)    :: OGREENROOF_EXT    ! Flag to use a greenroof model on roofs (external model)
  LOGICAL,              INTENT(IN)    :: OSOLAR_PANEL      ! Flag to use a Solar Panel model on roofs
  CHARACTER(LEN=*),     INTENT(IN)    :: TYPE_GARDEN       ! type of the garden model
+ CHARACTER(LEN=*),     INTENT(IN)    :: TYPE_GREENROOF    ! type of the greenroof model
  CHARACTER(LEN=6)    , INTENT(IN)    :: HZ0H              ! TEB option for z0h roof & road
 !                                                         ! 'MASC95' : Mascart et al 1995
 !                                                         ! 'BRUT82' : Brustaert     1982
@@ -492,12 +498,26 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PH_GARDEN_CAN    ! garden sensible heat flu
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_GARDEN_ATM    ! garden sensible heat flux, garden -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN_CAN   ! garden latent  heat flux, garden -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN_ATM   ! garden latent  heat flux, garden -> forcing level [W m-2]
+!MV202609 greenroof diagnostics
+REAL, DIMENSION(:), INTENT(OUT)   :: PTSRAD_GREENROOF ! greenroof surface temperature [K]
+REAL, DIMENSION(:), INTENT(OUT)   :: PRN_GREENROOF    ! net radiation over the greenroof [W/m2 greenroof]
+REAL, DIMENSION(:), INTENT(OUT)   :: PH_GREENROOF     ! sensible heat flux over the greenroof [W/m2 greenroof]
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GREENROOF    ! latent heat flux over the greenroof [W/m2 greenroof]
+REAL, DIMENSION(:), INTENT(OUT)   :: PEVAP_GREENROOF  ! total evaporation over the greenroof [kg/m2/s]
+REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_GREENROOF  ! greenroof saturation specific humidity [kg/kg]
+REAL, DIMENSION(:), INTENT(OUT)   :: PHU_GREENROOF    ! greenroof aggregated relative humidity [-]
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_AGG_GREENROOF! greenroof aggregated conductance [m/s]
 !MV202609 tau scheme of the road
 LOGICAL,              INTENT(IN)  :: OTAU_SCHEME      ! flag to use the tau scheme for the road
 REAL,                 INTENT(IN)  :: XTAU_HW_THRESH   ! H/W giving tau = 0.5 (tau scheme)
 REAL,                 INTENT(IN)  :: XTAU_HW_WIDTH    ! width of the tanh relaxation (tau scheme)
 !MV202609 garden thermal roughness (z0h)
 REAL,                 INTENT(IN)  :: XZ0_O_Z0H_GD      ! garden z0/z0h ratio (-), >= 1
+!MV202609 greenroof model type, thermal roughness and surface humidity
+ REAL,                 INTENT(IN)  :: XZ0_O_Z0H_GR      ! greenroof z0/z0h ratio (-), >= 1
+ REAL,                 INTENT(IN)  :: XPHU_GD           ! garden    surface relative humidity (-)
+ REAL,                 INTENT(IN)  :: XPHU_GR           ! greenroof surface relative humidity (-)
+
 !                                                         !    and structural roof
 !
 ! new arguments created after BEM
@@ -982,6 +1002,7 @@ TOP%CBEM      = HBEM            ! TEB option for the building energy model
 
 TOP%LGREENROOF   = OGREENROOF   ! T: green roofs (call ISBA from TEB)
 TOP%CTYPE_GARDEN = TYPE_GARDEN  ! garden model type ('PROXY_OLD','PROXY_NEW','EXT','EXT_NEU')
+TOP%CTYPE_GREENROOF = TYPE_GREENROOF  ! greenroof model type ('PROXY_OLD','PROXY_NEW')
 TOP%LSOLAR_PANEL = OSOLAR_PANEL ! T: solar panels on roofs
 !MV202609 tau scheme of the road
 TOP%LTAU_SCHEME    = OTAU_SCHEME    ! T: tau scheme for the road fluxes
@@ -989,6 +1010,10 @@ TOP%XTAU_HW_THRESH = XTAU_HW_THRESH ! H/W giving tau = 0.5 (tau scheme)
 TOP%XTAU_HW_WIDTH  = XTAU_HW_WIDTH  ! width of the tanh relaxation (tau scheme)
 !MV202609 garden thermal roughness (z0h)
 TOP%XZ0_O_Z0H_GD   = XZ0_O_Z0H_GD   ! garden z0/z0h ratio (-)
+!MV202609 greenroof model type, thermal roughness and surface humidity
+TOP%XZ0_O_Z0H_GR   = XZ0_O_Z0H_GR   ! greenroof z0/z0h ratio (-)
+TOP%XPHU_GD        = XPHU_GD        ! garden    surface relative humidity (-)
+TOP%XPHU_GR        = XPHU_GR        ! greenroof surface relative humidity (-)
 ! 
 ! type of initialization of vegetation: from cover types (ecoclimap) or parameters prescribed
 !
@@ -1194,7 +1219,10 @@ CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENR
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
-                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM)
+                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
+!MV202609 greenroof diagnostics
+                          PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
+                          PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_AGG_GREENROOF)
 !
 !-------------------------------------------------------------------------------
 !

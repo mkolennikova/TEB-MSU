@@ -8,17 +8,18 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 MODULE MODI_GREENROOF
 INTERFACE
-    SUBROUTINE GREENROOF(HIMPLICIT_WIND, TPTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF,    &
+    SUBROUTINE GREENROOF(TYPE_GREENROOF, HIMPLICIT_WIND, TPTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF,    &
                 PPET_A_COEF, PPEQ_A_COEF, PPET_B_COEF, PPEQ_B_COEF,                  &
                 PTSTEP, PZREF, PUREF,                                                &
                 PTA, PQA, PEXNS, PEXNA,PRHOA, PCO2, PPS, PRR, PSR, PZENITH,          &
-                PSW,PLW, PVMOD, PALB_GR, PEMIS_GR, PZ0_GR,                                                     &
+                PSW,PLW, PVMOD, PALB_GR, PEMIS_GR, PZ0_GR, PZ0_O_Z0H_GR, PPHU_GR,     &
                 PRN_GREENROOF,PH_GREENROOF,PLE_GREENROOF,PGFLUX_GREENROOF,           &
                 PSFCO2,PEVAP_GREENROOF, PUW_GREENROOF,                               &
                 PAC_GREENROOF,PQSAT_GREENROOF,PTS_GREENROOF,                         &
                 PAC_AGG_GREENROOF, PHU_AGG_GREENROOF,PDEEP_FLUX,                     &
                 PRUNOFF_GREENROOF, PDRAIN_GREENROOF, PIRRIG_GREENROOF                )  
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
+ CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GREENROOF    ! type of the greenroof model
  CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
 TYPE(DATE_TIME)     , INTENT(IN)    :: TPTIME             ! current date and time from teb
 REAL, DIMENSION(:)  , INTENT(IN)    :: PTSUN              ! solar time      (s from midnight)
@@ -47,6 +48,9 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PVMOD              ! module of horizontal
 REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GR            ! green roof albedo (namelist urb_alb_grf)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GR           ! green roof emissivity (namelist urb_emis_grf; not used by this proxy)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GR             ! green roof roughness length (m) (namelist urb_z0_grf)
+ REAL,               INTENT(IN)    :: PZ0_O_Z0H_GR        ! greenroof z0/z0h ratio (-), >= 1
+ REAL,               INTENT(IN)    :: PPHU_GR             ! greenroof surface relative humidity (-)
+
 
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GREENROOF         ! net radiation over greenroofs
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PH_GREENROOF          ! sensible heat flux over greenroofs

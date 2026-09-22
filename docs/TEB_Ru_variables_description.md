@@ -142,6 +142,9 @@ Notes:
 | `urb_z0_grf` | External parameter | m | Green roof roughness length, used by **all** the greenroof models (default `0.01` = `MODD_PROXI_SVAT_PAR:XZ0_GR`; validated like the garden one) |
 | `urb_alb_grf` | External parameter | - | Green roof albedo (default `0.15`) |
 | `urb_emis_grf` | External parameter | - | Green roof emissivity (default `0.98`) |
+| `urb_z0_o_z0h_grf` | External parameter | - | Green roof `z0/z0h` ratio (`z0h = urb_z0_grf/urb_z0_o_z0h_grf` is the **thermal, scalar** roughness of the greenroof, used by the diagnostic greenroof exactly as `urb_z0_o_z0h_gdn` is used by the garden; default `4.0` = `MODD_PROXI_SVAT_PAR:XZ0_O_Z0H_GR`; must be `>= 1` and `< XUNDEF`) |
+| `urb_phu_gdn` | External parameter | - | Garden surface relative humidity `PHU`, used by **both** garden schemes: `'PROXY_NEW'` drives `LE = rho*Lv*Ca*(PHU*qsat(Ts) - qa)`, `'PROXY_OLD'` drives `PHU_AGG_GARDEN` (default `0.7` = `MODD_PROXI_SVAT_PAR:XPHU_GD`; the **base model** value was `0.8` — set `urb_phu_gdn = 0.8` to reproduce the base model; must be `> 0` and `<= 1`) |
+| `urb_phu_grf` | External parameter | - | Green roof surface relative humidity `PHU`, used by **both** greenroof schemes (default `0.7` = `MODD_PROXI_SVAT_PAR:XPHU_GR`; the **base model** value was `0.3` — set `urb_phu_grf = 0.3` to reproduce the base model; must be `> 0` and `<= 1`) |
 
 #### Garden model type (`teb_type_garden`)
 
@@ -153,6 +156,16 @@ Used only when `teb_lgarden = .TRUE.`:
 | `'PROXY_OLD'` | Historical proxy with a fixed Bowen ratio (0.25) and the namelist albedo (`urb_alb_gdn`), driven by the short-wave radiation only; conduction and aerodynamic conductance neglected. |
 | `'EXT'` | The garden fluxes are provided by an external model (the internal call is a placeholder). The diagnostic garden exchange coefficients of `URBAN_DRAG` (`PCD*_GARDEN_*`) use the full `URBAN_EXCH_COEF` set: Richardson number, `z0h = z0/urb_z0_o_z0h_gdn`, `WIND_THRESHOLD`. Any other value stops the run. |
 | `'EXT_NEU'` | Same external garden, but the garden exchange coefficients follow the **neutral** formulation of the internal diagnostic garden (`PCD`/`Ca_m` for momentum, `PCH`/`Ca_h` for heat and moisture with the same thermal roughness `z0h` and the same wind floor `XVMIN_GD = 0.5 m/s`), so `PCD = PCDN > PCH = PCDN*ZFH`, `ZZ0H_GARDEN_*` is the thermal roughness used and only `PRI` stays undefined (`XUNDEF`). This is the coefficient set a coupled external garden model is meant to be driven with: it is identical to the canyon-path coefficients of `'PROXY_NEW'` and to the emulator of the offline driver. |
+
+#### Greenroof model type (`teb_type_greenroof`)
+
+Used only when `teb_lgreenroof = .TRUE.` (the external greenroof keeps its own flag
+`teb_lgreenroof_ext`):
+
+| Value | Model |
+|:------|:------|
+| `'PROXY_NEW'` | **Default.** The same diagnostic surface energy balance as the garden (`Rn = H + LE` solved by Newton iteration, `G = 0`, no soil column), but the greenroof is a **roof** surface: it exchanges only with the air of the forcing level (`PTA`/`PQA` at `PUREF`, wind `PVMOD`), so there is no canyon branch and no tau split. Heat and moisture use `PCH = kappa**2/(ln(z/z0)*ln(z/z0h))` with `z0h = urb_z0_grf/urb_z0_o_z0h_grf`, momentum uses `PCD`; the surface relative humidity is `urb_phu_grf`; `PAC_GREENROOF` is the non-zero roof-level conductance (it does **not** feed back on the canyon air). |
+| `'PROXY_OLD'` | Historical proxy with a fixed Bowen ratio (1.0: `H = LE = 0.5*Rn`) and the namelist albedo, driven by the short-wave radiation only; `PAC_GREENROOF = 0`, `PHU_AGG_GREENROOF = urb_phu_grf`. |
 
 #### Surface properties of the garden and of the greenroof
 

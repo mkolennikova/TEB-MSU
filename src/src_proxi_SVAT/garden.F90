@@ -89,8 +89,10 @@ USE MODE_THERMOS
 !
 IMPLICIT NONE
 !
-!* Fixed surface relative humidity of the diagnostic scheme
-REAL, PARAMETER :: XPHU_GD   = 0.80
+!* Surface relative humidity of the diagnostic scheme is now a RUNTIME argument
+!* (PPHU / PPHU_GD below), read from the namelist items urb_phu_gdn (garden) and
+!* urb_phu_grf (greenroof); their defaults are MODD_PROXI_SVAT_PAR:XPHU_GD and
+!* XPHU_GR (single source of truth).
 !* Minimum wind speed of the diagnostic scheme (m/s): the surface must not be
 !* decoupled from the air when the wind vanishes, otherwise the surface
 !* temperature is not anchored by the turbulent fluxes any more. It is applied by
@@ -198,7 +200,7 @@ PCAH = GARDEN_PCH_NEUTRAL(PZ, PZ0, PZ0_O_Z0H) * MAX(PV, XVMIN_GD)
 END FUNCTION GARDEN_CAH_NEUTRAL
 !-------------------------------------------------------------------------------
 !
-SUBROUTINE GARDEN_BALANCE(PCA, PT_REF, PQ_REF, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
+SUBROUTINE GARDEN_BALANCE(PCA, PT_REF, PQ_REF, PPHU, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
                           PTS_GARDEN, PQSAT_GARDEN, PH_GARDEN, PLE_GARDEN)
 !
 !*** Diagnostic closed surface energy balance Rn(Ts) = H + LE solved for the
@@ -214,6 +216,7 @@ SUBROUTINE GARDEN_BALANCE(PCA, PT_REF, PQ_REF, PRHOA, PPS, PSW, PLW, PALB_GD, PE
 !
 REAL, DIMENSION(:), INTENT(IN)    :: PCA, PT_REF, PQ_REF, PRHOA, PPS, PSW, PLW, &
                                      PALB_GD, PEMIS_GD
+REAL,               INTENT(IN)    :: PPHU          ! surface relative humidity (-)
 REAL, DIMENSION(:), INTENT(INOUT) :: PTS_GARDEN
 REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_GARDEN, PH_GARDEN, PLE_GARDEN
 !
@@ -230,11 +233,11 @@ DO JITER_GD = 1, NITER_GD
    !* residual F(Ts) = net radiation - H - LE
    ZNUM(:) = (1.-PALB_GD(:))*PSW(:) + PEMIS_GD(:)*PLW(:) - PEMIS_GD(:)*ZSIGT4(:)  &
              - PRHOA(:)*XCPD*PCA(:)*(ZTS_GD(:) - PT_REF(:))                      &
-             - PRHOA(:)*XLVTT*PCA(:)*(XPHU_GD*ZQSAT(:) - PQ_REF(:))
+             - PRHOA(:)*XLVTT*PCA(:)*(PPHU*ZQSAT(:) - PQ_REF(:))
    !* denom = -F'(Ts) > 0
    ZDEN(:) = 4.*PEMIS_GD(:)*XSTEFAN*ZTS_GD(:)**3               &
              + PRHOA(:)*XCPD*PCA(:)                            &
-             + PRHOA(:)*XLVTT*PCA(:)*XPHU_GD*ZDQSAT(:)
+             + PRHOA(:)*XLVTT*PCA(:)*PPHU*ZDQSAT(:)
    DO JI_GD = 1, SIZE(PTS_GARDEN)
       IF (ZDEN(JI_GD) > 1.E-8) THEN
          ZDELTA(JI_GD) = ZNUM(JI_GD) / ZDEN(JI_GD)
@@ -254,14 +257,14 @@ PTS_GARDEN(:) = ZTS_GD(:)
 !* fluxes at the solved surface temperature (raw, not clipped)
 PQSAT_GARDEN(:) = QSAT(PTS_GARDEN(:), PPS(:))
 PH_GARDEN(:)    = PRHOA(:)*XCPD *PCA(:)*(PTS_GARDEN(:) - PT_REF(:))
-PLE_GARDEN(:)   = PRHOA(:)*XLVTT*PCA(:)*(XPHU_GD*PQSAT_GARDEN(:) - PQ_REF(:))
+PLE_GARDEN(:)   = PRHOA(:)*XLVTT*PCA(:)*(PPHU*PQSAT_GARDEN(:) - PQ_REF(:))
 !
 END SUBROUTINE GARDEN_BALANCE
 !
 END MODULE MODE_GARDEN_BALANCE
 !
 !     #############
-    SUBROUTINE GARDEN_PCD(TYPE_GARDEN, PPCD_GD, PPCH_GD, PV_GD, PT_REF, PQ_REF,              &
+    SUBROUTINE GARDEN_PCD(TYPE_GARDEN, PPCD_GD, PPCH_GD, PV_GD, PT_REF, PQ_REF, PPHU_GD,     &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                    &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                       &
                 PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                   &
@@ -344,6 +347,9 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PPCH_GD            ! garden thermal (scal
 REAL, DIMENSION(:)  , INTENT(IN)    :: PV_GD              ! wind of the reference state (m/s)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PT_REF             ! reference air temperature (K)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PQ_REF             ! reference air humidity (kg/kg)
+ !MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
+ REAL                , INTENT(IN)    :: PPHU_GD            ! garden surface relative humidity (-)
+
 !
 REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GD            ! garden albedo
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GD           ! garden emissivity
@@ -400,7 +406,7 @@ PAC_GARDEN(:) = ZCA_GD(:)
 PUW_GARDEN(:) = -ZCA_M_GD(:) * ZV_GD(:)
 !
 !* 2.2  surface energy balance at the given conductance and reference air
-CALL GARDEN_BALANCE(ZCA_GD, PT_REF, PQ_REF, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
+CALL GARDEN_BALANCE(ZCA_GD, PT_REF, PQ_REF, PPHU_GD, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
                     PTS_GARDEN, PQSAT_GARDEN, PH_GARDEN, PLE_GARDEN)
 !
 !* 2.3  fluxes
@@ -416,7 +422,7 @@ PEVAP_GARDEN(:)  = PLE_GARDEN(:) / XLVTT
 !* 2.4  aggregated latent exchange: the conductance couples the garden back to
 !*      the air of the reference state (canyon air in TEB)
 PAC_AGG_GARDEN(:) = PAC_GARDEN(:)
-PHU_AGG_GARDEN(:) = XPHU_GD
+PHU_AGG_GARDEN(:) = PPHU_GD
 !
 ELSE
 !
@@ -452,7 +458,7 @@ PQSAT_GARDEN(:) = QSAT(PTS_GARDEN(:),PPS(:))
 !
 !* aerodynamical conductance for latent heat and surface humidity
 PAC_AGG_GARDEN(:) = 0.    ! neglected (latent flux does not depend on surface humidity)
-PHU_AGG_GARDEN(:) = 0.8   ! surface humidity set to 80%
+PHU_AGG_GARDEN(:) = PPHU_GD   ! surface relative humidity from the namelist urb_phu_gdn
 !
 END IF
 !
@@ -469,7 +475,7 @@ END SUBROUTINE GARDEN_PCD
 !
 !     #########
     SUBROUTINE GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,    &
-                PZ0_O_Z0H,                                                                &
+                PZ0_O_Z0H, PPHU_GD,                                                       &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                  &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
                 PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                 &
@@ -531,6 +537,9 @@ REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length 
 !* z0/z0h ratio of the garden (-), >= 1: the scalar (thermal) roughness is
 !* z0h = PZ0_GD/PZ0_O_Z0H, see GARDEN_PCH_NEUTRAL
 REAL,               INTENT(IN)  :: PZ0_O_Z0H        ! garden z0/z0h ratio (-)
+ !MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
+ REAL,               INTENT(IN)  :: PPHU_GD          ! garden surface relative humidity (-)
+
 REAL, DIMENSION(:)  , INTENT(IN)  :: PALB_GD          ! garden albedo
 REAL, DIMENSION(:)  , INTENT(IN)  :: PEMIS_GD         ! garden emissivity
 REAL, DIMENSION(:)  , INTENT(IN)  :: PRHOA            ! air density at the lowest level
@@ -579,8 +588,8 @@ END DO
 !*             reference air are handed over to GARDEN_PCD)
 !              ----------------------------------------------------------
 !
-CALL GARDEN_PCD(TYPE_GARDEN, ZPCD_GD, ZPCH_GD, PU_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PALB_GD, PEMIS_GD,  &
-                PRHOA, PPS, PSW, PLW,                                                       &
+CALL GARDEN_PCD(TYPE_GARDEN, ZPCD_GD, ZPCH_GD, PU_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PPHU_GD,     &
+                PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                    &
                 PRN_GARDEN, PH_GARDEN, PLE_GARDEN, PGFLUX_GARDEN, PSFCO2, PEVAP_GARDEN,     &
                 PUW_GARDEN, PRUNOFF_GARDEN, PAC_GARDEN, PQSAT_GARDEN, PTS_GARDEN,           &
                 PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN)
@@ -591,7 +600,7 @@ END SUBROUTINE GARDEN
 !
 !     #############
     SUBROUTINE GARDEN_TAU(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD, &
-                PZ0_O_Z0H,                                                                &
+                PZ0_O_Z0H, PPHU_GD,                                                       &
                 PUREF, PVMOD, PTA, PQA, PTAU, LTAU_SPLIT,                                  &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                   &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                      &
@@ -666,6 +675,9 @@ REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length 
 !* z0/z0h ratio of the garden (-), >= 1: the scalar (thermal) roughness is
 !* z0h = PZ0_GD/PZ0_O_Z0H, see GARDEN_PCH_NEUTRAL
 REAL,               INTENT(IN)  :: PZ0_O_Z0H        ! garden z0/z0h ratio (-)
+ !MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
+ REAL,               INTENT(IN)  :: PPHU_GD          ! garden surface relative humidity (-)
+
 !MV202609 tau scheme of the garden
 !* Reference state of the air of the forcing level (used by the tau split)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PUREF            ! height of the wind of the forcing level (m)
@@ -768,7 +780,7 @@ END DO
 !
 !* 2.2  surface energy balance: one Newton solve with the tau-aggregated
 !*      conductance and reference air (shared solver; G = 0)
-CALL GARDEN_BALANCE(ZCA_EFF, ZT_REF, ZQ_REF, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
+CALL GARDEN_BALANCE(ZCA_EFF, ZT_REF, ZQ_REF, PPHU_GD, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
                     PTS_GARDEN, PQSAT_GARDEN, PH_GARDEN, PLE_GARDEN)
 !
 !* 2.3  actual (tau-aggregated) fluxes and their canyon / atmosphere branches:
@@ -776,8 +788,8 @@ CALL GARDEN_BALANCE(ZCA_EFF, ZT_REF, ZQ_REF, PRHOA, PPS, PSW, PLW, PALB_GD, PEMI
 !*      PH_GARDEN = PTAU*PH_GARDEN_CAN + (1-PTAU)*PH_GARDEN_ATM holds identically
 PH_GARDEN_CAN(:)  = PRHOA(:)*XCPD *ZCA_GD (:)*(PTS_GARDEN(:) - PT_LOWCAN(:))
 PH_GARDEN_ATM(:)  = PRHOA(:)*XCPD *ZCA_ATM(:)*(PTS_GARDEN(:) - PTA(:))
-PLE_GARDEN_CAN(:) = PRHOA(:)*XLVTT*ZCA_GD (:)*(XPHU_GD*PQSAT_GARDEN(:) - PQ_LOWCAN(:))
-PLE_GARDEN_ATM(:) = PRHOA(:)*XLVTT*ZCA_ATM(:)*(XPHU_GD*PQSAT_GARDEN(:) - PQA(:))
+PLE_GARDEN_CAN(:) = PRHOA(:)*XLVTT*ZCA_GD (:)*(PPHU_GD*PQSAT_GARDEN(:) - PQ_LOWCAN(:))
+PLE_GARDEN_ATM(:) = PRHOA(:)*XLVTT*ZCA_ATM(:)*(PPHU_GD*PQSAT_GARDEN(:) - PQA(:))
 PGFLUX_GARDEN(:) = 0.       ! no heat flux into the soil (diagnostic proxy garden)
 PRN_GARDEN(:)    = (1.-PALB_GD(:))*PSW(:) + PEMIS_GD(:)*(PLW(:) - XSTEFAN*PTS_GARDEN(:)**4)
 PEVAP_GARDEN(:)  = PLE_GARDEN(:) / XLVTT
@@ -790,14 +802,14 @@ PEVAP_GARDEN(:)  = PLE_GARDEN(:) / XLVTT
 !* 2.4  aggregated latent exchange: the canyon-path conductance couples the
 !*      garden back to the canyon air (T_CANYON / Q_CANYON)
 PAC_AGG_GARDEN(:) = PAC_GARDEN(:)
-PHU_AGG_GARDEN(:) = XPHU_GD
+PHU_AGG_GARDEN(:) = PPHU_GD
 !
 ELSE
 !
 !* 'PROXY_NEW' without the tau split and the historical Bowen-ratio proxy
 !* ('PROXY_OLD' / 'EXT'): the reduced diagnostic garden of GARDEN
 CALL GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,             &
-            PZ0_O_Z0H,                                                                    &
+            PZ0_O_Z0H, PPHU_GD,                                                           &
             PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                     &
             PRN_GARDEN, PH_GARDEN, PLE_GARDEN, PGFLUX_GARDEN, PSFCO2, PEVAP_GARDEN,      &
             PUW_GARDEN, PRUNOFF_GARDEN, PAC_GARDEN, PQSAT_GARDEN, PTS_GARDEN,            &

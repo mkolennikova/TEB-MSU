@@ -42,7 +42,10 @@
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
-                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM)
+                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
+!MV202609 greenroof diagnostics (per m2 of greenroof)
+                          PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
+                          PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_AGG_GREENROOF)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN*  
@@ -322,6 +325,15 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN_CAN  ! garden sensible heat fl
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN_ATM  ! garden sensible heat flux, garden -> forcing level [W m-2]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN_CAN ! garden latent  heat flux, garden -> canyon air [W m-2]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN_ATM ! garden latent  heat flux, garden -> forcing level [W m-2]
+!MV202609 greenroof diagnostics
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PTSRAD_GREENROOF ! greenroof surface temperature [K]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PRN_GREENROOF    ! net radiation over the greenroof [W/m2 greenroof]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GREENROOF     ! sensible heat flux over the greenroof [W/m2 greenroof]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GREENROOF    ! latent heat flux over the greenroof [W/m2 greenroof]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GREENROOF  ! total evaporation over the greenroof [kg/m2/s]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GREENROOF  ! greenroof saturation specific humidity [kg/kg]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GREENROOF    ! greenroof aggregated relative humidity [-]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_AGG_GREENROOF! greenroof aggregated conductance [m/s]
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
@@ -906,6 +918,19 @@ PH_GARDEN_ATM (:) = ZPH_GD_ATM(:)
 PLE_GARDEN_CAN(:) = ZPLE_GD_CAN(:)
 PLE_GARDEN_ATM(:) = ZPLE_GD_ATM(:)
 !
+!MV202609 greenroof diagnostics (per m2 of greenroof)
+!* Per-m2-of-greenroof values of the greenroof surface (as computed by the
+!* greenroof model selected with teb_type_greenroof); they are diagnostics only.
+!
+PTSRAD_GREENROOF (:) = ZTSRAD_GR(:)
+PRN_GREENROOF    (:) = ZRN_GR(:)
+PH_GREENROOF     (:) = ZH_GR(:)
+PLE_GREENROOF    (:) = ZLE_GR(:)
+PEVAP_GREENROOF  (:) = ZEVAP_GR(:)
+PQSAT_GREENROOF  (:) = ZQSAT_GR(:)
+PHU_GREENROOF    (:) = ZHU_AGG_GR(:)
+PAC_AGG_GREENROOF(:) = ZAC_AGG_GR(:)
+!
 !-------------------------------------------------------------------------------
 !
 !*     12.     Momentum flux for ground built surfaces
@@ -1017,6 +1042,8 @@ IF (TOP%LGARDEN) THEN
 !* balance is built from it (single value of TOP, the same one that URBAN_DRAG
 !* exports and that the emulator of the offline driver uses)
               TOP%XZ0_O_Z0H_GD,                                                          &
+!MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
+              TOP%XPHU_GD,                                                               &
 !MV202609 tau scheme of the garden
 !* the split (tau vs 1 - tau) is applied only to the internal diagnostic proxy:
 !* 'PROXY_OLD' and 'EXT' have a single flux which is reported in both branches
@@ -1109,10 +1136,11 @@ ENDIF
 !
 IF (TOP%LGREENROOF) THEN
   !
-  CALL GREENROOF(HIMPLICIT_WIND, TOP%TTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF,         &
+  CALL GREENROOF(TOP%CTYPE_GREENROOF, HIMPLICIT_WIND, TOP%TTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF,  &
                  ZPET_A_COEF, ZPEQ_A_COEF, ZPET_B_COEF, ZPEQ_B_COEF, PTSTEP, PZREF,  &
                  PUREF, PTA, PQA, PEXNS, PEXNA,PRHOA, PCO2, PPS, PRR, PSR, PZENITH,  &
-                 ZREC_SW_RF, ZREC_LW_RF, PVMOD, PALB_GR_EXT, PEMIS_GR_EXT, PZ0_GR_EXT,   &
+                 ZREC_SW_RF, ZREC_LW_RF, PVMOD, PALB_GR_EXT, PEMIS_GR_EXT, PZ0_GR_EXT,  &
+                 TOP%XZ0_O_Z0H_GR, TOP%XPHU_GR,                                      &
                  ZRN_GR, ZH_GR, ZLE_GR,               &
                  ZGFLUX_GR, ZSFCO2_GR, ZEVAP_GR, ZUW_GR,                             &
                  PAC_GR, ZQSAT_GR, ZTSRAD_GR, ZAC_AGG_GR, ZHU_AGG_GR,                &

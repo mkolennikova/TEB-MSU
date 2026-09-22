@@ -84,10 +84,35 @@ REAL, PARAMETER :: XZ0_GD = 0.10
 !* of the scalar one in this formulation); with XZ0_O_Z0H_GD = 1 the garden is
 !* exactly the one without thermal roughness.
 REAL, PARAMETER :: XZ0_O_Z0H_GD = 4.0
+!MV202609 tunable surface relative humidity of the garden
+!* Default value of the namelist item urb_phu_gdn (RUN_TEB_OFFLINE): the
+!* relative humidity of the garden surface used by BOTH proxy schemes
+!* ('PROXY_NEW' drives the latent flux LE = rho*Lv*Ca*(PHU*qsat(Ts) - qa),
+!* 'PROXY_OLD' drives the aggregated surface humidity PHU_AGG_GARDEN).
+!MV202609 default PHU revision
+!* 0.7 is the literature-based estimate for a typical (unstressed-to-mildly
+!* stressed) urban lawn; the BASE model value was 0.8 (a well-watered lawn, on
+!* the wet side). To reproduce the base model bit for bit, set urb_phu_gdn = 0.8.
+REAL, PARAMETER :: XPHU_GD = 0.7
 !* Greenroof roughness length (m). Default of the namelist item urb_z0_grf
 !* (RUN_TEB_OFFLINE); the physical value is propagated as the PZ0_GR argument
 !* of the GREENROOF scheme (and as ZUW_GR to the roof momentum flux).
 REAL, PARAMETER :: XZ0_GR = 0.01
+!MV202609 greenroof thermal roughness (z0h)
+!* Greenroof thermal (scalar) roughness ratio z0/z0h (-), i.e. z0h = z0/XZ0_O_Z0H_GR.
+!* Default of the namelist item urb_z0_o_z0h_grf (RUN_TEB_OFFLINE); the greenroof
+!* exchanges heat and moisture through PCH = kappa**2/(ln(z/z0)*ln(z/z0h)) like the
+!* garden, while its momentum keeps z0.
+REAL, PARAMETER :: XZ0_O_Z0H_GR = 4.0
+!MV202609 tunable surface relative humidity of the greenroof
+!* Default value of the namelist item urb_phu_grf (RUN_TEB_OFFLINE): the relative
+!* humidity of the greenroof surface used by BOTH proxy schemes (see XPHU_GD).
+!MV202609 default PHU revision
+!* 0.7 is the literature-based estimate for an extensive (sedum) greenroof; the
+!* BASE model value was 0.3, which is below the typical ambient relative humidity
+!* and puts the surface into spurious daytime condensation instead of transpiration.
+!* To reproduce the base model bit for bit, set urb_phu_grf = 0.3.
+REAL, PARAMETER :: XPHU_GR = 0.7
 !
 !-------------------------------------------------------------------------------
 !

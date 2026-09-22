@@ -22,7 +22,7 @@ MODULE MODI_GARDEN
 INTERFACE
 !
     SUBROUTINE GARDEN_TAU(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD, &
-                PZ0_O_Z0H,                                                                &
+                PZ0_O_Z0H, PPHU_GD,                                                       &
                 PUREF, PVMOD, PTA, PQA, PTAU, LTAU_SPLIT,                                  &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                   &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                      &
@@ -39,6 +39,9 @@ REAL, DIMENSION(:)  , INTENT(IN)  :: PU_LOWCAN        ! reference wind (m/s)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length (m)
 !MV202609 garden thermal roughness (z0h)
 REAL,               INTENT(IN)  :: PZ0_O_Z0H        ! garden z0/z0h ratio (-), >= 1
+ !MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
+ REAL,               INTENT(IN)  :: PPHU_GD          ! garden surface relative humidity (-)
+
 REAL, DIMENSION(:)  , INTENT(IN)  :: PUREF            ! height of the wind of the forcing level (m)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PVMOD            ! wind speed at the forcing level (m/s)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PTA              ! air temperature of the forcing level (K)
@@ -73,7 +76,7 @@ REAL, DIMENSION(:)  , INTENT(OUT) :: PLE_GARDEN_ATM   ! latent heat flux, atmosp
 END SUBROUTINE GARDEN_TAU
 !
     SUBROUTINE GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,    &
-                PZ0_O_Z0H,                                                                &
+                PZ0_O_Z0H, PPHU_GD,                                                       &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                  &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
                 PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                                  &
@@ -84,6 +87,9 @@ REAL, DIMENSION(:)  , INTENT(IN)  :: PZ_LOWCAN        ! height of the reference 
 REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN        ! reference air temperature (K)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PQ_LOWCAN        ! reference air humidity (kg/kg)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PU_LOWCAN        ! reference wind (m/s)
+ !MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
+ REAL,               INTENT(IN)  :: PPHU_GD          ! garden surface relative humidity (-)
+
 REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length (m)
 !MV202609 garden thermal roughness (z0h)
 REAL,               INTENT(IN)  :: PZ0_O_Z0H        ! garden z0/z0h ratio (-), >= 1
@@ -111,13 +117,16 @@ REAL, DIMENSION(:)  , INTENT(OUT) :: PIRRIG_GARDEN    ! garden summer irrigation
 END SUBROUTINE GARDEN
 !
 !MV202609 diagnostic garden with an external exchange coefficient (experiment interface)
-    SUBROUTINE GARDEN_PCD(TYPE_GARDEN, PPCD_GD, PPCH_GD, PV_GD, PT_REF, PQ_REF,           &
+    SUBROUTINE GARDEN_PCD(TYPE_GARDEN, PPCD_GD, PPCH_GD, PV_GD, PT_REF, PQ_REF, PPHU_GD,  &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                  &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
                 PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                                  &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                       &
                 PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN              )
  CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
+ !MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
+ REAL                , INTENT(IN)  :: PPHU_GD          ! garden surface relative humidity (-)
+
 REAL, DIMENSION(:)  , INTENT(IN)  :: PPCD_GD          ! momentum exchange coefficient (-)
 !MV202609 garden thermal roughness (z0h)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PPCH_GD          ! thermal (scalar) exchange coefficient (-)
