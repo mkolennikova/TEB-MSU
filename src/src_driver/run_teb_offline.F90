@@ -281,6 +281,37 @@ REAL ,DIMENSION(nvec) :: emu_pac_agg                !OUT (unused) aggregated con
 REAL ,DIMENSION(nvec) :: emu_drain                  !OUT (unused) drainage of the garden
 REAL ,DIMENSION(nvec) :: emu_irrig                  !OUT (unused) irrigation of the garden
 LOGICAL               :: lemu_checked               !=.FALSE. until the first consistency check
+!MV202609 greenroof emulation (teb_type_greenroof = 'EXT'/'EXT_NEU')
+!* State and diagnostics of the external greenroof model emulated by
+!* PCD_GREENROOF (see the subroutine below). The greenroof is a ROOF surface:
+!* a SINGLE exchange path (the air of the forcing level), no canyon branch and
+!* no tau split, hence no covariance term and CH_eff = PCH exactly.
+REAL ,DIMENSION(nvec) :: emu_gr_pcd     !OUT neutral momentum coefficient (-)
+REAL ,DIMENSION(nvec) :: emu_gr_pch     !OUT neutral thermal (scalar) coefficient (-)
+REAL ,DIMENSION(nvec) :: emu_gr_v       !OUT wind given to the model (m/s)
+REAL ,DIMENSION(nvec) :: emu_gr_t       !OUT air temperature given to the model (K)
+REAL ,DIMENSION(nvec) :: emu_gr_q       !OUT air humidity given to the model (kg/kg)
+REAL ,DIMENSION(nvec) :: emu_gr_ca      !OUT thermal conductance PCH*max(V,Vmin) (m/s)
+REAL ,DIMENSION(nvec) :: emu_gr_cd      !OUT momentum coefficient given to the model (-)
+REAL ,DIMENSION(nvec) :: emu_gr_ch      !OUT heat/moisture coefficient given to the model (-)
+REAL ,DIMENSION(nvec) :: emu_gr_psw     !OUT solar radiation received by the greenroof (W/m2)
+REAL ,DIMENSION(nvec) :: emu_gr_plw     !OUT infrared radiation received by the greenroof (W/m2)
+REAL ,DIMENSION(nvec) :: emu_gr_ts      !OUT surface temperature of the emulated greenroof (K)
+REAL ,DIMENSION(nvec) :: emu_gr_rn      !OUT net radiation of the emulated greenroof (W/m2 greenroof)
+REAL ,DIMENSION(nvec) :: emu_gr_h       !OUT sensible heat flux of the emulated greenroof (W/m2 greenroof)
+REAL ,DIMENSION(nvec) :: emu_gr_le      !OUT latent heat flux of the emulated greenroof (W/m2 greenroof)
+REAL ,DIMENSION(nvec) :: emu_gr_evap    !OUT evaporation of the emulated greenroof (kg/m2/s)
+REAL ,DIMENSION(nvec) :: emu_gr_qsat    !OUT saturation humidity of the emulated greenroof (kg/kg)
+REAL ,DIMENSION(nvec) :: emu_gr_phu     !OUT aggregated relative humidity of the greenroof (-)
+REAL ,DIMENSION(nvec) :: emu_gr_pac     !OUT aerodynamic conductance of the greenroof (m/s)
+REAL ,DIMENSION(nvec) :: emu_gr_puw     !OUT friction flux of the emulated greenroof (m2/s2)
+REAL ,DIMENSION(nvec) :: emu_gr_gflux   !OUT (unused) flux through the greenroof
+REAL ,DIMENSION(nvec) :: emu_gr_sfco2   !OUT (unused) CO2 flux of the greenroof
+REAL ,DIMENSION(nvec) :: emu_gr_runoff  !OUT (unused) runoff of the greenroof
+REAL ,DIMENSION(nvec) :: emu_gr_pac_agg !OUT (unused) aggregated conductance of the greenroof
+REAL ,DIMENSION(nvec) :: emu_gr_drain   !OUT (unused) drainage of the greenroof
+REAL ,DIMENSION(nvec) :: emu_gr_irrig   !OUT (unused) irrigation of the greenroof
+LOGICAL               :: lemu_gr_checked !=.FALSE. until the first consistency check
 
 ! Input parameters for Solar Panels module           
 LOGICAL  :: teb_lsolar_panel                            !IN Flag to use a solar panels on roofs
@@ -500,7 +531,7 @@ REAL, DIMENSION(:,:), ALLOCATABLE :: ZDIR   ! wind direction
 CHARACTER(LEN=100) :: output_dir
 ! the output is written to a single CSV file with ';' separators
 INTEGER, PARAMETER :: fu_out  = 13             ! unit of the output CSV file
-INTEGER, PARAMETER :: nout_max = 128           ! max number of output columns (array bound of out_names)
+INTEGER, PARAMETER :: nout_max = 192           ! max number of output columns (array bound of out_names)
 INTEGER :: nout                                ! actual number of output columns
 INTEGER :: jout                                ! column loop counter
 INTEGER :: lout                                ! length of the current output line
@@ -1164,6 +1195,21 @@ IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
    WRITE(*,'(A)') ' TEB-Ru offline: garden = EXTERNAL, emulated by PCD_GARDEN' &
         //' at every model sub-step (state: Ts = air temperature, fluxes = 0)'
 END IF
+!MV202609 greenroof emulation (teb_type_greenroof = 'EXT' or 'EXT_NEU')
+!* same principle as for the garden: the greenroof state and fluxes become
+!* PROGNOSTIC variables of the driver, read by TEB through the 'EXT' interface
+!* at every sub-step and updated by PCD_GREENROOF right after. The first
+!* sub-step is a spin-up of the coupling.
+IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') THEN
+   lemu_gr_checked = .FALSE.
+   teb_ts_gr(:)     = t(:)
+   teb_shfl_gr(:)   = 0.
+   teb_lhfl_gr(:)   = 0.
+   teb_qvfl_gr(:)   = 0.
+   teb_runoff_gr(:) = 0.
+   WRITE(*,'(A)') ' TEB-Ru offline: greenroof = EXTERNAL, emulated by PCD_GREENROOF' &
+       //' at every model sub-step (state: Ts = air temperature, fluxes = 0)'
+END IF
 
 ! -----------------------------------------------------------
 ! Outputs
@@ -1336,6 +1382,25 @@ IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
    nout = nout + 1; out_names(nout) = 'EMU_H'
    nout = nout + 1; out_names(nout) = 'EMU_LE'
    nout = nout + 1; out_names(nout) = 'EMU_EVAP'
+END IF
+!MV202609 greenroof emulation (teb_type_greenroof = 'EXT'/'EXT_NEU')
+!* coefficients, forcing and state of the emulated external greenroof (see
+!* PCD_GREENROOF): a single exchange path, so no tau aggregation and no
+!* covariance correction (CH_eff = PCH)
+IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') THEN
+   nout = nout + 1; out_names(nout) = 'EMU_GR_CD'
+   nout = nout + 1; out_names(nout) = 'EMU_GR_CH'
+   nout = nout + 1; out_names(nout) = 'EMU_GR_CA'
+   nout = nout + 1; out_names(nout) = 'EMU_GR_V'
+   nout = nout + 1; out_names(nout) = 'EMU_GR_T'
+   nout = nout + 1; out_names(nout) = 'EMU_GR_Q'
+   nout = nout + 1; out_names(nout) = 'EMU_GR_PSW'
+   nout = nout + 1; out_names(nout) = 'EMU_GR_PLW'
+   nout = nout + 1; out_names(nout) = 'EMU_GR_TS'
+   nout = nout + 1; out_names(nout) = 'EMU_GR_RN'
+   nout = nout + 1; out_names(nout) = 'EMU_GR_H'
+   nout = nout + 1; out_names(nout) = 'EMU_GR_LE'
+   nout = nout + 1; out_names(nout) = 'EMU_GR_EVAP'
 END IF
 !MV202609 solar position diagnostics
 !* the zenith/azimuth angles of the sun that the physics of the current step uses
@@ -1534,6 +1599,12 @@ DO nstep= 1,nsteps - 1
 !* just computed (CALL_DRIVER sees only the 'EXT' interface, as with a real
 !* external model)
    IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') CALL PCD_GARDEN
+!MV202609 greenroof emulation (teb_type_greenroof = 'EXT'/'EXT_NEU')
+!* same principle as for the garden: TEB has just used the greenroof state of
+!* the previous sub-step; the emulator updates it for the next one from the
+!* exchange coefficients, the air of the forcing level and the city-level
+!* radiation (the greenroof is on the roof: no shadowing, no re-reflection)
+   IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') CALL PCD_GREENROOF
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
    ZRO_ROAD_ACC = ZRO_ROAD_ACC + teb_runoff_road(1)
    ZRO_ROOF_ACC = ZRO_ROOF_ACC + teb_runoff_roof(1)
@@ -1675,6 +1746,22 @@ IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
    CALL CSV_APPEND(out_line, emu_h(1))
    CALL CSV_APPEND(out_line, emu_le(1))
    CALL CSV_APPEND(out_line, emu_evap(1))
+END IF
+!MV202609 greenroof emulation (teb_type_greenroof = 'EXT'/'EXT_NEU')
+IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') THEN
+   CALL CSV_APPEND(out_line, emu_gr_cd(1))
+   CALL CSV_APPEND(out_line, emu_gr_ch(1))
+   CALL CSV_APPEND(out_line, emu_gr_ca(1))
+   CALL CSV_APPEND(out_line, emu_gr_v(1))
+   CALL CSV_APPEND(out_line, emu_gr_t(1))
+   CALL CSV_APPEND(out_line, emu_gr_q(1))
+   CALL CSV_APPEND(out_line, emu_gr_psw(1))
+   CALL CSV_APPEND(out_line, emu_gr_plw(1))
+   CALL CSV_APPEND(out_line, emu_gr_ts(1))
+   CALL CSV_APPEND(out_line, emu_gr_rn(1))
+   CALL CSV_APPEND(out_line, emu_gr_h(1))
+   CALL CSV_APPEND(out_line, emu_gr_le(1))
+   CALL CSV_APPEND(out_line, emu_gr_evap(1))
 END IF
 !MV202609 solar position diagnostics (degrees; last sub-step of the interval)
 CALL CSV_APPEND(out_line, XZENITH(1) * 180. / XPI)
@@ -2392,6 +2479,74 @@ SUBROUTINE PCD_GARDEN
              ' kg/kg, CH_eff = ', emu_ch_eff(1), ' (-)'
     END IF
 END SUBROUTINE PCD_GARDEN
+!
+!MV202609 greenroof emulation (teb_type_greenroof = 'EXT'/'EXT_NEU')
+!* External greenroof model emulated by the offline driver. The greenroof is a
+!* ROOF surface: it exchanges with the air of the forcing level ONLY, so there
+!* is NO canyon branch and NO tau split (unlike the garden). A single exchange
+!* path means no covariance term in the aggregation of the coefficients, hence
+!* CH_eff = PCH exactly and CH_eff*max(V*,Vmin) = Ca identically.
+!*
+!* The radiative forcing is the CITY-LEVEL one: a roof is neither shadowed by
+!* the canyon nor irradiated by its re-reflections, so URBAN_SOLAR_ABS gives
+!* PREC_SW_RF = (dir + sca)*(1 - frac_panel) and ZREC_LW_RF = PLW_RAD (see
+!* src_teb/urban_solar_abs.F90 and src_teb/teb_garden.F90).
+!*
+!* The state (teb_ts_gr) and the fluxes (teb_shfl_gr, teb_lhfl_gr, teb_qvfl_gr)
+!* become PROGNOSTIC variables of the driver and are read back by TEB at the
+!* next sub-step through the 'EXT' interface (one sub-step of lag).
+SUBROUTINE PCD_GREENROOF
+    INTEGER :: JI
+    DO JI = 1, nvec
+        !* single path: reference air of the forcing level (height hlev_teb,
+        !* wind PVMOD), with the same height, the same roughness length and the
+        !* same thermal roughness as the internal diagnostic greenroof (the
+        !* shared neutral formulation, see MODE_GARDEN_BALANCE)
+        emu_gr_pcd(JI) = GARDEN_PCD_NEUTRAL(hlev_teb(JI), teb_z0_gr(JI))
+        emu_gr_pch(JI) = GARDEN_PCH_NEUTRAL(hlev_teb(JI), teb_z0_gr(JI), urb_z0_o_z0h_grf)
+        emu_gr_v(JI)   = 0.
+        IF (emu_gr_pcd(JI) > 0.) emu_gr_v(JI) = MAX(SQRT(u(JI)**2+v(JI)**2), XVMIN_GD)
+        emu_gr_ca(JI)  = emu_gr_pch(JI)*emu_gr_v(JI)
+        !* the single complete set (wind, air) given to the external model
+        emu_gr_t(JI)   = t(JI)
+        emu_gr_q(JI)   = qv(JI)
+        !* effective coefficients: a single path, so no covariance term of a
+        !* tau averaging; the momentum one serves the friction flux
+        emu_gr_cd(JI)  = emu_gr_pcd(JI)
+        emu_gr_ch(JI)  = emu_gr_pch(JI)
+        !* radiative forcing of the city (the greenroof is on the roof)
+        emu_gr_psw(JI) = (swdir_s(JI) + swdifd_s(JI)) * (1.-teb_fr_panel(JI))
+        emu_gr_plw(JI) = lwd_s(JI) * (1.-teb_fr_panel(JI))
+    END DO
+    !* THE EXTERNAL MODEL: the surface balance at the set prepared above.
+    !* teb_ts_gr (PTS_GARDEN of GARDEN_PCD, INOUT) carries the state: the
+    !* surface temperature on entry is the initial guess of the Newton
+    !* iteration, the solution on exit.
+    CALL GARDEN_PCD('PROXY_NEW', emu_gr_cd, emu_gr_ch, emu_gr_v, emu_gr_t, emu_gr_q, urb_phu_grf, &
+                    teb_alb_gr, teb_emis_gr, rho, ps, emu_gr_psw, emu_gr_plw,                   &
+                    emu_gr_rn, emu_gr_h, emu_gr_le, emu_gr_gflux, emu_gr_sfco2, emu_gr_evap,    &
+                    emu_gr_puw, emu_gr_runoff, emu_gr_pac, emu_gr_qsat, teb_ts_gr,              &
+                    emu_gr_pac_agg, emu_gr_phu, emu_gr_drain, emu_gr_irrig)
+    !* state and fluxes prescribed to TEB at the next model sub-step
+    emu_gr_ts(:)     = teb_ts_gr(:)
+    teb_shfl_gr(:)   = emu_gr_h(:)
+    teb_lhfl_gr(:)   = emu_gr_le(:)
+    teb_qvfl_gr(:)   = emu_gr_evap(:)
+    teb_runoff_gr(:) = 0.
+    !* first call: the effective coefficients must reproduce the conductances
+    !* exactly (CH_eff*max(V*,Vmin) = Ca by construction, a single path)
+    IF (.NOT. lemu_gr_checked) THEN
+        lemu_gr_checked = .TRUE.
+        WRITE(*,'(A,ES12.4,A,ES12.4,A)')                                              &
+             ' TEB-Ru offline: greenroof emulator: CH_eff*max(V*,Vmin)-Ca = ',         &
+             emu_gr_ch(1)*MAX(emu_gr_v(1),XVMIN_GD) - emu_gr_ca(1),                    &
+             ' (PCH = ', emu_gr_pch(1), ')'
+        WRITE(*,'(A,F10.6,A,F9.4,A,F10.7,A,F10.6,A)')                                 &
+             ' TEB-Ru offline: greenroof emulator: V* = ', emu_gr_v(1),                &
+             ' m/s, T* = ', emu_gr_t(1), ' K, q* = ', emu_gr_q(1),                     &
+             ' kg/kg, CH_eff = ', emu_gr_ch(1), ' (-)'
+    END IF
+END SUBROUTINE PCD_GREENROOF
 
 !> Append one real value to a CSV line: 'line = line//sep//value'
 !! List-directed output is used, so that the CSV file contains exactly the same digits

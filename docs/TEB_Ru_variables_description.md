@@ -311,6 +311,42 @@ with two different coefficient sets:
   (`'EXT'` includes stratification in the export while the emulator does not).
 
 
+### Greenroof output columns and the emulator of the external greenroof
+
+The greenroof is a **roof** surface: it exchanges with the air of the forcing level
+only, so it has a single exchange path (no canyon branch, no tau split).
+
+| Column | Dimension | Comment |
+|:-------|:----------|:--------|
+| `TS_GREENROOF`, `RN_GREENROOF`, `H_GREENROOF`, `LE_GREENROOF` | K, W/m² | Surface temperature and net radiation / sensible / latent heat flux per m² of greenroof |
+| `EVAP_GREENROOF`, `QSAT_GREENROOF`, `PHU_GREENROOF` | kg/m²/s, kg/kg, - | Evaporation, saturation specific humidity at `TS_GREENROOF` and aggregated relative humidity of the surface |
+| `PAC_AGG_GREENROOF` | m/s | Aggregated aerodynamic conductance (latent heat) |
+| `PAC_GREENROOF_ATM`, `PCD_GREENROOF_ATM`, `PCDN_GREENROOF_ATM`, `PCH_GREENROOF_ATM` | m/s, -, -, - | Greenroof/atmosphere coefficients computed by `URBAN_DRAG` in the external modes: conductance, momentum coefficient, neutral momentum coefficient and thermal coefficient |
+| `PRI_GREENROOF_ATM` | - | Richardson number of the greenroof/atmosphere exchange (`XUNDEF` in `'EXT_NEU'`, whose coefficients are neutral) |
+| `ZZ0H_GREENROOF_ATM` | m | Thermal roughness used (`z0/urb_z0_o_z0h_grf`) |
+
+**External greenroof model (emulator).** With `teb_type_greenroof = 'EXT'` (or
+`'EXT_NEU'`) the greenroof is prescribed from the outside. In the offline driver the
+external model is EMULATED by the contained subroutine `PCD_GREENROOF` (the same
+diagnostic balance `GARDEN_PCD` as the internal greenroof, with a single path). The
+following columns are written only in these modes:
+
+| Column | Dimension | Comment |
+|:-------|:----------|:--------|
+| `EMU_GR_CD`, `EMU_GR_CH`, `EMU_GR_CA` | -, -, m/s | Neutral momentum coefficient, neutral thermal coefficient and thermal conductance `PCH*max(V,Vmin)` given to the external model |
+| `EMU_GR_V`, `EMU_GR_T`, `EMU_GR_Q` | m/s, K, kg/kg | The one complete set (wind, air) given to the external model: the wind of the forcing level floored at `XVMIN_GD` and its air (`Forc_TA`, `Forc_QV`) |
+| `EMU_GR_PSW`, `EMU_GR_PLW` | W/m² | Short-wave and long-wave radiation received by the roof, `(Forc_DIR+Forc_SCA)*(1-frac_panel)` and `Forc_LW*(1-frac_panel)` (a roof is not shadowed by the canyon) |
+| `EMU_GR_TS`, `EMU_GR_RN`, `EMU_GR_H`, `EMU_GR_LE`, `EMU_GR_EVAP` | K, W/m², W/m², W/m², kg/m²/s | State and fluxes returned by the external model, prescribed to TEB at the next sub-step (one output row behind `TS_GREENROOF`, `H_GREENROOF`, `LE_GREENROOF`, `EVAP_GREENROOF`) |
+
+Because there is a single exchange path there is no covariance correction:
+`EMU_GR_CH*max(EMU_GR_V,Vmin) = EMU_GR_CA` exactly, and in `'EXT_NEU'`
+`EMU_GR_CD = PCD_GREENROOF_ATM`, `EMU_GR_CH = PCH_GREENROOF_ATM` and
+`EMU_GR_CA = PAC_GREENROOF_ATM` (in `'EXT'` the exported coefficients carry the
+Richardson-number correction of `URBAN_EXCH_COEF` while the emulator keeps its
+neutral ones). The coupling is validated by
+`python_tests/greenroof_emu_compare.py`.
+
+
 **Interaction with the tau scheme of the road.** With `teb_ltau_scheme = .TRUE.` and
 `teb_type_garden = 'PROXY_NEW'` the garden exchange is split in exactly the same way
 as the road one: the tau-aggregated conductance and reference air feed the diagnostic
