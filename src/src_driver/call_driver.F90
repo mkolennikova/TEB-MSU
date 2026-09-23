@@ -63,7 +63,10 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
                           PAC_GARDEN,                                                   &
 !MV202609 greenroof diagnostics
                           PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
-                          PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_AGG_GREENROOF)
+                          PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_AGG_GREENROOF, &
+!MV202609 greenroof-to-atm exchange diagnostics
+                          PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
+                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM)
 							
 ! ======================================================================
 ! 
@@ -443,6 +446,13 @@ REAL,DIMENSION(1)                 :: PEVAP_GREENROOF  !OUT total evaporation ove
 REAL,DIMENSION(1)                 :: PQSAT_GREENROOF  !OUT greenroof saturation specific humidity (kg/kg)
 REAL,DIMENSION(1)                 :: PHU_GREENROOF    !OUT greenroof aggregated relative humidity (-)
 REAL,DIMENSION(1)                 :: PAC_AGG_GREENROOF!OUT greenroof aggregated conductance (m/s)
+!MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
+REAL,DIMENSION(1)                 :: PAC_GREENROOF_ATM !OUT greenroof aerodynamical conductance (atm.)
+REAL,DIMENSION(1)                 :: PCD_GREENROOF_ATM !OUT greenroof drag coefficient (atm.)
+REAL,DIMENSION(1)                 :: PCDN_GREENROOF_ATM!OUT greenroof neutral drag coefficient (atm.)
+REAL,DIMENSION(1)                 :: PCH_GREENROOF_ATM !OUT greenroof drag coefficient for heat (atm.)
+REAL,DIMENSION(1)                 :: PRI_GREENROOF_ATM !OUT greenroof Richardson number (atm.)
+REAL,DIMENSION(1)                 :: ZZ0H_GREENROOF_ATM!OUT greenroof roughness length for heat (atm.)
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 REAL,DIMENSION(1)                 :: PDN_RF           !OUT roof snow fraction (-)
 REAL,DIMENSION(1)                 :: LE_ROOF_WAT      !OUT roof latent heat flux of the snow-free roof (W/m2 roof)
@@ -561,6 +571,13 @@ REAL,DIMENSION(1)  :: ZPEVAP_GREENROOF  ! total evaporation over the greenroof (
 REAL,DIMENSION(1)  :: ZPQSAT_GREENROOF  ! greenroof saturation specific humidity (kg/kg)
 REAL,DIMENSION(1)  :: ZPHU_GREENROOF    ! greenroof aggregated relative humidity (-)
 REAL,DIMENSION(1)  :: ZPAC_AGG_GREENROOF! greenroof aggregated conductance (m/s)
+!MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
+REAL,DIMENSION(1)  :: ZPAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
+REAL,DIMENSION(1)  :: ZPCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)
+REAL,DIMENSION(1)  :: ZPCDN_GREENROOF_ATM! greenroof neutral drag coefficient (atm.)
+REAL,DIMENSION(1)  :: ZPCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
+REAL,DIMENSION(1)  :: ZPRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
+REAL,DIMENSION(1)  :: ZZZ0H_GREENROOF_ATM! greenroof roughness length for heat (atm.)
 REAL,DIMENSION(1)  :: ZAC_GREENROOF     ! green roofs aerodynamical conductance        
 REAL,DIMENSION(1)  :: ZAC_GREENROOF_WAT ! green roofs aerodynamical conductance for vapor                                    
 REAL,DIMENSION(1)  :: ZUW_ROOF          ! Momentum flux for roofs                      
@@ -1596,7 +1613,10 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, TYPE_GREENROOF, LGR
                      ZPH_GARDEN_CAN, ZPH_GARDEN_ATM, ZPLE_GARDEN_CAN, ZPLE_GARDEN_ATM, &
 !MV202609 greenroof diagnostics
                       ZPTSRAD_GREENROOF, ZPRN_GREENROOF, ZPH_GREENROOF, ZPLE_GREENROOF, &
-                      ZPEVAP_GREENROOF, ZPQSAT_GREENROOF, ZPHU_GREENROOF, ZPAC_AGG_GREENROOF)
+                      ZPEVAP_GREENROOF, ZPQSAT_GREENROOF, ZPHU_GREENROOF, ZPAC_AGG_GREENROOF, &
+!MV202609 greenroof-to-atm exchange diagnostics
+                      ZPAC_GREENROOF_ATM, ZPCD_GREENROOF_ATM, ZPCDN_GREENROOF_ATM, ZPCH_GREENROOF_ATM, &
+                      ZPRI_GREENROOF_ATM, ZZZ0H_GREENROOF_ATM)
 !*****************************************************************************
 !*****************************************************************************
 !*****************************************************************************
@@ -1681,6 +1701,13 @@ PEVAP_GREENROOF  = ZPEVAP_GREENROOF
 PQSAT_GREENROOF  = ZPQSAT_GREENROOF
 PHU_GREENROOF    = ZPHU_GREENROOF
 PAC_AGG_GREENROOF= ZPAC_AGG_GREENROOF
+!MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
+PAC_GREENROOF_ATM = ZPAC_GREENROOF_ATM
+PCD_GREENROOF_ATM = ZPCD_GREENROOF_ATM
+PCDN_GREENROOF_ATM= ZPCDN_GREENROOF_ATM
+PCH_GREENROOF_ATM = ZPCH_GREENROOF_ATM
+PRI_GREENROOF_ATM = ZPRI_GREENROOF_ATM
+ZZ0H_GREENROOF_ATM= ZZZ0H_GREENROOF_ATM
 !
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 !* roof water diagnostics: snow fraction and liquid/snow components of the roof

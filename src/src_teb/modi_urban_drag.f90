@@ -7,7 +7,7 @@ INTERFACE
                           PDELT_SNOW_ROOF, PDELT_SNOW_ROAD,  PTAU, PEXNS, PEXNA, PTA,    &
                           PQA, PPS, PRHOA,PZREF, PUREF, PVMOD, PWS_ROOF_MAX,       &
                           PWS_ROAD_MAX, PPEW_A_COEF, PPEW_B_COEF,                  &
-                          PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT,  &
+                          PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PZ0_GREENROOF_EXT,  &
 						  PTSRAD_GR, PRUNOFF_GR, PQSAT_ROOF,      &
                           PQSAT_ROAD, PDELT_ROOF, PDELT_ROAD, PCD, PCDN, PAC_ROOF, &
                           PAC_ROOF_WAT, PAC_WALL, PAC_ROAD_CAN, PAC_ROAD_WAT, PAC_TOP, &
@@ -21,7 +21,10 @@ INTERFACE
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN,&
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM,            &
                           PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM,                  &
-                          PAC_ROAD_ATM_WAT	  ) 
+                          PAC_ROAD_ATM_WAT,                                              &
+!MV202609 greenroof-to-atm exchange diagnostics
+                          PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM,       &
+                          PCH_GREENROOF_ATM, PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM   ) 
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
@@ -65,6 +68,7 @@ REAL, DIMENSION(:), INTENT(IN)    :: PPEW_B_COEF    ! for wind coupling     (m/s
 REAL, DIMENSION(:), INTENT(IN)    :: PPEW_A_COEF_LOWCAN ! implicit coefficients for wind coupling (m2s/kg)
 REAL, DIMENSION(:), INTENT(IN)    :: PPEW_B_COEF_LOWCAN ! between low canyon wind and road (m/s)
 REAL, DIMENSION(:), INTENT(IN)    :: PZ0_GARDEN_EXT     ! garden roughness length
+REAL, DIMENSION(:), INTENT(IN)    :: PZ0_GREENROOF_EXT  ! greenroof roughness length
 REAL, DIMENSION(:), INTENT(IN)    :: PTSRAD_GR     !
 REAL, DIMENSION(:), INTENT(IN)    :: PRUNOFF_GR     !
 
@@ -122,6 +126,13 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_ATM  ! garden neutral drag coef
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_ATM   ! garden Richardson number (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM_WAT ! road   conductance for water (atm.)
+!MV202609 greenroof-to-atm exchange diagnostics
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GREENROOF_ATM ! greenroof surf. exchange coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GREENROOF_ATM! greenroof neutral drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GREENROOF_ATM! greenroof roughness length for heat (atm.)
 
 END SUBROUTINE URBAN_DRAG
 END INTERFACE

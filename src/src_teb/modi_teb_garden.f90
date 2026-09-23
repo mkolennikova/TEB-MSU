@@ -42,7 +42,10 @@ INTERFACE
                           PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
 !MV202609 greenroof diagnostics (per m2 of greenroof)
                            PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
-                           PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_AGG_GREENROOF)
+                           PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_AGG_GREENROOF, &
+!MV202609 greenroof-to-atm exchange diagnostics
+                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
+                           PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
@@ -247,6 +250,13 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GREENROOF  ! total evaporation ove
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GREENROOF  ! greenroof saturation specific humidity [kg/kg]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GREENROOF    ! greenroof aggregated relative humidity [-]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_AGG_GREENROOF! greenroof aggregated conductance [m/s]
+!MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PCDN_GREENROOF_ATM! greenroof neutral drag coefficient (atm.)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: ZZ0H_GREENROOF_ATM! greenroof roughness length for heat (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)

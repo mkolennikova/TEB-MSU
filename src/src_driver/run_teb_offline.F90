@@ -366,6 +366,13 @@ REAL ,DIMENSION(nvec) :: teb_evap_greenroof             !OUT total evaporation o
 REAL ,DIMENSION(nvec) :: teb_qsat_greenroof             !OUT greenroof saturation specific humidity (kg/kg)
 REAL ,DIMENSION(nvec) :: teb_phu_greenroof              !OUT greenroof aggregated relative humidity (-)
 REAL ,DIMENSION(nvec) :: teb_pac_agg_greenroof          !OUT greenroof aggregated conductance (m/s)
+!MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
+REAL ,DIMENSION(nvec) :: teb_pac_greenroof_atm            !OUT greenroof aerodynamical conductance (atm.)
+REAL ,DIMENSION(nvec) :: teb_pcd_greenroof_atm            !OUT greenroof drag coefficient (atm.)
+REAL ,DIMENSION(nvec) :: teb_pcdn_greenroof_atm           !OUT greenroof neutral drag coefficient (atm.)
+REAL ,DIMENSION(nvec) :: teb_pch_greenroof_atm            !OUT greenroof drag coefficient for heat (atm.)
+REAL ,DIMENSION(nvec) :: teb_pri_greenroof_atm            !OUT greenroof Richardson number (atm.)
+REAL ,DIMENSION(nvec) :: teb_zz0h_greenroof_atm           !OUT greenroof roughness length for heat (atm.)
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
 REAL ,DIMENSION(nvec) :: teb_h_garden_can               !OUT garden sensible heat flux, garden -> canyon air (W/m2 garden)
 REAL ,DIMENSION(nvec) :: teb_h_garden_atm               !OUT garden sensible heat flux, garden -> forcing level (W/m2 garden)
@@ -498,7 +505,7 @@ INTEGER :: nout                                ! actual number of output columns
 INTEGER :: jout                                ! column loop counter
 INTEGER :: lout                                ! length of the current output line
 CHARACTER(LEN=1),  PARAMETER :: out_sep = ';'  ! CSV field separator
-CHARACTER(LEN=16), DIMENSION(nout_max) :: out_names  ! column headers (1:nout)
+CHARACTER(LEN=24), DIMENSION(nout_max) :: out_names  ! column headers (1:nout)
 CHARACTER(LEN=100) :: output_csv               ! full path of the output CSV file
 CHARACTER(LEN=4096) :: out_line                ! one CSV line (header or data row)
 CHARACTER(LEN=32) :: time_buf                  ! timestamp buffer (ISO 8601)
@@ -989,14 +996,25 @@ END IF
 WRITE(*,'(A,A)') ' TEB-Ru offline: teb_type_garden = ', TRIM(teb_type_garden)
 !
 !MV202609 greenroof model type
-!* the type of the greenroof model must be one of the supported values; the
-!* external greenroof keeps its own flag (teb_lgreenroof_ext).
-IF (teb_type_greenroof /= 'PROXY_OLD' .AND. teb_type_greenroof /= 'PROXY_NEW') THEN
+!* the type of the greenroof model must be one of the supported values.
+!* 'EXT'/'EXT_NEU' is the EXTERNAL greenroof (fluxes from outside), with its
+!* diagnostic exchange coefficients following the full URBAN_EXCH_COEF set or the
+!* neutral formulation of the internal scheme respectively; the legacy flag
+!* teb_lgreenroof_ext stays valid and is forced by 'EXT'/'EXT_NEU' below.
+IF (teb_type_greenroof /= 'PROXY_OLD' .AND. teb_type_greenroof /= 'PROXY_NEW' .AND. &
+    teb_type_greenroof /= 'EXT' .AND. teb_type_greenroof /= 'EXT_NEU') THEN
     WRITE(*,*) 'ERROR: unknown teb_type_greenroof = ', TRIM(teb_type_greenroof)
-    WRITE(*,*) "       supported values: 'PROXY_OLD', 'PROXY_NEW'"
+    WRITE(*,*) "       supported values: 'PROXY_OLD', 'PROXY_NEW', 'EXT', 'EXT_NEU'"
     STOP 1
 END IF
 WRITE(*,'(A,A)') ' TEB-Ru offline: teb_type_greenroof = ', TRIM(teb_type_greenroof)
+!MV202609 external greenroof: EXT/EXT_NEU implies the external data path,
+!* exactly as EXT/EXT_NEU of the garden does (the legacy flag teb_lgreenroof_ext
+!* stays valid and is forced here for consistency)
+IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') THEN
+    teb_lgreenroof_ext = .TRUE.
+    WRITE(*,'(A)') ' TEB-Ru offline: external greenroof (teb_type_greenroof = EXT/EXT_NEU)'
+END IF
 
 !MV202609 roughness length, albedo and emissivity of the garden and of the
 !* greenroof (namelist items urb_z0_gdn / urb_alb_gdn / urb_emis_gdn and
@@ -1287,6 +1305,13 @@ nout = nout + 1; out_names(nout) = 'EVAP_GREENROOF'
 nout = nout + 1; out_names(nout) = 'QSAT_GREENROOF'
 nout = nout + 1; out_names(nout) = 'PHU_GREENROOF'
 nout = nout + 1; out_names(nout) = 'PAC_AGG_GREENROOF'
+!MV202609 greenroof-to-atm exchange diagnostics
+nout = nout + 1; out_names(nout) = 'PAC_GREENROOF_ATM'
+nout = nout + 1; out_names(nout) = 'PCD_GREENROOF_ATM'
+nout = nout + 1; out_names(nout) = 'PCDN_GREENROOF_ATM'
+nout = nout + 1; out_names(nout) = 'PCH_GREENROOF_ATM'
+nout = nout + 1; out_names(nout) = 'PRI_GREENROOF_ATM'
+nout = nout + 1; out_names(nout) = 'ZZ0H_GREENROOF_ATM'
 !MV202609 garden emulation (teb_type_garden = 'EXT')
 !* State, forcing and coefficients of the external garden model emulated by
 !* PCD_GARDEN: EMU_TAU = weight of the canyon path, EMU_CD_EFF/EMU_CH_EFF =
@@ -1498,7 +1523,10 @@ DO nstep= 1,nsteps - 1
 !MV202609 greenroof diagnostics
                           teb_ts_greenroof, teb_rn_greenroof, teb_h_greenroof, teb_le_greenroof, &
                           teb_evap_greenroof, teb_qsat_greenroof, teb_phu_greenroof,     &
-                          teb_pac_agg_greenroof)
+                          teb_pac_agg_greenroof, &
+!MV202609 greenroof-to-atm exchange diagnostics
+                          teb_pac_greenroof_atm, teb_pcd_greenroof_atm, teb_pcdn_greenroof_atm, &
+                          teb_pch_greenroof_atm, teb_pri_greenroof_atm, teb_zz0h_greenroof_atm)
 !MV202609 garden emulation (teb_type_garden = 'EXT')
 !* the external garden model: TEB has just used the garden state prescribed at
 !* the previous sub-step; the emulator now updates the state and the fluxes for
@@ -1625,6 +1653,13 @@ CALL CSV_APPEND(out_line, teb_evap_greenroof(1))
 CALL CSV_APPEND(out_line, teb_qsat_greenroof(1))
 CALL CSV_APPEND(out_line, teb_phu_greenroof(1))
 CALL CSV_APPEND(out_line, teb_pac_agg_greenroof(1))
+!MV202609 greenroof-to-atm exchange diagnostics
+CALL CSV_APPEND(out_line, teb_pac_greenroof_atm(1))
+CALL CSV_APPEND(out_line, teb_pcd_greenroof_atm(1))
+CALL CSV_APPEND(out_line, teb_pcdn_greenroof_atm(1))
+CALL CSV_APPEND(out_line, teb_pch_greenroof_atm(1))
+CALL CSV_APPEND(out_line, teb_pri_greenroof_atm(1))
+CALL CSV_APPEND(out_line, teb_zz0h_greenroof_atm(1))
 !MV202609 garden emulation (teb_type_garden = 'EXT')
 IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
    CALL CSV_APPEND(out_line, emu_tau(1))

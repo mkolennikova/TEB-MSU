@@ -9,7 +9,7 @@
                           PDELT_SNOW_ROOF, PDELT_SNOW_ROAD,  PTAU, PEXNS, PEXNA, PTA,    &
                           PQA, PPS, PRHOA,PZREF, PUREF, PVMOD, PWS_ROOF_MAX,       &
                           PWS_ROAD_MAX, PPEW_A_COEF, PPEW_B_COEF,                  &
-                          PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT,  &
+                          PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PZ0_GREENROOF_EXT,  &
 						  PTSRAD_GR, PRUNOFF_GR, PQSAT_ROOF,      &
                           PQSAT_ROAD, PDELT_ROOF, PDELT_ROAD, PCD, PCDN, PAC_ROOF, &
                           PAC_ROOF_WAT, PAC_WALL, PAC_ROAD_CAN, PAC_ROAD_WAT, PAC_TOP, &
@@ -23,7 +23,10 @@
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN,&
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM,            &
                           PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM,                              &
-                          PAC_ROAD_ATM_WAT	  ) 
+                          PAC_ROAD_ATM_WAT,                                              &
+!MV202609 greenroof-to-atm exchange diagnostics
+                          PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM,       &
+                          PCH_GREENROOF_ATM, PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM   ) 
 !   ##########################################################################
 !
 !!****  *URBAN_DRAG*  
@@ -153,6 +156,7 @@ REAL, DIMENSION(:), INTENT(IN)    :: PPEW_B_COEF    ! for wind coupling     (m/s
 REAL, DIMENSION(:), INTENT(IN)    :: PPEW_A_COEF_LOWCAN ! implicit coefficients for wind coupling (m2s/kg)
 REAL, DIMENSION(:), INTENT(IN)    :: PPEW_B_COEF_LOWCAN ! between low canyon wind and road (m/s)
 REAL, DIMENSION(:), INTENT(IN)    :: PZ0_GARDEN_EXT     ! garden roughness length (external model)
+REAL, DIMENSION(:), INTENT(IN)    :: PZ0_GREENROOF_EXT  ! greenroof roughness length (external model)
 REAL, DIMENSION(:), INTENT(IN)    :: PTSRAD_GR     !
 REAL, DIMENSION(:), INTENT(IN)    :: PRUNOFF_GR     !
 
@@ -226,6 +230,13 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_ATM  ! garden neutral drag coef
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_ATM   ! garden Richardson number (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM_WAT ! road   conductance for water (atm.)
+!MV202609 greenroof-to-atm exchange diagnostics
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GREENROOF_ATM ! greenroof surf. exchange coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GREENROOF_ATM! greenroof neutral drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GREENROOF_ATM! greenroof roughness length for heat (atm.)
 
 !
 !*      0.2    declarations of local variables
@@ -286,6 +297,9 @@ REAL, DIMENSION(SIZE(PTA)) :: ZCHTCS_WALL  ! forced natural convective heat tran
 REAL, DIMENSION(SIZE(PTA)) :: ZTS_GROUND   ! Surface temperature of ground (road + garden)
 REAL, DIMENSION(SIZE(PTA)) :: ZRA_GARDEN_ATM
 REAL, DIMENSION(SIZE(PTA)) :: ZILMO_GARDEN_ATM
+!MV202609 greenroof-to-atm exchange diagnostics
+REAL, DIMENSION(SIZE(PTA)) :: ZRA_GREENROOF_ATM
+REAL, DIMENSION(SIZE(PTA)) :: ZILMO_GREENROOF_ATM
 REAL, DIMENSION(SIZE(PTA)) :: ZVMOD_TOWN
 REAL, DIMENSION(SIZE(PTA)) :: ZVMOD_TOP
 REAL, DIMENSION(SIZE(PTA)) :: ZUSTAR_TOP
@@ -351,6 +365,13 @@ PRI_GARDEN_ATM (:) = XUNDEF
 ZZ0H_GARDEN_ATM(:) = XUNDEF
 PCD_GARDEN_ATM (:) = XUNDEF
 PCH_GARDEN_ATM (:) = XUNDEF
+!MV202609 greenroof-to-atm exchange diagnostics
+PAC_GREENROOF_ATM (:) = XUNDEF
+PCD_GREENROOF_ATM (:) = XUNDEF
+PCDN_GREENROOF_ATM(:) = XUNDEF
+PCH_GREENROOF_ATM (:) = XUNDEF
+PRI_GREENROOF_ATM (:) = XUNDEF
+ZZ0H_GREENROOF_ATM(:) = XUNDEF
 !
 !* 1/L is not computed under MASC95 (see URBAN_EXCH_COEF): the corresponding
 !* outputs are set here to XUNDEF so that no uninitialised value leaves this routine
@@ -791,6 +812,39 @@ CALL URBAN_EXCH_COEF(TOP%CZ0H, TOP%XZ0_O_Z0H_GD, PTS_GARDEN, PQS_GARDEN, PEXNS, 
                        PTA, PQA, PZREF, PZREF,              &
                        PVMOD, PZ0_GARDEN_EXT, PRI_GARDEN_ATM, PCD_GARDEN_ATM, PCDN_GARDEN_ATM,         &
                        PAC_GARDEN_ATM, ZRA_GARDEN_ATM, PCH_GARDEN_ATM, ZZ0H_GARDEN_ATM, ZILMO_GARDEN_ATM        )
+   !
+ENDIF
+!
+!MV202609 greenroof-to-atm exchange diagnostics
+!* greenroof exchange coefficients (single path: the greenroof is a roof
+!* surface and exchanges with the air of the forcing level only, no canyon
+!* branch and no tau split).
+!*
+!* 'EXT_NEU' - external greenroof with the NEUTRAL exchange coefficients of the
+!* internal diagnostic greenroof (src_proxi_SVAT/greenroof.F90):
+!*     PCD = (kappa/ln(z/z0))**2,   PCH = kappa**2/(ln(z/z0)*ln(z/z0h))
+!*     Ca_h = PCH*max(V, XVMIN_GD),   z0h = z0/TOP%XZ0_O_Z0H_GR
+!* with the same wind floor XVMIN_GD and the same thermal roughness z0h as the
+!* internal greenroof. PRI_GREENROOF_ATM is not defined (no Richardson number)
+!* and keeps its XUNDEF initialisation.
+!*
+!* 'EXT' - the same path with the full URBAN_EXCH_COEF set (Richardson number,
+!* the same z0h = z0/TOP%XZ0_O_Z0H_GR, WIND_THRESHOLD), i.e. the description of
+!* the greenroof coefficients used for the bookkeeping of a coupled model.
+!
+IF (TOP%CTYPE_GREENROOF == 'EXT_NEU') THEN
+   PCDN_GREENROOF_ATM(:) = GARDEN_PCD_NEUTRAL(PUREF(:), PZ0_GREENROOF_EXT(:))
+   PCD_GREENROOF_ATM (:) = PCDN_GREENROOF_ATM(:)
+   PCH_GREENROOF_ATM (:) = GARDEN_PCH_NEUTRAL(PUREF(:), PZ0_GREENROOF_EXT(:), TOP%XZ0_O_Z0H_GR)
+   PAC_GREENROOF_ATM (:) = GARDEN_CAH_NEUTRAL(PUREF(:), PZ0_GREENROOF_EXT(:), TOP%XZ0_O_Z0H_GR, PVMOD(:))
+   ZZ0H_GREENROOF_ATM(:) = PZ0_GREENROOF_EXT(:) / MAX(TOP%XZ0_O_Z0H_GR, 1.)
+   !
+ELSEIF (TOP%CTYPE_GREENROOF == 'EXT') THEN
+   CALL URBAN_EXCH_COEF(TOP%CZ0H, TOP%XZ0_O_Z0H_GR, PTSRAD_GR, PRUNOFF_GR, PEXNS, PEXNA,  &
+                        PTA, PQA, PZREF, PUREF, PVMOD, PZ0_GREENROOF_EXT,                  &
+                        PRI_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM,         &
+                        PAC_GREENROOF_ATM, ZRA_GREENROOF_ATM, PCH_GREENROOF_ATM,          &
+                        ZZ0H_GREENROOF_ATM, ZILMO_GREENROOF_ATM)
    !
 ENDIF
 

@@ -4,7 +4,7 @@ INTERFACE
     SUBROUTINE TEB  (icell, iblock, TOP, T, BOP, B, TIR, DMT, HIMPLICIT_WIND, PBEM_AC, PTSUN,                   &
                      PT_CANYON, PQ_CANYON, PU_CANYON, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN,  &
                      PZ_LOWCAN, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,           &
-                     PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PPS, PPA, PEXNS, PEXNA, PTA, PQA, PRHOA,       &
+                     PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PZ0_GR_EXT, PPS, PPA, PEXNS, PEXNA, PTA, PQA, PRHOA,       &
                      PLW_RAD, PRR, PSR, PZREF, PUREF, PVMOD, PH_TRAFFIC, PLE_TRAFFIC,   &
                      PTSTEP, PDF_RF, PDN_RF, PDF_RD, PDN_RD, PQSAT_RF, PQSAT_RD,        &
                      PDELT_RF, PDELT_RD, PTS_GARDEN, PQS_GARDEN, PLEW_RF, PUW_GR, PLEW_RD, PLE_WL_A,&
@@ -30,6 +30,9 @@ INTERFACE
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
+!MV202609 greenroof-to-atm exchange diagnostics
+                          PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
+                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
 !MV202609 tau scheme of the road
                           PTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
@@ -172,6 +175,7 @@ REAL, DIMENSION(:), INTENT(IN)    :: PLW_S_TO_WB         ! LW contrib. sky      
 REAL, DIMENSION(:), INTENT(IN)    :: PLW_S_TO_R          ! LW contrib. sky        -> road
 REAL, DIMENSION(:), INTENT(IN)    :: PLW_S_TO_NR         ! LW contrib. sky        -> road(snow)
 REAL, DIMENSION(:), INTENT(IN)    :: PZ0_GARDEN_EXT      ! garden roughness length (extrenal model)
+REAL, DIMENSION(:), INTENT(IN)    :: PZ0_GR_EXT          ! greenroof roughness length (extrenal model)
 !
 ! new arguments after BEM
 !
@@ -250,6 +254,13 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GARDEN_ATM   ! garden aerodynamical con
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_ATM  ! garden neutral drag coefficient (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_ATM   ! garden Richardson number (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (atm.)
+!MV202609 greenroof-to-atm exchange diagnostics
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GREENROOF_ATM! greenroof neutral drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GREENROOF_ATM! greenroof roughness length for heat (atm.)
 
 END SUBROUTINE TEB
 END INTERFACE

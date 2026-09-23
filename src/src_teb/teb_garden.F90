@@ -45,7 +45,10 @@
                           PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
 !MV202609 greenroof diagnostics (per m2 of greenroof)
                           PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
-                          PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_AGG_GREENROOF)
+                          PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_AGG_GREENROOF, &
+!MV202609 greenroof-to-atm exchange diagnostics
+                          PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
+                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN*  
@@ -334,6 +337,13 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GREENROOF  ! total evaporation ove
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GREENROOF  ! greenroof saturation specific humidity [kg/kg]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GREENROOF    ! greenroof aggregated relative humidity [-]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_AGG_GREENROOF! greenroof aggregated conductance [m/s]
+!MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PCDN_GREENROOF_ATM! greenroof neutral drag coefficient (atm.)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
+REAL, DIMENSION(:)  , INTENT(OUT)    :: ZZ0H_GREENROOF_ATM! greenroof roughness length for heat (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
@@ -696,7 +706,8 @@ ENDIF
 !
 ! for greenroofs :
 IF (TOP%LGREENROOF) THEN
-  IF (.NOT. OGREENROOF_EXT) THEN
+  IF (.NOT. OGREENROOF_EXT .AND. TOP%CTYPE_GREENROOF /= 'EXT' .AND. &
+      TOP%CTYPE_GREENROOF /= 'EXT_NEU') THEN
     ZALB_GR   = XUNDEF
     ZEMIS_GR  = XUNDEF
     ZTSRAD_GR = XUNDEF
@@ -812,7 +823,7 @@ ENDIF
   CALL TEB  (icell, iblock, TOP, T, BOP, B, TIR, DMT, HIMPLICIT_WIND, PBEM_AC,     &
              PTSUN, PT_CAN, PQ_CAN, PU_CAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN,       &
              PZ_LOWCAN, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,              &
-             PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PPS, PPA, PEXNS, PEXNA, PTA, PQA, PRHOA, PLW_RAD, &
+             PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PZ0_GR_EXT, PPS, PPA, PEXNS, PEXNA, PTA, PQA, PRHOA, PLW_RAD, &
              PRR, PSR, PZREF, PUREF, PVMOD, PH_TRAFFIC, PLE_TRAFFIC, PTSTEP,       &
              ZDF_RF, PDN_RF, ZDF_RD, PDN_RD, ZQSAT_RF, ZQSAT_RD, ZDELT_RF,         &
              ZDELT_RD, ZTSRAD_GD, ZQV_GD, PLEW_RF, ZUW_GR, PLEW_RD, PLE_WL_A,              &
@@ -838,6 +849,9 @@ ENDIF
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
+!MV202609 greenroof-to-atm exchange diagnostics
+                          PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
+                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM,          &
 !MV202609 tau scheme of the road
                           ZTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
@@ -1151,7 +1165,8 @@ IF (TOP%LGREENROOF) THEN
   DMT%XABS_SW_GREENROOF(:) = (1.-ZALB_GR(:)) * ZREC_SW_RF
   DMT%XABS_LW_GREENROOF(:) = ZEMIS_GR * ZREC_LW_RF - XSTEFAN * ZEMIS_GR * ZTSRAD_GR**4
   
-  IF (OGREENROOF_EXT) THEN
+  IF (OGREENROOF_EXT .OR. TOP%CTYPE_GREENROOF == 'EXT' .OR. &
+      TOP%CTYPE_GREENROOF == 'EXT_NEU') THEN
     ZH_GR(:) = PH_GR_EXT(:)
 	ZLE_GR(:) = PLE_GR_EXT(:)
 	ZEVAP_GR(:) = PEVAP_GR_EXT(:)
@@ -1160,7 +1175,7 @@ IF (TOP%LGREENROOF) THEN
 	PAC_GR_WAT(:) = PAC_GR(:)
     DMT%XABS_SW_GREENROOF(:) = (1.-ZALB_GR(:)) * ZREC_SW_RF
     DMT%XABS_LW_GREENROOF(:) = ZEMIS_GR * ZREC_LW_RF - XSTEFAN * ZEMIS_GR * ZTSRAD_GR**4
-    ZRN_GD(:) =  DMT%XABS_SW_GREENROOF(:) + DMT%XABS_LW_GREENROOF(:)
+    ZRN_GR(:) =  DMT%XABS_SW_GREENROOF(:) + DMT%XABS_LW_GREENROOF(:)
   ENDIF
 ELSE
   !

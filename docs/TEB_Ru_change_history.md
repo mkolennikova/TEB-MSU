@@ -41,6 +41,20 @@
 * диагностики кровли добавлены в `TEB_output.csv` (`TS_GREENROOF`, `RN_GREENROOF`,
   `H_GREENROOF`, `LE_GREENROOF`, `EVAP_GREENROOF`, `QSAT_GREENROOF`, `PHU_GREENROOF`,
   `PAC_AGG_GREENROOF`); замыкание `RN = H + LE` проверено на уровне машинного нуля.
+* режимы **EXT/EXT_NEU** для зелёной кровли (по аналогии с садом, без эмулятора):
+  кровля задаётся извне через штатный интерфейс `EXT`, а диагностические
+  коэффициенты обмена считает `URBAN_DRAG` — тип EXT по полному `URBAN_EXCH_COEF`
+  (устойчивость, `z0h = urb_z0_grf/urb_z0_o_z0h_grf`, `WIND_THRESHOLD`), тип EXT_NEU
+  по нейтральной формулировке внутренней схемы (`PCD = PCDN > PCH`, `PRI` не
+  определён, `ZZ0H_GREENROOF_ATM` — использованная тепловая шероховатость). Тип
+  EXT/EXT_NEU принудительно включает `teb_lgreenroof_ext`. Новые колонки CSV:
+  `PAC_GREENROOF_ATM`, `PCD_GREENROOF_ATM`, `PCDN_GREENROOF_ATM`, `PCH_GREENROOF_ATM`,
+  `PRI_GREENROOF_ATM`, `ZZ0H_GREENROOF_ATM` (проверено аналитически:
+  `PCDN = (kappa/ln(PUREF/z0))**2`, `PCH = PCDN*ZFH`, `PAC = PCH*max(PVMOD, XVMIN_GD)`;
+  у типа EXT `PRI` определён и коэффициенты ниже нейтральных, как у сада);
+* исправлена опечатка во внешней ветви кровли (`ZRN_GD` -> `ZRN_GR`) и увеличена
+  длина имён колонок CSV (`out_names` 16 -> 24), из-за которой имя
+  `PAC_AGG_GREENROOF` обрезалось до `PAC_AGG_GREENROO`.
 
 ---
 

@@ -212,6 +212,30 @@ CASE ('PROXY_OLD')
    PAC_AGG_GREENROOF(:) = 0.    ! neglected (latent flux does not depend on surface humidity)
    PHU_AGG_GREENROOF(:) = PPHU_GR   ! surface relative humidity from the namelist urb_phu_grf
    !
+CASE ('EXT', 'EXT_NEU')
+!* 1.3  EXTERNAL greenroof: the fluxes come from the coupling interface
+!*      (PH_GR_EXT, PLE_GR_EXT, ...), they are prescribed by the caller; only
+!*      the placeholders are set here. The diagnostic exchange coefficients of
+!*      an external greenroof are computed in URBAN_DRAG (EXT/EXT_NEU).
+   PRN_GREENROOF(:) = 0.
+   PH_GREENROOF (:) = 0.
+   PLE_GREENROOF(:) = 0.
+   PGFLUX_GREENROOF(:) = 0.
+   PEVAP_GREENROOF(:) = 0.
+   !
+   !* friction flux: neutral formulation with the greenroof roughness (as before)
+   PUW_GREENROOF(:) = - (XKARMAN/LOG(PUREF(:)/PZ0_GR(:)))**2 * PVMOD(:)**2
+   !
+   !* aerodynamical conductance: provided by URBAN_DRAG for an external greenroof
+   PAC_GREENROOF(:) = 0.
+   !
+   !* surface saturation humidity (placeholder, not solved)
+   PQSAT_GREENROOF(:) = QSAT(PTA(:),PPS(:))
+   !
+   !* aggregated latent exchange (diagnostics)
+   PAC_AGG_GREENROOF(:) = 0.
+   PHU_AGG_GREENROOF(:) = PPHU_GR
+   !
 END SELECT
 !
 !* CO2 flux is neglected (no photosynthesis)
