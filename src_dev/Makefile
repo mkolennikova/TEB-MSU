@@ -1,18 +1,23 @@
 # Makefile created by mkmf.pl $Id: mkmf,v 14.0 2007/03/20 22:13:27 fms Exp $ 
 
-# The build is run from this directory (src/), from the repository root:
+# The build is run from this directory (src_dev/), from the repository root:
 #
-#     make -C src clean
-#     make -C src
+#     make -C src_dev clean
+#     make -C src_dev
 #
-# All the dependencies below (src_teb/..., ../build/obj/...) are therefore relative
-# to src/. The object files, the module files and the executable are written to the
+# All the dependencies below (src_teb/..., ../build/obj_dev/...) are therefore relative
+# to src_dev/. The object files, the module files and the executable are written to the
 # repository-level build/ directory, which is created automatically and is not
 # tracked. The executable is started from the repository root, next to namelist/,
 # input/ and output/, because the driver reads those with relative paths (cwd of the run).
+#
+# This is the DEV tree (physics of MV_devs + the modern I/O): it builds
+# ../build/TEB_offline_dev.exe into ../build/obj_dev/. The control tree (the physics of
+# the first commit plus the same I/O) lives in src_ctrl/ and builds
+# ../build/TEB_offline_ctrl.exe into ../build/obj_ctrl/.
 include gfortran_args
-EXEC = ../build/TEB_offline.exe
-OBJDIR = ../build/obj
+EXEC = ../build/TEB_offline_dev.exe
+OBJDIR = ../build/obj_dev
 
 # Ensure module files go to OBJDIR and include paths are set
 ifeq ($(FC),ifort)
