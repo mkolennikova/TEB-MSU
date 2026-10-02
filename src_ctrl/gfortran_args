@@ -1,0 +1,34 @@
+######################################################################
+# C compiler
+CC = gcc
+
+# Auto-detect Fortran compiler: ifort if available, otherwise gfortran
+FC := $(shell if command -v ifort >/dev/null 2>&1; then echo ifort; else echo gfortran; fi)
+# Use the same compiler for linking
+LD := $(FC)
+
+# Compiler flags depending on the chosen compiler
+ifeq ($(FC),ifort)
+    # Intel ifort flags
+    FFLAGS = -us -g -O0 -W1 -c -r8 -fpe0 -traceback -I. -Isrc_teb
+else
+    # GNU gfortran flags
+    # NOTE (control tree): -ffpe-trap=invalid,zero IS enabled here, as in src_dev.
+    # Rationale: the first commit (582c3ab) that this tree reproduces contained two
+    # uninitialised-read defects that this flag exposes (stack garbage reaching the
+    # canyon radiation and momentum budgets -> NaN / SIGFPE / SIGSEGV after a few
+    # steps, intermittently, and only in configurations the base model had not been
+    # exercised with, e.g. garden and greenroof inactive). Both are FIXED in this
+    # tree - see docs/TEB_Ru_source_defects.md (D8, D9) and the comments in
+    # src_teb/teb_garden.F90 and src_teb/urban_drag.F90 - so the trap is a
+    # regression guard again: the reference run of src_ctrl completes with it on
+    # (18000 CSV rows, no NaN/Inf, no SIGFPE).
+    FFLAGS = -funderscoring -O0 -g -Wall -c -fmessage-length=0 -fdefault-real-8 -ffpe-trap=invalid,zero -ffree-line-length-0 -Wno-tabs -Wno-unused -Wno-align-commons -I. -Isrc_teb
+endif
+
+# Preprocessor flags (if any)
+CPPFLAGS = #-P -traditional -Wcomment
+
+# Libraries and linker flags
+LIBS =
+LDFLAGS = $(LIBS)
