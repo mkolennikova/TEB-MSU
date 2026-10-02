@@ -30,7 +30,7 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
                 ZUSTAR_TOWN, ZCD_TERRA, ZCH_TERRA, ZH_TRAFFIC_NOW, ZRN_TOWN, ZU_CANYON, ZTS_ROAD, LGARDEN_EXT, &
 				LGREENROOF_EXT, HROAD_DIR, HWALL_OPT, ZROAD_DIR, ZRESIDENTIAL, ZDT_RES, ZDT_OFF, ZCAP_SYS_HEAT, &
 				LSOLAR_PANEL, ZFRAC_PANEL, LPAR_RD_IRRIG, ZRD_START_MONTH, ZRD_END_MONTH, ZRD_START_HOUR,        &
-				ZRD_END_HOUR, ZRD_24H_IRRIG, ZPROD_BLD, ZUTC_HOUR)
+				ZRD_END_HOUR, ZRD_24H_IRRIG, ZPROD_BLD, ZUTC_HOUR, LSHADE)
 							
 ! ======================================================================
 ! 
@@ -982,7 +982,11 @@ IF (ntstep == 1) THEN
 	ZALB_WIN       = XUNDEF
 	ZNATVENT       = 0.           ! flag to describe surventilation system for i/o 
                                        ! 0 for NONE, 1 for MANU and 2 for AUTO
-	LSHADE         = .FALSE.      ! Are shading devices being used ?
+	!MV202609 window shading flag: LSHADE is now an ARGUMENT of CALL_DRIVER (as in
+!* src_dev/main) instead of being hard-coded to .FALSE. here. The value comes
+!* from the namelist key teb_lshade (TEB_INTERFACE <- RUN_TEB_OFFLINE), whose
+!* default in this tree is .FALSE. - i.e. exactly the first-commit behaviour.
+!LSHADE         = .FALSE.      ! Are shading devices being used ?
 	ZSHADE         = 0.           ! flag to activate shading devices -> REAL for i/o 0. or 1	
     GSHAD_DAY      = .FALSE.      ! has shading been necessary this day ?
     GNATVENT_NIGHT = .FALSE.      ! has natural ventilation been necessary/possible this night ?	

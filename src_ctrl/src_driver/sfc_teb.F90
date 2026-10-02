@@ -53,7 +53,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
 				teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
-				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour)
+				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade)
 
 !-------------------------------------------------------------------------------
 ! Declarations
@@ -171,6 +171,9 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 	REAL ,DIMENSION(nvec) :: teb_tch_gd
 	REAL ,DIMENSION(nvec) :: teb_tcm_gd
 	REAL ,DIMENSION(nvec) :: teb_runoff_gd
+!MV202609 window shading flag (namelist key teb_lshade, as in src_dev/main);
+!* DIMENSION(1) because the CALL_DRIVER dummy LSHADE is declared DIMENSION(1)
+	LOGICAL, DIMENSION(1) :: teb_lshade
 	
 	INTEGER  :: teb_itype_wind
 	REAL ,DIMENSION(nvec, 1:8) :: teb_fai 
@@ -319,7 +322,8 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				teb_rn_town(i), teb_wind_canyon(i), teb_tsroad(i), teb_lgarden_ext, teb_lgreenroof_ext, teb_hroad_dir,  &
 				teb_wall_opt, teb_road_dir(i), teb_zresidential(i), teb_dt_res(i), teb_dt_off(i), teb_cap_sys_heat(i),  &
 				teb_lsolar_panel, teb_fr_panel(i), teb_lroad_irrig, teb_rd_irrig_start_m(i), teb_rd_irrig_end_m(i),     &
-				teb_rd_irrig_start_h(i), teb_rd_irrig_end_h(i), teb_rd_irrig_sum(i), teb_solar_prod(i), teb_utc_hour)
+				teb_rd_irrig_start_h(i), teb_rd_irrig_end_h(i), teb_rd_irrig_sum(i), teb_solar_prod(i), teb_utc_hour,   &
+				teb_lshade)
 	END DO
 	
 END SUBROUTINE teb_interface

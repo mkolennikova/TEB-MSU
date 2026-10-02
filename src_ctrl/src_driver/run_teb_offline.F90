@@ -130,6 +130,7 @@ INTEGER               :: teb_utc_hour                   !IN Time zone for traffi
 ! Input parameters for BEM 
 CHARACTER(LEN=3)  :: teb_itype_bem                      !IN Building Energy model 'DEF' or 'BEM'       
 LOGICAL           :: teb_lbem_ac                        !IN Flag to use air conditioners
+LOGICAL, DIMENSION(1) :: teb_lshade                     !IN Flag to use window shading
 CHARACTER(LEN=4)  :: teb_itype_natvent                  !IN Natural ventilation 'NONE', 'AUTO', 'MECH', 'MANU'
 CHARACTER(LEN=6)  :: teb_itype_bem_cool                 !IN option for cooling device type 'DXCOIL','IDEAL '
 CHARACTER(LEN=6)  :: teb_itype_bem_heat                 !IN option for heating device type 'FINCAP','IDEAL '
@@ -366,7 +367,7 @@ CHARACTER(LEN=*), PARAMETER :: nml_param_items =                                
      'teb_lroad_irrig,teb_rd_irrig_start_m,teb_rd_irrig_end_m,teb_rd_irrig_start_h,'//&
      'teb_rd_irrig_end_h,teb_rd_irrig_sum,teb_utc_hour,urb_z0_town,urb_zd_town,'//   &
      'teb_type_garden,urb_z0_gdn,urb_alb_gdn,urb_emis_gdn,teb_type_greenroof,'//    &
-     'urb_z0_grf,urb_alb_grf,urb_emis_grf'
+     'urb_z0_grf,urb_alb_grf,urb_emis_grf,teb_lshade'
 !* The two groups are declared here (and not next to the READ that uses them): a
 !* NAMELIST statement belongs to the specification part of the program, i.e. it must
 !* appear before the first executable statement.
@@ -389,7 +390,8 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
                     !MV202609 keys of the shared namelist honoured by the control tree:
                     !* urban aerodynamics and garden/greenroof surface parameters
                     urb_z0_town, urb_zd_town, teb_type_garden, urb_z0_gdn, urb_alb_gdn,    &
-                    urb_emis_gdn, teb_type_greenroof, urb_z0_grf, urb_alb_grf, urb_emis_grf
+                    urb_emis_gdn, teb_type_greenroof, urb_z0_grf, urb_alb_grf, urb_emis_grf, &
+                    teb_lshade
 
 !============================================================
 !============================================================
@@ -499,6 +501,13 @@ teb_itype_bem        = 'BEM'        ! Building energy Model
                                     ! 'DEF'  : no Building Energy Model
                                     ! 'BEM'  :    Building Energy Model
 teb_lbem_ac          = .TRUE.       ! Flag to use air conditioners
+!MV202609 window shading: namelist key teb_lshade, plumbed exactly as in src_dev
+!* and main (driver -> TEB_INTERFACE -> CALL_DRIVER, where LSHADE is an
+!* argument). The DEFAULT is the first-commit behaviour: the first commit
+!* hard-codes LSHADE = .FALSE. inside CALL_DRIVER, so an absent key keeps the
+!* base model; set teb_lshade = .TRUE. to activate the shading devices as
+!* src_dev/main do by default.
+teb_lshade           = .FALSE.      ! Flag for window shading
 teb_itype_natvent    = 'NONE'       ! Natural Ventilation ! 'NONE', 'MANU', 'AUTO', 'MECH'
 teb_itype_bem_cool   = 'IDEAL '     ! Cooling system    ! 'DXCOIL','IDEAL '    
 teb_itype_bem_heat   = 'IDEAL '     ! Heating system    ! 'FINCAP','IDEAL '
@@ -959,7 +968,7 @@ DO ntstep = 1, nsteps - 1
 				teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
 				teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
-				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour)
+				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade)
 						
     END DO
     !
