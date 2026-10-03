@@ -269,7 +269,7 @@ END MODULE MODE_GARDEN_BALANCE
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                       &
                 PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                   &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                         &
-                PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN                )
+                PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN                )
 !   ##########################################################################
 !
 !!****  *GARDEN_PCD*
@@ -369,7 +369,6 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_GARDEN     ! runoff over garden (
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GARDEN         ! aerodynamical conductance
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN       ! saturation humidity
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN         ! radiative surface temp. (snow free)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_AGG_GARDEN     ! aggregated conductance
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN     ! aggregated relative humidity
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN      ! garden total (vertical) drainage
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irrigation rate
@@ -421,7 +420,6 @@ PEVAP_GARDEN(:)  = PLE_GARDEN(:) / XLVTT
 !
 !* 2.4  aggregated latent exchange: the conductance couples the garden back to
 !*      the air of the reference state (canyon air in TEB)
-PAC_AGG_GARDEN(:) = PAC_GARDEN(:)
 PHU_AGG_GARDEN(:) = PPHU_GD
 !
 ELSE
@@ -457,7 +455,6 @@ PAC_GARDEN(:) = 0.
 PQSAT_GARDEN(:) = QSAT(PTS_GARDEN(:),PPS(:))
 !
 !* aerodynamical conductance for latent heat and surface humidity
-PAC_AGG_GARDEN(:) = 0.    ! neglected (latent flux does not depend on surface humidity)
 PHU_AGG_GARDEN(:) = PPHU_GD   ! surface relative humidity from the namelist urb_phu_gdn
 !
 END IF
@@ -480,7 +477,7 @@ END SUBROUTINE GARDEN_PCD
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
                 PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                 &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                       &
-                PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN              )
+                PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN              )
 !   ##########################################################################
 !
 !!****  *GARDEN*
@@ -558,7 +555,6 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_GARDEN     ! runoff over garden (
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GARDEN         ! aerodynamical conductance
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN       ! saturation humidity
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN         ! radiative surface temp. (snow free)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_AGG_GARDEN     ! aggregated conductance
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN     ! aggregated relative humidity
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN      ! garden total (vertical) drainage
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irrigation rate
@@ -592,7 +588,7 @@ CALL GARDEN_PCD(TYPE_GARDEN, ZPCD_GD, ZPCH_GD, PU_LOWCAN, PT_LOWCAN, PQ_LOWCAN, 
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                    &
                 PRN_GARDEN, PH_GARDEN, PLE_GARDEN, PGFLUX_GARDEN, PSFCO2, PEVAP_GARDEN,     &
                 PUW_GARDEN, PRUNOFF_GARDEN, PAC_GARDEN, PQSAT_GARDEN, PTS_GARDEN,           &
-                PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN)
+                PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN)
 !
 !-------------------------------------------------------------------------------
 !
@@ -606,7 +602,7 @@ END SUBROUTINE GARDEN
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                      &
                 PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                  &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                        &
-                PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN,              &
+                PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN,              &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
                 PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM               )
 !   ##########################################################################
@@ -705,7 +701,6 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_GARDEN     ! runoff over garden (
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GARDEN         ! aerodynamical conductance
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN       ! saturation humidity
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN         ! radiative surface temp. (snow free)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_AGG_GARDEN     ! aggregated conductance
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN     ! aggregated relative humidity
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN      ! garden total (vertical) drainage
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irrigation rate
@@ -801,7 +796,6 @@ PEVAP_GARDEN(:)  = PLE_GARDEN(:) / XLVTT
 !
 !* 2.4  aggregated latent exchange: the canyon-path conductance couples the
 !*      garden back to the canyon air (T_CANYON / Q_CANYON)
-PAC_AGG_GARDEN(:) = PAC_GARDEN(:)
 PHU_AGG_GARDEN(:) = PPHU_GD
 !
 ELSE
@@ -813,7 +807,7 @@ CALL GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,    
             PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                     &
             PRN_GARDEN, PH_GARDEN, PLE_GARDEN, PGFLUX_GARDEN, PSFCO2, PEVAP_GARDEN,      &
             PUW_GARDEN, PRUNOFF_GARDEN, PAC_GARDEN, PQSAT_GARDEN, PTS_GARDEN,            &
-            PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN)
+            PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN)
 !
 !* GARDEN_TAU is the ONLY routine returning the tau-branch decomposition: the
 !* reduced garden has no tau split, so both branches carry its single modelled

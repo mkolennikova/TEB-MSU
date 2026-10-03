@@ -74,7 +74,7 @@ USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 !
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
 USE MODD_CSTS,              ONLY: XTT, XSTEFAN
-USE MODD_SURF_PAR,          ONLY: XUNDEF
+USE MODD_SURF_PAR,          ONLY: XUNDEF, teb_snow_check
 USE MODD_SNOW_PAR,          ONLY: XEMISSN, XANSMAX
 !
 USE MODE_THERMOS
@@ -378,7 +378,6 @@ REAL, DIMENSION(SIZE(PTA)) :: ZUW_GD       ! momentum flux for green areas
 REAL, DIMENSION(SIZE(PTA)) :: ZUW_GR       ! momentum flux for green roofs
 REAL, DIMENSION(SIZE(PTA)) :: ZDUWDU_RD    !
 !
-REAL, DIMENSION(SIZE(PTA)) :: ZAC_AGG_GD   ! aggreg. aeodynamic resistance for green areas
 REAL, DIMENSION(SIZE(PTA)) :: ZHU_AGG_GD   ! aggreg. relative humidity for green areas
 REAL, DIMENSION(SIZE(PTA)) :: ZAC_AGG_GR   ! aggreg. aeodynamic resistance for green roofs
 REAL, DIMENSION(SIZE(PTA)) :: ZHU_AGG_GR   ! aggreg. relative humidity for green roofs
@@ -485,12 +484,14 @@ ENDDO
  CALL SNOW_FRAC_ROAD(T%TSNOW_ROAD%WSNOW(:,1),PSR(:)>0.,PDN_RD,ZDF_RD)
  CALL SNOW_FRAC_ROOF(T%TSNOW_ROOF%WSNOW(:,1),PSR(:)>0.,PDN_RF,ZDF_RF)
 
- ! MT
- ! Claculation of snow content to exclude cases of very low snow rate
- !WSNOW_ROOF_CHECK = 0.
- !WSNOW_ROAD_CHECK = 0.
- !WHERE (T%TSNOW_ROAD%WSNOW(:,1)==0. .AND. PSR(:)>0.) WSNOW_ROAD_CHECK = PTSTEP * PSR(:)
- !WHERE (T%TSNOW_ROOF%WSNOW(:,1)==0. .AND. PSR(:)>0.) WSNOW_ROOF_CHECK = PTSTEP * PSR(:)
+ ! MT  teb_snow_check = .TRUE. activates the correction of the coupled model
+ IF (teb_snow_check) THEN
+   ! Claculation of snow content to exclude cases of very low snow rate
+   WSNOW_ROOF_CHECK = 0.
+   WSNOW_ROAD_CHECK = 0.
+   WHERE (T%TSNOW_ROAD%WSNOW(:,1)==0. .AND. PSR(:)>0.) WSNOW_ROAD_CHECK = PTSTEP * PSR(:)
+   WHERE (T%TSNOW_ROOF%WSNOW(:,1)==0. .AND. PSR(:)>0.) WSNOW_ROOF_CHECK = PTSTEP * PSR(:)
+ ENDIF
  
 !
 !* new snow albedo
@@ -513,23 +514,25 @@ WHERE (T%TSNOW_ROOF%WSNOW(:,1)==0. .AND. PSR(:)>0.)
   T%TSNOW_ROOF%TS  (:) = MIN(T%XT_ROOF(:,1), XTT)
 END WHERE
 
-! MT
-! Exclude cases of very low snow rate
-!WHERE ( WSNOW_ROAD_CHECK(:)<1.E-8 * PTSTEP ) 
-!   T%TSNOW_ROAD%ALB (:) = XUNDEF
-!   T%TSNOW_ROAD%EMIS(:) = XUNDEF
-!   T%TSNOW_ROAD%TS  (:) = XUNDEF
-!   PDN_RD = 0.
-!   ZDF_RD = 1.
-!END WHERE
-!
-!WHERE ( WSNOW_ROOF_CHECK(:)<1.E-8 * PTSTEP ) 
-!   T%TSNOW_ROOF%ALB (:) = XUNDEF
-!   T%TSNOW_ROOF%EMIS(:) = XUNDEF
-!   T%TSNOW_ROOF%TS  (:) = XUNDEF
-!   PDN_RF = 0.
-!   ZDF_RF = 1.
-!END WHERE
+! MT  teb_snow_check = .TRUE. activates the correction of the coupled model
+IF (teb_snow_check) THEN
+  ! Exclude cases of very low snow rate
+  WHERE ( WSNOW_ROAD_CHECK(:)<1.E-8 * PTSTEP )
+     T%TSNOW_ROAD%ALB (:) = XUNDEF
+     T%TSNOW_ROAD%EMIS(:) = XUNDEF
+     T%TSNOW_ROAD%TS  (:) = XUNDEF
+     PDN_RD = 0.
+     ZDF_RD = 1.
+  END WHERE
+  !
+  WHERE ( WSNOW_ROOF_CHECK(:)<1.E-8 * PTSTEP )
+     T%TSNOW_ROOF%ALB (:) = XUNDEF
+     T%TSNOW_ROOF%EMIS(:) = XUNDEF
+     T%TSNOW_ROOF%TS  (:) = XUNDEF
+     PDN_RF = 0.
+     ZDF_RF = 1.
+  END WHERE
+ENDIF
 
 !
 !*      2.3    Radiative snow variables at previous time-step
@@ -737,7 +740,7 @@ END IF
                        PTS_TWN, PEMIS_TWN, PT_CAN, PQ_CAN, PT_LOWCAN, PQ_LOWCAN,          &
                        ZTA, ZQA, PRHOA, PPS, PH_TRAFFIC,  PLE_TRAFFIC, ZWL_O_GRND,        &
                        ZESN_RF, ZEMIS_GR, PLW_RAD,  PAC_RF, ZAC_RF_WAT, PAC_WL, PAC_RD,  &
-                       PAC_RD_WAT, PAC_TOP, PAC_GD, ZQSAT_GD, ZAC_AGG_GD, ZHU_AGG_GD,     &
+                       PAC_RD_WAT, PAC_TOP, PAC_GD, ZQSAT_GD, ZHU_AGG_GD,     &
                        ZQSAT_RF, ZQSAT_RD, ZDELT_RF, ZDELT_RD, ZRF_FRAC, ZWL_FRAC,        &
                        ZRD_FRAC, ZGD_FRAC, ZTOTS_O_HORS, ZDF_RF, PDN_RF, ZDF_RD, PDN_RD,  &
                        PLE_WL_A, PLE_WL_B, PLEW_RF, PLESN_RF, PLEW_RD, PLESN_RD, PHSN_RD, &
@@ -830,7 +833,7 @@ IF (TOP%LGARDEN) THEN
               PT_LOWCAN, PQ_LOWCAN, PEXNS, PRHOA, PCO2, PPS, PRR, PSR, PZENITH,         &
               ZREC_SW_GD, ZREC_LW_GD, PU_LOWCAN, ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,     &
               ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,     &
-              ZAC_AGG_GD, ZHU_AGG_GD, ZDRAIN_GD, ZIRRIG_GD )
+              ZHU_AGG_GD, ZDRAIN_GD, ZIRRIG_GD )
 
   PAC_GD_WAT(:) = PAC_GD(:)
   DMT%XABS_SW_GARDEN(:) = (1.-ZALB_GD(:)) * ZREC_SW_GD
@@ -872,7 +875,6 @@ ELSE
   PCD_GD(:) = 0.
   ZSFCO2_GD  (:) = 0.
   ZQSAT_GD   (:) = XUNDEF
-  ZAC_AGG_GD (:) = XUNDEF
   ZHU_AGG_GD (:) = XUNDEF
   PAC_GD_WAT (:) = XUNDEF 
   ZEMIT_LW_GD(:) = 0.
@@ -909,7 +911,7 @@ IF (TOP%LGREENROOF) THEN
 	PAC_GR_WAT(:) = PAC_GR(:)
     DMT%XABS_SW_GREENROOF(:) = (1.-ZALB_GR(:)) * ZREC_SW_RF
     DMT%XABS_LW_GREENROOF(:) = ZEMIS_GR * ZREC_LW_RF - XSTEFAN * ZEMIS_GR * ZTSRAD_GR**4
-    ZRN_GD(:) =  DMT%XABS_SW_GREENROOF(:) + DMT%XABS_LW_GREENROOF(:)
+    ZRN_GR(:) =  DMT%XABS_SW_GREENROOF(:) + DMT%XABS_LW_GREENROOF(:)
   ENDIF
 ELSE
   !

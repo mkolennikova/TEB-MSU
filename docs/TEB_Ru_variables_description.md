@@ -264,7 +264,6 @@ they are undefined (`XUNDEF`):
 | `EVAP_GARDEN` | kg/m²/s | Total evaporation over the garden |
 | `QSAT_GARDEN` | kg/kg | Saturation specific humidity at `TS_GARDEN` |
 | `PHU_GARDEN` | - | Aggregated relative humidity of the garden surface |
-| `PAC_AGG_GARDEN` | m/s | Aggregated aerodynamic conductance (latent heat) |
 <!-- MV202609 garden thermal roughness (z0h) -->
 | `PAC_GARDEN` | m/s | Aerodynamic conductance of the garden **for heat and moisture** (the scalar coefficient `PCH` times `max(U_CANYON, 0.5)`) used by the canyon budget (`0` for `'PROXY_OLD'`) |
 | `PCD_GARDEN_CAN`, `PCH_GARDEN_CAN` | - | Garden/canyon exchange coefficients used by the garden of the model: momentum (`PCD`, friction only) and thermal (`PCH`, heat and moisture, from `urb_z0_o_z0h_gdn`); `0` when no internal garden is active |

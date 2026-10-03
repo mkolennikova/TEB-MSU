@@ -119,7 +119,7 @@ Z0_VALUES = (0.1, 0.8)
 #: garden diagnostics written by the model (per m2 of garden)
 GARDEN_COLS = ('TS_GARDEN', 'RN_GARDEN', 'H_GARDEN', 'LE_GARDEN',
                'EVAP_GARDEN', 'QSAT_GARDEN', 'PHU_GARDEN',
-               'PAC_AGG_GARDEN', 'PAC_GARDEN')
+               'PAC_GARDEN')
 
 #: town / canyon columns whose z0-sensitivity is reported
 TOWN_COLS = ('T_CANYON', 'Q_CANYON', 'U_CANYON', 'H_TOWN', 'LE_TOWN',

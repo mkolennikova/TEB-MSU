@@ -32,7 +32,7 @@
 
 **Назначение.** Схема даёт согласованный энергобаланс поверхности сада и
 участвует в неявной связи температуры и влажности воздуха каньона
-(`PAC_GARDEN` / `PAC_AGG_GARDEN` ненулевые), чего историческая заглушка не делала.
+(`PAC_GARDEN` ненулевая), чего историческая заглушка не делала.
 
 **Режимы (`namelist tebparam`, ключ `teb_type_garden`):**
 
@@ -288,7 +288,7 @@ Rn_GARDEN = H_GARDEN + LE_GARDEN                       (G = 0)
 | приёмник | что входит |
 | --- | --- |
 | `T_CAN0` (`avg_urban_fluxes.F90`) | `Ts·PAC_GD·ZGD` — каньонная проводимость, без τ (как `T_rd`/`PAC_RD` у дороги) |
-| `PQ_CAN0` | `qsat(Ts)·PAC_AGG_GD·PHU·ZGD` |
+| `PQ_CAN0` | `qsat(Ts)·PAC_GD·PHU·ZGD` |
 | `T_CAN1` (приток свободного слоя) | `ZGD·PH_GARDEN_ATM` |
 | `PQ_CAN1` | `ZGD·PLE_GARDEN_ATM` |
 | городской баланс (`PH_TWN`, `PH_GRND`, `PLE_TWN`, `LE_GRND`, `PEVAP_TWN`) | `PH_GARDEN`/`PLE_GARDEN` — τ-бленд |
@@ -371,7 +371,7 @@ Rn_GARDEN = H_GARDEN + LE_GARDEN                       (G = 0)
 
 `GARDEN_TAU` заполняет те же выходные аргументы, что и историческая схема
 (`RN_GARDEN`, `H_GARDEN`, `LE_GARDEN`, `EVAP_GARDEN`, `PUW_GARDEN`,
-`PAC_GARDEN`, `PAC_AGG_GARDEN`, `PHU_AGG_GARDEN`, `PQSAT_GARDEN`, `TS_GARDEN`,
+`PAC_GARDEN`, `PHU_AGG_GARDEN`, `PQSAT_GARDEN`, `TS_GARDEN`,
 `PRUNOFF_GARDEN`, `PDRAIN_GARDEN`, `PIRRIG_GARDEN`), и дополнительно возвращает
 ветви `PH_GARDEN_CAN/ATM`, `PLE_GARDEN_CAN/ATM`.
 
@@ -382,7 +382,7 @@ Rn_GARDEN = H_GARDEN + LE_GARDEN                       (G = 0)
 | `TS_GARDEN` | температура поверхности сада |
 | `RN_GARDEN`, `H_GARDEN`, `LE_GARDEN`, `EVAP_GARDEN` | радиационный баланс, явный и скрытый потоки, испарение |
 | `QSAT_GARDEN`, `PHU_GARDEN` | влажность насыщения при `Ts` и относительная влажность поверхности |
-| `PAC_GARDEN`, `PAC_AGG_GARDEN` | скалярная (тепло и влага) проводимость сада с воздухом каньона и агрегированная проводимость для скрытого потока (`PAC_AGG_GARDEN·PHU_GARDEN` — проводимость узла влажности) |
+| `PAC_GARDEN` | скалярная (тепло и влага) проводимость сада с воздухом каньона; узел влажности использует `PAC_GARDEN·PHU_GARDEN` |
 | `PCD_GARDEN_CAN`, `PCH_GARDEN_CAN` | безразмерные коэффициенты сада с воздухом каньона: `PCD` (импульс, только трение) и `PCH` (тепло и влага, по `z0h`); при выключенном саду и у исторического прокси — `0` |
 | `PCD_GARDEN_ATM`, `PCH_GARDEN_ATM` | то же для связи с воздухом уровня форсинга (заполняются только внешними режимами, §9) |
 | `ZZ0H_GARDEN_CAN`, `ZZ0H_GARDEN_ATM` | тепловая шероховатость `z0h`, использованная в режиме `'EXT_NEU'`; у внутреннего сада `XUNDEF` (тепловая шероховатость видна через `PCH_GARDEN_CAN`) |
@@ -482,11 +482,10 @@ PGFLUX  = 0      ! нет обмена с грунтом
 
 ## 8. Интеграция в TEB
 
-* **`PAC_GARDEN` / `PAC_AGG_GARDEN` ненулевые** (в исторической заглушке они были
-  нулевыми). В `src/src_teb/avg_urban_fluxes.F90` узел температуры каньона получает
-  слагаемое `PTSRAD_GD·PAC_GD·ZGD`, а узел влажности —
-  `PQSAT_GD·PAC_AGG_GD·PHU_AGG_GD·ZGD`, т.е. сад входит в неявную связь с воздухом
-  каньона.
+* **`PAC_GARDEN` ненулевая.** В `src/src_teb/avg_urban_fluxes.F90` узел температуры каньона
+  получает слагаемое `PTSRAD_GD·PAC_GD·ZGD`, а узел влажности —
+  `PQSAT_GD·PAC_GD·PHU_AGG_GD·ZGD`, т.е. сад входит в неявную связь с воздухом
+  каньона одной и той же проводимостью `PAC_GD` (множитель влажности — `PHU_AGG_GD`).
 * **`PGFLUX_GARDEN` остаётся нулевым** в обеих схемах (обмена с грунтом нет),
   поэтому `PGFLX_GRND` и `PGFLX_TWN` не меняются.
 * **Согласованность диагностики.** `DMT%XABS_SW_GARDEN`, `DMT%XABS_LW_GARDEN` и

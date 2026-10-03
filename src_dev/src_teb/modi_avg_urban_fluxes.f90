@@ -7,7 +7,7 @@ INTERFACE
                                 PH_TRAFFIC, PLE_TRAFFIC, PWL_O_GRND, PESN_RF,      &
                                 PEMIS_GR, PLW_RAD, PAC_RF, PAC_RF_WAT, PAC_WL,     &
                                 PAC_RD, PAC_RD_WAT, PAC_TOP, PAC_GD, PQSAT_GD,     &
-                                PAC_AGG_GD, PHU_AGG_GD, PQSAT_RF, PQSAT_RD,        &
+                                PHU_AGG_GD, PQSAT_RF, PQSAT_RD,        &
                                 PDELT_RF, PDELT_RD, PRF_FRAC, PWL_FRAC, PRD_FRAC,  &
                                 PGD_FRAC, PTOTS_O_HORS, PDF_RF, PDN_RF, PDF_RD,    &
                                 PDN_RD, PLE_WL_A, PLE_WL_B, PLEW_RF, PLESN_RF,     &
@@ -89,7 +89,6 @@ REAL, DIMENSION(:), INTENT(IN)    :: PAC_GD            ! aerodynamical conductan
 !                                                      ! between atmosphere and
 !                                                      ! green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PQSAT_GD      ! q_sat(Ts)
-REAL, DIMENSION(:), INTENT(IN)    :: PAC_AGG_GD    ! aggregated aerodyn resistance for green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PHU_AGG_GD    ! aggregated relative humidity for green areas
 !
 REAL, DIMENSION(:), INTENT(IN)    :: PQSAT_RF        ! q_sat(Ts)

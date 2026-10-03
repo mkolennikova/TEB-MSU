@@ -122,7 +122,7 @@
                           XZ0_O_Z0H_GR, XPHU_GD, XPHU_GR, &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
-                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
+                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
                           PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
 !MV202609 greenroof diagnostics
@@ -495,7 +495,6 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN       ! latent heat flux over th
 REAL, DIMENSION(:), INTENT(OUT)   :: PEVAP_GARDEN     ! total evaporation over the garden [kg/m2/s]
 REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_GARDEN     ! garden saturation specific humidity [kg/kg]
 REAL, DIMENSION(:), INTENT(OUT)   :: PHU_GARDEN       ! garden aggregated relative humidity [-]
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_AGG_GARDEN   ! garden aggregated conductance [m/s]
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_GARDEN_CAN    ! garden sensible heat flux, garden -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_GARDEN_ATM    ! garden sensible heat flux, garden -> forcing level [W m-2]
@@ -794,7 +793,6 @@ PLE_GARDEN       = XUNDEF  ! latent heat flux over the garden
 PEVAP_GARDEN     = XUNDEF  ! total evaporation over the garden
 PQSAT_GARDEN     = XUNDEF  ! garden saturation specific humidity
 PHU_GARDEN       = XUNDEF  ! garden aggregated relative humidity
-PAC_AGG_GARDEN   = XUNDEF  ! garden aggregated conductance
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
 PH_GARDEN_CAN    = XUNDEF  ! garden sensible heat flux, garden -> canyon air
 PH_GARDEN_ATM    = XUNDEF  ! garden sensible heat flux, garden -> forcing level
@@ -1227,7 +1225,7 @@ CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENR
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                             &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
-                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, PAC_AGG_GARDEN, &
+                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
                           PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
 !MV202609 greenroof diagnostics

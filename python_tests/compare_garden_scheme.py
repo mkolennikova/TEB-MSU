@@ -94,7 +94,7 @@ MODES = {
 #: garden diagnostics written by the model (per m2 of garden)
 GARDEN_COLS = ('TS_GARDEN', 'RN_GARDEN', 'H_GARDEN', 'LE_GARDEN',
                'EVAP_GARDEN', 'QSAT_GARDEN', 'PHU_GARDEN',
-               'PAC_AGG_GARDEN', 'PAC_GARDEN')
+               'PAC_GARDEN')
 
 #: town / canyon columns compared between the modes
 TOWN_COLS = ('T_CANYON', 'Q_CANYON', 'H_TOWN', 'LE_TOWN', 'RN_TOWN',

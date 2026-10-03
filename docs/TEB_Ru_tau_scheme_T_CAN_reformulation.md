@@ -388,9 +388,9 @@ PQ_CAN   = PTAU*PQ_CAN0 + (1-PTAU)*PQ_CAN1
 ### 4.4 Бюджет влажности каньона
 
 ```fortran
-ZINTER = PAC_RD_WAT*PDF_RD*PDELT_RD*ZRD + PAC_AGG_GD*PHU_AGG_GD*ZGD + PAC_TOP
+ZINTER = PAC_RD_WAT*PDF_RD*PDELT_RD*ZRD + PAC_GD*PHU_AGG_GD*ZGD + PAC_TOP
 PQ_CAN0 = ( PQSAT_RD*PAC_RD_WAT*PDF_RD*PDELT_RD*ZRD          ! дорога (вес tau)
-          + PQSAT_GD*PAC_AGG_GD*PHU_AGG_GD*ZGD               ! сад: без tau
+          + PQSAT_GD*PAC_GD*PHU_AGG_GD*ZGD                       ! сад: без tau
           + PQA*PAC_TOP
           + PLE_TRAFFIC/(1-XBLD)/(rho*XLVTT)
           + ZRD*PLESN_RD_CAN*PDN_RD/(rho*XLSTT) ) / ZINTER   ! снег (вес tau, сублимация)

@@ -28,7 +28,7 @@ INTERFACE
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                      &
                 PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                                   &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                        &
-                PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN,              &
+                PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN,              &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
                 PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM               )
  CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
@@ -65,7 +65,6 @@ REAL, DIMENSION(:)  , INTENT(OUT) :: PRUNOFF_GARDEN   ! runoff over garden (kg/m
 REAL, DIMENSION(:)  , INTENT(OUT) :: PAC_GARDEN       ! aerodynamical conductance (m/s)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PQSAT_GARDEN     ! saturation humidity (kg/kg)
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN     ! radiative surface temp. (snow free) (K)
-REAL, DIMENSION(:)  , INTENT(OUT) :: PAC_AGG_GARDEN   ! aggregated conductance (m/s)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PHU_AGG_GARDEN   ! aggregated relative humidity (-)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PDRAIN_GARDEN    ! garden total (vertical) drainage (kg/m2/s)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PIRRIG_GARDEN    ! garden summer irrigation rate (kg/m2/s)
@@ -81,7 +80,7 @@ END SUBROUTINE GARDEN_TAU
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
                 PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                                  &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                       &
-                PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN              )
+                PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN              )
  CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
 REAL, DIMENSION(:)  , INTENT(IN)  :: PZ_LOWCAN        ! height of the reference air (m)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN        ! reference air temperature (K)
@@ -110,7 +109,6 @@ REAL, DIMENSION(:)  , INTENT(OUT) :: PRUNOFF_GARDEN   ! runoff over garden (kg/m
 REAL, DIMENSION(:)  , INTENT(OUT) :: PAC_GARDEN       ! aerodynamical conductance (m/s)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PQSAT_GARDEN     ! saturation humidity (kg/kg)
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN     ! radiative surface temp. (snow free) (K)
-REAL, DIMENSION(:)  , INTENT(OUT) :: PAC_AGG_GARDEN   ! aggregated conductance (m/s)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PHU_AGG_GARDEN   ! aggregated relative humidity (-)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PDRAIN_GARDEN    ! garden total (vertical) drainage (kg/m2/s)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PIRRIG_GARDEN    ! garden summer irrigation rate (kg/m2/s)
@@ -122,7 +120,7 @@ END SUBROUTINE GARDEN
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
                 PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                                  &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                       &
-                PAC_AGG_GARDEN, PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN              )
+                PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN              )
  CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
  !MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
  REAL                , INTENT(IN)  :: PPHU_GD          ! garden surface relative humidity (-)
@@ -150,7 +148,6 @@ REAL, DIMENSION(:)  , INTENT(OUT) :: PRUNOFF_GARDEN   ! runoff over garden (kg/m
 REAL, DIMENSION(:)  , INTENT(OUT) :: PAC_GARDEN       ! aerodynamical conductance (m/s)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PQSAT_GARDEN     ! saturation humidity (kg/kg)
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN     ! radiative surface temp. (snow free) (K)
-REAL, DIMENSION(:)  , INTENT(OUT) :: PAC_AGG_GARDEN   ! aggregated conductance (m/s)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PHU_AGG_GARDEN   ! aggregated relative humidity (-)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PDRAIN_GARDEN    ! garden total (vertical) drainage (kg/m2/s)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PIRRIG_GARDEN    ! garden summer irrigation rate (kg/m2/s)

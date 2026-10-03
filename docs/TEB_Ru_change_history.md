@@ -168,6 +168,51 @@
   этом прогностические колонки отстают ровно на один подшаг. Структурной ошибки,
   в отличие от сада (`PAC_GD = 0`), у кровли нет: каньонной ветви у неё вообще нет.
 
+**Убрана избыточная величина `PAC_AGG_GARDEN` (`ZAC_AGG_GD`): влажность каньона считается
+той же проводимостью сада, что и его температура.** В обеих ветвях репозитория величина
+`PAC_AGG_GARDEN`/`ZAC_AGG_GD` встречалась только в паре с множителем влажности
+`PHU_AGG_GARDEN` и физически всегда совпадала с `PAC_GARDEN`:
+
+* `src_ctrl` (внешний сад `EXT`): `PAC_AGG_GARDEN` остаётся `0.` из прокси и эмулятором не
+  перезаписывается (`ZAC_AGG_GD = XUNDEF`), поэтому узел **температуры** каньона получал
+  слагаемое `PAC_GD·ZGD`, а узел **влажности** — нулевой садовый вклад: неявная связь сада
+  с каньоном была несогласованной;
+* `src_dev`: прокси `'PROXY_NEW'` и τ-схема `GARDEN_TAU` присваивают
+  `PAC_AGG_GARDEN = PAC_GARDEN`, а `'PROXY_OLD'` — `0.`, то есть собственной физики у
+  величины нет;
+* в COSMO-TEB `PAC_AGG_GARDEN = PAC_GARDEN` присваивается **до** пересчёта `PAC_GARDEN` в
+  `URBAN_DRAG`, поэтому узел влажности читал неинициализированный вход.
+
+Правка: узел влажности каньона в `avg_urban_fluxes.F90` обеих ветвей использует
+`PAC_GD·PHU_AGG_GD` — ту же проводимость, что и узел температуры. Dummy-аргумент удалён из
+`modi_avg_urban_fluxes`/`avg_urban_fluxes`, `teb_garden` (`ZAC_AGG_GD`), `modi_garden` и
+`garden` (интерфейс и реализация, включая вызовы `GARDEN_PCD`/`GARDEN`), `teb_garden_struct`
+и `modi_teb_garden_struct`, `call_driver`, `sfc_teb` и из вызовов `GARDEN_PCD` в
+`run_teb_offline.F90`; диагностическая колонка `PAC_AGG_GARDEN` (`dev`-цепочка
+`teb_garden → teb_garden_struct → call_driver → run_teb_offline`) удалена из вывода.
+Множитель влажности `PHU_AGG_GARDEN` (`PHU_GARDEN`) сохранён.
+
+Проверки:
+
+* базовый прогон `src_ctrl` — 35 колонок, вывод **побайтово** равен прежней валидированной
+  базе (SHA-256 совпадает с записанным ранее; тот же файл, что и в `build/out_ctrl3/`): сад
+  выключен (`teb_lgarden=.FALSE.`, `fr_garden=0.0`), поэтому правка — no-op;
+* базовый прогон `src_dev` — 111 → 110 колонок, заголовок равен прежнему без
+  `PAC_AGG_GARDEN` (позиции сохранены), **все 110 сохранившихся колонок совпадают побитово**
+  с `build/baseline/TEB_output_dev.csv` на всех 17 999 строках; удалённая колонка содержала
+  `1.0000000000000000E+020` (`XUNDEF`) — при выключенном саде диагностика не считалась;
+* при включённом саде правка тождественна в `'PROXY_NEW'` и `GARDEN_TAU`
+  (`PAC_AGG_GARDEN = PAC_GARDEN` по построению прокси) и меняет результат только в
+  `'PROXY_OLD'` и во внешнем режиме `src_ctrl`, где сад раньше отсутствовал в узле влажности
+  каньона; проверка — компиляция обеих ветвей (`make -C src_ctrl`, `make -C src_dev`).
+
+**Документация.** `TEB_Ru_variables_description.md` (строка колонки `PAC_AGG_GARDEN`
+удалена; зеркальный `TEB_Ru_variables_description.xlsx` правится вручную),
+`TEB_Ru_garden_diagnostic_scheme.md` (§1, §2.3, §4, §8),
+`TEB_Ru_tau_scheme_T_CAN_reformulation.md` (§4.4), `python_tests/compare_garden_scheme.py` и
+`python_tests/garden_z0_sensitivity.py` (списки садовых колонок). Ветка `main` правкой не
+затронута (см. `_TEMP_TEB_Ru_vs_COSMO_TEB_physics_v2.md`).
+
 ---
 
 ## 1. Правила ведения

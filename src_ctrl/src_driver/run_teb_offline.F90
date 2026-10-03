@@ -3,9 +3,11 @@ PROGRAM run_teb_offline
 USE sfc_teb,        ONLY : teb_interface
 USE MODI_OL_READ_ATM
 USE MODI_OL_TIME_INTERP_ATM
-USE MODD_SURF_PAR, ONLY: XUNDEF
+USE MODD_SURF_PAR, ONLY: XUNDEF, teb_snow_check
 USE MODD_CSTS,     ONLY : XCPD, XSTEFAN, XPI, XDAY, XKARMAN,   &
                           XLVTT, XLSTT, XLMTT, XRV, XRD, XG, XP00
+!MV202609 saturation humidity, used by the external garden / greenroof emulator
+USE MODE_THERMOS,  ONLY : QSAT
 !MV202609 the namelist items of the surface parameters and of the urban
 !* aerodynamics of the control tree are carried by MODD_PROXI_SVAT_PAR (a
 !* NAMELIST group can reference use-associated variables); the module also
@@ -367,7 +369,7 @@ CHARACTER(LEN=*), PARAMETER :: nml_param_items =                                
      'teb_lroad_irrig,teb_rd_irrig_start_m,teb_rd_irrig_end_m,teb_rd_irrig_start_h,'//&
      'teb_rd_irrig_end_h,teb_rd_irrig_sum,teb_utc_hour,urb_z0_town,urb_zd_town,'//   &
      'teb_type_garden,urb_z0_gdn,urb_alb_gdn,urb_emis_gdn,teb_type_greenroof,'//    &
-     'urb_z0_grf,urb_alb_grf,urb_emis_grf,teb_lshade'
+     'urb_z0_grf,urb_alb_grf,urb_emis_grf,teb_lshade,teb_snow_check'
 !* The two groups are declared here (and not next to the READ that uses them): a
 !* NAMELIST statement belongs to the specification part of the program, i.e. it must
 !* appear before the first executable statement.
@@ -391,7 +393,7 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
                     !* urban aerodynamics and garden/greenroof surface parameters
                     urb_z0_town, urb_zd_town, teb_type_garden, urb_z0_gdn, urb_alb_gdn,    &
                     urb_emis_gdn, teb_type_greenroof, urb_z0_grf, urb_alb_grf, urb_emis_grf, &
-                    teb_lshade
+                    teb_lshade, teb_snow_check
 
 !============================================================
 !============================================================
@@ -753,28 +755,54 @@ WRITE(*,'(A,F8.3,A,F6.3,A,F6.3,A)') ' TEB-Ru offline: greenroof z0/alb/emis = ',
      ' m / ', urb_alb_grf, ' / ', urb_emis_grf
 
 !MV202609 garden / greenroof model types (namelist keys of the dev tree)
-!* The control tree has a SINGLE internal parameterization for the garden and
-!* for the greenroof, so only the proxy names of the dev tree are accepted here
-!* ('PROXY_OLD' and 'PROXY_NEW' are the same code in this tree). The external
-!* emulators of the dev tree ('EXT'/'EXT_NEU') are a src_dev feature: asking for
-!* them stops the run instead of silently using the internal scheme.
-IF (teb_type_garden /= 'PROXY_OLD' .AND. teb_type_garden /= 'PROXY_NEW') THEN
+!* The control tree has a SINGLE internal parameterization for the garden and for
+!* the greenroof ('PROXY_OLD' and 'PROXY_NEW' are the same code here). The two
+!* external modes of the dev tree are available as well: 'EXT' and 'EXT_NEU' make
+!* TEB_GARDEN read the state and the fluxes of the garden / of the greenroof from
+!* the coupling interface instead of computing them internally. The driver then
+!* has to prescribe them at every sub-step - this is what the BOWEN emulator of
+!* this file does (subroutines PCD_GARDEN / PCD_GREENROOF): it evaluates the same
+!* fixed Bowen-ratio proxy as the internal scheme of the control tree and feeds
+!* the result back through the EXT interface, so that 'EXT' driven by the
+!* emulator reproduces the internal 'PROXY_OLD' garden.
+!* ('EXT' and 'EXT_NEU' are equivalent in this tree: the dev tree only
+!* distinguishes them by the exchange coefficients it exports for diagnostics.)
+IF (teb_type_garden /= 'PROXY_OLD' .AND. teb_type_garden /= 'PROXY_NEW' .AND. &
+    teb_type_garden /= 'EXT' .AND. teb_type_garden /= 'EXT_NEU') THEN
    WRITE(*,*) 'ERROR: teb_type_garden = ', TRIM(teb_type_garden), &
               ' is not available in the control tree (src_ctrl)'
-   WRITE(*,*) '       accepted: PROXY_OLD, PROXY_NEW'
-   WRITE(*,*) '       (the external garden emulator EXT/EXT_NEU belongs to src_dev)'
+   WRITE(*,*) '       accepted: PROXY_OLD, PROXY_NEW, EXT, EXT_NEU'
    STOP 1
 END IF
-IF (teb_type_greenroof /= 'PROXY_OLD' .AND. teb_type_greenroof /= 'PROXY_NEW') THEN
+IF (teb_type_greenroof /= 'PROXY_OLD' .AND. teb_type_greenroof /= 'PROXY_NEW' .AND. &
+    teb_type_greenroof /= 'EXT' .AND. teb_type_greenroof /= 'EXT_NEU') THEN
    WRITE(*,*) 'ERROR: teb_type_greenroof = ', TRIM(teb_type_greenroof), &
               ' is not available in the control tree (src_ctrl)'
-   WRITE(*,*) '       accepted: PROXY_OLD, PROXY_NEW'
-   WRITE(*,*) '       (the external greenroof emulator EXT/EXT_NEU belongs to src_dev)'
+   WRITE(*,*) '       accepted: PROXY_OLD, PROXY_NEW, EXT, EXT_NEU'
    STOP 1
+END IF
+!* external garden / greenroof: the legacy flags teb_lgarden_ext and
+!* teb_lgreenroof_ext are the ones TEB_GARDEN tests (OGARDEN_EXT /
+!* OGREENROOF_EXT); they are set here from the model type
+IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
+   teb_lgarden_ext = .TRUE.
+   WRITE(*,'(A,A,A)') ' TEB-Ru offline: external garden (teb_type_garden = ', &
+        TRIM(teb_type_garden), '), prescribed by the Bowen emulator'
+   IF (.NOT. teb_lgarden) WRITE(*,*) &
+        ' TEB-Ru offline: WARNING - teb_lgarden = .FALSE., the garden is OFF: '// &
+        'the external garden will not be used'
+END IF
+IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') THEN
+   teb_lgreenroof_ext = .TRUE.
+   WRITE(*,'(A,A,A)') ' TEB-Ru offline: external greenroof (teb_type_greenroof = ', &
+        TRIM(teb_type_greenroof), '), prescribed by the Bowen emulator'
+   IF (.NOT. teb_lgreenroof) WRITE(*,*) &
+        ' TEB-Ru offline: WARNING - teb_lgreenroof = .FALSE., the greenroof is OFF: '// &
+        'the external greenroof will not be used'
 END IF
 WRITE(*,'(A,A,A,A,A)') ' TEB-Ru offline: teb_type_garden = ', TRIM(teb_type_garden), &
      ', teb_type_greenroof = ', TRIM(teb_type_greenroof), &
-     ' (single internal proxy scheme in this tree)'
+     ' (internal proxy or external emulator)'
 
 ! -----------------------------------------------------------
 ! Output: one CSV file (<output_dir>/TEB_output.csv)
@@ -969,6 +997,11 @@ DO ntstep = 1, nsteps - 1
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
 				teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
 				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade)
+       !MV202609 external garden / greenroof: the Bowen emulator prescribes the
+       !* state and the fluxes of the garden / of the greenroof, which TEB reads
+       !* back at the NEXT sub-step through its EXT interface (one sub-step lag)
+       IF (teb_lgarden_ext)     CALL PCD_GARDEN
+       IF (teb_lgreenroof_ext)  CALL PCD_GREENROOF
 						
     END DO
     !
@@ -1570,55 +1603,77 @@ SUBROUTINE PRINT_USAGE()
     WRITE(*,*) ''
 END SUBROUTINE PRINT_USAGE
 
-!MV202609 garden emulation (teb_type_garden = 'EXT')
-!> Emulation of an EXTERNAL garden model: the garden of TEB is entirely
-!! prescribed from the outside in the 'EXT' mode (surface temperature, surface
-!! humidity and fluxes are read by TEB_GARDEN from teb_ts_gd / teb_qs_gd /
-!! teb_shfl_gd / teb_lhfl_gd / teb_qvfl_gd / teb_runoff_gd). Those variables are
-!! PROGNOSTIC here: they are initialized once before the time loop and updated
-!! by this subroutine at every model sub-step, right after TEB. CALL_DRIVER (and
-!! the whole physics of TEB) is unaware of the difference between this emulator
-!! and a real external model: it only sees the 'EXT' interface.
+!MV202609 garden emulation (teb_type_garden = 'EXT'/'EXT_NEU')
+!> BOWEN emulator of an EXTERNAL garden for the control tree: in the 'EXT' mode
+!! TEB_GARDEN reads the state and the fluxes of the garden from the coupling
+!! interface (teb_ts_gd / teb_qs_gd / teb_shfl_gd / teb_lhfl_gd / teb_qvfl_gd /
+!! teb_runoff_gd) instead of computing them with the internal proxy. Those
+!! variables are PROGNOSTIC here: they are initialized once before the time loop
+!! and updated by this subroutine at every model sub-step, right after TEB, so
+!! that CALL_DRIVER (and the whole physics of TEB) only sees the 'EXT' interface
+!! and is unaware of the difference with a real external model.
 !!
-!! The emulator itself is GARDEN_PCD of src/src_proxi_SVAT/garden.F90: the same
-!! diagnostic surface energy balance as the internal garden scheme, solved for
-!! one surface temperature given ONE conductance and ONE reference air. The host
-!! (this subroutine) prepares that input from what TEB has just computed:
+!! The control tree has a single garden parameterization - the historical fixed
+!! Bowen-ratio proxy of src_proxi_SVAT/garden.F90:
+!!     Rn = (1 - 0.15)*SW_rec,   H = 0.2*Rn,   LE = 0.8*Rn,
+!!     E = LE/XLVTT,   PHU = 0.8,   runoff = 0
+!! The emulator applies exactly this proxy to the radiation that TEB has just
+!! seen, reconstructed from the part it absorbed (the same reconstruction as in
+!! the dev tree):
+!!     XABS_SW = (1 - albedo)*SW_rec   ->   SW_rec = XABS_SW/(1 - albedo)
+!! with XABS_SW = teb_sobs, the shortwave radiation absorbed by the garden that
+!! TEB has computed with the prescribed surface temperature.
 !!
-!!   the two paths of the tau split of the garden exchange (as in GARDEN_TAU),
-!!   the THERMAL (scalar) conductance of each path being the one that carries the
-!!   heat and the moisture (thermal roughness z0h = z0/urb_z0_o_z0h_gdn), while
-!!   the momentum coefficient keeps z0:
-!!     Ca_h_C = PCH_C*max(V_C,Vmin), PCH_C = kappa**2/(ln((H/2)/z0)*ln((H/2)/z0h)),
-!!                                   V_C   = ZU_CANYON (teb_wind_canyon)
-!!     Ca_h_A = PCH_A*max(V_A,Vmin), PCH_A = kappa**2/(ln(z_ref/z0)*ln(z_ref/z0h)),
-!!                                   V_A   = |V_forcing|, z_ref = hlev_teb
-!!     Ca_eff = tau*Ca_h_C + (1-tau)*Ca_h_A
-!!     PCD_C  = (kappa/ln((H/2)/z0))**2   (momentum, canyon path only)
-!!   (PCH and PCD are GARDEN_PCH_NEUTRAL / GARDEN_PCD_NEUTRAL of
-!!   src/src_proxi_SVAT/garden.F90: the same formulation as the internal garden)
-!!   the single complete set given to the external model:
-!!     V*     = tau*V_C + (1-tau)*V_A          (tau-averaged wind)
-!!     T*, q* = T_CAN, q_CAN                   (first approximation: the tau
-!!                                             averaged air is left for later)
-!!   the EFFECTIVE exchange coefficients. The coefficient of the external model
-!!   multiplies its own wind: with the tau-averaged wind V* the naive average
-!!   Cd* = tau*Cd_C+(1-tau)*Cd_A misses the covariance term of the averaging,
-!!   tau(1-tau)*(Cd_C-Cd_A)*(V_A-V_C). Handing over the coefficient that
-!!   reproduces the tau-aggregated conductance removes it exactly:
-!!     CH_eff = Ca_eff/max(V*,Vmin)            => CH_eff*max(V*,Vmin) = Ca_eff
-!!              (Ca_eff is the THERMAL conductance: heat and moisture)
-!!     CD_eff = PCD_C*max(V_C,Vmin)**2/max(V*,Vmin)**2   (momentum: TEB keeps the
-!!              garden momentum on the canyon path only)
-!!   the radiation received by the garden, reconstructed exactly from the fluxes
-!!   absorbed by the garden (DMT%XABS_SW_GARDEN, XABS_LW_GARDEN computed by TEB
-!!   with the prescribed surface temperature):
-!!     XABS_SW = (1-alb)*SW_rec,  XABS_LW = emis*(LW_rec - sigma*Ts**4)
+!! The surface temperature prescribed to the external garden is the one the
+!! internal proxy uses: TEB_VEG_PROPERTIES sets it to the air temperature of the
+!! reference level, i.e. to the canyon air temperature (teb_tcanyon). The
+!! prescribed surface humidity is the saturation humidity at the fixed 80 %
+!! relative humidity of the proxy, so that the aggregation coefficient of the
+!! EXT interface (PHU_AGG_GARDEN = qv/qsat) reproduces the 0.8 of the internal
+!! proxy exactly. State and fluxes are applied with a one sub-step lag, as in
+!! the dev tree.
 !!
-!! The wind floor Vmin, the surface relative humidity and all the numerical
-!! parameters of the balance come from MODE_GARDEN_BALANCE, i.e. from the module
-!! used by the internal garden scheme: the emulator solves exactly the same
-!! problem and can be compared with it from run to run.
+!! THIS IS A TEST / COUPLING TOOL, not a model: 'EXT' driven by this emulator
+!! reproduces the internal 'PROXY_OLD' garden of the control tree, which is what
+!! makes the EXT interface verifiable. A real external garden model replaces
+!! this subroutine.
+SUBROUTINE PCD_GARDEN
+    REAL, DIMENSION(nvec) :: ZSW   ! solar radiation received by the garden (W/m2)
+    !
+    !* reference radiative temperature of the garden (see the header)
+    teb_ts_gd(:) = teb_tcanyon(:)
+    !* solar radiation received by the garden, from the part TEB absorbed
+    ZSW(:) = 0.
+    WHERE (1.-teb_alb_gd(:) > 1.E-6) ZSW(:) = teb_sobs(:) / (1.-teb_alb_gd(:))
+    !* fixed Bowen-ratio proxy (albedo 0.15, H = 0.2*Rn, LE = 0.8*Rn)
+    teb_shfl_gd(:)   = 0.2 * (1.-0.15) * ZSW(:)
+    teb_lhfl_gd(:)   = 0.8 * (1.-0.15) * ZSW(:)
+    teb_qvfl_gd(:)   = teb_lhfl_gd(:) / XLVTT
+    teb_runoff_gd(:) = 0.
+    !* surface humidity at the fixed 80 % relative humidity of the proxy
+    teb_qs_gd(:) = 0.8 * QSAT(teb_ts_gd(:), ps(:))
+END SUBROUTINE PCD_GARDEN
+
+!MV202609 greenroof emulation (teb_type_greenroof = 'EXT'/'EXT_NEU')
+!> Same emulator for the greenroof. A greenroof is a ROOF surface: it exchanges
+!! with the air of the forcing level (temperature t, humidity qv) and receives
+!! the CITY-LEVEL radiation - it is neither shadowed by the canyon nor irradiated
+!! by its re-reflections - i.e. (dir + sca)*(1 - frac_panel), as in the dev tree.
+!! The proxy of the control tree is
+!!     Rn = (1 - 0.15)*SW_rec,   H = LE = 0.5*Rn,   E = LE/XLVTT,   runoff = 0.
+SUBROUTINE PCD_GREENROOF
+    REAL, DIMENSION(nvec) :: ZSW   ! solar radiation received by the greenroof (W/m2)
+    !
+    !* reference radiative temperature of the greenroof (air of the forcing level)
+    teb_ts_gr(:) = t(:)
+    !* city-level solar radiation of the roof (see the header)
+    ZSW(:) = (swdir_s(:) + swdifd_s(:)) * (1.-teb_fr_panel(:))
+    !* fixed Bowen-ratio proxy of the greenroof (albedo 0.15, H = LE = 0.5*Rn)
+    teb_shfl_gr(:)   = 0.5 * (1.-0.15) * ZSW(:)
+    teb_lhfl_gr(:)   = 0.5 * (1.-0.15) * ZSW(:)
+    teb_qvfl_gr(:)   = teb_lhfl_gr(:) / XLVTT
+    teb_runoff_gr(:) = 0.
+END SUBROUTINE PCD_GREENROOF
 
 SUBROUTINE CSV_APPEND(line, value)
     CHARACTER(LEN=*), INTENT(INOUT) :: line

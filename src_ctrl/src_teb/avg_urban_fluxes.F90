@@ -9,7 +9,7 @@
                                 PH_TRAFFIC, PLE_TRAFFIC, PWL_O_GRND, PESN_RF,      &
                                 PEMIS_GR, PLW_RAD, PAC_RF, PAC_RF_WAT, PAC_WL,     &
                                 PAC_RD, PAC_RD_WAT, PAC_TOP, PAC_GD, PQSAT_GD,     &
-                                PAC_AGG_GD, PHU_AGG_GD, PQSAT_RF, PQSAT_RD,        &
+                                PHU_AGG_GD, PQSAT_RF, PQSAT_RD,                    &
                                 PDELT_RF, PDELT_RD, PRF_FRAC, PWL_FRAC, PRD_FRAC,  &
                                 PGD_FRAC, PTOTS_O_HORS, PDF_RF, PDN_RF, PDF_RD,    &
                                 PDN_RD, PLE_WL_A, PLE_WL_B, PLEW_RF, PLESN_RF,     &
@@ -139,7 +139,6 @@ REAL, DIMENSION(:), INTENT(IN)    :: PAC_GD            ! aerodynamical conductan
 !                                                      ! between atmosphere and
 !                                                      ! green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PQSAT_GD      ! q_sat(Ts)
-REAL, DIMENSION(:), INTENT(IN)    :: PAC_AGG_GD    ! aggregated aerodyn resistance for green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PHU_AGG_GD    ! aggregated relative humidity for green areas
 !
 REAL, DIMENSION(:), INTENT(IN)    :: PQSAT_RF        ! q_sat(Ts)
@@ -494,15 +493,14 @@ DO JJ=1,SIZE(T%XROAD)
 !
 !IF (icell == 5 .AND. iblock == 2532) THEN
 !	print*, 'PQSAT_GD        (JJ) = ', PQSAT_GD        (JJ)
-!	print*, 'PAC_AGG_GD        (JJ) = ', PAC_AGG_GD        (JJ)
 !	print*, 'PHU_AGG_GD        (JJ) = ', PHU_AGG_GD        (JJ)
 !    print*, 'ZGD        (JJ) = ', ZGD        (JJ)
 !	print*, 'ZINTER = ', ZINTER        
 !ENDIF
 
-    ZINTER = PAC_RD_WAT(JJ) * PDF_RD(JJ) * PDELT_RD(JJ) * ZRD(JJ) + PAC_AGG_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ) + PAC_TOP(JJ)
+    ZINTER = PAC_RD_WAT(JJ) * PDF_RD(JJ) * PDELT_RD(JJ) * ZRD(JJ) + PAC_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ) + PAC_TOP(JJ)
     PQ_CAN(JJ) = (  PQSAT_RD   (JJ) * PAC_RD_WAT(JJ) * PDF_RD    (JJ) * ZRD(JJ) * PDELT_RD(JJ)    &
-                  + PQSAT_GD   (JJ) * PAC_AGG_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ)                   &
+                  + PQSAT_GD   (JJ) * PAC_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ)                       &
                   + PQA        (JJ) * PAC_TOP(JJ)                                                 &
                   + PLE_TRAFFIC(JJ) / (1.-T%XBLD(JJ)) / PRHOA(JJ) / XLVTT                         &
                   + PLESN_RD   (JJ) * PDN_RD(JJ)      / PRHOA(JJ) / XLVTT * ZRD(JJ)  ) / ZINTER

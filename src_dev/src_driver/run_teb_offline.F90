@@ -3,7 +3,7 @@ PROGRAM run_teb_offline
 USE sfc_teb,        ONLY : teb_interface
 USE MODI_OL_READ_ATM
 USE MODI_OL_TIME_INTERP_ATM
-USE MODD_SURF_PAR, ONLY: XUNDEF
+USE MODD_SURF_PAR, ONLY: XUNDEF, teb_snow_check
 USE MODD_CSTS,     ONLY : XCPD, XSTEFAN, XPI, XDAY, XKARMAN,   &
                           XLVTT, XLSTT, XLMTT, XRV, XRD, XG, XP00
 USE MODD_PROXI_SVAT_PAR, ONLY : XZ0_GD, XZ0_GR, XZ0_O_Z0H_GD, XZ0_O_Z0H_GR, XPHU_GD, XPHU_GR   ! defaults of the garden/greenroof surface items
@@ -277,7 +277,6 @@ REAL ,DIMENSION(nvec) :: emu_puw                    !OUT friction flux of the em
 REAL ,DIMENSION(nvec) :: emu_gflux                  !OUT (unused) flux through the garden
 REAL ,DIMENSION(nvec) :: emu_sfco2                  !OUT (unused) CO2 flux of the garden
 REAL ,DIMENSION(nvec) :: emu_runoff                 !OUT (unused) runoff of the garden
-REAL ,DIMENSION(nvec) :: emu_pac_agg                !OUT (unused) aggregated conductance of the garden
 REAL ,DIMENSION(nvec) :: emu_drain                  !OUT (unused) drainage of the garden
 REAL ,DIMENSION(nvec) :: emu_irrig                  !OUT (unused) irrigation of the garden
 LOGICAL               :: lemu_checked               !=.FALSE. until the first consistency check
@@ -308,7 +307,6 @@ REAL ,DIMENSION(nvec) :: emu_gr_puw     !OUT friction flux of the emulated green
 REAL ,DIMENSION(nvec) :: emu_gr_gflux   !OUT (unused) flux through the greenroof
 REAL ,DIMENSION(nvec) :: emu_gr_sfco2   !OUT (unused) CO2 flux of the greenroof
 REAL ,DIMENSION(nvec) :: emu_gr_runoff  !OUT (unused) runoff of the greenroof
-REAL ,DIMENSION(nvec) :: emu_gr_pac_agg !OUT (unused) aggregated conductance of the greenroof
 REAL ,DIMENSION(nvec) :: emu_gr_drain   !OUT (unused) drainage of the greenroof
 REAL ,DIMENSION(nvec) :: emu_gr_irrig   !OUT (unused) irrigation of the greenroof
 LOGICAL               :: lemu_gr_checked !=.FALSE. until the first consistency check
@@ -386,7 +384,6 @@ REAL ,DIMENSION(nvec) :: teb_le_garden                  !OUT latent heat flux ov
 REAL ,DIMENSION(nvec) :: teb_evap_garden                !OUT total evaporation over the garden (kg/m2/s)
 REAL ,DIMENSION(nvec) :: teb_qsat_garden                !OUT garden saturation specific humidity (kg/kg)
 REAL ,DIMENSION(nvec) :: teb_phu_garden                 !OUT garden aggregated relative humidity (-)
-REAL ,DIMENSION(nvec) :: teb_pac_agg_garden             !OUT garden aggregated conductance (m/s)
 REAL ,DIMENSION(nvec) :: teb_pac_garden                 !OUT garden aerodynamic conductance (m/s)
 !MV202609 greenroof diagnostics
 REAL ,DIMENSION(nvec) :: teb_ts_greenroof               !OUT greenroof surface temperature (K)
@@ -584,7 +581,9 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
 !MV202609 z0 and zd to namelist
                     urb_z0_town, urb_zd_town,                                       &
 !MV202609 tau scheme of the road
-                    teb_ltau_scheme, teb_tau_hw_thresh, teb_tau_hw_width
+                    teb_ltau_scheme, teb_tau_hw_thresh, teb_tau_hw_width, &
+!MV202609 snow correction of the coupled model (default .FALSE.)
+                    teb_snow_check
 
 !MV202609 unified namelist reading
 !* Names of the items declared in the two groups above (same content and order as
@@ -612,7 +611,7 @@ CHARACTER(LEN=*), PARAMETER :: nml_param_items =                                
      'teb_fai,teb_lgarden,teb_type_garden,urb_z0_gdn,urb_z0_o_z0h_gdn,urb_alb_gdn,urb_emis_gdn,teb_lgreenroof,teb_type_greenroof,teb_frac_gr,urb_z0_grf,urb_z0_o_z0h_grf,urb_alb_grf,urb_emis_grf,urb_phu_gdn,urb_phu_grf,teb_lsolar_panel,teb_fr_panel,'&
      //'teb_lroad_irrig,teb_rd_irrig_start_m,teb_rd_irrig_end_m,teb_rd_irrig_start_h,'&
      //'teb_rd_irrig_end_h,teb_rd_irrig_sum,teb_utc_hour,teb_lshade,urb_z0_town,'// &
-     'urb_zd_town,teb_ltau_scheme,teb_tau_hw_thresh,teb_tau_hw_width'
+     'urb_zd_town,teb_ltau_scheme,teb_tau_hw_thresh,teb_tau_hw_width,teb_snow_check'
 
 !============================================================
 !============================================================
@@ -1335,7 +1334,6 @@ nout = nout + 1; out_names(nout) = 'LE_GARDEN'
 nout = nout + 1; out_names(nout) = 'EVAP_GARDEN'
 nout = nout + 1; out_names(nout) = 'QSAT_GARDEN'
 nout = nout + 1; out_names(nout) = 'PHU_GARDEN'
-nout = nout + 1; out_names(nout) = 'PAC_AGG_GARDEN'
 nout = nout + 1; out_names(nout) = 'PAC_GARDEN'
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
 nout = nout + 1; out_names(nout) = 'H_GARDEN_CAN'
@@ -1580,7 +1578,6 @@ DO nstep= 1,nsteps - 1
 !MV202609 garden diagnostics
                           teb_ts_garden, teb_rn_garden, teb_h_garden, teb_le_garden,       &
                           teb_evap_garden, teb_qsat_garden, teb_phu_garden,               &
-                          teb_pac_agg_garden,                                             &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
                           teb_h_garden_can, teb_h_garden_atm,                             &
                           teb_le_garden_can, teb_le_garden_atm,                           &
@@ -1708,7 +1705,6 @@ CALL CSV_APPEND(out_line, teb_le_garden(1))
 CALL CSV_APPEND(out_line, teb_evap_garden(1))
 CALL CSV_APPEND(out_line, teb_qsat_garden(1))
 CALL CSV_APPEND(out_line, teb_phu_garden(1))
-CALL CSV_APPEND(out_line, teb_pac_agg_garden(1))
 CALL CSV_APPEND(out_line, teb_pac_garden(1))
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
 CALL CSV_APPEND(out_line, teb_h_garden_can(1))
@@ -2457,7 +2453,7 @@ SUBROUTINE PCD_GARDEN
                     teb_alb_gd, teb_emis_gd, rho, ps, emu_psw, emu_plw,            &
                     emu_rn, emu_h, emu_le, emu_gflux, emu_sfco2, emu_evap,         &
                     emu_puw, emu_runoff, emu_pac, emu_qsat, teb_ts_gd,             &
-                    emu_pac_agg, emu_phu, emu_drain, emu_irrig)
+                    emu_phu, emu_drain, emu_irrig)
     !* state and fluxes prescribed to TEB at the next model sub-step
     emu_ts(:)        = teb_ts_gd(:)
     teb_qs_gd(:)     = urb_phu_gdn*emu_qsat(:)
@@ -2526,7 +2522,7 @@ SUBROUTINE PCD_GREENROOF
                     teb_alb_gr, teb_emis_gr, rho, ps, emu_gr_psw, emu_gr_plw,                   &
                     emu_gr_rn, emu_gr_h, emu_gr_le, emu_gr_gflux, emu_gr_sfco2, emu_gr_evap,    &
                     emu_gr_puw, emu_gr_runoff, emu_gr_pac, emu_gr_qsat, teb_ts_gr,              &
-                    emu_gr_pac_agg, emu_gr_phu, emu_gr_drain, emu_gr_irrig)
+                    emu_gr_phu, emu_gr_drain, emu_gr_irrig)
     !* state and fluxes prescribed to TEB at the next model sub-step
     emu_gr_ts(:)     = teb_ts_gr(:)
     teb_shfl_gr(:)   = emu_gr_h(:)
