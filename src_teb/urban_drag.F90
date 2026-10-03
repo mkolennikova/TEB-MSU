@@ -494,6 +494,19 @@ ZQ0(:)     = 0.
 DO JLOOP=1,3
  !
   ZW_CAN(:)   = ZW_STAR(:)
+!
+!* Surface temperature of the ground (road + garden) averaged with the road and
+!  garden fractions. It is used in ZQ0 below (canyon wind), but its computation
+!  was commented out (see above), so ZTS_GROUND was used uninitialised: stack
+!  garbage in the canyon momentum budget - NaN/Inf when the garbage was not a
+!  number, which stopped the run (SIGFPE/SIGSEGV) after a few steps.
+!  The zero-denominator case is guarded here, as ZRD/ZGD in URBAN_SOLAR_ABS.
+  WHERE (T%XROAD(:) + T%XGARDEN(:) > 0.)
+    ZTS_GROUND(:) = PTS_ROAD(:)   * T%XROAD(:)   / (T%XROAD(:) + T%XGARDEN(:)) &
+                  + PTS_GARDEN(:) * T%XGARDEN(:) / (T%XROAD(:) + T%XGARDEN(:))
+  ELSEWHERE
+    ZTS_GROUND(:) = PTS_ROAD(:)
+  END WHERE
   !
   !
   
