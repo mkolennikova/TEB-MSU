@@ -1,0 +1,8 @@
+# Reference outputs are byte-stable artifacts: git must never apply end-of-line
+# conversion to them. Without this marker git treats the pure-text reference
+# files as text and rewrites LF as CRLF on checkout, so the working copy no
+# longer matches the committed blob. That is exactly what made
+# output_ref/HVAC_*.txt 467974 bytes on disk while their committed blobs were
+# 449975 bytes (the twelve other reference files contained NUL padding, so git
+# classified them as binary and left them untouched).
+output_ref/* -text
