@@ -74,6 +74,13 @@ REAL, PARAMETER :: XZ0_GD  = 0.80
 REAL, PARAMETER :: XALB_GD = 0.15
 !* Garden emissivity (-): base-model value, default of urb_emis_gdn.
 REAL, PARAMETER :: XEMIS_GD = 0.90
+!* Garden surface relative humidity (-): the base-model value, i.e. the constant
+!* that the base GARDEN proxy used as the surface humidity of the garden.
+!* TEB_GARDEN uses it as the moisture multiplier of the canyon node for an
+!* INTERNAL garden; an external garden takes the multiplier from the state of
+!* the host instead (see the EXT block of TEB_GARDEN), which is why this is a
+!* PARAMETER of the physics and not a namelist item of this tree.
+REAL, PARAMETER :: XPHU_GD  = 0.8
 !* Greenroof roughness length (m): base-model value (the constant 0.01 of the
 !* friction flux of GREENROOF), default of urb_z0_grf.
 REAL, PARAMETER :: XZ0_GR   = 0.01

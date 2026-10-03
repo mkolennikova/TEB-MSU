@@ -143,7 +143,7 @@ Notes:
 | `urb_alb_grf` | External parameter | - | Green roof albedo (default `0.15`) |
 | `urb_emis_grf` | External parameter | - | Green roof emissivity (default `0.98`) |
 | `urb_z0_o_z0h_grf` | External parameter | - | Green roof `z0/z0h` ratio (`z0h = urb_z0_grf/urb_z0_o_z0h_grf` is the **thermal, scalar** roughness of the greenroof, used by the diagnostic greenroof exactly as `urb_z0_o_z0h_gdn` is used by the garden; default `4.0` = `MODD_PROXI_SVAT_PAR:XZ0_O_Z0H_GR`; must be `>= 1` and `< XUNDEF`) |
-| `urb_phu_gdn` | External parameter | - | Garden surface relative humidity `PHU`, used by **both** garden schemes: `'PROXY_NEW'` drives `LE = rho*Lv*Ca*(PHU*qsat(Ts) - qa)`, `'PROXY_OLD'` drives `PHU_AGG_GARDEN` (default `0.7` = `MODD_PROXI_SVAT_PAR:XPHU_GD`; the **base model** value was `0.8` — set `urb_phu_gdn = 0.8` to reproduce the base model; must be `> 0` and `<= 1`) |
+| `urb_phu_gdn` | External parameter | - | Garden surface relative humidity `PHU`, used by **both** garden schemes: `'PROXY_NEW'` drives `LE = rho*Lv*Ca*(PHU*qsat(Ts) - qa)`, `'PROXY_OLD'` drives `PHU_AGG_GARDEN` (default `0.7` = `MODD_PROXI_SVAT_PAR:XPHU_GD`; the **base model** value was `0.8` — set `urb_phu_gdn = 0.8` to reproduce the base model; must be `> 0` and `<= 1`; read by `src_dev` only — `src_ctrl` keeps the base-model constant `0.8`; an external garden (`'EXT'`/`'EXT_NEU'`) does not use it, its multiplier being the host surface humidity ratio) |
 | `urb_phu_grf` | External parameter | - | Green roof surface relative humidity `PHU`, used by **both** greenroof schemes (default `0.7` = `MODD_PROXI_SVAT_PAR:XPHU_GR`; the **base model** value was `0.3` — set `urb_phu_grf = 0.3` to reproduce the base model; must be `> 0` and `<= 1`) |
 
 #### Garden model type (`teb_type_garden`)
@@ -263,7 +263,7 @@ they are undefined (`XUNDEF`):
 | `LE_GARDEN` | W/m² | Latent heat flux over the garden |
 | `EVAP_GARDEN` | kg/m²/s | Total evaporation over the garden |
 | `QSAT_GARDEN` | kg/kg | Saturation specific humidity at `TS_GARDEN` |
-| `PHU_GARDEN` | - | Aggregated relative humidity of the garden surface |
+| `PHU_GARDEN` | - | Moisture multiplier of the canyon node for the garden: the surface relative humidity of the internal scheme (`urb_phu_gdn`) or, for an external garden, `clamp(q_v/qsat(TS_GARDEN))` of the host |
 <!-- MV202609 garden thermal roughness (z0h) -->
 | `PAC_GARDEN` | m/s | Aerodynamic conductance of the garden **for heat and moisture** (the scalar coefficient `PCH` times `max(U_CANYON, 0.5)`) used by the canyon budget (`0` for `'PROXY_OLD'`) |
 | `PCD_GARDEN_CAN`, `PCH_GARDEN_CAN` | - | Garden/canyon exchange coefficients used by the garden of the model: momentum (`PCD`, friction only) and thermal (`PCH`, heat and moisture, from `urb_z0_o_z0h_gdn`); `0` when no internal garden is active |

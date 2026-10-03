@@ -87,8 +87,12 @@ REAL, PARAMETER :: XZ0_O_Z0H_GD = 4.0
 !MV202609 tunable surface relative humidity of the garden
 !* Default value of the namelist item urb_phu_gdn (RUN_TEB_OFFLINE): the
 !* relative humidity of the garden surface used by BOTH proxy schemes
-!* ('PROXY_NEW' drives the latent flux LE = rho*Lv*Ca*(PHU*qsat(Ts) - qa),
-!* 'PROXY_OLD' drives the aggregated surface humidity PHU_AGG_GARDEN).
+!* ('PROXY_NEW' drives the latent flux LE = rho*Lv*Ca*(PHU*qsat(Ts) - qa);
+!* 'PROXY_OLD' is a Bowen-ratio proxy, so its PHU only enters the moisture
+!* multiplier of the canyon node, which TEB_GARDEN builds from this value).
+!* An external garden ('EXT'/'EXT_NEU') does not use it: TEB_GARDEN takes
+!* the multiplier from the surface humidity of the host then (see its EXT
+!* block), and the garden proxies are not called at all in that mode.
 !MV202609 default PHU revision
 !* 0.7 is the literature-based estimate for a typical (unstressed-to-mildly
 !* stressed) urban lawn; the BASE model value was 0.8 (a well-watered lawn, on

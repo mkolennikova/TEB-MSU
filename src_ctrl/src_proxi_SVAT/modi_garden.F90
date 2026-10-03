@@ -16,7 +16,7 @@ INTERFACE
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                &
                 PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                             &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                  &
-                PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN         )  
+                PDRAIN_GARDEN, PIRRIG_GARDEN         )  
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
  CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
 TYPE(DATE_TIME)     , INTENT(IN)    :: TPTIME             ! current date and time from teb
@@ -53,7 +53,6 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_GARDEN     ! runoff over garden (
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GARDEN         ! aerodynamical conductance
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN       ! saturation humidity
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN         ! radiative surface temp. (snow free)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN     ! aggreg. relative humidity for green areas for latent heat flux
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN      ! garden total (vertical) drainage
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irrigation rate
 END SUBROUTINE GARDEN

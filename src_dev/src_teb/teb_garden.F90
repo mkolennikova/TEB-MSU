@@ -1051,6 +1051,11 @@ ZPEQ_B_COEF(:) = PQ_LOWCAN(:)
 !
 IF (TOP%LGARDEN) THEN
 !
+!* the garden model of an INTERNAL garden is the diagnostic proxy called here.
+!* The external garden ('EXT'/'EXT_NEU') is not modelled by any proxy: its state,
+!* its fluxes and its conductance come from the coupling interface, so the call is
+!* skipped and the coupling quantities are built in the ELSE branch below
+IF (TOP%CTYPE_GARDEN /= 'EXT' .AND. TOP%CTYPE_GARDEN /= 'EXT_NEU') THEN
   CALL GARDEN_TAU(TOP%CTYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GARDEN_EXT, &
 !MV202609 garden thermal roughness (z0h)
 !* z0/z0h ratio of the garden: the scalar (thermal) coefficient of the diagnostic
@@ -1061,16 +1066,30 @@ IF (TOP%LGARDEN) THEN
               TOP%XPHU_GD,                                                               &
 !MV202609 tau scheme of the garden
 !* the split (tau vs 1 - tau) is applied only to the internal diagnostic proxy:
-!* 'PROXY_OLD' and 'EXT' have a single flux which is reported in both branches
+!* 'PROXY_OLD' has a single flux which is reported in both branches
               PUREF, PVMOD, PTA, PQA,                                                     &
               ZTAU, ( TOP%LTAU_SCHEME .AND. TOP%CTYPE_GARDEN == 'PROXY_NEW' ),           &
               PALB_GD_EXT, PEMIS_GD_EXT, PRHOA, PPS, ZREC_SW_GD, ZREC_LW_GD,             &
               ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,                                          &
               ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,      &
-              ZHU_AGG_GD, ZDRAIN_GD, ZIRRIG_GD,                              &
+              ZDRAIN_GD, ZIRRIG_GD,                              &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
               ZPH_GD_CAN, ZPH_GD_ATM, ZPLE_GD_CAN, ZPLE_GD_ATM )
-
+!* external garden ('EXT'/'EXT_NEU'): no proxy model is called. The surface state
+!* of the host is already in ZTSRAD_GD and only its qsat and its friction flux are
+!* built here; its fluxes and its conductance to the canyon air are prescribed from
+!* outside (the block at the end of this section and URBAN_DRAG respectively)
+ELSE
+  ZQSAT_GD(:)  = QSAT(ZTSRAD_GD(:), PPS(:))
+  ZUW_GD(:)    = - GARDEN_PCD_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:)) * PU_LOWCAN(:)**2
+  ZGFLUX_GD(:) = 0.
+  ZSFCO2_GD(:) = 0.
+END IF
+!
+!* moisture multiplier of the canyon node (PAC_GD*PHU_AGG_GD*ZGD): the beta of the
+!* internal proxy, replaced by the surface humidity of the host (clamp(q_v/qsat),
+!* as in COSMO-TEB) by the external block at the end of this section
+ZHU_AGG_GD(:) = TOP%XPHU_GD
   PAC_GD_WAT(:) = PAC_GD(:)
   DMT%XABS_SW_GARDEN(:) = (1.-ZALB_GD(:)) * ZREC_SW_GD
   DMT%XABS_LW_GARDEN(:) = ZEMIS_GD(:) * ZREC_LW_GD(:) - XSTEFAN * ZEMIS_GD(:) * ZTSRAD_GD(:)**4 

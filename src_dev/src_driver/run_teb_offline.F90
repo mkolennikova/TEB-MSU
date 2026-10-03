@@ -271,7 +271,6 @@ REAL ,DIMENSION(nvec) :: emu_h                      !OUT sensible heat flux of t
 REAL ,DIMENSION(nvec) :: emu_le                     !OUT latent heat flux of the emulated garden (W/m2 garden)
 REAL ,DIMENSION(nvec) :: emu_evap                   !OUT evaporation of the emulated garden (kg/m2/s)
 REAL ,DIMENSION(nvec) :: emu_qsat                   !OUT saturation humidity of the emulated garden (kg/kg)
-REAL ,DIMENSION(nvec) :: emu_phu                    !OUT aggregated relative humidity of the garden (-)
 REAL ,DIMENSION(nvec) :: emu_pac                    !OUT aerodynamic conductance of the garden (m/s)
 REAL ,DIMENSION(nvec) :: emu_puw                    !OUT friction flux of the emulated garden (m2/s2)
 REAL ,DIMENSION(nvec) :: emu_gflux                  !OUT (unused) flux through the garden
@@ -301,7 +300,6 @@ REAL ,DIMENSION(nvec) :: emu_gr_h       !OUT sensible heat flux of the emulated 
 REAL ,DIMENSION(nvec) :: emu_gr_le      !OUT latent heat flux of the emulated greenroof (W/m2 greenroof)
 REAL ,DIMENSION(nvec) :: emu_gr_evap    !OUT evaporation of the emulated greenroof (kg/m2/s)
 REAL ,DIMENSION(nvec) :: emu_gr_qsat    !OUT saturation humidity of the emulated greenroof (kg/kg)
-REAL ,DIMENSION(nvec) :: emu_gr_phu     !OUT aggregated relative humidity of the greenroof (-)
 REAL ,DIMENSION(nvec) :: emu_gr_pac     !OUT aerodynamic conductance of the greenroof (m/s)
 REAL ,DIMENSION(nvec) :: emu_gr_puw     !OUT friction flux of the emulated greenroof (m2/s2)
 REAL ,DIMENSION(nvec) :: emu_gr_gflux   !OUT (unused) flux through the greenroof
@@ -2453,7 +2451,7 @@ SUBROUTINE PCD_GARDEN
                     teb_alb_gd, teb_emis_gd, rho, ps, emu_psw, emu_plw,            &
                     emu_rn, emu_h, emu_le, emu_gflux, emu_sfco2, emu_evap,         &
                     emu_puw, emu_runoff, emu_pac, emu_qsat, teb_ts_gd,             &
-                    emu_phu, emu_drain, emu_irrig)
+                    emu_drain, emu_irrig)
     !* state and fluxes prescribed to TEB at the next model sub-step
     emu_ts(:)        = teb_ts_gd(:)
     teb_qs_gd(:)     = urb_phu_gdn*emu_qsat(:)
@@ -2522,7 +2520,7 @@ SUBROUTINE PCD_GREENROOF
                     teb_alb_gr, teb_emis_gr, rho, ps, emu_gr_psw, emu_gr_plw,                   &
                     emu_gr_rn, emu_gr_h, emu_gr_le, emu_gr_gflux, emu_gr_sfco2, emu_gr_evap,    &
                     emu_gr_puw, emu_gr_runoff, emu_gr_pac, emu_gr_qsat, teb_ts_gr,              &
-                    emu_gr_phu, emu_gr_drain, emu_gr_irrig)
+                    emu_gr_drain, emu_gr_irrig)
     !* state and fluxes prescribed to TEB at the next model sub-step
     emu_gr_ts(:)     = teb_ts_gr(:)
     teb_shfl_gr(:)   = emu_gr_h(:)

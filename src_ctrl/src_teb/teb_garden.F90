@@ -73,9 +73,10 @@ USE MODD_TEB_IRRIG_n, ONLY : TEB_IRRIG_t
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 !
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
-USE MODD_CSTS,              ONLY: XTT, XSTEFAN
+USE MODD_CSTS,              ONLY: XTT, XSTEFAN, XKARMAN
 USE MODD_SURF_PAR,          ONLY: XUNDEF, teb_snow_check
 USE MODD_SNOW_PAR,          ONLY: XEMISSN, XANSMAX
+USE MODD_PROXI_SVAT_PAR,    ONLY : XPHU_GD       ! surface humidity of the base garden
 !
 USE MODE_THERMOS
 USE MODE_SURF_SNOW_FRAC
@@ -828,13 +829,33 @@ ZPEQ_B_COEF(:) = PQ_LOWCAN(:)
 !
 IF (TOP%LGARDEN) THEN
 !
+!* the garden model of an INTERNAL garden is the diagnostic proxy called here.
+!* The external garden ('EXT'/'EXT_NEU') is not modelled by any proxy: its state,
+!* its fluxes and its conductance come from the coupling interface, so the call is
+!* skipped and the coupling quantities are built in the ELSE branch below
+  IF (.NOT. OGARDEN_EXT) THEN
   CALL GARDEN(HIMPLICIT_WIND, TOP%TTIME, PTSUN, PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, &
               ZPET_A_COEF, ZPEQ_A_COEF, ZPET_B_COEF, ZPEQ_B_COEF, PTSTEP, PZ_LOWCAN,    &
               PT_LOWCAN, PQ_LOWCAN, PEXNS, PRHOA, PCO2, PPS, PRR, PSR, PZENITH,         &
               ZREC_SW_GD, ZREC_LW_GD, PU_LOWCAN, ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,     &
               ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,     &
-              ZHU_AGG_GD, ZDRAIN_GD, ZIRRIG_GD )
+              ZDRAIN_GD, ZIRRIG_GD )
 
+!* external garden ('EXT'/'EXT_NEU'): no proxy model is called. The surface state
+!* of the host is already in ZTSRAD_GD and only its qsat and its friction flux are
+!* built here; its fluxes and its conductance to the canyon air are prescribed from
+!* outside (the block below and URBAN_DRAG respectively)
+ELSE
+  ZQSAT_GD(:)  = QSAT(ZTSRAD_GD(:), PPS(:))
+  ZUW_GD(:)    = - (XKARMAN/LOG(PZ_LOWCAN(:)/0.1))**2 * PU_LOWCAN(:)**2
+  ZGFLUX_GD(:) = 0.
+  ZSFCO2_GD(:) = 0.
+END IF
+!
+!* moisture multiplier of the canyon node (PAC_GD*PHU_AGG_GD*ZGD): the beta of the
+!* internal proxy, replaced by the surface humidity of the host (clamp(q_v/qsat),
+!* as in COSMO-TEB) by the external block below
+ZHU_AGG_GD(:) = XPHU_GD
   PAC_GD_WAT(:) = PAC_GD(:)
   DMT%XABS_SW_GARDEN(:) = (1.-ZALB_GD(:)) * ZREC_SW_GD
   DMT%XABS_LW_GARDEN(:) = ZEMIS_GD(:) * ZREC_LW_GD(:) - XSTEFAN * ZEMIS_GD(:) * ZTSRAD_GD(:)**4 

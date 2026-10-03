@@ -15,7 +15,7 @@
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                &
                 PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                            &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                  &
-                PHU_AGG_GARDEN, PDRAIN_GARDEN, PIRRIG_GARDEN         ) 
+                PDRAIN_GARDEN, PIRRIG_GARDEN         ) 
 				
 !   ##########################################################################
 !
@@ -112,7 +112,6 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_GARDEN     ! runoff over garden (
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GARDEN         ! aerodynamical conductance
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN       ! saturation humidity
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN         ! radiative surface temp. (snow free)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN     ! aggreg. relative humidity for green areas for latent heat flux
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN      ! garden total (vertical) drainage
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irrigation rate
 !
@@ -157,13 +156,10 @@ PQSAT_GARDEN(:) = QSAT(PTS_GARDEN(:),PPS(:))
 !* Surface temperature : set equal to air temperature
 !PTS_GARDEN(:) = PT_LOWCAN(:)
 !
-!* relative humidity of the garden surface; the moisture exchange uses the
-!  single conductance PAC_GARDEN of this proxi (see AVG_URBAN_FLUXES)
-PHU_AGG_GARDEN(:) = 0.8   ! surface humidity set to 80%
-!PHU_AGG_GARDEN(:) = PQV_GD(:)/PQSAT_GARDEN(:)   ! surface humidity set to 80%
-
-!PHU_AGG_GARDEN(:) = MIN(PHU_AGG_GARDEN(:), 1.)
-!PHU_AGG_GARDEN(:) = MAX(PHU_AGG_GARDEN(:), 0.01)
+!* the surface relative humidity of the garden (the moisture multiplier of the
+!* canyon air) is NOT a property of this proxy: TEB_GARDEN builds it from the
+!* namelist beta for an internal garden and from the surface humidity of the
+!* host for an external one (see the EXT block of TEB_GARDEN)
 !
 !* garden hydrological diagnostics
 PRUNOFF_GARDEN(:) = 0.    ! garden surface runoff
