@@ -15,7 +15,7 @@
                 PRN_GREENROOF,PH_GREENROOF,PLE_GREENROOF,PGFLUX_GREENROOF,           &
                 PSFCO2,PEVAP_GREENROOF, PUW_GREENROOF,                               &
                 PAC_GREENROOF,PQSAT_GREENROOF,PTS_GREENROOF,                         &
-                PAC_AGG_GREENROOF, PHU_AGG_GREENROOF,PDEEP_FLUX,                     &
+                PHU_AGG_GREENROOF,PDEEP_FLUX,                     &
                 PRUNOFF_GREENROOF, PDRAIN_GREENROOF, PIRRIG_GREENROOF                )  
 !   ##################################################################################
 !
@@ -130,7 +130,6 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PUW_GREENROOF         ! friction flux (m2
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GREENROOF         ! greenroof aerodynamical conductance
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GREENROOF       ! saturation humidity
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GREENROOF         ! greenroof radiative surface temp. (snow free)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_AGG_GREENROOF     ! aggreg. aeodynamic resistance for greenroofs for latent heat flux
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GREENROOF     ! aggreg. relative humidity for greenroofs for latent heat flux
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PDEEP_FLUX            ! Heat Flux at the bottom layer of the greenroof
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PRUNOFF_GREENROOF     ! greenroof surface runoff
@@ -188,7 +187,6 @@ CASE ('PROXY_NEW')
    !
    !* aggregated latent exchange (diagnostics; the greenroof does not couple
    !* back to the canyon air: it is a roof surface)
-   PAC_AGG_GREENROOF(:) = ZCA_GR(:)
    PHU_AGG_GREENROOF(:) = PPHU_GR
    !
 CASE ('PROXY_OLD')
@@ -209,7 +207,6 @@ CASE ('PROXY_OLD')
    PQSAT_GREENROOF(:) = QSAT(PTA(:),PPS(:))
    !
    !* aggregated latent exchange (diagnostics)
-   PAC_AGG_GREENROOF(:) = 0.    ! neglected (latent flux does not depend on surface humidity)
    PHU_AGG_GREENROOF(:) = PPHU_GR   ! surface relative humidity from the namelist urb_phu_grf
    !
 CASE ('EXT', 'EXT_NEU')
@@ -233,7 +230,6 @@ CASE ('EXT', 'EXT_NEU')
    PQSAT_GREENROOF(:) = QSAT(PTA(:),PPS(:))
    !
    !* aggregated latent exchange (diagnostics)
-   PAC_AGG_GREENROOF(:) = 0.
    PHU_AGG_GREENROOF(:) = PPHU_GR
    !
 END SELECT

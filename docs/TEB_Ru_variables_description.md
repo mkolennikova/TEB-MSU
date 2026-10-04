@@ -319,7 +319,7 @@ only, so it has a single exchange path (no canyon branch, no tau split).
 |:-------|:----------|:--------|
 | `TS_GREENROOF`, `RN_GREENROOF`, `H_GREENROOF`, `LE_GREENROOF` | K, W/m² | Surface temperature and net radiation / sensible / latent heat flux per m² of greenroof |
 | `EVAP_GREENROOF`, `QSAT_GREENROOF`, `PHU_GREENROOF` | kg/m²/s, kg/kg, - | Evaporation, saturation specific humidity at `TS_GREENROOF` and aggregated relative humidity of the surface |
-| `PAC_AGG_GREENROOF` | m/s | Aggregated aerodynamic conductance (latent heat) |
+| `PAC_GREENROOF` | m/s | Aerodynamic conductance of the greenroof (the scalar coefficient `PCH` times `max(V, Vmin)` of the selected greenroof model: `ZCA_GR` for `'PROXY_NEW'`, `0` for `'PROXY_OLD'`/`'EXT'`/`'EXT_NEU'` and when the greenroof is off). Diagnostic only: it enters no equation |
 | `PAC_GREENROOF_ATM`, `PCD_GREENROOF_ATM`, `PCDN_GREENROOF_ATM`, `PCH_GREENROOF_ATM` | m/s, -, -, - | Greenroof/atmosphere coefficients computed by `URBAN_DRAG` in the external modes: conductance, momentum coefficient, neutral momentum coefficient and thermal coefficient |
 | `PRI_GREENROOF_ATM` | - | Richardson number of the greenroof/atmosphere exchange (`XUNDEF` in `'EXT_NEU'`, whose coefficients are neutral) |
 | `ZZ0H_GREENROOF_ATM` | m | Thermal roughness used (`z0/urb_z0_o_z0h_grf`) |

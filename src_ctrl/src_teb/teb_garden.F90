@@ -380,7 +380,6 @@ REAL, DIMENSION(SIZE(PTA)) :: ZUW_GR       ! momentum flux for green roofs
 REAL, DIMENSION(SIZE(PTA)) :: ZDUWDU_RD    !
 !
 REAL, DIMENSION(SIZE(PTA)) :: ZHU_AGG_GD   ! aggreg. relative humidity for green areas
-REAL, DIMENSION(SIZE(PTA)) :: ZAC_AGG_GR   ! aggreg. aeodynamic resistance for green roofs
 REAL, DIMENSION(SIZE(PTA)) :: ZHU_AGG_GR   ! aggreg. relative humidity for green roofs
 !
 !  surfaces relative fractions
@@ -920,7 +919,7 @@ IF (TOP%LGREENROOF) THEN
                  PUREF, PTA, PQA, PEXNS, PEXNA,PRHOA, PCO2, PPS, PRR, PSR, PZENITH,  &
                  ZREC_SW_RF, ZREC_LW_RF, PVMOD, ZRN_GR, ZH_GR, ZLE_GR,               &
                  ZGFLUX_GR, ZSFCO2_GR, ZEVAP_GR, ZUW_GR,                             &
-                 PAC_GR, ZQSAT_GR, ZTSRAD_GR, ZAC_AGG_GR, ZHU_AGG_GR,                &
+                 PAC_GR, ZQSAT_GR, ZTSRAD_GR, ZHU_AGG_GR,                &
                  DMT%XG_GREENROOF_ROOF, ZRUNOFF_GR, ZDRAIN_GR, ZIRRIG_GR ) 
   ! 
   !  
@@ -955,7 +954,6 @@ ELSE
   PAC_GR    (:) = 0.
   ZSFCO2_GR (:) = 0.
   ZQSAT_GR  (:) = XUNDEF
-  ZAC_AGG_GR(:) = XUNDEF
   ZHU_AGG_GR(:) = XUNDEF 
   ZMTC_O_GR_R1(:) = XUNDEF 
   !

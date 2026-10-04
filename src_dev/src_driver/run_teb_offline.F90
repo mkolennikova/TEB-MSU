@@ -391,7 +391,7 @@ REAL ,DIMENSION(nvec) :: teb_le_greenroof               !OUT latent heat flux ov
 REAL ,DIMENSION(nvec) :: teb_evap_greenroof             !OUT total evaporation over the greenroof (kg/m2/s)
 REAL ,DIMENSION(nvec) :: teb_qsat_greenroof             !OUT greenroof saturation specific humidity (kg/kg)
 REAL ,DIMENSION(nvec) :: teb_phu_greenroof              !OUT greenroof aggregated relative humidity (-)
-REAL ,DIMENSION(nvec) :: teb_pac_agg_greenroof          !OUT greenroof aggregated conductance (m/s)
+REAL ,DIMENSION(nvec) :: teb_pac_greenroof              !OUT green roof conductance (m/s)
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
 REAL ,DIMENSION(nvec) :: teb_pac_greenroof_atm            !OUT greenroof aerodynamical conductance (atm.)
 REAL ,DIMENSION(nvec) :: teb_pcd_greenroof_atm            !OUT greenroof drag coefficient (atm.)
@@ -1346,7 +1346,7 @@ nout = nout + 1; out_names(nout) = 'LE_GREENROOF'
 nout = nout + 1; out_names(nout) = 'EVAP_GREENROOF'
 nout = nout + 1; out_names(nout) = 'QSAT_GREENROOF'
 nout = nout + 1; out_names(nout) = 'PHU_GREENROOF'
-nout = nout + 1; out_names(nout) = 'PAC_AGG_GREENROOF'
+nout = nout + 1; out_names(nout) = 'PAC_GREENROOF'
 !MV202609 greenroof-to-atm exchange diagnostics
 nout = nout + 1; out_names(nout) = 'PAC_GREENROOF_ATM'
 nout = nout + 1; out_names(nout) = 'PCD_GREENROOF_ATM'
@@ -1583,7 +1583,7 @@ DO nstep= 1,nsteps - 1
 !MV202609 greenroof diagnostics
                           teb_ts_greenroof, teb_rn_greenroof, teb_h_greenroof, teb_le_greenroof, &
                           teb_evap_greenroof, teb_qsat_greenroof, teb_phu_greenroof,     &
-                          teb_pac_agg_greenroof, &
+                          teb_pac_greenroof, &
 !MV202609 greenroof-to-atm exchange diagnostics
                           teb_pac_greenroof_atm, teb_pcd_greenroof_atm, teb_pcdn_greenroof_atm, &
                           teb_pch_greenroof_atm, teb_pri_greenroof_atm, teb_zz0h_greenroof_atm)
@@ -1717,7 +1717,7 @@ CALL CSV_APPEND(out_line, teb_le_greenroof(1))
 CALL CSV_APPEND(out_line, teb_evap_greenroof(1))
 CALL CSV_APPEND(out_line, teb_qsat_greenroof(1))
 CALL CSV_APPEND(out_line, teb_phu_greenroof(1))
-CALL CSV_APPEND(out_line, teb_pac_agg_greenroof(1))
+CALL CSV_APPEND(out_line, teb_pac_greenroof(1))
 !MV202609 greenroof-to-atm exchange diagnostics
 CALL CSV_APPEND(out_line, teb_pac_greenroof_atm(1))
 CALL CSV_APPEND(out_line, teb_pcd_greenroof_atm(1))

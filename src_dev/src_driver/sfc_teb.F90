@@ -88,7 +88,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 !MV202609 greenroof diagnostics
                           teb_ts_greenroof, teb_rn_greenroof, teb_h_greenroof, teb_le_greenroof, &
                           teb_evap_greenroof, teb_qsat_greenroof, teb_phu_greenroof,     &
-                          teb_pac_agg_greenroof, &
+                          teb_pac_greenroof, &
 !MV202609 greenroof-to-atm exchange diagnostics
                           teb_pac_greenroof_atm, teb_pcd_greenroof_atm, teb_pcdn_greenroof_atm, &
                           teb_pch_greenroof_atm, teb_pri_greenroof_atm, teb_zz0h_greenroof_atm)
@@ -393,7 +393,7 @@ REAL, DIMENSION(nvec), INTENT(OUT) :: teb_le_greenroof   ! latent heat flux over
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_evap_greenroof ! total evaporation over the greenroof (kg/m2/s)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_qsat_greenroof ! greenroof saturation specific humidity (kg/kg)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_phu_greenroof  ! greenroof aggregated relative humidity (-)
-REAL, DIMENSION(nvec), INTENT(OUT) :: teb_pac_agg_greenroof ! greenroof aggregated conductance (m/s)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_pac_greenroof    ! green roof conductance (m/s)
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_pac_greenroof_atm  ! greenroof aerodynamical conductance (atm.)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_pcd_greenroof_atm  ! greenroof drag coefficient (atm.)
@@ -483,7 +483,7 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
 !MV202609 greenroof diagnostics
                           teb_ts_greenroof(i), teb_rn_greenroof(i), teb_h_greenroof(i), teb_le_greenroof(i), &
                           teb_evap_greenroof(i), teb_qsat_greenroof(i), teb_phu_greenroof(i),  &
-                          teb_pac_agg_greenroof(i), &
+                          teb_pac_greenroof(i), &
 !MV202609 greenroof-to-atm exchange diagnostics
                           teb_pac_greenroof_atm(i), teb_pcd_greenroof_atm(i), teb_pcdn_greenroof_atm(i), &
                           teb_pch_greenroof_atm(i), teb_pri_greenroof_atm(i), teb_zz0h_greenroof_atm(i))

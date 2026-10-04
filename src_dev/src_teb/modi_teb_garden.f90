@@ -42,7 +42,7 @@ INTERFACE
                           PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
 !MV202609 greenroof diagnostics (per m2 of greenroof)
                            PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
-                           PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_AGG_GREENROOF, &
+                           PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, &
 !MV202609 greenroof-to-atm exchange diagnostics
                            PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
                            PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM)
@@ -248,7 +248,6 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GREENROOF    ! latent heat flux over
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GREENROOF  ! total evaporation over the greenroof [kg/m2/s]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GREENROOF  ! greenroof saturation specific humidity [kg/kg]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GREENROOF    ! greenroof aggregated relative humidity [-]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_AGG_GREENROOF! greenroof aggregated conductance [m/s]
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)

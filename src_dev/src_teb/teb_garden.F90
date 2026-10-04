@@ -45,7 +45,7 @@
                           PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
 !MV202609 greenroof diagnostics (per m2 of greenroof)
                           PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
-                          PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_AGG_GREENROOF, &
+                          PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, &
 !MV202609 greenroof-to-atm exchange diagnostics
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
                           PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM)
@@ -335,7 +335,6 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GREENROOF    ! latent heat flux over
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GREENROOF  ! total evaporation over the greenroof [kg/m2/s]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GREENROOF  ! greenroof saturation specific humidity [kg/kg]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GREENROOF    ! greenroof aggregated relative humidity [-]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_AGG_GREENROOF! greenroof aggregated conductance [m/s]
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)
@@ -489,7 +488,6 @@ REAL, DIMENSION(SIZE(PTA)) :: ZUW_GR       ! momentum flux for green roofs
 REAL, DIMENSION(SIZE(PTA)) :: ZDUWDU_RD    !
 !
 REAL, DIMENSION(SIZE(PTA)) :: ZHU_AGG_GD   ! aggreg. relative humidity for green areas
-REAL, DIMENSION(SIZE(PTA)) :: ZAC_AGG_GR   ! aggreg. aeodynamic resistance for green roofs
 REAL, DIMENSION(SIZE(PTA)) :: ZHU_AGG_GR   ! aggreg. relative humidity for green roofs
 !
 !  surfaces relative fractions
@@ -944,7 +942,6 @@ PLE_GREENROOF    (:) = ZLE_GR(:)
 PEVAP_GREENROOF  (:) = ZEVAP_GR(:)
 PQSAT_GREENROOF  (:) = ZQSAT_GR(:)
 PHU_GREENROOF    (:) = ZHU_AGG_GR(:)
-PAC_AGG_GREENROOF(:) = ZAC_AGG_GR(:)
 !
 !-------------------------------------------------------------------------------
 !
@@ -1171,7 +1168,7 @@ IF (TOP%LGREENROOF) THEN
                  TOP%XZ0_O_Z0H_GR, TOP%XPHU_GR,                                      &
                  ZRN_GR, ZH_GR, ZLE_GR,               &
                  ZGFLUX_GR, ZSFCO2_GR, ZEVAP_GR, ZUW_GR,                             &
-                 PAC_GR, ZQSAT_GR, ZTSRAD_GR, ZAC_AGG_GR, ZHU_AGG_GR,                &
+                 PAC_GR, ZQSAT_GR, ZTSRAD_GR, ZHU_AGG_GR,                &
                  DMT%XG_GREENROOF_ROOF, ZRUNOFF_GR, ZDRAIN_GR, ZIRRIG_GR ) 
   ! 
   !  
@@ -1207,7 +1204,6 @@ ELSE
   PAC_GR    (:) = 0.
   ZSFCO2_GR (:) = 0.
   ZQSAT_GR  (:) = XUNDEF
-  ZAC_AGG_GR(:) = XUNDEF
   ZHU_AGG_GR(:) = XUNDEF 
   ZMTC_O_GR_R1(:) = XUNDEF 
   !
