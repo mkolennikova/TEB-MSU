@@ -247,7 +247,8 @@ CSV **побитово** совпадает с прогонами до прав�
 **Документация.** `TEB_Ru_garden_diagnostic_scheme.md` (§4 — выходы прокси и колонки,
 §9 — внешний сад без прокси-модели), `TEB_Ru_variables_description.md` (`urb_phu_gdn`,
 колонка `PHU_GARDEN`), комментарии `XPHU_GD` в `MODD_PROXI_SVAT_PAR` обеих ветвей,
-`_TEMP_TEB_Ru_vs_COSMO_TEB_physics_v2.md` (§0, §3.2, §7 п.1).
+`_TEMP_TEB_Ru_vs_COSMO_TEB_physics_v2.md` (§0, §3.2, §7 п.1). Продолжение для нашего дерева
+`src_ctrl` и области «сад выключен / внешний сад» — `_TEMP_TEB_Ru_vs_COSMO_TEB_physics_v3.md`.
 
 **Отложено (следующий заход).** Кровля: `PHU_AGG_GREENROOF` в прокси — такой же
 дубликат (`= PPHU_GR` во всех трёх ветвях `src_dev`, литерал `0.3` в `src_ctrl`), а
