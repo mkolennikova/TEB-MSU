@@ -12,7 +12,7 @@ INTERFACE
                 PPET_A_COEF, PPEQ_A_COEF, PPET_B_COEF, PPEQ_B_COEF,                  &
                 PTSTEP, PZREF, PUREF,                                                &
                 PTA, PQA, PEXNS, PEXNA,PRHOA, PCO2, PPS, PRR, PSR, PZENITH,          &
-                PSW,PLW, PVMOD, PALB_GR, PEMIS_GR, PZ0_GR, PZ0_O_Z0H_GR, PPHU_GR,     &
+                PSW,PLW, PVMOD, PALB_GR, PEMIS_GR, PZ0_GR, PZ0_O_Z0H_GR,     &
                 PRN_GREENROOF,PH_GREENROOF,PLE_GREENROOF,PGFLUX_GREENROOF,           &
                 PSFCO2,PEVAP_GREENROOF, PUW_GREENROOF,                               &
                 PAC_GREENROOF,PQSAT_GREENROOF,PTS_GREENROOF,                         &
@@ -49,7 +49,6 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GR            ! green roof albedo (n
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GR           ! green roof emissivity (namelist urb_emis_grf; not used by this proxy)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GR             ! green roof roughness length (m) (namelist urb_z0_grf)
  REAL,               INTENT(IN)    :: PZ0_O_Z0H_GR        ! greenroof z0/z0h ratio (-), >= 1
- REAL,               INTENT(IN)    :: PPHU_GR             ! greenroof surface relative humidity (-)
 
 
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GREENROOF         ! net radiation over greenroofs

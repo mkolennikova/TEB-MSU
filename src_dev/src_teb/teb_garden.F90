@@ -21,7 +21,7 @@
 						   PAC_GR, PAC_RD_WAT, PAC_GD_WAT, PAC_GR_WAT, KDAY, PEMIT_LW_FAC,        &
 						   PEMIT_LW_GRND, PT_RAD_IND, PREF_SW_GRND, PREF_SW_FAC, PHU_BLD, PTIME,  &
 						   PPROD_BLD, PDN_RF, PDN_RD, PMELT_BLT, PSNOWD_RF, PSNOWD_RD, PLW_UP,    &
-						   PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT, PRUNOFF_GR_EXT,     &
+						   PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PQV_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT, PRUNOFF_GR_EXT,     &
 						   PALB_GD_EXT, PEMIS_GD_EXT, PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT,       &
 						   PLE_GD_EXT, PEVAP_GD_EXT,         &
 						   PCH_GD, PCD_GD, PRUNOFF_GD_EXT, PCH_RD, PCH_RF, PCH_WL, PCH_TOP, PAC_TOP,  &
@@ -187,7 +187,8 @@ REAL                , INTENT(IN)    :: PTSTEP             ! time step
 REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GR_EXT         ! green roof roughness length (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GR_EXT        ! green roof albedo
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GR_EXT       ! green roof emissivity 
-REAL, DIMENSION(:)  , INTENT(IN)    :: PTSRAD_GR_EXT      ! greenroof radiative surface temp. (snow free) 
+REAL, DIMENSION(:)  , INTENT(IN)    :: PTSRAD_GR_EXT      ! greenroof radiative surface temp. (snow free)
+REAL, DIMENSION(:)  , INTENT(IN)    :: PQV_GR_EXT         ! greenroof specific humidity (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PH_GR_EXT          ! sensible heat flux over greenroofs 
 REAL, DIMENSION(:)  , INTENT(IN)    :: PLE_GR_EXT         ! latent heat flux over greenroofs 
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEVAP_GR_EXT       ! total evaporation over greenroofs (kg/m2/s)
@@ -201,7 +202,7 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PH_GD_EXT          ! sensible heat flux o
 REAL, DIMENSION(:)  , INTENT(IN)    :: PLE_GD_EXT         ! latent heat flux over garden (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEVAP_GD_EXT       ! total evaporation over garden (kg/m2/s) (external model)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_GD             ! drag coeifficient for heat
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PCD_GD             ! garden  surf. exchange coefficient
+REAL, DIMENSION(:)  , INTENT(INOUT)   :: PCD_GD             ! garden  surf. exchange coefficient
 REAL, DIMENSION(:)  , INTENT(IN)    :: PRUNOFF_GD_EXT     ! garden surface runoff (external model)
 
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_RD             ! drag coeifficient for heat
@@ -337,7 +338,7 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GREENROOF  ! greenroof saturation 
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GREENROOF    ! greenroof aggregated relative humidity [-]
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)
+REAL, DIMENSION(:)  , INTENT(INOUT)    :: PCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PCDN_GREENROOF_ATM! greenroof neutral drag coefficient (atm.)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
@@ -924,6 +925,9 @@ PH_GARDEN     (:) = ZH_GD(:)
 PLE_GARDEN    (:) = ZLE_GD(:)
 PEVAP_GARDEN  (:) = ZEVAP_GD(:)
 PQSAT_GARDEN  (:) = ZQSAT_GD(:)
+!* the moisture multiplier of the canyon node: unlike the greenroof one below, it is
+!* NOT a diagnostic -- AVG_URBAN_FLUXES uses it for the water budget of the canyon
+!* air (the garden couples back to the canyon air, the greenroof does not)
 PHU_GARDEN    (:) = ZHU_AGG_GD(:)
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
 PH_GARDEN_CAN (:) = ZPH_GD_CAN(:)
@@ -941,6 +945,9 @@ PH_GREENROOF     (:) = ZH_GR(:)
 PLE_GREENROOF    (:) = ZLE_GR(:)
 PEVAP_GREENROOF  (:) = ZEVAP_GR(:)
 PQSAT_GREENROOF  (:) = ZQSAT_GR(:)
+!* a diagnostic of the aggregated moisture exchange of the roof surface:
+!* it feeds the PHU_GREENROOF column and no budget (the greenroof does not
+!* couple back to the canyon air), unlike the multiplier of the garden
 PHU_GREENROOF    (:) = ZHU_AGG_GR(:)
 !
 !-------------------------------------------------------------------------------
@@ -1047,51 +1054,63 @@ ZPEQ_B_COEF(:) = PQ_LOWCAN(:)
 !              -------------------------
 !
 IF (TOP%LGARDEN) THEN
-!
-!* the garden model of an INTERNAL garden is the diagnostic proxy called here.
-!* The external garden ('EXT'/'EXT_NEU') is not modelled by any proxy: its state,
-!* its fluxes and its conductance come from the coupling interface, so the call is
-!* skipped and the coupling quantities are built in the ELSE branch below
-IF (TOP%CTYPE_GARDEN /= 'EXT' .AND. TOP%CTYPE_GARDEN /= 'EXT_NEU') THEN
-  CALL GARDEN_TAU(TOP%CTYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GARDEN_EXT, &
+  !
+  !* the garden model of an INTERNAL garden is the diagnostic proxy called here.
+  !* The external garden ('EXT'/'EXT_NEU') is not modelled by any proxy: its state,
+  !* its fluxes and its conductance come from the coupling interface, so the call is
+  !* skipped and the coupling quantities are built in the ELSE branch below
+  IF (TOP%CTYPE_GARDEN /= 'EXT' .AND. TOP%CTYPE_GARDEN /= 'EXT_NEU') THEN
+    CALL GARDEN_TAU(TOP%CTYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GARDEN_EXT, &
 !MV202609 garden thermal roughness (z0h)
 !* z0/z0h ratio of the garden: the scalar (thermal) coefficient of the diagnostic
 !* balance is built from it (single value of TOP, the same one that URBAN_DRAG
 !* exports and that the emulator of the offline driver uses)
-              TOP%XZ0_O_Z0H_GD,                                                          &
-!MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
-              TOP%XPHU_GD,                                                               &
+    TOP%XZ0_O_Z0H_GD,                                                          &
 !MV202609 tau scheme of the garden
 !* the split (tau vs 1 - tau) is applied only to the internal diagnostic proxy:
 !* 'PROXY_OLD' has a single flux which is reported in both branches
-              PUREF, PVMOD, PTA, PQA,                                                     &
-              ZTAU, ( TOP%LTAU_SCHEME .AND. TOP%CTYPE_GARDEN == 'PROXY_NEW' ),           &
-              PALB_GD_EXT, PEMIS_GD_EXT, PRHOA, PPS, ZREC_SW_GD, ZREC_LW_GD,             &
-              ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,                                          &
-              ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,      &
-              ZDRAIN_GD, ZIRRIG_GD,                              &
+    PUREF, PVMOD, PTA, PQA,                                                     &
+    ZTAU, ( TOP%LTAU_SCHEME .AND. TOP%CTYPE_GARDEN == 'PROXY_NEW' ),           &
+    PALB_GD_EXT, PEMIS_GD_EXT, PRHOA, PPS, ZREC_SW_GD, ZREC_LW_GD,             &
+    ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,                                          &
+    ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,      &
+    ZDRAIN_GD, ZIRRIG_GD,                              &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
-              ZPH_GD_CAN, ZPH_GD_ATM, ZPLE_GD_CAN, ZPLE_GD_ATM,                          &
+    ZPH_GD_CAN, ZPH_GD_ATM, ZPLE_GD_CAN, ZPLE_GD_ATM,                          &
 !MV202609 garden exchange coefficients, returned by the garden model
-              PCD_GD, PCH_GD )
-!* external garden ('EXT'/'EXT_NEU'): no proxy model is called. The surface state
-!* of the host is already in ZTSRAD_GD and only its qsat and its friction flux are
-!* built here; its fluxes and its conductance to the canyon air are prescribed from
-!* outside (the block at the end of this section and URBAN_DRAG respectively)
-ELSE
-  ZQSAT_GD(:)  = QSAT(ZTSRAD_GD(:), PPS(:))
-  ZUW_GD(:)    = - GARDEN_PCD_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:)) * PU_LOWCAN(:)**2
-  ZGFLUX_GD(:) = 0.
-  ZSFCO2_GD(:) = 0.
-END IF
-!
-!* moisture multiplier of the canyon node (PAC_GD*PHU_AGG_GD*ZGD): the beta of the
-!* internal proxy, replaced by the surface humidity of the host (clamp(q_v/qsat),
-!* as in COSMO-TEB) by the external block at the end of this section
-ZHU_AGG_GD(:) = TOP%XPHU_GD
+    PCD_GD, PCH_GD, ZHU_AGG_GD )
+  ELSE
+    !
+    !* external garden ('EXT'/'EXT_NEU'): no proxy model is called. The state,
+    !* the fluxes and the surface humidity come from the coupling interface; only
+    !* the derived quantities are built here: qsat(Ts) and the friction flux.
+    !*
+    !* The friction uses the MOMENTUM coefficient of the external model itself - the
+    !* one URBAN_DRAG computed with URBAN_EXCH_COEF and exported to the host - and
+    !* not a neutral one: here it is the CANYON path coefficient (PCD_GARDEN_CAN),
+    !* because the momentum conductance of the garden has no atmosphere branch (the
+    !* tau split applies to heat and moisture only). It is the value of the previous
+    !* sub-step (URBAN_DRAG is called after this section); when it is not available
+    !* yet - the first sub-step of a run - the neutral coefficients of this module
+    !* are used (they are then also what the caller receives). No wind floor: the
+    !* wind is the one of the host, as in the historical proxy and in COSMO-TEB
+    ZQSAT_GD(:)  = QSAT(ZTSRAD_GD(:), PPS(:))
+!MV202609 friction of the external surfaces (URBAN_DRAG momentum coefficient)
+    WHERE (PCD_GD(:) > 0. .AND. PCD_GD(:) < XUNDEF)
+      ZUW_GD(:) = - PCD_GD(:) * PU_LOWCAN(:)**2
+    ELSEWHERE
+      PCD_GD(:) = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:))
+      ZUW_GD(:) = - PCD_GD(:) * PU_LOWCAN(:)**2
+    END WHERE
+    ZGFLUX_GD(:) = 0.
+    ZSFCO2_GD(:) = 0.
+  END IF
+  !
+  !* moisture multiplier of the canyon node (PAC_GD*PHU_AGG_GD*ZGD): returned by
+  !* the call above for an internal garden (the PHU parameter of that model)
   PAC_GD_WAT(:) = PAC_GD(:)
   DMT%XABS_SW_GARDEN(:) = (1.-ZALB_GD(:)) * ZREC_SW_GD
-  DMT%XABS_LW_GARDEN(:) = ZEMIS_GD(:) * ZREC_LW_GD(:) - XSTEFAN * ZEMIS_GD(:) * ZTSRAD_GD(:)**4 
+  DMT%XABS_LW_GARDEN(:) = ZEMIS_GD(:) * ZREC_LW_GD(:) - XSTEFAN * ZEMIS_GD(:) * ZTSRAD_GD(:)**4
   ZEMIT_LW_GD(:) = XSTEFAN * ZTSRAD_GD(:)**4 + (1 - ZEMIS_GD(:)) / ZEMIS_GD(:) * DMT%XABS_LW_GARDEN(:)
   ZQV_GD(:) = 0.
 !MV202609 garden thermal roughness (z0h)
@@ -1102,19 +1121,16 @@ ZHU_AGG_GD(:) = TOP%XPHU_GD
 !* a coupled host as teb_tch_gd/teb_tcm_gd). For the EXTERNAL garden the proxy is
 !* not called at all and these arrays keep the values URBAN_DRAG computed in its
 !* OGARDEN_EXT branch (as in COSMO-TEB)
-  
+  !
   IF (TOP%CTYPE_GARDEN == 'EXT' .OR. TOP%CTYPE_GARDEN == 'EXT_NEU') THEN
     ZH_GD(:) = PH_GD_EXT(:)
-	ZLE_GD(:) = PLE_GD_EXT(:)
-	ZEVAP_GD(:) = PEVAP_GD_EXT(:)
-	ZRUNOFF_GD(:) = PRUNOFF_GD_EXT(:)
-    ZQV_GD(:) = PQV_GD_EXT(:)	
+    ZLE_GD(:) = PLE_GD_EXT(:)
+    ZEVAP_GD(:) = PEVAP_GD_EXT(:)
+    ZRUNOFF_GD(:) = PRUNOFF_GD_EXT(:)
+    ZQV_GD(:) = PQV_GD_EXT(:)
     ZHU_AGG_GD(:) = PQV_GD_EXT(:)/ZQSAT_GD(:)
     ZHU_AGG_GD(:) = MIN(ZHU_AGG_GD(:), 1.)
     ZHU_AGG_GD(:) = MAX(ZHU_AGG_GD(:), 0.01)
-	DMT%XABS_SW_GARDEN(:) = (1.-ZALB_GD(:)) * ZREC_SW_GD
-	DMT%XABS_LW_GARDEN(:) = ZEMIS_GD(:) * ZREC_LW_GD(:) - XSTEFAN * ZEMIS_GD(:) * ZTSRAD_GD(:)**4 
-	ZEMIT_LW_GD(:) = XSTEFAN * ZTSRAD_GD(:)**4 + (1 - ZEMIS_GD(:)) / ZEMIS_GD(:) * DMT%XABS_LW_GARDEN(:)
     ! COSMO+TEB GARDEN
     ZRN_GD(:) =  DMT%XABS_SW_GARDEN(:) + DMT%XABS_LW_GARDEN(:)
     !MV202609 tau scheme of the garden
@@ -1132,7 +1148,7 @@ ELSE
   ZLE_GD    (:) = 0.
   ZGFLUX_GD (:) = 0.
   ZEVAP_GD  (:) = 0.
-  ZRUNOFF_GD(:) = 0. 
+  ZRUNOFF_GD(:) = 0.
   !
   ZTSRAD_GD (:) = XUNDEF
   !
@@ -1143,7 +1159,7 @@ ELSE
   ZSFCO2_GD  (:) = 0.
   ZQSAT_GD   (:) = XUNDEF
   ZHU_AGG_GD (:) = XUNDEF
-  PAC_GD_WAT (:) = XUNDEF 
+  PAC_GD_WAT (:) = XUNDEF
   ZEMIT_LW_GD(:) = 0.
   !MV202609 tau scheme of the garden
   ZPH_GD_CAN (:) = 0.
@@ -1154,38 +1170,73 @@ ELSE
   DMT%XABS_SW_GARDEN (:) = XUNDEF
   DMT%XABS_LW_GARDEN (:) = XUNDEF
   !
-ENDIF
+  ENDIF
 !
 !*      8.3    Call ISBA for greenroofs
 !              -------------------------
 !
 IF (TOP%LGREENROOF) THEN
   !
-  CALL GREENROOF(TOP%CTYPE_GREENROOF, HIMPLICIT_WIND, TOP%TTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF,  &
-                 ZPET_A_COEF, ZPEQ_A_COEF, ZPET_B_COEF, ZPEQ_B_COEF, PTSTEP, PZREF,  &
-                 PUREF, PTA, PQA, PEXNS, PEXNA,PRHOA, PCO2, PPS, PRR, PSR, PZENITH,  &
-                 ZREC_SW_RF, ZREC_LW_RF, PVMOD, PALB_GR_EXT, PEMIS_GR_EXT, PZ0_GR_EXT,  &
-                 TOP%XZ0_O_Z0H_GR, TOP%XPHU_GR,                                      &
-                 ZRN_GR, ZH_GR, ZLE_GR,               &
-                 ZGFLUX_GR, ZSFCO2_GR, ZEVAP_GR, ZUW_GR,                             &
-                 PAC_GR, ZQSAT_GR, ZTSRAD_GR, ZHU_AGG_GR,                &
-                 DMT%XG_GREENROOF_ROOF, ZRUNOFF_GR, ZDRAIN_GR, ZIRRIG_GR ) 
-  ! 
-  !  
+  !* the greenroof model of an INTERNAL greenroof is the proxy called here: it
+  !* owns its PHU parameter and returns the multiplier of the roof node (a
+  !* diagnostic: the greenroof does not couple back to the canyon air)
+  IF (.NOT. OGREENROOF_EXT .AND. TOP%CTYPE_GREENROOF /= 'EXT' .AND. &
+      TOP%CTYPE_GREENROOF /= 'EXT_NEU') THEN
+    CALL GREENROOF(TOP%CTYPE_GREENROOF, HIMPLICIT_WIND, TOP%TTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF,  &
+    ZPET_A_COEF, ZPEQ_A_COEF, ZPET_B_COEF, ZPEQ_B_COEF, PTSTEP, PZREF,  &
+    PUREF, PTA, PQA, PEXNS, PEXNA,PRHOA, PCO2, PPS, PRR, PSR, PZENITH,  &
+    ZREC_SW_RF, ZREC_LW_RF, PVMOD, PALB_GR_EXT, PEMIS_GR_EXT, PZ0_GR_EXT,  &
+!MV202609 greenroof thermal roughness (z0h)
+!* z0/z0h ratio of the greenroof: the scalar (thermal) coefficient of the
+!* diagnostic balance is built from it (single value of TOP, the same one
+!* that URBAN_DRAG exports and that the emulator of the driver uses)
+    TOP%XZ0_O_Z0H_GR,                                      &
+    ZRN_GR, ZH_GR, ZLE_GR,               &
+    ZGFLUX_GR, ZSFCO2_GR, ZEVAP_GR, ZUW_GR,                             &
+    PAC_GR, ZQSAT_GR, ZTSRAD_GR, ZHU_AGG_GR,                &
+    DMT%XG_GREENROOF_ROOF, ZRUNOFF_GR, ZDRAIN_GR, ZIRRIG_GR )
+  ELSE
+    !
+    !* external greenroof ('EXT'/'EXT_NEU'): no proxy model is called. The state,
+    !* the fluxes and the surface humidity come from the coupling interface; only
+    !* the derived quantities are built here, exactly as for the external garden
+    !* above: qsat(Ts), the moisture multiplier (clamp(q_v/qsat), as in COSMO-TEB)
+    !* and the friction flux, with the wind of the host (no wind floor). The roof has
+    !* a single exchange path, so the friction uses the momentum coefficient of that
+    !* path (PCD_GREENROOF_ATM, from URBAN_DRAG) and its neutral value only when the
+    !* coefficient is not available yet (first sub-step of a run)
+    ZQSAT_GR(:)   = QSAT(ZTSRAD_GR(:), PPS(:))
+!MV202609 friction of the external surfaces (URBAN_DRAG momentum coefficient)
+    WHERE (PCD_GREENROOF_ATM(:) > 0. .AND. PCD_GREENROOF_ATM(:) < XUNDEF)
+      ZUW_GR(:) = - PCD_GREENROOF_ATM(:) * PVMOD(:)**2
+    ELSEWHERE
+      PCD_GREENROOF_ATM(:) = GARDEN_PCD_NEUTRAL(PUREF(:), PZ0_GR_EXT(:))
+      ZUW_GR(:) = - PCD_GREENROOF_ATM(:) * PVMOD(:)**2
+    END WHERE
+    ZHU_AGG_GR(:) = PQV_GR_EXT(:)/ZQSAT_GR(:)
+    ZHU_AGG_GR(:) = MIN(ZHU_AGG_GR(:), 1.)
+    ZHU_AGG_GR(:) = MAX(ZHU_AGG_GR(:), 0.01)
+    PAC_GR(:)     = 0.      ! no implicit coupling of an external surface (as in COSMO-TEB)
+    ZGFLUX_GR(:)  = 0.
+    ZSFCO2_GR(:)  = 0.
+    !* the remaining outputs of the greenroof model (no soil, no drainage, no
+    !* irrigation) are zero in that mode, exactly as in the proxy
+    DMT%XG_GREENROOF_ROOF(:) = 0.
+    ZDRAIN_GR(:) = 0.
+    ZIRRIG_GR(:) = 0.
+  END IF
+  !
+  !
   PAC_GR_WAT(:) = PAC_GR(:)
   DMT%XABS_SW_GREENROOF(:) = (1.-ZALB_GR(:)) * ZREC_SW_RF
   DMT%XABS_LW_GREENROOF(:) = ZEMIS_GR * ZREC_LW_RF - XSTEFAN * ZEMIS_GR * ZTSRAD_GR**4
-  
+  !
   IF (OGREENROOF_EXT .OR. TOP%CTYPE_GREENROOF == 'EXT' .OR. &
       TOP%CTYPE_GREENROOF == 'EXT_NEU') THEN
     ZH_GR(:) = PH_GR_EXT(:)
-	ZLE_GR(:) = PLE_GR_EXT(:)
-	ZEVAP_GR(:) = PEVAP_GR_EXT(:)
-	ZRUNOFF_GR(:) = PRUNOFF_GR_EXT(:)
-	
-	PAC_GR_WAT(:) = PAC_GR(:)
-    DMT%XABS_SW_GREENROOF(:) = (1.-ZALB_GR(:)) * ZREC_SW_RF
-    DMT%XABS_LW_GREENROOF(:) = ZEMIS_GR * ZREC_LW_RF - XSTEFAN * ZEMIS_GR * ZTSRAD_GR**4
+    ZLE_GR(:) = PLE_GR_EXT(:)
+    ZEVAP_GR(:) = PEVAP_GR_EXT(:)
+    ZRUNOFF_GR(:) = PRUNOFF_GR_EXT(:)
     ZRN_GR(:) =  DMT%XABS_SW_GREENROOF(:) + DMT%XABS_LW_GREENROOF(:)
   ENDIF
 ELSE
@@ -1196,7 +1247,7 @@ ELSE
   ZGFLUX_GR (:) = 0.
   ZEVAP_GR  (:) = 0.
   ZRUNOFF_GR(:) = 0.
-  ZDRAIN_GR (:) = 0.  
+  ZDRAIN_GR (:) = 0.
   !
   ZTSRAD_GR (:) = XUNDEF
   !
@@ -1204,8 +1255,7 @@ ELSE
   PAC_GR    (:) = 0.
   ZSFCO2_GR (:) = 0.
   ZQSAT_GR  (:) = XUNDEF
-  ZHU_AGG_GR(:) = XUNDEF 
-  ZMTC_O_GR_R1(:) = XUNDEF 
+  ZHU_AGG_GR(:) = XUNDEF
   !
   DMT%XIRRIG_GREENROOF (:) = 0.
   DMT%XABS_SW_GREENROOF(:) = XUNDEF

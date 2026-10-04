@@ -11,7 +11,7 @@
                 PPET_A_COEF, PPEQ_A_COEF, PPET_B_COEF, PPEQ_B_COEF,                  &
                 PTSTEP, PZREF, PUREF,                                                &
                 PTA, PQA, PEXNS, PEXNA,PRHOA, PCO2, PPS, PRR, PSR, PZENITH,          &
-                PSW,PLW, PVMOD, PALB_GR, PEMIS_GR, PZ0_GR, PZ0_O_Z0H_GR, PPHU_GR,     &
+                PSW,PLW, PVMOD, PALB_GR, PEMIS_GR, PZ0_GR, PZ0_O_Z0H_GR,     &
                 PRN_GREENROOF,PH_GREENROOF,PLE_GREENROOF,PGFLUX_GREENROOF,           &
                 PSFCO2,PEVAP_GREENROOF, PUW_GREENROOF,                               &
                 PAC_GREENROOF,PQSAT_GREENROOF,PTS_GREENROOF,                         &
@@ -72,6 +72,8 @@ USE MODD_CSTS, ONLY : XLVTT , &   ! Latent heat constant for evaporation
 USE MODE_THERMOS                  ! Function to compute humidity at saturation
 USE MODE_GARDEN_BALANCE           ! shared diagnostic balance, neutral coefficients,
 !                                 ! wind floor and flux clips of the garden scheme
+!MV202609 the PHU parameter of the greenroof model (namelist proxy_phu_grf), read here
+USE MODD_PROXI_SVAT_PAR, ONLY : proxy_phu_grf
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
 !
 IMPLICIT NONE
@@ -81,6 +83,9 @@ IMPLICIT NONE
  !* Type of the greenroof parameterization (from the namelist teb_type_greenroof):
  !*   'PROXY_NEW' : diagnostic closed surface energy balance (default)
  !*   'PROXY_OLD' : historical fixed Bowen-ratio proxy (PH = 0.5*Rn, LE = 0.5*Rn)
+ !* The external greenroof ('EXT'/'EXT_NEU') is not modelled here: TEB_GARDEN does
+ !* not call this proxy in that mode (the surface state, the fluxes and the surface
+ !* humidity come from the coupling interface there)
  CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GREENROOF    ! type of the greenroof model
  CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
 !                                                     ! 'OLD' = direct
@@ -115,9 +120,7 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GR             ! green roof roughness
  !MV202609 greenroof thermal roughness (z0h) and tunable surface humidity
  !* z0/z0h ratio (-), >= 1: the scalar (thermal) roughness is z0h = PZ0_GR/PZ0_O_Z0H_GR,
  !* used by heat and moisture (the momentum keeps PZ0_GR), see GARDEN_PCH_NEUTRAL.
- !* PPHU_GR is the relative humidity of the greenroof surface (namelist urb_phu_grf).
  REAL,               INTENT(IN)    :: PZ0_O_Z0H_GR        ! greenroof z0/z0h ratio (-), >= 1
- REAL,               INTENT(IN)    :: PPHU_GR             ! greenroof surface relative humidity (-)
 
 
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GREENROOF         ! net radiation over greenroofs
@@ -172,9 +175,9 @@ CASE ('PROXY_NEW')
    PAC_GREENROOF(:) = ZCA_GR(:)
    !
    !* surface energy balance Rn(Ts) = H + LE with the reference air of the
-   !* forcing level and the surface humidity PPHU_GR (G = 0: no heat flux into
+   !* forcing level and the PHU parameter of this model (G = 0: no heat flux into
    !* the structural roof)
-   CALL GARDEN_BALANCE(ZCA_GR, PTA, PQA, PPHU_GR, PRHOA, PPS, PSW, PLW, PALB_GR, PEMIS_GR,  &
+   CALL GARDEN_BALANCE(ZCA_GR, PTA, PQA, proxy_phu_grf, PRHOA, PPS, PSW, PLW, PALB_GR, PEMIS_GR,  &
                        PTS_GREENROOF, PQSAT_GREENROOF, PH_GREENROOF, PLE_GREENROOF)
    PGFLUX_GREENROOF(:) = 0.       ! no heat flux into the structural roof
    PRN_GREENROOF(:)    = (1.-PALB_GR(:))*PSW(:) + PEMIS_GR(:)*(PLW(:) - XSTEFAN*PTS_GREENROOF(:)**4)
@@ -187,7 +190,7 @@ CASE ('PROXY_NEW')
    !
    !* aggregated latent exchange (diagnostics; the greenroof does not couple
    !* back to the canyon air: it is a roof surface)
-   PHU_AGG_GREENROOF(:) = PPHU_GR
+   PHU_AGG_GREENROOF(:) = proxy_phu_grf
    !
 CASE ('PROXY_OLD')
 !* 1.2  historical fixed Bowen-ratio proxy (PH = 0.5*Rn, LE = 0.5*Rn)
@@ -207,30 +210,7 @@ CASE ('PROXY_OLD')
    PQSAT_GREENROOF(:) = QSAT(PTA(:),PPS(:))
    !
    !* aggregated latent exchange (diagnostics)
-   PHU_AGG_GREENROOF(:) = PPHU_GR   ! surface relative humidity from the namelist urb_phu_grf
-   !
-CASE ('EXT', 'EXT_NEU')
-!* 1.3  EXTERNAL greenroof: the fluxes come from the coupling interface
-!*      (PH_GR_EXT, PLE_GR_EXT, ...), they are prescribed by the caller; only
-!*      the placeholders are set here. The diagnostic exchange coefficients of
-!*      an external greenroof are computed in URBAN_DRAG (EXT/EXT_NEU).
-   PRN_GREENROOF(:) = 0.
-   PH_GREENROOF (:) = 0.
-   PLE_GREENROOF(:) = 0.
-   PGFLUX_GREENROOF(:) = 0.
-   PEVAP_GREENROOF(:) = 0.
-   !
-   !* friction flux: neutral formulation with the greenroof roughness (as before)
-   PUW_GREENROOF(:) = - (XKARMAN/LOG(PUREF(:)/PZ0_GR(:)))**2 * PVMOD(:)**2
-   !
-   !* aerodynamical conductance: provided by URBAN_DRAG for an external greenroof
-   PAC_GREENROOF(:) = 0.
-   !
-   !* surface saturation humidity (placeholder, not solved)
-   PQSAT_GREENROOF(:) = QSAT(PTA(:),PPS(:))
-   !
-   !* aggregated latent exchange (diagnostics)
-   PHU_AGG_GREENROOF(:) = PPHU_GR
+   PHU_AGG_GREENROOF(:) = proxy_phu_grf   ! the PHU parameter of this model
    !
 END SELECT
 !

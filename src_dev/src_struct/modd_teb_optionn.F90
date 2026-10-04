@@ -36,7 +36,7 @@
 USE MODD_TYPE_DATE_SURF
 !MV202609 garden/greenroof surface parameters (single source of truth, shared
 !* with the namelist items of the offline driver)
-USE MODD_PROXI_SVAT_PAR, ONLY : XZ0_O_Z0H_GD, XZ0_O_Z0H_GR, XPHU_GD, XPHU_GR
+USE MODD_PROXI_SVAT_PAR, ONLY : XZ0_O_Z0H_GD, XZ0_O_Z0H_GR
 !
 !
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
@@ -113,11 +113,6 @@ TYPE TEB_OPTIONS_t
 !MV202609 greenroof thermal roughness (z0h): same formulation as the garden,
 !* ratio z0/z0h of the namelist item urb_z0_o_z0h_grf (>= 1, default XZ0_O_Z0H_GR)
   REAL                           :: XZ0_O_Z0H_GR ! greenroof z0/z0h ratio (-)
-!MV202609 tunable surface relative humidity (namelist urb_phu_gdn / urb_phu_grf)
-!* Used by BOTH proxy schemes of each surface: 'PROXY_NEW' drives the latent
-!* flux LE = rho*Lv*Ca*(PHU*qsat(Ts) - qa), 'PROXY_OLD' drives PHU_AGG_*.
-  REAL                           :: XPHU_GD      ! garden    surface relative humidity (-)
-  REAL                           :: XPHU_GR      ! greenroof surface relative humidity (-)
 
 !MV202609 tau scheme of the road
 ! tau scheme for the road: the actual road fluxes are the weighted mean of the
@@ -193,11 +188,9 @@ YTEB_OPTIONS%LGREENROOF=.FALSE.
 YTEB_OPTIONS%CTYPE_GARDEN='PROXY_NEW'
 !MV202609 garden thermal roughness (z0h)
 YTEB_OPTIONS%XZ0_O_Z0H_GD=XZ0_O_Z0H_GD
-!MV202609 greenroof model type, thermal roughness and surface humidity
+!MV202609 greenroof model type and thermal roughness
 YTEB_OPTIONS%CTYPE_GREENROOF='PROXY_NEW'
 YTEB_OPTIONS%XZ0_O_Z0H_GR=XZ0_O_Z0H_GR
-YTEB_OPTIONS%XPHU_GD=XPHU_GD
-YTEB_OPTIONS%XPHU_GR=XPHU_GR
 YTEB_OPTIONS%LHYDRO=.FALSE.
 YTEB_OPTIONS%LSOLAR_PANEL=.FALSE.
 YTEB_OPTIONS%LTAU_SCHEME=.FALSE.

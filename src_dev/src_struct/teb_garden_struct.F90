@@ -97,7 +97,7 @@
                      PDT_RES, PDT_OFF,                                        &
                      PCUR_TCOOL_TARGET, PCUR_THEAT_TARGET, PCUR_QIN ,         &
 					 PDN_RF, PDN_RD, PMELT_BLT, PSNOWD_RF, PSNOWD_RD, PLW_UP, &
-					 PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT,   &
+					 PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PQV_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT,   &
 					 PRUNOFF_GR_EXT, PALB_GD_EXT, PEMIS_GD_EXT, PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT, &
 					 PLE_GD_EXT, PEVAP_GD_EXT, PCH_GD, PCD_GD, PRUNOFF_GD_EXT, PCH_RD,    &
 					 PCH_RF, PCH_WL, PCH_TOP, PAC_TOP, ILMO_ROAD, ILMO_ROOF,  &
@@ -119,7 +119,7 @@
 !MV202609 garden thermal roughness (z0h)
                           XZ0_O_Z0H_GD, &
 !MV202609 greenroof model type, thermal roughness and surface humidity
-                          XZ0_O_Z0H_GR, XPHU_GD, XPHU_GR, &
+                          XZ0_O_Z0H_GR, &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, &
@@ -315,7 +315,8 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PSVF_GARDEN        ! green area sky view 
 REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GR_EXT         ! greenroof roughness length (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GR_EXT        ! green roof albedo (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GR_EXT       ! green roof emissivity (external model)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PTSRAD_GR_EXT      ! greenroof radiative surface temp. (snow free) (external model) 
+REAL, DIMENSION(:)  , INTENT(IN)    :: PTSRAD_GR_EXT      ! greenroof radiative surface temp. (snow free) (external model)
+REAL, DIMENSION(:)  , INTENT(IN)    :: PQV_GR_EXT         ! greenroof specific humidity (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PH_GR_EXT          ! sensible heat flux over greenroofs (external model) 
 REAL, DIMENSION(:)  , INTENT(IN)    :: PLE_GR_EXT         ! latent heat flux over greenroofs (external model) 
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEVAP_GR_EXT       ! total evaporation over greenroofs (kg/m2/s) (external model)
@@ -329,7 +330,7 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PH_GD_EXT          ! sensible heat flux o
 REAL, DIMENSION(:)  , INTENT(IN)    :: PLE_GD_EXT         ! latent heat flux over garden 
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEVAP_GD_EXT       ! total evaporation over garden (kg/m2/s)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_GD             ! drag coeifficient for heat
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PCD_GD             ! garden  surf. exchange coefficient
+REAL, DIMENSION(:)  , INTENT(INOUT)   :: PCD_GD             ! garden  surf. exchange coefficient
 REAL, DIMENSION(:)  , INTENT(IN)    :: PRUNOFF_GD_EXT     ! garden surface runoff 
 
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_RD             ! drag coeifficient for heat
@@ -510,7 +511,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_GREENROOF  ! greenroof saturation spe
 REAL, DIMENSION(:), INTENT(OUT)   :: PHU_GREENROOF    ! greenroof aggregated relative humidity [-]
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)
+REAL, DIMENSION(:), INTENT(INOUT)   :: PCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GREENROOF_ATM! greenroof neutral drag coefficient (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
@@ -523,8 +524,6 @@ REAL,                 INTENT(IN)  :: XTAU_HW_WIDTH    ! width of the tanh relaxa
 REAL,                 INTENT(IN)  :: XZ0_O_Z0H_GD      ! garden z0/z0h ratio (-), >= 1
 !MV202609 greenroof model type, thermal roughness and surface humidity
  REAL,                 INTENT(IN)  :: XZ0_O_Z0H_GR      ! greenroof z0/z0h ratio (-), >= 1
- REAL,                 INTENT(IN)  :: XPHU_GD           ! garden    surface relative humidity (-)
- REAL,                 INTENT(IN)  :: XPHU_GR           ! greenroof surface relative humidity (-)
 
 !                                                         !    and structural roof
 !
@@ -1017,10 +1016,8 @@ TOP%XTAU_HW_THRESH = XTAU_HW_THRESH ! H/W giving tau = 0.5 (tau scheme)
 TOP%XTAU_HW_WIDTH  = XTAU_HW_WIDTH  ! width of the tanh relaxation (tau scheme)
 !MV202609 garden thermal roughness (z0h)
 TOP%XZ0_O_Z0H_GD   = XZ0_O_Z0H_GD   ! garden z0/z0h ratio (-)
-!MV202609 greenroof model type, thermal roughness and surface humidity
+!MV202609 greenroof model type and thermal roughness
 TOP%XZ0_O_Z0H_GR   = XZ0_O_Z0H_GR   ! greenroof z0/z0h ratio (-)
-TOP%XPHU_GD        = XPHU_GD        ! garden    surface relative humidity (-)
-TOP%XPHU_GR        = XPHU_GR        ! greenroof surface relative humidity (-)
 ! 
 ! type of initialization of vegetation: from cover types (ecoclimap) or parameters prescribed
 !
@@ -1207,7 +1204,7 @@ CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENR
 						   PAC_GREENROOF, PAC_ROAD_WAT, PAC_GARDEN_WAT, PAC_GREENROOF_WAT, KDAY, PEMIT_LW_FAC,     &
 						   PEMIT_LW_GRND, PT_RAD_IND, PREF_SW_GRND, PREF_SW_FAC, PHU_BLD, PTIME, PPROD_BLD, PDN_RF,&
 						   PDN_RD, PMELT_BLT, PSNOWD_RF, PSNOWD_RD, PLW_UP,                                        &
-						   PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT, PRUNOFF_GR_EXT, PALB_GD_EXT, PEMIS_GD_EXT,   &
+						   PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PQV_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT, PRUNOFF_GR_EXT, PALB_GD_EXT, PEMIS_GD_EXT,   &
 						   PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT, PLE_GD_EXT, PEVAP_GD_EXT, PCH_GD, PCD_GD, PRUNOFF_GD_EXT, PCH_RD, PCH_RF, &
 						   PCH_WL, PCH_TOP, PAC_TOP, ILMO_ROAD, ILMO_ROOF, ILMO_TOP, PCD_GARDEN_ATM, PCH_GARDEN_ATM,                         &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics

@@ -89,10 +89,11 @@ USE MODE_THERMOS
 !
 IMPLICIT NONE
 !
-!* Surface relative humidity of the diagnostic scheme is now a RUNTIME argument
-!* (PPHU / PPHU_GD below), read from the namelist items urb_phu_gdn (garden) and
-!* urb_phu_grf (greenroof); their defaults are MODD_PROXI_SVAT_PAR:XPHU_GD and
-!* XPHU_GR (single source of truth).
+!* Surface relative humidity of the diagnostic scheme is a parameter of this
+!* module: the namelist item proxy_phu_gdn (garden) or proxy_phu_grf (greenroof) of
+!* MODD_PROXI_SVAT_PAR (both default to 0.7), read directly by the proxies.
+!* TEB_GARDEN does not see them (an external garden takes the moisture multiplier
+!* from the surface humidity of the host).
 !* Minimum wind speed of the diagnostic scheme (m/s): the surface must not be
 !* decoupled from the air when the wind vanishes, otherwise the surface
 !* temperature is not anchored by the turbulent fluxes any more. It is applied by
@@ -347,7 +348,7 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PPCH_GD            ! garden thermal (scal
 REAL, DIMENSION(:)  , INTENT(IN)    :: PV_GD              ! wind of the reference state (m/s)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PT_REF             ! reference air temperature (K)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PQ_REF             ! reference air humidity (kg/kg)
- !MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
+ !MV202609 tunable surface relative humidity of the garden (namelist proxy_phu_gdn)
  REAL                , INTENT(IN)    :: PPHU_GD            ! garden surface relative humidity (-)
 
 !
@@ -469,14 +470,14 @@ END SUBROUTINE GARDEN_PCD
 !
 !     #########
     SUBROUTINE GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,    &
-                PZ0_O_Z0H, PPHU_GD,                                                       &
+                PZ0_O_Z0H,                                                       &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                  &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
                 PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                 &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                       &
                 PDRAIN_GARDEN, PIRRIG_GARDEN,                                             &
-!MV202609 garden exchange coefficients returned to the caller
-                PPCD_GD, PPCH_GD              )
+!MV202609 garden exchange coefficients and moisture multiplier of the garden model
+                PPCD_GD, PPCH_GD, PHU_AGG_GARDEN     )
 !   ##########################################################################
 !
 !!****  *GARDEN*
@@ -517,6 +518,8 @@ END SUBROUTINE GARDEN_PCD
 !
 USE MODI_GARDEN, ONLY : GARDEN_PCD   ! the routine doing the surface balance
 USE MODE_GARDEN_BALANCE              ! neutral formulation and its parameters
+!MV202609 the PHU parameter of the garden model (namelist proxy_phu_gdn), read here
+USE MODD_PROXI_SVAT_PAR, ONLY : proxy_phu_gdn
 !
 IMPLICIT NONE
 !
@@ -533,8 +536,6 @@ REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length 
 !* z0/z0h ratio of the garden (-), >= 1: the scalar (thermal) roughness is
 !* z0h = PZ0_GD/PZ0_O_Z0H, see GARDEN_PCH_NEUTRAL
 REAL,               INTENT(IN)  :: PZ0_O_Z0H        ! garden z0/z0h ratio (-)
- !MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
- REAL,               INTENT(IN)  :: PPHU_GD          ! garden surface relative humidity (-)
 
 REAL, DIMENSION(:)  , INTENT(IN)  :: PALB_GD          ! garden albedo
 REAL, DIMENSION(:)  , INTENT(IN)  :: PEMIS_GD         ! garden emissivity
@@ -560,6 +561,8 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irriga
 !* for the diagnostic garden ('PROXY_NEW'), zeros for the Bowen proxy (no coefficient)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCD_GD            ! momentum exchange coefficient (-)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCH_GD            ! thermal (scalar) exchange coefficient (-)
+!MV202609 moisture multiplier of the internal schemes, returned to the caller
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN     ! garden surface relative humidity (-)
 !
 !*      0.2    Declarations of local variables
 !
@@ -586,7 +589,7 @@ END DO
 !*             reference air are handed over to GARDEN_PCD)
 !              ----------------------------------------------------------
 !
-CALL GARDEN_PCD(TYPE_GARDEN, ZPCD_GD, ZPCH_GD, PU_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PPHU_GD,     &
+CALL GARDEN_PCD(TYPE_GARDEN, ZPCD_GD, ZPCH_GD, PU_LOWCAN, PT_LOWCAN, PQ_LOWCAN, proxy_phu_gdn,     &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                    &
                 PRN_GARDEN, PH_GARDEN, PLE_GARDEN, PGFLUX_GARDEN, PSFCO2, PEVAP_GARDEN,     &
                 PUW_GARDEN, PRUNOFF_GARDEN, PAC_GARDEN, PQSAT_GARDEN, PTS_GARDEN,           &
@@ -602,13 +605,17 @@ ELSE
   PPCH_GD(:) = 0.
 END IF
 !
+!* moisture multiplier returned to the caller: the PHU parameter of the internal
+!* schemes (an external garden takes it from the surface humidity of the host)
+PHU_AGG_GARDEN(:) = proxy_phu_gdn
+!
 !-------------------------------------------------------------------------------
 !
 END SUBROUTINE GARDEN
 !
 !     #############
     SUBROUTINE GARDEN_TAU(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD, &
-                PZ0_O_Z0H, PPHU_GD,                                                       &
+                PZ0_O_Z0H,                                                       &
                 PUREF, PVMOD, PTA, PQA, PTAU, LTAU_SPLIT,                                  &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                   &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                      &
@@ -617,8 +624,8 @@ END SUBROUTINE GARDEN
                 PDRAIN_GARDEN, PIRRIG_GARDEN,              &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
                 PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM,              &
-!MV202609 garden exchange coefficients of the canyon path, returned to the caller
-                PPCD_GD, PPCH_GD                                                            )
+!MV202609 garden exchange coefficients and moisture multiplier, returned to the caller
+                PPCD_GD, PPCH_GD, PHU_AGG_GARDEN                                       )
 !   ##########################################################################
 !
 !!****  *GARDEN_TAU*
@@ -665,6 +672,8 @@ USE MODD_CSTS, ONLY : XLVTT , &   ! Latent heat constant for evaporation
                       XSTEFAN     ! Stefan-Boltzmann constant
 USE MODI_GARDEN, ONLY : GARDEN    ! reduced garden used without the split
 USE MODE_GARDEN_BALANCE          ! shared diagnostic balance and its parameters
+!MV202609 the PHU parameter of the garden model (namelist proxy_phu_gdn), read here
+USE MODD_PROXI_SVAT_PAR, ONLY : proxy_phu_gdn
 !
 IMPLICIT NONE
 !
@@ -685,8 +694,6 @@ REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length 
 !* z0/z0h ratio of the garden (-), >= 1: the scalar (thermal) roughness is
 !* z0h = PZ0_GD/PZ0_O_Z0H, see GARDEN_PCH_NEUTRAL
 REAL,               INTENT(IN)  :: PZ0_O_Z0H        ! garden z0/z0h ratio (-)
- !MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
- REAL,               INTENT(IN)  :: PPHU_GD          ! garden surface relative humidity (-)
 
 !MV202609 tau scheme of the garden
 !* Reference state of the air of the forcing level (used by the tau split)
@@ -726,6 +733,8 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GARDEN_ATM     ! latent heat flux, at
 !* conductances of this proxy are built from
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCD_GD            ! momentum exchange coefficient (-)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCH_GD            ! thermal (scalar) exchange coefficient (-)
+!MV202609 moisture multiplier of the internal schemes, returned to the caller
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN     ! garden surface relative humidity (-)
 !
 !*      0.2    Declarations of local variables
 !
@@ -739,6 +748,8 @@ REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZV_GD    ! canyon-path wind (m/s)
 !MV202609 canyon-path exchange coefficients, returned to the caller
 REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPCD_GD  ! momentum coefficient (-)
 REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPCH_GD  ! thermal (scalar) coefficient (-)
+!MV202609 moisture multiplier, returned to the caller
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPHU_AGG_GD ! moisture multiplier (-)
 INTEGER :: JI_GD
 !
 !-------------------------------------------------------------------------------
@@ -778,6 +789,9 @@ DO JI_GD = 1, SIZE(PT_LOWCAN)
    ZCA_M_GD(JI_GD) = ZPCD_GD(JI_GD) * ZV_GD(JI_GD)
    ZCA_GD(JI_GD)   = ZPCH_GD(JI_GD) * ZV_GD(JI_GD)
 END DO
+!* moisture multiplier of the tau branch: the parameter of this model (an
+!* external garden takes it from the surface humidity of the host instead)
+ZPHU_AGG_GD(:) = proxy_phu_gdn
 PAC_GARDEN(:) = ZCA_GD(:)
 PUW_GARDEN(:) = -ZCA_M_GD(:) * ZV_GD(:)
 !
@@ -802,7 +816,7 @@ END DO
 !
 !* 2.2  surface energy balance: one Newton solve with the tau-aggregated
 !*      conductance and reference air (shared solver; G = 0)
-CALL GARDEN_BALANCE(ZCA_EFF, ZT_REF, ZQ_REF, PPHU_GD, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
+CALL GARDEN_BALANCE(ZCA_EFF, ZT_REF, ZQ_REF, proxy_phu_gdn, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
                     PTS_GARDEN, PQSAT_GARDEN, PH_GARDEN, PLE_GARDEN)
 !
 !* 2.3  actual (tau-aggregated) fluxes and their canyon / atmosphere branches:
@@ -810,8 +824,8 @@ CALL GARDEN_BALANCE(ZCA_EFF, ZT_REF, ZQ_REF, PPHU_GD, PRHOA, PPS, PSW, PLW, PALB
 !*      PH_GARDEN = PTAU*PH_GARDEN_CAN + (1-PTAU)*PH_GARDEN_ATM holds identically
 PH_GARDEN_CAN(:)  = PRHOA(:)*XCPD *ZCA_GD (:)*(PTS_GARDEN(:) - PT_LOWCAN(:))
 PH_GARDEN_ATM(:)  = PRHOA(:)*XCPD *ZCA_ATM(:)*(PTS_GARDEN(:) - PTA(:))
-PLE_GARDEN_CAN(:) = PRHOA(:)*XLVTT*ZCA_GD (:)*(PPHU_GD*PQSAT_GARDEN(:) - PQ_LOWCAN(:))
-PLE_GARDEN_ATM(:) = PRHOA(:)*XLVTT*ZCA_ATM(:)*(PPHU_GD*PQSAT_GARDEN(:) - PQA(:))
+PLE_GARDEN_CAN(:) = PRHOA(:)*XLVTT*ZCA_GD (:)*(proxy_phu_gdn*PQSAT_GARDEN(:) - PQ_LOWCAN(:))
+PLE_GARDEN_ATM(:) = PRHOA(:)*XLVTT*ZCA_ATM(:)*(proxy_phu_gdn*PQSAT_GARDEN(:) - PQA(:))
 PGFLUX_GARDEN(:) = 0.       ! no heat flux into the soil (diagnostic proxy garden)
 PRN_GARDEN(:)    = (1.-PALB_GD(:))*PSW(:) + PEMIS_GD(:)*(PLW(:) - XSTEFAN*PTS_GARDEN(:)**4)
 PEVAP_GARDEN(:)  = PLE_GARDEN(:) / XLVTT
@@ -829,13 +843,13 @@ ELSE
 !* 'PROXY_NEW' without the tau split and the historical Bowen-ratio proxy
 !* ('PROXY_OLD' / 'EXT'): the reduced diagnostic garden of GARDEN
 CALL GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,             &
-            PZ0_O_Z0H, PPHU_GD,                                                           &
+            PZ0_O_Z0H,                                                           &
             PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                     &
             PRN_GARDEN, PH_GARDEN, PLE_GARDEN, PGFLUX_GARDEN, PSFCO2, PEVAP_GARDEN,      &
             PUW_GARDEN, PRUNOFF_GARDEN, PAC_GARDEN, PQSAT_GARDEN, PTS_GARDEN,            &
             PDRAIN_GARDEN, PIRRIG_GARDEN,                                                &
 !MV202609 garden exchange coefficients returned by the reduced garden
-            ZPCD_GD, ZPCH_GD)
+            ZPCD_GD, ZPCH_GD, ZPHU_AGG_GD)
 !
 !* GARDEN_TAU is the ONLY routine returning the tau-branch decomposition: the
 !* reduced garden has no tau split, so both branches carry its single modelled
@@ -847,11 +861,13 @@ PLE_GARDEN_CAN(:) = PLE_GARDEN(:)
 PLE_GARDEN_ATM(:) = PLE_GARDEN(:)
 !
 END IF
-!* exchange coefficients returned to the caller: both garden models of this module
-!* (the diagnostic one and the historical Bowen proxy) build them here, and
-!* TEB_GARDEN only forwards them to its own outputs (and to a coupled host)
+!* exchange coefficients and moisture multiplier returned to the caller: both
+!* garden models of this module (the diagnostic one and the historical Bowen
+!* proxy) build them here, and TEB_GARDEN only forwards them to its own outputs
+!* (and to a coupled host)
 PPCD_GD(:) = ZPCD_GD(:)
 PPCH_GD(:) = ZPCH_GD(:)
+PHU_AGG_GARDEN(:) = ZPHU_AGG_GD(:)
 !
 !* CO2 flux is neglected
 PSFCO2(:) = 0.

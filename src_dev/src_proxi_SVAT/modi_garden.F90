@@ -22,7 +22,7 @@ MODULE MODI_GARDEN
 INTERFACE
 !
     SUBROUTINE GARDEN_TAU(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD, &
-                PZ0_O_Z0H, PPHU_GD,                                                       &
+                PZ0_O_Z0H,                                                       &
                 PUREF, PVMOD, PTA, PQA, PTAU, LTAU_SPLIT,                                  &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                   &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                      &
@@ -31,8 +31,8 @@ INTERFACE
                 PDRAIN_GARDEN, PIRRIG_GARDEN,              &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
                 PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM,              &
-!MV202609 garden exchange coefficients of the canyon path, returned to the caller
-                PPCD_GD, PPCH_GD                                                            )
+!MV202609 garden exchange coefficients and moisture multiplier, returned to the caller
+                PPCD_GD, PPCH_GD, PHU_AGG_GARDEN                                       )
  CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
 REAL, DIMENSION(:)  , INTENT(IN)  :: PZ_LOWCAN        ! height of the reference air (m)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN        ! reference air temperature (K)
@@ -41,8 +41,6 @@ REAL, DIMENSION(:)  , INTENT(IN)  :: PU_LOWCAN        ! reference wind (m/s)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length (m)
 !MV202609 garden thermal roughness (z0h)
 REAL,               INTENT(IN)  :: PZ0_O_Z0H        ! garden z0/z0h ratio (-), >= 1
- !MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
- REAL,               INTENT(IN)  :: PPHU_GD          ! garden surface relative humidity (-)
 
 REAL, DIMENSION(:)  , INTENT(IN)  :: PUREF            ! height of the wind of the forcing level (m)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PVMOD            ! wind speed at the forcing level (m/s)
@@ -77,24 +75,23 @@ REAL, DIMENSION(:)  , INTENT(OUT) :: PLE_GARDEN_ATM   ! latent heat flux, atmosp
 !* they are the coefficients the conductances of the proxy are built from
 REAL, DIMENSION(:)  , INTENT(OUT) :: PPCD_GD          ! momentum exchange coefficient (-)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PPCH_GD          ! thermal (scalar) coefficient (-)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PHU_AGG_GARDEN   ! moisture multiplier (-)
 END SUBROUTINE GARDEN_TAU
 !
     SUBROUTINE GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,    &
-                PZ0_O_Z0H, PPHU_GD,                                                       &
+                PZ0_O_Z0H,                                                       &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                  &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
                 PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                                  &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                       &
                 PDRAIN_GARDEN, PIRRIG_GARDEN,                                             &
-!MV202609 garden exchange coefficients returned to the caller
-                PPCD_GD, PPCH_GD              )
+!MV202609 garden exchange coefficients and moisture multiplier of the garden model
+                PPCD_GD, PPCH_GD, PHU_AGG_GARDEN     )
  CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
 REAL, DIMENSION(:)  , INTENT(IN)  :: PZ_LOWCAN        ! height of the reference air (m)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN        ! reference air temperature (K)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PQ_LOWCAN        ! reference air humidity (kg/kg)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PU_LOWCAN        ! reference wind (m/s)
- !MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
- REAL,               INTENT(IN)  :: PPHU_GD          ! garden surface relative humidity (-)
 
 REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length (m)
 !MV202609 garden thermal roughness (z0h)
@@ -123,6 +120,7 @@ REAL, DIMENSION(:)  , INTENT(OUT) :: PIRRIG_GARDEN    ! garden summer irrigation
 !* semantics live in the proxy itself)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PPCD_GD          ! momentum exchange coefficient (-)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PPCH_GD          ! thermal (scalar) coefficient (-)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PHU_AGG_GARDEN   ! moisture multiplier (-)
 END SUBROUTINE GARDEN
 !
 !MV202609 diagnostic garden with an external exchange coefficient (experiment interface)
@@ -133,7 +131,7 @@ END SUBROUTINE GARDEN
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                       &
                 PDRAIN_GARDEN, PIRRIG_GARDEN              )
  CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
- !MV202609 tunable surface relative humidity of the garden (namelist urb_phu_gdn)
+ !MV202609 tunable surface relative humidity of the garden (namelist proxy_phu_gdn)
  REAL                , INTENT(IN)  :: PPHU_GD          ! garden surface relative humidity (-)
 
 REAL, DIMENSION(:)  , INTENT(IN)  :: PPCD_GD          ! momentum exchange coefficient (-)

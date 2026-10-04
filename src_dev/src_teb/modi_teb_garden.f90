@@ -19,7 +19,7 @@ INTERFACE
 						   PAC_GR, PAC_RD_WAT, PAC_GD_WAT, PAC_GR_WAT, KDAY, PEMIT_LW_FAC,        &
 						   PEMIT_LW_GRND, PT_RAD_IND, PREF_SW_GRND, PREF_SW_FAC, PHU_BLD, PTIME,  &
 						   PPROD_BLD, PDN_RF, PDN_RD, PMELT_BLT, PSNOWD_RF, PSNOWD_RD, PLW_UP,    &
-						   PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT, PRUNOFF_GR_EXT,     &
+						   PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PQV_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT, PRUNOFF_GR_EXT,     &
 						   PALB_GD_EXT, PEMIS_GD_EXT, PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT, PLE_GD_EXT, PEVAP_GD_EXT,         &
 						   PCH_GD, PCD_GD, PRUNOFF_GD_EXT, PCH_RD, PCH_RF, PCH_WL, PCH_TOP, PAC_TOP,  &
 						   ILMO_ROAD, ILMO_ROOF, ILMO_TOP, PCD_GARDEN_ATM, PCH_GARDEN_ATM,                         &
@@ -112,6 +112,7 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GR_EXT         ! green roof roughness
 REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GR_EXT        ! green roof albedo (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GR_EXT       ! green roof emissivity (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PTSRAD_GR_EXT      ! greenroof radiative surface temp. (snow free) (external model)
+REAL, DIMENSION(:)  , INTENT(IN)    :: PQV_GR_EXT         ! greenroof specific humidity (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PH_GR_EXT          ! sensible heat flux over greenroofs (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PLE_GR_EXT         ! latent heat flux over greenroofs (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEVAP_GR_EXT       ! total evaporation over greenroofs (kg/m2/s) (external model)
@@ -125,7 +126,7 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PH_GD_EXT              ! sensible heat fl
 REAL, DIMENSION(:)  , INTENT(IN)    :: PLE_GD_EXT             ! latent heat flux over garden (external model)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEVAP_GD_EXT           ! total evaporation over garden (kg/m2/s) (external model)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_GD                 ! drag coeifficient for heat
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PCD_GD                 ! garden  surf. exchange coefficient
+REAL, DIMENSION(:)  , INTENT(INOUT)   :: PCD_GD                 ! garden  surf. exchange coefficient
 REAL, DIMENSION(:)  , INTENT(IN)    :: PRUNOFF_GD_EXT         ! garden surface runoff (external model)
 
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_RD             ! drag coeifficient for heat
@@ -250,7 +251,7 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GREENROOF  ! greenroof saturation 
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GREENROOF    ! greenroof aggregated relative humidity [-]
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)
+REAL, DIMENSION(:)  , INTENT(INOUT)    :: PCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PCDN_GREENROOF_ATM! greenroof neutral drag coefficient (atm.)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PRI_GREENROOF_ATM ! greenroof Richardson number (atm.)

@@ -22,7 +22,7 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 				ZDN_TOWN, ZMELT_BLT_SUM, ZSNOWD_TOWN_NOW, ZSNOWD_TOWN, ZSO_ALB_TOWN, ZTH_ALB_TOWN,            &
 				CBEM, LBEM_AC, HNATVENT, CCOOL_COIL, CHEAT_COIL, ZGR, ZTCOOL_TARGET, ZTHEAT_TARGET, ZV_VENT,  &
 				ZINF, ZCOP_RAT, ZCAP_SYS_RAT, ZM_SYS_RAT, GSHAD_DAY, GNATVENT_NIGHT,                          &
-				ZH_WASTE, ZHVAC_COOL, ZHVAC_HEAT, LGREENROOF, ZFRAC_GR, ZZ0_GR_EXT, ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZH_GR_EXT,  &
+				ZH_WASTE, ZHVAC_COOL, ZHVAC_HEAT, LGREENROOF, ZFRAC_GR, ZZ0_GR_EXT, ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, ZH_GR_EXT,  &
 				ZLE_GR_EXT, ZEVAP_GR_EXT,        &
 				ZRUNOFF_GR_EXT, LGARDEN, ZZ0_GD_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD,   &
 				ZCD_GD, ZRUNOFF_GD_EXT, ITYPE_WIND, ZFAI, ZDQS_TOWN, ZGFLUX_TOWN, ZH_ROOF_FR, ZH_ROAD_FR,         &
@@ -35,8 +35,8 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 				HZ0_TOWN, HZD_TOWN,                         &
 !MV202609 garden thermal roughness (z0h)
                 XZ0_O_Z0H_GD,                               &
-!MV202609 greenroof model type, thermal roughness and surface humidity
-                XZ0_O_Z0H_GR, XPHU_GD, XPHU_GR,            &
+!MV202609 greenroof model type and thermal roughness
+                XZ0_O_Z0H_GR,                              &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
                           PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
@@ -237,8 +237,6 @@ CHARACTER(LEN=16)                 :: HZD_TOWN          !IN displacement height  
 REAL                              :: XZ0_O_Z0H_GD      !IN garden z0/z0h ratio (-)         ( >= 1 )
 !MV202609 greenroof model type, thermal roughness and surface humidity
 REAL                              :: XZ0_O_Z0H_GR      !IN greenroof z0/z0h ratio (-)      ( >= 1 )
-REAL                              :: XPHU_GD           !IN garden    surface relative humidity (-)
-REAL                              :: XPHU_GR           !IN greenroof surface relative humidity (-)
 REAL,DIMENSION(1)                 :: ZROAD_DIR         !IN road direction (° from North, clockwise)													   
 										
 ! Input parameters for BEM                                                                                                                                       ! ||   ||
@@ -270,7 +268,8 @@ LOGICAL                           :: LGREENROOF        !IN Flag to use a green r
 LOGICAL                           :: LGREENROOF_EXT    !IN Flag to use a green roofs scheme (external)
 REAL,DIMENSION(1)                 :: ZALB_GR_EXT       !IN green roof albedo
 REAL,DIMENSION(1)                 :: ZEMIS_GR_EXT      !IN green roof emissivity 
-REAL,DIMENSION(1)                 :: ZTSRAD_GR_EXT     !IN greenroof radiative surface temp. (snow free) 
+REAL,DIMENSION(1)                 :: ZTSRAD_GR_EXT     !IN greenroof radiative surface temp. (snow free)
+REAL,DIMENSION(1)                 :: ZQV_GR_EXT        !IN greenroof specific humidity (external model)
 REAL,DIMENSION(1)                 :: ZH_GR_EXT         !IN sensible heat flux over greenroofs 
 REAL,DIMENSION(1)                 :: ZLE_GR_EXT        !IN latent heat flux over greenroofs 
 REAL,DIMENSION(1)                 :: ZEVAP_GR_EXT      !IN total evaporation over greenroofs (kg/m2/s)
@@ -570,7 +569,7 @@ REAL,DIMENSION(1)  :: ZPQSAT_GREENROOF  ! greenroof saturation specific humidity
 REAL,DIMENSION(1)  :: ZPHU_GREENROOF    ! greenroof aggregated relative humidity (-)
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
 REAL,DIMENSION(1)  :: ZPAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
-REAL,DIMENSION(1)  :: ZPCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)
+REAL,DIMENSION(1)  :: ZPCD_GREENROOF_ATM = XUNDEF ! greenroof drag coefficient (atm.)
 REAL,DIMENSION(1)  :: ZPCDN_GREENROOF_ATM! greenroof neutral drag coefficient (atm.)
 REAL,DIMENSION(1)  :: ZPCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
 REAL,DIMENSION(1)  :: ZPRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
@@ -1592,7 +1591,7 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, TYPE_GREENROOF, LGR
                      ZDT_RES, ZDT_OFF,                                        &
                      ZCUR_TCOOL_TARGET, ZCUR_THEAT_TARGET, ZCUR_QIN ,         &
 					 ZDN_RF, ZDN_RD, ZMELT_BLT, ZSNOWD_RF, ZSNOWD_RD, ZLW_UP, &
-					 ZZ0_GR_EXT, ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZH_GR_EXT, ZLE_GR_EXT, ZEVAP_GR_EXT,   &
+					 ZZ0_GR_EXT, ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, ZH_GR_EXT, ZLE_GR_EXT, ZEVAP_GR_EXT,   &
 					 ZRUNOFF_GR_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, &
 					 ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, ZRUNOFF_GD_EXT, ZCH_RD,    &
 					 ZCH_RF, ZCH_WL, ZCH_TOP, ZAC_TOP, ZILMO_ROAD_CAN, ZILMO_ROOF_EXCH,&
@@ -1613,8 +1612,8 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, TYPE_GREENROOF, LGR
                           LTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
 !MV202609 garden thermal roughness (z0h)
                           XZ0_O_Z0H_GD, &
-!MV202609 greenroof model type, thermal roughness and surface humidity
-                          XZ0_O_Z0H_GR, XPHU_GD, XPHU_GR, &
+!MV202609 greenroof model type and thermal roughness
+                          XZ0_O_Z0H_GR, &
 !MV202609 garden diagnostics
                      ZPTSRAD_GARDEN, ZPRN_GARDEN, ZPH_GARDEN, ZPLE_GARDEN,       &
                      ZPEVAP_GARDEN, ZPQSAT_GARDEN, ZPHU_GARDEN, &

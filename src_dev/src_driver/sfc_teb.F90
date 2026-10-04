@@ -42,7 +42,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				teb_itype_bem_cool, teb_itype_bem_heat, teb_frac_gz, teb_tcool_target,              &
 				teb_theat_target, teb_bem_vent, teb_bem_inf, teb_bem_cop, teb_cap_sys_rat,          &
 				teb_m_sys_rat, teb_shad_day, teb_natvent_night, teb_hwaste, teb_hvac_cool,          &
-				teb_hvac_heat, teb_lgreenroof,  teb_frac_gr, teb_z0_gr, teb_alb_gr, teb_emis_gr, teb_ts_gr,    &
+				teb_hvac_heat, teb_lgreenroof,  teb_frac_gr, teb_z0_gr, teb_alb_gr, teb_emis_gr, teb_ts_gr, teb_qs_gr,    &
 				teb_shfl_gr, teb_lhfl_gr, teb_qvfl_gr, teb_runoff_gr, teb_lgarden, teb_z0_gd,       &
 				teb_alb_gd, teb_emis_gd, teb_ts_gd, teb_qs_gd, teb_shfl_gd, teb_lhfl_gd,            &
 				teb_qvfl_gd, teb_tch_gd, teb_tcm_gd, teb_runoff_gd, teb_itype_wind, teb_fai,        &
@@ -58,8 +58,8 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				urb_z0_town, urb_zd_town,                         &
 !MV202609 garden thermal roughness (z0h)
                 urb_z0_o_z0h_gdn,                                 &
-!MV202609 greenroof model type, thermal roughness and surface humidity
-                urb_z0_o_z0h_grf, urb_phu_gdn, urb_phu_grf,       &
+!MV202609 greenroof model type and thermal roughness
+                urb_z0_o_z0h_grf,                                 &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
                           PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
@@ -155,8 +155,6 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 	REAL                  :: urb_z0_o_z0h_gdn                !IN garden z0/z0h ratio (-)         ( >= 1 )
 !MV202609 greenroof model type, thermal roughness and surface humidity
 	REAL                  :: urb_z0_o_z0h_grf                !IN greenroof z0/z0h ratio (-)      ( >= 1 )
-	REAL                  :: urb_phu_gdn                     !IN garden    surface relative humidity (-)
-	REAL                  :: urb_phu_grf                     !IN greenroof surface relative humidity (-)
     CHARACTER(LEN=4)      :: teb_hroad_dir                  !IN road direction option :                      
                                                             ! 'UNIF' : uniform roads                       
                                                             ! 'ORIE' : specified road orientation          
@@ -201,6 +199,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 REAL ,DIMENSION(nvec) :: teb_alb_gr
 	REAL ,DIMENSION(nvec) :: teb_emis_gr
 	REAL ,DIMENSION(nvec) :: teb_ts_gr
+	REAL ,DIMENSION(nvec) :: teb_qs_gr
 	REAL ,DIMENSION(nvec) :: teb_shfl_gr
 	REAL ,DIMENSION(nvec) :: teb_lhfl_gr
 	REAL ,DIMENSION(nvec) :: teb_qvfl_gr
@@ -437,7 +436,7 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
 				teb_itype_bem_cool, teb_itype_bem_heat, teb_frac_gz(i), teb_tcool_target(i),                            &
 				teb_theat_target(i), teb_bem_vent(i), teb_bem_inf(i), teb_bem_cop(i), teb_cap_sys_rat(i),               &
 				teb_m_sys_rat(i), teb_shad_day(i), teb_natvent_night(i), teb_hwaste(i), teb_hvac_cool(i),               &
-				teb_hvac_heat(i), teb_lgreenroof, teb_frac_gr(i), teb_z0_gr(i), teb_alb_gr(i), teb_emis_gr(i), teb_ts_gr(i),          &
+				teb_hvac_heat(i), teb_lgreenroof, teb_frac_gr(i), teb_z0_gr(i), teb_alb_gr(i), teb_emis_gr(i), teb_ts_gr(i), teb_qs_gr(i),          &
 				teb_shfl_gr(i), teb_lhfl_gr(i), teb_qvfl_gr(i), teb_runoff_gr(i), teb_lgarden, teb_z0_gd(i),            &
 				teb_alb_gd(i), teb_emis_gd(i), teb_ts_gd(i), teb_qs_gd(i), teb_shfl_gd(i), teb_lhfl_gd(i),              &
 				teb_qvfl_gd(i), teb_tch_gd(i), teb_tcm_gd(i), teb_runoff_gd(i), teb_itype_wind, teb_fai(i,:),           &
@@ -453,8 +452,8 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
 				urb_z0_town, urb_zd_town,                         &
 !MV202609 garden thermal roughness (z0h)
                 urb_z0_o_z0h_gdn,                                 &
-!MV202609 greenroof model type, thermal roughness and surface humidity
-                urb_z0_o_z0h_grf, urb_phu_gdn, urb_phu_grf,       &
+!MV202609 greenroof model type and thermal roughness
+                urb_z0_o_z0h_grf,                                 &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
                           PCD_ROAD_CAN(i), PCDN_ROAD_CAN(i), PRI_ROAD_CAN(i), ZZ0H_ROAD_CAN(i), &
                           PAC_ROAD_ATM(i), PCH_ROAD_ATM(i), PCD_ROAD_ATM(i), PCDN_ROAD_ATM(i), &
