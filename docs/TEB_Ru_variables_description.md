@@ -266,7 +266,7 @@ they are undefined (`XUNDEF`):
 | `PHU_GARDEN` | - | Moisture multiplier of the canyon node for the garden: the surface relative humidity of the internal scheme (`urb_phu_gdn`) or, for an external garden, `clamp(q_v/qsat(TS_GARDEN))` of the host |
 <!-- MV202609 garden thermal roughness (z0h) -->
 | `PAC_GARDEN` | m/s | Aerodynamic conductance of the garden **for heat and moisture** (the scalar coefficient `PCH` times `max(U_CANYON, 0.5)`) used by the canyon budget (`0` for `'PROXY_OLD'`) |
-| `PCD_GARDEN_CAN`, `PCH_GARDEN_CAN` | - | Garden/canyon exchange coefficients used by the garden of the model: momentum (`PCD`, friction only) and thermal (`PCH`, heat and moisture, from `urb_z0_o_z0h_gdn`); `0` when no internal garden is active |
+| `PCD_GARDEN_CAN`, `PCH_GARDEN_CAN` | - | Garden/canyon exchange coefficients used by the garden of the model: momentum (`PCD`, friction only) and thermal (`PCH`, heat and moisture, from `urb_z0_o_z0h_gdn`); returned by the garden model itself (`GARDEN`/`GARDEN_TAU`) in the internal modes and by `URBAN_DRAG` in the external ones; `0` for `'PROXY_OLD'` and when the garden is off |
 | `ZZ0H_GARDEN_CAN`, `ZZ0H_GARDEN_ATM` | m | Thermal roughness `z0h` used by the `'EXT_NEU'` garden coefficients (`XUNDEF` for the internal garden, whose `z0h` is visible through `PCH_GARDEN_CAN`) |
 | `H_GARDEN_CAN` | W/m² | Garden sensible heat flux of the canyon branch (`_CAN`) of the tau scheme |
 | `H_GARDEN_ATM` | W/m² | Garden sensible heat flux of the direct garden/atmosphere branch (`_ATM`) |

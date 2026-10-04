@@ -15,7 +15,9 @@
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                &
                 PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                            &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                  &
-                PDRAIN_GARDEN, PIRRIG_GARDEN         ) 
+                PDRAIN_GARDEN, PIRRIG_GARDEN,        &
+!MV202609 garden exchange coefficients returned to the caller
+                PPCD_GD, PPCH_GD                     )
 				
 !   ##########################################################################
 !
@@ -114,6 +116,10 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN       ! saturation humidity
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN         ! radiative surface temp. (snow free)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN      ! garden total (vertical) drainage
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irrigation rate
+!MV202609 exchange coefficients returned to the caller: the proxy of this tree has
+!* none of its own (fixed Bowen ratio) and returns zeros
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCD_GD            ! momentum exchange coefficient (-)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCH_GD            ! thermal (scalar) exchange coefficient (-)
 !
 !
 !*      0.2    Declarations of local variables
@@ -165,6 +171,13 @@ PQSAT_GARDEN(:) = QSAT(PTS_GARDEN(:),PPS(:))
 PRUNOFF_GARDEN(:) = 0.    ! garden surface runoff
 PDRAIN_GARDEN (:) = 0.    ! garden total (vertical) drainage
 PIRRIG_GARDEN (:) = 0.    ! garden irrigation during time step
+!* exchange coefficients of the garden returned to the caller (and to a coupled host
+!* as teb_tch_gd/teb_tcm_gd): this proxy is the historical fixed Bowen-ratio model,
+!* which has no exchange coefficient of its own (its fluxes come from the Bowen ratio
+!* and its friction from its own roughness formulation), so it returns zeros -- the
+!* zeroing lives here and not in TEB_GARDEN
+PPCD_GD(:) = 0.
+PPCH_GD(:) = 0.
 !-------------------------------------------------------------------------------
 !
 !

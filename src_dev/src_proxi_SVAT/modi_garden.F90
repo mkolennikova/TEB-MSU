@@ -30,7 +30,9 @@ INTERFACE
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                        &
                 PDRAIN_GARDEN, PIRRIG_GARDEN,              &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
-                PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM               )
+                PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM,              &
+!MV202609 garden exchange coefficients of the canyon path, returned to the caller
+                PPCD_GD, PPCH_GD                                                            )
  CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
 REAL, DIMENSION(:)  , INTENT(IN)  :: PZ_LOWCAN        ! height of the reference air (m)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN        ! reference air temperature (K)
@@ -71,6 +73,10 @@ REAL, DIMENSION(:)  , INTENT(OUT) :: PH_GARDEN_CAN    ! sensible heat flux, cany
 REAL, DIMENSION(:)  , INTENT(OUT) :: PH_GARDEN_ATM    ! sensible heat flux, atmosphere branch (W/m2)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PLE_GARDEN_CAN   ! latent heat flux, canyon branch (W/m2)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PLE_GARDEN_ATM   ! latent heat flux, atmosphere branch (W/m2)
+!MV202609 garden exchange coefficients of the canyon path, returned to the caller:
+!* they are the coefficients the conductances of the proxy are built from
+REAL, DIMENSION(:)  , INTENT(OUT) :: PPCD_GD          ! momentum exchange coefficient (-)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PPCH_GD          ! thermal (scalar) coefficient (-)
 END SUBROUTINE GARDEN_TAU
 !
     SUBROUTINE GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,    &
@@ -79,7 +85,9 @@ END SUBROUTINE GARDEN_TAU
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
                 PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                                  &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                       &
-                PDRAIN_GARDEN, PIRRIG_GARDEN              )
+                PDRAIN_GARDEN, PIRRIG_GARDEN,                                             &
+!MV202609 garden exchange coefficients returned to the caller
+                PPCD_GD, PPCH_GD              )
  CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
 REAL, DIMENSION(:)  , INTENT(IN)  :: PZ_LOWCAN        ! height of the reference air (m)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN        ! reference air temperature (K)
@@ -110,6 +118,11 @@ REAL, DIMENSION(:)  , INTENT(OUT) :: PQSAT_GARDEN     ! saturation humidity (kg/
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN     ! radiative surface temp. (snow free) (K)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PDRAIN_GARDEN    ! garden total (vertical) drainage (kg/m2/s)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PIRRIG_GARDEN    ! garden summer irrigation rate (kg/m2/s)
+!MV202609 garden exchange coefficients returned to the caller: the neutral-log pair
+!* for the diagnostic garden ('PROXY_NEW'), zeros for the Bowen proxy (the mode
+!* semantics live in the proxy itself)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PPCD_GD          ! momentum exchange coefficient (-)
+REAL, DIMENSION(:)  , INTENT(OUT) :: PPCH_GD          ! thermal (scalar) coefficient (-)
 END SUBROUTINE GARDEN
 !
 !MV202609 diagnostic garden with an external exchange coefficient (experiment interface)

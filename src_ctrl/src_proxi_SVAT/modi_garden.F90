@@ -16,7 +16,9 @@ INTERFACE
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                &
                 PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                             &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                  &
-                PDRAIN_GARDEN, PIRRIG_GARDEN         )  
+                PDRAIN_GARDEN, PIRRIG_GARDEN,        &
+!MV202609 garden exchange coefficients returned to the caller
+                PPCD_GD, PPCH_GD                     )
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
  CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
 TYPE(DATE_TIME)     , INTENT(IN)    :: TPTIME             ! current date and time from teb
@@ -54,7 +56,11 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GARDEN         ! aerodynamical conduc
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN       ! saturation humidity
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN         ! radiative surface temp. (snow free)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN      ! garden total (vertical) drainage
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irrigation rate
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN     ! garden summer irrigation rate
+!MV202609 exchange coefficients returned to the caller: the proxy of this tree has
+!* none of its own (fixed Bowen ratio) and returns zeros
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCD_GD            ! momentum exchange coefficient (-)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCH_GD            ! thermal (scalar) exchange coefficient (-)
 END SUBROUTINE GARDEN
 END INTERFACE
 END MODULE MODI_GARDEN

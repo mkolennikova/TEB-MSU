@@ -545,12 +545,15 @@ exchange coefficients of the garden are computed in `URBAN_DRAG` only when the
 garden is provided by an external model (`teb_type_garden = 'EXT'`), because
 only then `PTS_GARDEN`/`PQS_GARDEN` describe a real garden surface state. With
 the **internal** garden model (`teb_lgarden = .TRUE.`,
-`teb_type_garden = 'PROXY_OLD'` or `'PROXY_NEW'`) the canyon exchange coefficient
-of the garden is
-set to zero in `TEB_GARDEN` right after the garden model call
-(`ZQV_GD = 0; PCH_GD = 0; PCD_GD = 0`), because the proxy-SVAT garden provides
-its own fluxes, and the garden/atmosphere coefficients are left undefined
-(`XUNDEF`): the placeholder surface state of the internal garden (surface
+`teb_type_garden = 'PROXY_OLD'` or `'PROXY_NEW'`) the canyon exchange
+coefficients of the garden are returned by the garden model itself (`GARDEN` /
+`GARDEN_TAU` of `src_proxi_SVAT/garden.F90`, i.e. the same neutral-log
+formulation that builds its conductances): the diagnostic garden (`'PROXY_NEW'`)
+returns the pair it built the balance with, while the historical Bowen proxy
+(`'PROXY_OLD'`) has no exchange coefficient of its own and returns zeros.
+`TEB_GARDEN` neither computes nor zeroes them - it only forwards them to the
+caller. The garden/atmosphere coefficients are left undefined (`XUNDEF`) in
+both cases: the placeholder surface state of the internal garden (surface
 temperature = canyon air temperature, surface humidity = 0) would make them
 meaningless. Constant-zero series are reported as `constant (std = 0)` in
 `summary_exch_coef.csv` and drawn as a flat line at zero; the undefined ones

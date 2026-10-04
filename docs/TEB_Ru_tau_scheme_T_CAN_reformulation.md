@@ -76,7 +76,7 @@ ENDIF
 | `src/src_teb/teb.F90` (раздел бюджета дороги) | эффективную проводимость дороги и её эталонный воздух для `ROAD_LAYER_E_BUDGET` |
 | `src/src_teb/avg_urban_fluxes.F90` (узел температуры каньона) | вес дороги и снега на дороге в `T_CAN0` |
 | `src/src_teb/avg_urban_fluxes.F90` (узел влажности каньона) | вес дороги и снега в `PQ_CAN0` |
-| `src/src_teb/teb_garden.F90` → `src/src_proxi_SVAT/garden.F90` (`GARDEN_TAU`) | каньонную и атмосферную проводимости сада и его эталонный воздух |
+| `src/src_teb/teb_garden.F90` → `src/src_proxi_SVAT/garden.F90` (`GARDEN_TAU`) | каньонную и атмосферную проводимости сада, его коэффициенты обмена и его эталонный воздух |
 | активация расщепления сада | `LTAU_SPLIT = TOP%LTAU_SCHEME .AND. TOP%CTYPE_GARDEN == 'PROXY_NEW'` |
 
 Внешние интерфейсы драйвера (`namelist`, `sfc_teb.F90`, `call_driver.F90`) при

@@ -839,7 +839,9 @@ IF (TOP%LGARDEN) THEN
               PT_LOWCAN, PQ_LOWCAN, PEXNS, PRHOA, PCO2, PPS, PRR, PSR, PZENITH,         &
               ZREC_SW_GD, ZREC_LW_GD, PU_LOWCAN, ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,     &
               ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,     &
-              ZDRAIN_GD, ZIRRIG_GD )
+              ZDRAIN_GD, ZIRRIG_GD,                                              &
+!MV202609 garden exchange coefficients, returned by the garden model
+              PCD_GD, PCH_GD )
 
 !* external garden ('EXT'/'EXT_NEU'): no proxy model is called. The surface state
 !* of the host is already in ZTSRAD_GD and only its qsat and its friction flux are
@@ -861,15 +863,11 @@ ZHU_AGG_GD(:) = XPHU_GD
   DMT%XABS_LW_GARDEN(:) = ZEMIS_GD(:) * ZREC_LW_GD(:) - XSTEFAN * ZEMIS_GD(:) * ZTSRAD_GD(:)**4 
   ZEMIT_LW_GD(:) = XSTEFAN * ZTSRAD_GD(:)**4 + (1 - ZEMIS_GD(:)) / ZEMIS_GD(:) * DMT%XABS_LW_GARDEN(:)
   ZQV_GD(:) = 0.
-  !* exchange coefficients of the garden returned to the caller (and to a coupled
-  !* host as teb_tch_gd/teb_tcm_gd): for the EXTERNAL garden they are the values
-  !* URBAN_DRAG computed in its OGARDEN_EXT branch (already in PCH_GD/PCD_GD after
-  !* the call of TEB, as in COSMO-TEB); the internal garden of this tree has no
-  !* coefficients of its own, so they stay zero there
-  IF (.NOT. OGARDEN_EXT) THEN
-    PCH_GD(:) = 0.
-    PCD_GD(:) = 0.
-  END IF
+!* exchange coefficients of the garden: the garden model itself returns them (the
+!* proxy of this tree is the historical Bowen ratio model and returns zeros, it has
+!* no exchange coefficient of its own), while for the EXTERNAL garden the proxy is
+!* not called and these arrays keep the values URBAN_DRAG computed in its
+!* OGARDEN_EXT branch (as in COSMO-TEB)
   
   IF (OGARDEN_EXT) THEN
     ZH_GD(:) = PH_GD_EXT(:)

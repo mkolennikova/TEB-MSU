@@ -1074,7 +1074,9 @@ IF (TOP%CTYPE_GARDEN /= 'EXT' .AND. TOP%CTYPE_GARDEN /= 'EXT_NEU') THEN
               ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,      &
               ZDRAIN_GD, ZIRRIG_GD,                              &
 !MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
-              ZPH_GD_CAN, ZPH_GD_ATM, ZPLE_GD_CAN, ZPLE_GD_ATM )
+              ZPH_GD_CAN, ZPH_GD_ATM, ZPLE_GD_CAN, ZPLE_GD_ATM,                          &
+!MV202609 garden exchange coefficients, returned by the garden model
+              PCD_GD, PCH_GD )
 !* external garden ('EXT'/'EXT_NEU'): no proxy model is called. The surface state
 !* of the host is already in ZTSRAD_GD and only its qsat and its friction flux are
 !* built here; its fluxes and its conductance to the canyon air are prescribed from
@@ -1096,23 +1098,13 @@ ZHU_AGG_GD(:) = TOP%XPHU_GD
   ZEMIT_LW_GD(:) = XSTEFAN * ZTSRAD_GD(:)**4 + (1 - ZEMIS_GD(:)) / ZEMIS_GD(:) * DMT%XABS_LW_GARDEN(:)
   ZQV_GD(:) = 0.
 !MV202609 garden thermal roughness (z0h)
-!* exchange coefficients of the garden WITH THE CANYON AIR actually used by the
-!* diagnostic balance (canyon-path height PZ_LOWCAN and wind PU_LOWCAN): the
-!* momentum coefficient PCD (only the friction flux uses it) and the thermal
-!* coefficient PCH built from the scalar roughness z0h = z0/TOP%XZ0_O_Z0H_GD.
-  !* They are exported in the PCD_GARDEN_CAN / PCH_GARDEN_CAN columns and returned to
-  !* the caller (and to a coupled host as teb_tch_gd/teb_tcm_gd): the internal
-  !* diagnostic scheme builds them here, the external garden keeps the ones
-  !* URBAN_DRAG computed for the canyon path (PCH_GARDEN_CAN/PCD_GARDEN_CAN, already
-  !* in PCH_GD/PCD_GD after the call of TEB, as in COSMO-TEB), and the historical
-  !* Bowen-ratio proxy has none of its own (stays zero)
-  IF (TOP%CTYPE_GARDEN == 'PROXY_NEW') THEN
-    PCD_GD(:) = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:))
-    PCH_GD(:) = GARDEN_PCH_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:), TOP%XZ0_O_Z0H_GD)
-  ELSE IF (TOP%CTYPE_GARDEN /= 'EXT' .AND. TOP%CTYPE_GARDEN /= 'EXT_NEU') THEN
-    PCH_GD(:) = 0.
-    PCD_GD(:) = 0.
-  END IF
+!* exchange coefficients of the garden: computed and returned by the garden model
+!* itself (GARDEN_TAU / GARDEN of src_proxi_SVAT, section 8.2 above) and handed
+!* over here directly through the argument list of the call. They are exported in
+!* the PCD_GARDEN_CAN / PCH_GARDEN_CAN columns and returned to the caller (and to
+!* a coupled host as teb_tch_gd/teb_tcm_gd). For the EXTERNAL garden the proxy is
+!* not called at all and these arrays keep the values URBAN_DRAG computed in its
+!* OGARDEN_EXT branch (as in COSMO-TEB)
   
   IF (TOP%CTYPE_GARDEN == 'EXT' .OR. TOP%CTYPE_GARDEN == 'EXT_NEU') THEN
     ZH_GD(:) = PH_GD_EXT(:)
