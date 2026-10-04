@@ -1329,7 +1329,19 @@ ENDIF
 IF (TYPE_GARDEN == 'EXT' .OR. TYPE_GARDEN == 'EXT_NEU') THEN
   ZRUNOFF_GD_EXT    = ZRUNOFF_GD_EXT / dt
 ENDIF	
-!
+
+!MV202609 garden roughness of an EXTERNAL garden
+!* for the external garden the coefficients of URBAN_DRAG are computed with the
+!* roughness of the host (teb_z0_gd, argument ZZ0_GD_EXT); a non-physical value
+!* would silently give wrong coefficients and a wrong teb_tch_gd/teb_tcm_gd to
+!* the host (see the garden diagnostic scheme, section 9)
+IF (LGARDEN .AND. (TYPE_GARDEN == 'EXT' .OR. TYPE_GARDEN == 'EXT_NEU')) THEN
+  IF (ZZ0_GD_EXT(1) <= 0. .OR. ZZ0_GD_EXT(1) >= XUNDEF) THEN
+    WRITE(*,*) 'ERROR in CALL_DRIVER: garden type ', TRIM(TYPE_GARDEN), ' but ZZ0_GD_EXT = ', ZZ0_GD_EXT(1), ' m'
+    WRITE(*,*) '   an external garden needs the garden roughness of the host (teb_z0_gd)'
+    STOP 1
+  ENDIF
+ENDIF
 ! -----------------------------------------------------------
 ! BEM characteristics
 ! -----------------------------------------------------------

@@ -1100,15 +1100,18 @@ ZHU_AGG_GD(:) = TOP%XPHU_GD
 !* diagnostic balance (canyon-path height PZ_LOWCAN and wind PU_LOWCAN): the
 !* momentum coefficient PCD (only the friction flux uses it) and the thermal
 !* coefficient PCH built from the scalar roughness z0h = z0/TOP%XZ0_O_Z0H_GD.
-!* They are exported in the PCD_GARDEN_CAN / PCH_GARDEN_CAN columns. The
-!* historical Bowen-ratio proxy and the external garden keep the former zero
-!* values (the proxy does not use a conductance at all, and the coefficients of
-!* an external garden are the ones computed by URBAN_DRAG).
-  PCH_GD(:) = 0.
-  PCD_GD(:) = 0.
+  !* They are exported in the PCD_GARDEN_CAN / PCH_GARDEN_CAN columns and returned to
+  !* the caller (and to a coupled host as teb_tch_gd/teb_tcm_gd): the internal
+  !* diagnostic scheme builds them here, the external garden keeps the ones
+  !* URBAN_DRAG computed for the canyon path (PCH_GARDEN_CAN/PCD_GARDEN_CAN, already
+  !* in PCH_GD/PCD_GD after the call of TEB, as in COSMO-TEB), and the historical
+  !* Bowen-ratio proxy has none of its own (stays zero)
   IF (TOP%CTYPE_GARDEN == 'PROXY_NEW') THEN
     PCD_GD(:) = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:))
     PCH_GD(:) = GARDEN_PCH_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:), TOP%XZ0_O_Z0H_GD)
+  ELSE IF (TOP%CTYPE_GARDEN /= 'EXT' .AND. TOP%CTYPE_GARDEN /= 'EXT_NEU') THEN
+    PCH_GD(:) = 0.
+    PCD_GD(:) = 0.
   END IF
   
   IF (TOP%CTYPE_GARDEN == 'EXT' .OR. TOP%CTYPE_GARDEN == 'EXT_NEU') THEN

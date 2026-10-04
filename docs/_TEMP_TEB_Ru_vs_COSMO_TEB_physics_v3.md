@@ -185,7 +185,13 @@ q_v, SHF, LHF, qvfl, tch, tcm, runoff» совпадает с H (`H:COSMO/sfc_te
 проводка — `CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, LGARDEN_EXT, LGREENROOF, LGREENROOF_EXT, LSOLAR_PANEL,`
 в `src_driver/call_driver.F90:1258`).
 
-### 2.2. `INTENT` и семантика садового пакета
+* **(г) способ включения внешнего сада различается между нашими ветвями:** `src_ctrl` — флагом
+  `LGARDEN_EXT` (`src_driver/call_driver.F90:239`), `src_dev` — строкой типа `TYPE_GARDEN`
+  (`src_dev/src_driver/call_driver.F90:281` → `CHARACTER(LEN=9)                  :: TYPE_GARDEN       !IN garden model type ('PROXY_OLD','PROXY_NEW','EXT')`,
+  рабочая ветвь — `src_dev/src_driver/call_driver.F90:1329` → `IF (TYPE_GARDEN == 'EXT' .OR. TYPE_GARDEN == 'EXT_NEU') THEN`).
+  У хоста COSMO сад всегда внешний, поэтому адаптеру нужно либо выставить флаг (для `src_ctrl`),
+  либо передать тип `'EXT'` (для `src_dev`).
+### 2.2.
 
 | величина | H | B | A |
 | --- | --- | --- | --- |
@@ -228,10 +234,10 @@ q_v, SHF, LHF, qvfl, tch, tcm, runoff» совпадает с H (`H:COSMO/sfc_te
 (`src_teb/teb_garden.F90:836` → `IF (.NOT. OGARDEN_EXT) THEN` — ветвь `ELSE` строит только
 `src_teb/teb_garden.F90:849` → `ZQSAT_GD(:)  = QSAT(ZTSRAD_GD(:), PPS(:))`, трение и нули);
 множитель для внутренних режимов — β (`src_teb/teb_garden.F90:858` → `ZHU_AGG_GD(:) = XPHU_GD`),
-а внешний режим перезаписывает его отношением хоста (`src_teb/teb_garden.F90:867` →
-`IF (OGARDEN_EXT) THEN`, `src_teb/teb_garden.F90:873` → `ZHU_AGG_GD(:) = PQV_GD_EXT(:)/ZQSAT_GD(:)`,
+а внешний режим перезаписывает его отношением хоста (`src_teb/teb_garden.F90:874` →
+`IF (OGARDEN_EXT) THEN`, `src_teb/teb_garden.F90:880` → `ZHU_AGG_GD(:) = PQV_GD_EXT(:)/ZQSAT_GD(:)`,
 клиппинги — `src_teb/teb_garden.F90:874` и `src_teb/teb_garden.F90:875`); потоки берутся от
-хоста (`src_teb/teb_garden.F90:868` → `ZH_GD(:) = PH_GD_EXT(:)` и далее). Узел влажности —
+хоста (`src_teb/teb_garden.F90:875` → `ZH_GD(:) = PH_GD_EXT(:)` и далее). Узел влажности —
 `src_teb/avg_urban_fluxes.F90:501` →
 `ZINTER = PAC_RD_WAT(JJ) * PDF_RD(JJ) * PDELT_RD(JJ) * ZRD(JJ) + PAC_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ) + PAC_TOP(JJ)`
 и `src_teb/avg_urban_fluxes.F90:503` → `+ PQSAT_GD   (JJ) * PAC_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ)`.
@@ -252,11 +258,11 @@ B использует z0 хоста: `B:src_teb/urban_drag.F90:589` → `IF (TO
 `B:src_teb/urban_drag.F90:593` → `PU_LOWCAN, PZ0_GARDEN, ZRI, PCD_GARDEN, ZCDN_GARDEN,         &`
 (`PZ0_GARDEN` — вход, `H:COSMO/sfc_interface.f90:1928` даёт `teb_z0_gd_t = gz0_b/g`).
 ⇒ **адаптер обязан подать `teb_z0_gd` в `PZ0_GARDEN_EXT`**, иначе коэффициенты и проводимость
-сада разойдутся с B (при совпадении z0 — совпадут).
+сада разойдутся с B (при совпадении z0 — совпадут). **Статус (частично выполнено):** в обеих ветвях добавлена проверка z0 при включённом внешнем саде — `src_driver/call_driver.F90:693` → `IF (LGARDEN .AND. LGARDEN_EXT) THEN` и `src_dev/src_driver/call_driver.F90:1338` → `IF (LGARDEN .AND. (TYPE_GARDEN == 'EXT' .OR. TYPE_GARDEN == 'EXT_NEU')) THEN` (нефизическое значение → `STOP 1`); передача значения `teb_z0_gd` остаётся задачей адаптера сопряжения.
 
 **Расхождение 2 — A возвращает хосту нулевые `tch`/`tcm` сада.** В A коэффициенты обнуляются в
-блоке сада: `src_teb/teb_garden.F90:864` → `PCH_GD(:) = 0.`, `src_teb/teb_garden.F90:865` →
-`PCD_GD(:) = 0.` (и то же в ветви выключенного сада — `src_teb/teb_garden.F90:895` →
+блоке сада: `src_teb/teb_garden.F90:870` → `PCH_GD(:) = 0.`, `src_teb/teb_garden.F90:871` →
+`PCD_GD(:) = 0.` (и то же в ветви выключенного сада — `src_teb/teb_garden.F90:902` →
 `PCH_GD(:) = 0.`), поэтому выходные `ZCH_GD`/`ZCD_GD` (`src_driver/call_driver.F90:248` →
 `REAL,DIMENSION(1)                 :: ZCH_GD            !OUT garden transfer coefficient for heat (extern`)
 уходят нулями → хостовые `teb_tch_gd`/`teb_tcm_gd` (`H:COSMO/sfc_interface.f90:2947`) нулевые, а
@@ -264,14 +270,14 @@ B использует z0 хоста: `B:src_teb/urban_drag.F90:589` → `IF (TO
 (`B:src_teb/teb_garden.F90:172` → `REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_GD             ! drag coeifficient for heat`),
 поэтому хост получает коэффициенты, посчитанные `URBAN_DRAG` с его z0. ⇒ **обязательно к
 выравниванию**: для `OGARDEN_EXT` не обнулять `PCH_GD`/`PCD_GD`, а отдавать значения из
-`URBAN_DRAG` (в `src_dev` так сделано для `'PROXY_NEW'` — `src_dev/src_teb/teb_garden.F90:1090`).
+`URBAN_DRAG` (в `src_dev` так сделано для `'PROXY_NEW'` — `src_dev/src_teb/teb_garden.F90:1110`). **Статус: исправлено.** В `src_ctrl` обнуление стало условным (`src_teb/teb_garden.F90:869` → `IF (.NOT. OGARDEN_EXT) THEN`), в `src_dev` перенесено в ветвь остальных режимов (`src_dev/src_teb/teb_garden.F90:1112` → `ELSE IF (TOP%CTYPE_GARDEN /= 'EXT' .AND. TOP%CTYPE_GARDEN /= 'EXT_NEU') THEN`); проверено отладочной печатью (внешний режим — `tch`/`tcm` ненулевые, внутренний в `src_ctrl` — нули) и прогонами (CSV с садом не изменился).
 
 **Расхождение 3 (проверка, а не дефект) — блок D8 в EXT не срабатывает.** В A он закрыт
 условием `src_teb/teb_garden.F90:581` → `IF (.NOT. OGARDEN_EXT) THEN`, а ветвь `ELSE` берёт
 данные хоста (`src_teb/teb_garden.F90:589` → `ZALB_GD   = PALB_GD_EXT`, `src_teb/teb_garden.F90:591`
 → `ZTSRAD_GD = PTSRAD_GD_EXT`) ⇒ при EXT значения `TEB_VEG_PROPERTIES` не подставляются и данные
 хоста не перекрываются (в v2 §3.1 это был риск для конфигурации «сад включён без `*_EXT`» —
-в нашей области он не реализуется).
+в нашей области он не реализуется). **Статус:** действий не требуется.
 
 **Уточнение к v2 §3.2 (`PAC_GARDEN = XUNDEF`).** В обеих версиях `PAC_GARDEN` объявлен
 **`INTENT(OUT)`** (`src_struct/teb_garden_struct.F90:386` →
@@ -288,10 +294,10 @@ B использует z0 хоста: `B:src_teb/urban_drag.F90:589` → `IF (TO
 
 | величина | A | B |
 | --- | --- | --- |
-| потоки, сток, `EVAP` | `src_teb/teb_garden.F90:884` → `ZRN_GD    (:) = 0.` … `:889` → `ZRUNOFF_GD(:) = 0.` | `B:src_teb/teb_garden.F90:819` → `PH_GD     (:) = 0.` … `:823` → `PRUNOFF_GD(:) = 0.` |
-| `T_s` сада | `src_teb/teb_garden.F90:891` → `ZTSRAD_GD (:) = XUNDEF` | `B:src_teb/teb_garden.F90:825` → `PTSRAD_GD (:) = XUNDEF` |
-| множитель влажности и `q_sat` | `src_teb/teb_garden.F90:898` → `ZQSAT_GD   (:) = XUNDEF`, `:899` → `ZHU_AGG_GD (:) = XUNDEF` | `B:src_teb/teb_garden.F90:832` → `ZHU_AGG_GD (:) = XUNDEF` |
-| тэг-ветви | `src_teb/teb_garden.F90:880` → `ZRN_GD(:) =  DMT%XABS_SW_GARDEN(:) + DMT%XABS_LW_GARDEN(:)` (ветвь EXT) | — (в B тэг-ветви нет) |
+| потоки, сток, `EVAP` | `src_teb/teb_garden.F90:891` → `ZRN_GD    (:) = 0.` … `:889` → `ZRUNOFF_GD(:) = 0.` | `B:src_teb/teb_garden.F90:819` → `PH_GD     (:) = 0.` … `:823` → `PRUNOFF_GD(:) = 0.` |
+| `T_s` сада | `src_teb/teb_garden.F90:898` → `ZTSRAD_GD (:) = XUNDEF` | `B:src_teb/teb_garden.F90:825` → `PTSRAD_GD (:) = XUNDEF` |
+| множитель влажности и `q_sat` | `src_teb/teb_garden.F90:905` → `ZQSAT_GD   (:) = XUNDEF`, `:899` → `ZHU_AGG_GD (:) = XUNDEF` | `B:src_teb/teb_garden.F90:832` → `ZHU_AGG_GD (:) = XUNDEF` |
+| тэг-ветви | `src_teb/teb_garden.F90:887` → `ZRN_GD(:) =  DMT%XABS_SW_GARDEN(:) + DMT%XABS_LW_GARDEN(:)` (ветвь EXT) | — (в B тэг-ветви нет) |
 
 **Вывод:** при выключенном саде различия A↔B по садовым величинам не влияют ни на что: обе
 версии обнуляют (или помечают `XUNDEF`) те же переменные, а узел влажности умножается на
@@ -338,7 +344,7 @@ B использует z0 хоста: `B:src_teb/urban_drag.F90:589` → `IF (TO
   в блоке сада окно-менеджер вызывается с флагом —
   `src_teb/teb_garden.F90:638` → `CALL WINDOW_SHADING_AVAILABILITY(B%LSHADE, B%XTI_BLD, DMT%XTCOOL_TARGET, GSHADE)`
   (жёсткое `GSHADE(:) = .FALSE.` закомментировано — `src_teb/teb_garden.F90:640`); в драйвере
-  `src_driver/call_driver.F90:989` → `!LSHADE         = .FALSE.      ! Are shading devices being used ?`.
+  `src_driver/call_driver.F90:1001` → `!LSHADE         = .FALSE.      ! Are shading devices being used ?`.
 * B выключает жалюзи принудительно в четырёх местах: `B:src_teb/urban_solar_abs.F90:470` →
   `G_EFF_SHAD(:) = .FALSE.`, `B:src_teb/urban_solar_abs.F90:475` → `OSHAD_DAY(:) = .FALSE.`,
   `B:src_teb/teb_garden.F90:608` → `GSHADE(:) = .FALSE.`, `B:src_driver/call_driver.F90:1032` →
@@ -356,7 +362,7 @@ B использует z0 хоста: `B:src_teb/urban_drag.F90:589` → `IF (TO
 | порог включения работы AC | `src_teb/bem.F90:417` → `ZTI_BLD_OPEN(JJ) >  DMT%XTHEAT_TARGET (JJ) + 4.)` (и `src_teb/bem.F90:420`) | `B:src_teb/bem.F90:421` → `ZTI_BLD_OPEN(JJ) >  DMT%XTHEAT_TARGET (JJ))` (и `B:src_teb/bem.F90:426`) |
 | второй вызов `GET_NAT_VENT` (секция энергопотребления) | без разбора `CNATVENT` — `src_teb/bem.F90:458` → `CALL GET_NAT_VENT(B%XTI_BLD(JJ), PT_CAN(JJ), PU_CAN(JJ), B%XGR(JJ), &` (внутри `IF (GNAT_VENT(JJ))`, `src_teb/bem.F90:456` → `IF (GNAT_VENT(JJ)) THEN`) | под разбором — `B:src_teb/bem.F90:465` → `IF (B%CNATVENT(JJ)=='AUTO') THEN`, `B:src_teb/bem.F90:469` → `ELSE IF (B%CNATVENT(JJ)=='MECH') THEN` |
 | накопители тепла пола/массы | локальные (`ZDQS_FL`, `ZDQS_MA`) | выходные аргументы — `B:src_teb/bem.F90:197` → `REAL, DIMENSION(:),   INTENT(OUT)  :: PDQS_FL` |
-| первый шаг: пол и масса | присваиваний нет (крыша/дорога/стены инициализируются — `src_driver/call_driver.F90:921` → `ZT_ROOF(:,1)   = t  ! roof layers temperatures`, `src_driver/call_driver.F90:928` → `ZT_ROAD  (:,1) = t  ! road layers temperatures`) | `B:src_driver/call_driver.F90:990` → `ZT_FLOOR (:,1) = ZTCOOL_TARGET  ! building floor temperature`, `B:src_driver/call_driver.F90:996` → `ZT_MASS  (:,1) = ZTCOOL_TARGET  ! building mass temperature` |
+| первый шаг: пол и масса | присваиваний нет (крыша/дорога/стены инициализируются — `src_driver/call_driver.F90:933` → `ZT_ROOF(:,1)   = t  ! roof layers temperatures`, `src_driver/call_driver.F90:940` → `ZT_ROAD  (:,1) = t  ! road layers temperatures`) | `B:src_driver/call_driver.F90:990` → `ZT_FLOOR (:,1) = ZTCOOL_TARGET  ! building floor temperature`, `B:src_driver/call_driver.F90:996` → `ZT_MASS  (:,1) = ZTCOOL_TARGET  ! building mass temperature` |
 
 **Вывод:** три численных различия (0.25 против 5.0 объёмов/час; порог AC без `+4 K`;
 инициализация пола/массы) влияют на `TI_BLD`, `PHU_BLD`, `HVAC_*` и далее на городской бюджет.
@@ -368,10 +374,10 @@ B использует z0 хоста: `B:src_teb/urban_drag.F90:589` → `IF (TO
 | что | A | B |
 | --- | --- | --- |
 | шероховатость города | словник: `src_driver/call_driver.F90:673` → `CALL URB_AERO_PARAMS(urb_z0_town, urb_zd_town, ZBLD_HEIGHT, ZZ0, XZD_TOWN)` (дефолт `0.1H` — `src_proxi_SVAT/modd_proxi_svat_par.F90:98` → `CHARACTER(LEN=16), PARAMETER :: XURB_Z0_TOWN_DEF = '0.1H'`); B-вариант закомментирован — `src_driver/call_driver.F90:665` → `!ZZ0         = ZBLD_HEIGHT * 0.075   ! Roughness length (m)` | `B:src_driver/call_driver.F90:671` → `ZZ0         = ZBLD_HEIGHT * 0.075   ! Roughness length (m)` |
-| теплофизика крыши/дороги | из конфигурации + жёсткие числа: `src_driver/call_driver.F90:699` → `ZHC_ROOF(1,1) = ZHC_ROOF_S(1)   ! volumetric heat capacity (J m-3 K-1) (external layer)`, `src_driver/call_driver.F90:702` → `ZHC_ROOF(1,4) = 1127845.62      ! volumetric heat capacity (J m-3 K-1)` | целиком из конфигурации: `B:src_driver/call_driver.F90:688` → `ZHC_ROOF(1,4) = ZHC_ROOF_S(1)   ! volumetric heat capacity (J m-3 K-1)` |
-| толщины слоёв | `src_driver/call_driver.F90:710` → `ZD_ROOF(1,2)  = 0.098      ! thickcness (m)` | `B:src_driver/call_driver.F90:706` → `ZD_ROOF(1,2)  = 0.1568     ! thickcness (m)` |
-| первый шаг | `src_driver/call_driver.F90:892` → `IF (ntstep == 1) THEN` | `B:src_driver/call_driver.F90:944` → `IF (ntstep == 0) THEN` |
-| сток города | умножение на `dt` закомментировано — `src_driver/call_driver.F90:1374` → `!ZRUNOFF_TOWN  = ZRUNOFF_TOWN * dt` | активно — `B:src_driver/call_driver.F90:1522` → `ZRUNOFF_TOWN  = ZRUNOFF_TOWN * dt` |
+| теплофизика крыши/дороги | из конфигурации + жёсткие числа: `src_driver/call_driver.F90:711` → `ZHC_ROOF(1,1) = ZHC_ROOF_S(1)   ! volumetric heat capacity (J m-3 K-1) (external layer)`, `src_driver/call_driver.F90:714` → `ZHC_ROOF(1,4) = 1127845.62      ! volumetric heat capacity (J m-3 K-1)` | целиком из конфигурации: `B:src_driver/call_driver.F90:688` → `ZHC_ROOF(1,4) = ZHC_ROOF_S(1)   ! volumetric heat capacity (J m-3 K-1)` |
+| толщины слоёв | `src_driver/call_driver.F90:722` → `ZD_ROOF(1,2)  = 0.098      ! thickcness (m)` | `B:src_driver/call_driver.F90:706` → `ZD_ROOF(1,2)  = 0.1568     ! thickcness (m)` |
+| первый шаг | `src_driver/call_driver.F90:904` → `IF (ntstep == 1) THEN` | `B:src_driver/call_driver.F90:944` → `IF (ntstep == 0) THEN` |
+| сток города | умножение на `dt` закомментировано — `src_driver/call_driver.F90:1386` → `!ZRUNOFF_TOWN  = ZRUNOFF_TOWN * dt` | активно — `B:src_driver/call_driver.F90:1522` → `ZRUNOFF_TOWN  = ZRUNOFF_TOWN * dt` |
 | проводимость сада | объявлена и передаётся, не присваивается — `src_driver/call_driver.F90:424` → `REAL,DIMENSION(1)  :: ZAC_GARDEN        ! garden aerodynamical conductance` | то же — `B:src_driver/call_driver.F90:404` → `REAL,DIMENSION(1)  :: ZAC_GARDEN        ! garden aerodynamical conductance` |
 
 **Вывод.** Для сопоставимости прогонов: задать `urb_z0_town = '0.075H'` (наш резолвер принимает
@@ -384,7 +390,7 @@ B использует z0 хоста: `B:src_teb/urban_drag.F90:589` → `IF (TO
 
 * **Удаление `PAC_AGG_GARDEN`** (A: `src_teb/avg_urban_fluxes.F90:501` против B:
   `B:src_teb/avg_urban_fluxes.F90:503`): интерфейс различается именем dummy, числа — нет (§3.1).
-* **Перенос множителя влажности в `TEB_GARDEN`** (A: `src_teb/teb_garden.F90:873` →
+* **Перенос множителя влажности в `TEB_GARDEN`** (A: `src_teb/teb_garden.F90:880` →
   `ZHU_AGG_GD(:) = PQV_GD_EXT(:)/ZQSAT_GD(:)` против B: `B:src_proxi_SVAT/garden.F90:164` →
   `PHU_AGG_GARDEN(:) = PQV_GD(:)/PQSAT_GARDEN(:)`): формула и входы те же, меняется место
   вычисления. Интерфейсная цена: прокси A больше не возвращает множитель —
@@ -392,8 +398,8 @@ B использует z0 хоста: `B:src_teb/urban_drag.F90:589` → `IF (TO
   (соответствует `modi_garden` стороны A) ; заготовка COSMO-входа сохранена закомментированной —
   `src_proxi_SVAT/modi_garden.F90:44` → `!REAL, DIMENSION(:)  , INTENT(IN)    :: PQV_GD             ! garden specific humidity`.
 * **Фикс `ZRN_GD → ZRN_GR`** в ветви внешней зелёной кровли: в A ветвь дополнена
-  (`src_teb/teb_garden.F90:935` → `ZRN_GR(:) =  DMT%XABS_SW_GREENROOF(:) + DMT%XABS_LW_GREENROOF(:)`
-  внутри `src_teb/teb_garden.F90:926` → `IF (OGREENROOF_EXT) THEN`); в B этой ветви нет вовсе ⇒
+  (`src_teb/teb_garden.F90:942` → `ZRN_GR(:) =  DMT%XABS_SW_GREENROOF(:) + DMT%XABS_LW_GREENROOF(:)`
+  внутри `src_teb/teb_garden.F90:933` → `IF (OGREENROOF_EXT) THEN`); в B этой ветви нет вовсе ⇒
   осознанное дополнение, а не расхождение с ошибкой.
 * **Новые ключи/флаги A** (`urb_z0_gdn`, `urb_alb_gdn`, `urb_emis_gdn`, `urb_z0_o_z0h_gdn`,
   `urb_phu_gdn`, `urb_phu_grf`, `teb_snow_check`, `teb_lshade`): при сопряжении значения должны
@@ -441,11 +447,13 @@ B использует z0 хоста: `B:src_teb/urban_drag.F90:589` → `IF (TO
    `lsolar_panel`, `lpar_rd_irrig`, `hroad_dir`, `hwall_opt`, `zroad_dir`, `zresidential`,
    `zdt_res`, `zdt_off`, `zcap_sys_heat`, `zfrac_panel`, пять `zrd_*`, `zprod_bld`, `zutc_hour`,
    `zrn_town`, `zu_canyon`, `zts_road`) и учесть переименование `*_EXT` (§2.1).
-2. **Сад, расхождение 1:** подать `teb_z0_gd` хоста в `PZ0_GARDEN_EXT` (§3.1), иначе коэффициенты
-   и проводимость сада считаются по нашему `urb_z0_gdn`.
-3. **Сад, расхождение 2:** при `OGARDEN_EXT` не обнулять `PCH_GD`/`PCD_GD`
-   (`src_teb/teb_garden.F90:864`), а отдавать значения `URBAN_DRAG` — иначе хост получит нулевые
-   `teb_tch_gd`/`teb_tcm_gd` (§3.1).
+2. **Сад, расхождение 1 — выполнено (частично):** в `CALL_DRIVER` обеих ветвей добавлена
+   проверка `ZZ0_GD_EXT` (`src_driver/call_driver.F90:693`, `src_dev/src_driver/call_driver.F90:1338`):
+   нефизическое значение при включённом внешнем саде завершает работу. Подача самого
+   значения `teb_z0_gd` в `PZ0_GARDEN_EXT` остаётся задачей адаптера сопряжения (§3.1).
+3. **Сад, расхождение 2 — выполнено:** при внешнем саде `PCH_GD`/`PCD_GD` больше не
+   обнуляются (`src_teb/teb_garden.F90:869`, `src_dev/src_teb/teb_garden.F90:1112`),
+   хост получает коэффициенты `URBAN_DRAG` (§3.1).
 4. **Снежная коррекция:** `teb_snow_check = .TRUE.` (§3.3).
 5. **Нумерация шага и единицы:** согласовать `ntstep` и сток (§3.7).
 6. **BEM:** выровнять по B (0.25 объём/час, порог без `+4 K`, инициализация пола/массы, `PDQS_*`)
@@ -479,9 +487,10 @@ B использует z0 хоста: `B:src_teb/urban_drag.F90:589` → `IF (TO
 4. **`ZAC_GARDEN`/`ZTCH_GARDEN`:** в собираемых драйверах `ZAC_GARDEN` не присваивается
    (§3.7), «входной путь» проводимости сада жив только в невключаемом
    `call_driver_with_comments!.F90` (B) ⇒ при сопряжении не использовать.
-5. **Сверка коэффициентов:** после выравнивания п.2–3 проверить численно, что
-   `teb_tch_gd`/`teb_tcm_gd`, возвращаемые A, совпадают с B при одинаковых `teb_z0_gd`
-   (одношаговый тест).
+5. **Сверка коэффициентов (частично выполнено):** качественная проверка сделана — во внешнем
+   режиме обеих ветвей `tch`/`tcm` ненулевые (отладочная печать, §3.1), во внутреннем
+   режиме `src_ctrl` — нули. **Остаётся** количественная сверка «A == B» при одинаковых
+   `teb_z0_gd` — одношаговый тест в сопряжённом стенде (п.6).
 6. **Стенд сопряжения:** нужен прогон COSMO-TEB (эталон) и сопряжённый прогон A на одинаковых
    настройках, со сравнением `T_CANYON`, `Q_CANYON`, `RN_TOWN`, `TI_BLD`, `HVAC_*` — «до/после»
    выравнивания; в репозитории такого стенда пока нет (в оффлайн-стендах сопряжение не проверяется).
@@ -496,13 +505,15 @@ B использует z0 хоста: `B:src_teb/urban_drag.F90:589` → `IF (TO
 строку (сравнение по тексту с нормализованными пробелами, CRLF→LF). Сокращения вида `:NNN`
 разрешаются по последней полной ссылке.
 
-**Результат: 145 ссылок (114 — с якорем), 4 сокращения `:NNN` разрешены, ошибок — 0.**
+**Результат: 155 ссылок (120 — с якорем), 4 сокращения `:NNN` разрешены, ошибок — 0.**
 
 Ссылки на сторону A даны в состоянии коммита `b9592a2`; ссылки на `src_dev/...` приведены только
 в §3.1 (сравнение «как сделано в dev-ветви»); ссылки на B и H — по рабочей копии
 `COSMO-TEB_vers_29_09_2026` (§0). При первом прогоне контроля были уточнены три ссылки
 (`modd_proxi_svat_par.F90`, `modi_garden.F90`) — номера строк сдвинулись после правок
-`MV_devs` в самом дереве A.
+`MV_devs` в самом дереве A. После правок §3.1 (устранение расхождений 1–2) автоматически
+уточнена **21 ссылка** на `src_teb/teb_garden.F90` и `src_driver/call_driver.F90` — номера
+сдвинулись из-за внесённых строк.
 
 
 

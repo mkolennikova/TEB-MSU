@@ -861,8 +861,15 @@ ZHU_AGG_GD(:) = XPHU_GD
   DMT%XABS_LW_GARDEN(:) = ZEMIS_GD(:) * ZREC_LW_GD(:) - XSTEFAN * ZEMIS_GD(:) * ZTSRAD_GD(:)**4 
   ZEMIT_LW_GD(:) = XSTEFAN * ZTSRAD_GD(:)**4 + (1 - ZEMIS_GD(:)) / ZEMIS_GD(:) * DMT%XABS_LW_GARDEN(:)
   ZQV_GD(:) = 0.
-  PCH_GD(:) = 0.
-  PCD_GD(:) = 0.
+  !* exchange coefficients of the garden returned to the caller (and to a coupled
+  !* host as teb_tch_gd/teb_tcm_gd): for the EXTERNAL garden they are the values
+  !* URBAN_DRAG computed in its OGARDEN_EXT branch (already in PCH_GD/PCD_GD after
+  !* the call of TEB, as in COSMO-TEB); the internal garden of this tree has no
+  !* coefficients of its own, so they stay zero there
+  IF (.NOT. OGARDEN_EXT) THEN
+    PCH_GD(:) = 0.
+    PCD_GD(:) = 0.
+  END IF
   
   IF (OGARDEN_EXT) THEN
     ZH_GD(:) = PH_GD_EXT(:)
