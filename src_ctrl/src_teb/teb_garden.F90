@@ -75,6 +75,7 @@ USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
 USE MODD_CSTS,              ONLY: XTT, XSTEFAN, XKARMAN
 USE MODD_SURF_PAR,          ONLY: XUNDEF, teb_snow_check
+USE MODD_PROXI_SVAT_PAR,    ONLY: urb_alb_gdn, urb_emis_gdn, urb_alb_grf, urb_emis_grf
 USE MODD_SNOW_PAR,          ONLY: XEMISSN, XANSMAX
 !
 USE MODE_THERMOS
@@ -583,6 +584,14 @@ IF (TOP%LGARDEN) THEN
     CALL TEB_VEG_PROPERTIES(PDIR_SW, PSCA_SW, PSW_BANDS, KSW,   &
                         ZTSRAD_GD, ZEMIS_GD, ZALB_GD,       &
                         PTA=PT_LOWCAN                       )
+!MV202610 the radiation parameters of the green areas are the namelist items
+!* urb_alb_gdn / urb_emis_gdn, i.e. the very same source as the external mode of
+!* this tree and as the emulator of the offline driver (RUN_TEB_OFFLINE
+!* prescribes them in teb_alb_gd / teb_emis_gd from the same items). The call
+!* above therefore provides the radiative temperature only (Ts = PTA = the air
+!* temperature of the low canyon level).
+    ZALB_GD   = urb_alb_gdn
+    ZEMIS_GD  = urb_emis_gdn
   ELSE
     ZALB_GD   = PALB_GD_EXT
     ZEMIS_GD  = PEMIS_GD_EXT
@@ -600,6 +609,11 @@ IF (TOP%LGREENROOF) THEN
     CALL TEB_VEG_PROPERTIES(  PDIR_SW, PSCA_SW, PSW_BANDS, KSW,    &
                            ZTSRAD_GR, ZEMIS_GR, ZALB_GR,        &
                            PTA=PTA                              )
+!MV202610 same as for the green areas: the greenroof radiation parameters are the
+!* namelist items urb_alb_grf / urb_emis_grf (one source for the internal scheme
+!* and for the external mode), the call above provides Ts = PTA only.
+    ZALB_GR   = urb_alb_grf
+    ZEMIS_GR  = urb_emis_grf
   ELSE
     ZALB_GR   = PALB_GR_EXT
     ZEMIS_GR  = PEMIS_GR_EXT

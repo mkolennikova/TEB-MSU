@@ -61,19 +61,25 @@ IMPLICIT NONE
 !*       0.1  Base-model values of the garden and of the greenroof
 !             ---------------------------------------------------
 !
-!* Each of the six values below is the value that the BASE model (the first
-!* commit, 582c3ab) sets directly in RUN_TEB_OFFLINE (garden) or writes as a
-!* constant inside GREENROOF (greenroof roughness). It is kept here as a
-!* PARAMETER because it is ALSO the default of the namelist item that now
-!* carries it (0.3 below), so that a run whose namelist does not define the
-!* item falls back to the base-model physics.
+!* Each of the six values below is the default of the namelist item that carries
+!* it (urb_z0_gdn / urb_alb_gdn / urb_emis_gdn and urb_z0_grf / urb_alb_grf /
+!* urb_emis_grf), so that a run whose namelist does not define the item keeps the
+!* behaviour of the base model (the first commit, 582c3ab). The roughness lengths
+!* and the relative humidities keep the base-model values; the albedo and the
+!* emissivity are the values of TEB_VEG_PROPERTIES (0.15 and 0.98), because these
+!* two namelist items now drive the INTERNAL scheme as well (see TEB_GARDEN) and
+!* the internal scheme used to take them from that routine. The internal scheme and
+!* the external mode (and the emulator of the offline driver) therefore share one
+!* and the same source of the radiation parameters.
 !
 !* Garden roughness length (m): base-model value, default of urb_z0_gdn.
 REAL, PARAMETER :: XZ0_GD  = 0.80
 !* Garden albedo (-): base-model value, default of urb_alb_gdn.
 REAL, PARAMETER :: XALB_GD = 0.15
-!* Garden emissivity (-): base-model value, default of urb_emis_gdn.
-REAL, PARAMETER :: XEMIS_GD = 0.90
+!* Garden emissivity (-): the value of TEB_VEG_PROPERTIES (PEMIS), default of
+!* urb_emis_gdn. It is used by the internal scheme (TEB_GARDEN) and by the
+!* external mode alike.
+REAL, PARAMETER :: XEMIS_GD = 0.98
 !* Garden surface relative humidity (-): the base-model value, i.e. the constant
 !* that the base GARDEN proxy used as the surface humidity of the garden. It is a
 !* parameter of the proxy model of this tree: GARDEN returns it as the moisture
@@ -87,8 +93,10 @@ REAL, PARAMETER :: XPHU_GD  = 0.8
 REAL, PARAMETER :: XZ0_GR   = 0.01
 !* Greenroof albedo (-): base-model value, default of urb_alb_grf.
 REAL, PARAMETER :: XALB_GR  = 0.15
-!* Greenroof emissivity (-): base-model value, default of urb_emis_grf.
-REAL, PARAMETER :: XEMIS_GR = 0.90
+!* Greenroof emissivity (-): the value of TEB_VEG_PROPERTIES (PEMIS), default of
+!* urb_emis_grf. It is used by the internal scheme (TEB_GARDEN) and by the
+!* external mode alike.
+REAL, PARAMETER :: XEMIS_GR = 0.98
 !* Greenroof surface relative humidity (-): the base-model value, i.e. the constant
 !* that the base GREENROOF proxy used as the surface humidity of the greenroof. It is
 !* a parameter of the proxy model of this tree: GREENROOF returns it as its moisture
