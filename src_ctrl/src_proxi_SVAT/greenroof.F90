@@ -67,7 +67,7 @@
 !
 USE MODD_CSTS, ONLY : XLVTT , &   ! Latent heat constant for evaporation
                       XKARMAN     ! Von Karman constant
-USE MODD_PROXI_SVAT_PAR, ONLY : urb_z0_grf   !MV202609 z0 of the greenroof (namelist)
+USE MODD_PROXI_SVAT_PAR, ONLY : urb_z0_grf, XPHU_GR   !MV202609 z0 of the greenroof and PHU of this model
 USE MODE_THERMOS                  ! Function to compute humidity at saturation
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
 !
@@ -164,7 +164,8 @@ PQSAT_GREENROOF(:) = QSAT(PTA(:),PPS(:))
 !PTS_GREENROOF(:) = PTA(:)
 !
 !* aerocynamical conductance for latent heat and surface humidity
-PHU_AGG_GREENROOF(:) = 0.3   ! surface humidity set to 30%
+!MV202609 the surface relative humidity is the PHU parameter of this model
+PHU_AGG_GREENROOF(:) = XPHU_GR
 !
 !* Heat Flux at the bottom layer of the greenroof
 PDEEP_FLUX(:) = 0.

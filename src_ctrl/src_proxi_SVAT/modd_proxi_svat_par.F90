@@ -75,11 +75,12 @@ REAL, PARAMETER :: XALB_GD = 0.15
 !* Garden emissivity (-): base-model value, default of urb_emis_gdn.
 REAL, PARAMETER :: XEMIS_GD = 0.90
 !* Garden surface relative humidity (-): the base-model value, i.e. the constant
-!* that the base GARDEN proxy used as the surface humidity of the garden.
-!* TEB_GARDEN uses it as the moisture multiplier of the canyon node for an
-!* INTERNAL garden; an external garden takes the multiplier from the state of
-!* the host instead (see the EXT block of TEB_GARDEN), which is why this is a
-!* PARAMETER of the physics and not a namelist item of this tree.
+!* that the base GARDEN proxy used as the surface humidity of the garden. It is a
+!* parameter of the proxy model of this tree: GARDEN returns it as the moisture
+!* multiplier of the canyon node (PHU_AGG_GARDEN) for an INTERNAL garden; an
+!* external garden takes the multiplier from the state of the host instead (see the
+!* EXT block of TEB_GARDEN), which is why this is a PARAMETER of the physics and
+!* not a namelist item of this tree.
 REAL, PARAMETER :: XPHU_GD  = 0.8
 !* Greenroof roughness length (m): base-model value (the constant 0.01 of the
 !* friction flux of GREENROOF), default of urb_z0_grf.
@@ -88,6 +89,12 @@ REAL, PARAMETER :: XZ0_GR   = 0.01
 REAL, PARAMETER :: XALB_GR  = 0.15
 !* Greenroof emissivity (-): base-model value, default of urb_emis_grf.
 REAL, PARAMETER :: XEMIS_GR = 0.90
+!* Greenroof surface relative humidity (-): the base-model value, i.e. the constant
+!* that the base GREENROOF proxy used as the surface humidity of the greenroof. It is
+!* a parameter of the proxy model of this tree: GREENROOF returns it as its moisture
+!* multiplier (a diagnostic only -- the greenroof is a roof surface and does not
+!* couple back to the canyon air).
+REAL, PARAMETER :: XPHU_GR  = 0.3
 !
 !*       0.2  Base-model values of the urban aerodynamics
 !             -----------------------------------------

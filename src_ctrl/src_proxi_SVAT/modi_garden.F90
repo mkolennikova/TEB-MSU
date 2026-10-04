@@ -18,7 +18,8 @@ INTERFACE
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                  &
                 PDRAIN_GARDEN, PIRRIG_GARDEN,        &
 !MV202609 garden exchange coefficients returned to the caller
-                PPCD_GD, PPCH_GD                     )
+!MV202609 garden exchange coefficients and moisture multiplier returned to the caller
+                PPCD_GD, PPCH_GD, PHU_AGG_GARDEN      )
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
  CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
 TYPE(DATE_TIME)     , INTENT(IN)    :: TPTIME             ! current date and time from teb
@@ -61,6 +62,8 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN     ! garden summer irrigat
 !* none of its own (fixed Bowen ratio) and returns zeros
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCD_GD            ! momentum exchange coefficient (-)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCH_GD            ! thermal (scalar) exchange coefficient (-)
+!MV202609 moisture multiplier of the internal garden, returned by the proxy
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN     ! garden surface relative humidity (-)
 END SUBROUTINE GARDEN
 END INTERFACE
 END MODULE MODI_GARDEN

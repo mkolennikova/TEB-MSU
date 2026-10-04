@@ -17,7 +17,8 @@
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                  &
                 PDRAIN_GARDEN, PIRRIG_GARDEN,        &
 !MV202609 garden exchange coefficients returned to the caller
-                PPCD_GD, PPCH_GD                     )
+!MV202609 garden exchange coefficients and moisture multiplier returned to the caller
+                PPCD_GD, PPCH_GD, PHU_AGG_GARDEN      )
 				
 !   ##########################################################################
 !
@@ -71,6 +72,7 @@ USE MODD_CSTS, ONLY : XLVTT , &   ! Latent heat constant for evaporation
                       XKARMAN     ! Von Karman constant
 USE MODE_THERMOS                  ! Function to compute humidity at saturation
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
+USE MODD_PROXI_SVAT_PAR, ONLY : XPHU_GD   !MV202609 PHU of the base garden (proxy parameter)
 !
 IMPLICIT NONE
 !
@@ -120,6 +122,8 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irriga
 !* none of its own (fixed Bowen ratio) and returns zeros
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCD_GD            ! momentum exchange coefficient (-)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCH_GD            ! thermal (scalar) exchange coefficient (-)
+!MV202609 moisture multiplier of the internal garden, returned by this proxy
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN     ! garden surface relative humidity (-)
 !
 !
 !*      0.2    Declarations of local variables
@@ -163,9 +167,9 @@ PQSAT_GARDEN(:) = QSAT(PTS_GARDEN(:),PPS(:))
 !PTS_GARDEN(:) = PT_LOWCAN(:)
 !
 !* the surface relative humidity of the garden (the moisture multiplier of the
-!* canyon air) is NOT a property of this proxy: TEB_GARDEN builds it from the
-!* namelist beta for an internal garden and from the surface humidity of the
-!* host for an external one (see the EXT block of TEB_GARDEN)
+!* canyon air) is the PHU parameter of this proxy model (XPHU_GD = 0.8, the
+!* base-model value): it is returned to the caller as PHU_AGG_GARDEN -- an
+!* external garden takes it from the surface humidity of the host instead
 !
 !* garden hydrological diagnostics
 PRUNOFF_GARDEN(:) = 0.    ! garden surface runoff
@@ -178,6 +182,10 @@ PIRRIG_GARDEN (:) = 0.    ! garden irrigation during time step
 !* zeroing lives here and not in TEB_GARDEN
 PPCD_GD(:) = 0.
 PPCH_GD(:) = 0.
+!MV202609 moisture multiplier of the canyon node returned to the caller: the PHU
+!* parameter of this proxy model (an external garden takes it from the surface
+!* humidity of the host instead, see the EXT block of TEB_GARDEN)
+PHU_AGG_GARDEN(:) = XPHU_GD
 !-------------------------------------------------------------------------------
 !
 !

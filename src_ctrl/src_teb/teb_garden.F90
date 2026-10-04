@@ -76,7 +76,6 @@ USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
 USE MODD_CSTS,              ONLY: XTT, XSTEFAN, XKARMAN
 USE MODD_SURF_PAR,          ONLY: XUNDEF, teb_snow_check
 USE MODD_SNOW_PAR,          ONLY: XEMISSN, XANSMAX
-USE MODD_PROXI_SVAT_PAR,    ONLY : XPHU_GD       ! surface humidity of the base garden
 !
 USE MODE_THERMOS
 USE MODE_SURF_SNOW_FRAC
@@ -839,8 +838,8 @@ IF (TOP%LGARDEN) THEN
               ZREC_SW_GD, ZREC_LW_GD, PU_LOWCAN, ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,     &
               ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,     &
               ZDRAIN_GD, ZIRRIG_GD,                                              &
-!MV202609 garden exchange coefficients, returned by the garden model
-              PCD_GD, PCH_GD )
+!MV202609 garden exchange coefficients and moisture multiplier, returned by the model
+              PCD_GD, PCH_GD, ZHU_AGG_GD )
 
 !* external garden ('EXT'/'EXT_NEU'): no proxy model is called. The surface state
 !* of the host is already in ZTSRAD_GD and only its qsat and its friction flux are
@@ -853,10 +852,10 @@ ELSE
   ZSFCO2_GD(:) = 0.
 END IF
 !
-!* moisture multiplier of the canyon node (PAC_GD*PHU_AGG_GD*ZGD): the beta of the
-!* internal proxy, replaced by the surface humidity of the host (clamp(q_v/qsat),
-!* as in COSMO-TEB) by the external block below
-ZHU_AGG_GD(:) = XPHU_GD
+!* moisture multiplier of the canyon node (PAC_GD*PHU_AGG_GD*ZGD): it is returned by
+!* the garden proxy called above for an internal garden (the PHU parameter of that
+!* model) and replaced, for an external garden, by the surface humidity of the host
+!* (clamp(q_v/qsat), as in COSMO-TEB) in the block below
   PAC_GD_WAT(:) = PAC_GD(:)
   DMT%XABS_SW_GARDEN(:) = (1.-ZALB_GD(:)) * ZREC_SW_GD
   DMT%XABS_LW_GARDEN(:) = ZEMIS_GD(:) * ZREC_LW_GD(:) - XSTEFAN * ZEMIS_GD(:) * ZTSRAD_GD(:)**4 
