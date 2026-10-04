@@ -56,7 +56,7 @@ deviate, explain why in the commit message.
 * Language: the scheme, history and defect documents are in **Russian**;
   `README.md`, `TEB_Ru_variables_description.md` and this rules file are in
   **English**. Code names and identifiers are written as in the source
-  (`XPHU_GD`, `PAC_GARDEN`, `TEB_output.csv`).
+  (`proxy_phu_gdn`, `PAC_GARDEN`, `TEB_output.csv`).
 * The header of a scheme document lists the related documents and carries the code
   state line, e.g. `> Состояние кода: коммит <sha> (дата), ветка MV_devs`.
 * Values and units follow the model: `W/m²`, `kg/m²`, `m/s`, `K`; decimal point in
@@ -83,8 +83,8 @@ deviate, explain why in the commit message.
 | defects of the original model | `D1…D7` |
 | defects of the driver, the forcing reader, the benches | `I1…I4` |
 | numerical defects of our own changes | `N1`, `N2` |
-| known but unfixed items | `C1…C5` |
-| bench checks | `B1…B6`, `Z1…Z4`, `S1…S4`, `T1…T5`, `T-a…T-f`, `G1…G12`, `H1…H6`, `I1…I9` |
+| known but unfixed items | `C1…C6` |
+| bench checks | `B1…B6`, `Z1…Z4`, `S1…S4`, `T1…T5`, `T-a…T-f`, `G1…G14`, `H1…H6`, `I1…I9` |
 
 * Every version and every mode in the table "version / mode → commits" must have a
   commit. A new mode without a history entry is a documentation error.
