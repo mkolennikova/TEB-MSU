@@ -294,9 +294,13 @@ DO JJ=1,SIZE(T%XT_ROAD,1)
   !*      13     road energy residual imbalance for verification
   !              -----------------------------------------------
   !
-  PIMB_ROAD(JJ) = PABS_SW_ROAD(JJ) + PABS_LW_ROAD(JJ) - PDQS_ROAD(JJ) &
-               - ZDF_ROAD(JJ) * ( PHFREE_ROAD(JJ) + PLEFREE_ROAD(JJ)) &
-               - ZDN_ROAD(JJ) *   PGSNOW_ROAD(JJ)
+!MV202609 fix of the road energy residual: the snow-free weight belongs to the
+!* radiation terms (the conductances already carry it) and the snow flux is a
+!* gain for the road column, as in the budget itself
+  PIMB_ROAD(JJ) = ZDF_ROAD(JJ) * ( PABS_SW_ROAD(JJ) + PABS_LW_ROAD(JJ) ) &
+             - PDQS_ROAD(JJ)                                              &
+             - ( PHFREE_ROAD(JJ) + PLEFREE_ROAD(JJ) )                     &
+             + ZDN_ROAD(JJ) *   PGSNOW_ROAD(JJ)
   !
 ENDDO
 !
