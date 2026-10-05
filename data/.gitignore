@@ -1,6 +1,0 @@
-# Datasets live outside the repository (see README.md in this directory):
-# nothing here is tracked, so a local dataset can never be committed by accident.
-# The few files that do belong to the repository must be added explicitly (git add -f).
-*
-!.gitignore
-!README.md

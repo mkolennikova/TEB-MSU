@@ -2,10 +2,12 @@
 *.zip
 *.o
 *.exe
-*.txt
 *.mod
 build/*
-output/*.*
+output/
+TEB_log.txt
+model_output.log
+*_output.txt
 python/*/
 python_tests/*/
 .vscode/settings.json
