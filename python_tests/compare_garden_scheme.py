@@ -19,7 +19,7 @@ options of the namelist key ``teb_type_garden`` and check that
   * the garden diagnostics stay in physical bounds and that the new scheme does
     not leak into the runs where the garden is switched off (bit-for-bit no-op).
 
-Configurations (4 per LCZ, tau scheme OFF in all of them)
+Configurations (4 per LCZ, cbs scheme OFF in all of them)
 ---------------------------------------------------------
     gOFF_OLD : teb_lgarden = .FALSE., teb_type_garden = 'PROXY_OLD'
     gOFF_NEW : teb_lgarden = .FALSE., teb_type_garden = 'PROXY_NEW'
@@ -120,7 +120,7 @@ def cases(lcz_tags=None, mode_tags=None):
 
 def build_namelist(base_nml: Path, lcz_tag: str, mode_tag: str, path: Path,
                    fr_garden: float, urb_z0_gdn: float | None = None) -> Path:
-    """Namelist of one case: base namelist + LCZ + garden mode (tau scheme off)."""
+    """Namelist of one case: base namelist + LCZ + garden mode (cbs scheme off)."""
     nml = f90nml.read(str(base_nml))
     p = nml['tebparam']
     lcz = LCZ[lcz_tag]
@@ -132,7 +132,7 @@ def build_namelist(base_nml: Path, lcz_tag: str, mode_tag: str, path: Path,
     p['teb_lgarden'] = bool(lgarden)
     p['fr_garden'] = float(fr_garden) if lgarden else 0.0
     p['teb_type_garden'] = gtype
-    p['teb_ltau_scheme'] = False          # tau scheme of the road: OFF
+    p['teb_lcbs_scheme'] = False          # cbs scheme of the road: OFF
     if urb_z0_gdn is not None:
         # garden roughness length, used by all the garden versions
         p['urb_z0_gdn'] = float(urb_z0_gdn)
@@ -556,7 +556,7 @@ def main(argv=None) -> int:
         md.append('| `%s` | %s | %s | `%s` |'
                   % (case, LCZ[lcz_tag]['label'], 'ON' if lg else 'OFF', ty))
     md.append('')
-    md.append('The tau scheme of the road is OFF in every case; `fr_garden = %g`.'
+    md.append('The cbs scheme of the road is OFF in every case; `fr_garden = %g`.'
               % args.fr_garden)
     md.append('')
     md.append('Garden roughness length (`urb_z0_gdn`): %s.'

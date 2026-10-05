@@ -73,7 +73,7 @@ REAL, PARAMETER :: XZ0_GD = 0.10
 !* Garden thermal (scalar) roughness ratio z0/z0h (-), i.e. z0h = z0/XZ0_O_Z0H_GD.
 !* It is used as the DEFAULT value of the namelist item urb_z0_o_z0h_gdn
 !* (RUN_TEB_OFFLINE), which is the value actually used by all the garden versions:
-!*   - GARDEN / GARDEN_TAU : the diagnostic surface energy balance exchanges heat
+!*   - GARDEN / GARDEN_CBS : the diagnostic surface energy balance exchanges heat
 !*                  and moisture through the scalar coefficient
 !*                  PCH = kappa**2/(ln(z/z0)*ln(z/z0h)) (the momentum keeps z0:
 !*                  only the friction flux uses PCD), see GARDEN_PCH_NEUTRAL

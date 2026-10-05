@@ -9,27 +9,27 @@
 MODULE MODI_GARDEN
 !
 !*** Interfaces of the three garden routines of src_proxi_SVAT/garden.F90:
-!***   GARDEN_TAU - garden of the model with the tau split (called by TEB)
+!***   GARDEN_CBS - garden of the model with the tau split (called by TEB)
 !***   GARDEN     - reduced diagnostic garden without the tau split
 !***   GARDEN_PCD - diagnostic garden with external exchange coefficients
 !***                (no reference height and no roughness length among its
 !***                arguments: both are already inside the coefficients; the
 !***                momentum coefficient gives the friction flux, the thermal
 !***                one the balance of heat and moisture, see z0h)
-!*** Only GARDEN_TAU returns the tau-branch decomposition (PH_GARDEN_CAN/ATM,
+!*** Only GARDEN_CBS returns the tau-branch decomposition (PH_GARDEN_CAN/ATM,
 !*** PLE_GARDEN_CAN/ATM): GARDEN and GARDEN_PCD return a single set of fluxes.
 !
 INTERFACE
 !
-    SUBROUTINE GARDEN_TAU(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD, &
+    SUBROUTINE GARDEN_CBS(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD, &
                 PZ0_O_Z0H,                                                       &
-                PUREF, PVMOD, PTA, PQA, PTAU, LTAU_SPLIT,                                  &
+                PUREF, PVMOD, PTA, PQA, PTAU, LCBS_SPLIT,                                  &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                   &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                      &
                 PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                                   &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                        &
                 PDRAIN_GARDEN, PIRRIG_GARDEN,              &
-!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
                 PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM,              &
 !MV202609 garden exchange coefficients and moisture multiplier, returned to the caller
                 PPCD_GD, PPCH_GD, PHU_AGG_GARDEN                                       )
@@ -47,7 +47,7 @@ REAL, DIMENSION(:)  , INTENT(IN)  :: PVMOD            ! wind speed at the forcin
 REAL, DIMENSION(:)  , INTENT(IN)  :: PTA              ! air temperature of the forcing level (K)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PQA              ! air specific humidity of the forcing level (kg/kg)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PTAU             ! tau weight of the canyon path (-)
-LOGICAL             , INTENT(IN)  :: LTAU_SPLIT       ! .TRUE.: split the garden exchange by tau
+LOGICAL             , INTENT(IN)  :: LCBS_SPLIT       ! .TRUE.: split the garden exchange by tau
 REAL, DIMENSION(:)  , INTENT(IN)  :: PALB_GD          ! garden albedo
 REAL, DIMENSION(:)  , INTENT(IN)  :: PEMIS_GD         ! garden emissivity
 REAL, DIMENSION(:)  , INTENT(IN)  :: PRHOA            ! air density at the lowest level
@@ -76,7 +76,7 @@ REAL, DIMENSION(:)  , INTENT(OUT) :: PLE_GARDEN_ATM   ! latent heat flux, atmosp
 REAL, DIMENSION(:)  , INTENT(OUT) :: PPCD_GD          ! momentum exchange coefficient (-)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PPCH_GD          ! thermal (scalar) coefficient (-)
 REAL, DIMENSION(:)  , INTENT(OUT) :: PHU_AGG_GARDEN   ! moisture multiplier (-)
-END SUBROUTINE GARDEN_TAU
+END SUBROUTINE GARDEN_CBS
 !
     SUBROUTINE GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,    &
                 PZ0_O_Z0H,                                                       &

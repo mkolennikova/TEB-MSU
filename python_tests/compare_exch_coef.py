@@ -547,7 +547,7 @@ only then `PTS_GARDEN`/`PQS_GARDEN` describe a real garden surface state. With
 the **internal** garden model (`teb_lgarden = .TRUE.`,
 `teb_type_garden = 'PROXY_OLD'` or `'PROXY_NEW'`) the canyon exchange
 coefficients of the garden are returned by the garden model itself (`GARDEN` /
-`GARDEN_TAU` of `src_proxi_SVAT/garden.F90`, i.e. the same neutral-log
+`GARDEN_CBS` of `src_proxi_SVAT/garden.F90`, i.e. the same neutral-log
 formulation that builds its conductances): the diagnostic garden (`'PROXY_NEW'`)
 returns the pair it built the balance with, while the historical Bowen proxy
 (`'PROXY_OLD'`) has no exchange coefficient of its own and returns zeros.

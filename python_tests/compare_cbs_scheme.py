@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """
-Comparison of the TEB-Ru tau scheme for the road fluxes.
+Comparison of the TEB-Ru cbs scheme for the road fluxes.
 
 Purpose
 -------
-With the tau scheme the actual road fluxes are the weighted mean of the
+With the cbs scheme the actual road fluxes are the weighted mean of the
 road/canyon and road/forcing-level exchanges, with the weights tau and 1-tau:
 
     tau = 0.5 * (1 + tanh((H/W - teb_tau_hw_thresh) / teb_tau_hw_width))
@@ -13,8 +13,8 @@ so that tau -> 0 for very sparse buildings (the road exchanges directly with the
 air of the forcing level) and tau = 1 for a dense canyon (the road exchanges
 with the canyon air only).
 
-This script runs every case twice - with teb_ltau_scheme = .FALSE. (reference)
-and .TRUE. (tau scheme) - and compares the effect of the scheme on
+This script runs every case twice - with teb_lcbs_scheme = .FALSE. (reference)
+and .TRUE. (cbs scheme) - and compares the effect of the scheme on
 
   * the canyon air temperature T_CANYON and specific humidity Q_CANYON,
   * the actual road fluxes H_ROAD / LE_ROAD (as used by the road energy budget),
@@ -30,7 +30,7 @@ canyon-wind schemes (teb_itype_wind = 0 and 1). The urban roughness length and
 the displacement height keep their default prescriptions (urb_z0_town = '0.1H'
 and urb_zd_town = 'H/3').
 
-The tau scheme is driven by the canyon H/W ratio of the morphology (urb_h2w):
+The cbs scheme is driven by the canyon H/W ratio of the morphology (urb_h2w):
 LCZ 2 (compact midrise) is a dense canyon (tau close to 1) whereas LCZ 9
 (sparsely built) is close to the free atmosphere (small tau).
 
@@ -38,20 +38,20 @@ Files (kept, not deleted; use --force to re-run a simulation):
   <out_root>/namelists/<case>.nml      namelist of every case
   <out_root>/output_<case>/            model output (TEB_output.csv)
   <out_root>/logs/<case>.log           model log
-  <out_root>/summary_tau_scheme.csv    statistics per case (ref, tau, difference)
-  <out_root>/plots/tau_*.png           comparison figures
+  <out_root>/summary_cbs_scheme.csv    statistics per case (ref, tau, difference)
+  <out_root>/plots/cbs_*.png           comparison figures
   <out_root>/README.md                 description of the experiment
 
 Usage
 -----
-    python python_tests/compare_tau_scheme.py                   # run everything
-    python python_tests/compare_tau_scheme.py --list            # list the cases
-    python python_tests/compare_tau_scheme.py --skip-run        # statistics/plots only
-    python python_tests/compare_tau_scheme.py --force           # re-run existing cases
-    python python_tests/compare_tau_scheme.py --no-tau          # reference runs only
-    python python_tests/compare_tau_scheme.py --tau-hw-thresh 0.5 --tau-hw-width 0.2
-    python python_tests/compare_tau_scheme.py --no-garden       # garden off
-    python python_tests/compare_tau_scheme.py --days 3          # length of the series
+    python python_tests/compare_cbs_scheme.py                   # run everything
+    python python_tests/compare_cbs_scheme.py --list            # list the cases
+    python python_tests/compare_cbs_scheme.py --skip-run        # statistics/plots only
+    python python_tests/compare_cbs_scheme.py --force           # re-run existing cases
+    python python_tests/compare_cbs_scheme.py --no-cbs          # reference runs only
+    python python_tests/compare_cbs_scheme.py --tau-hw-thresh 0.5 --tau-hw-width 0.2
+    python python_tests/compare_cbs_scheme.py --no-garden       # garden off
+    python python_tests/compare_cbs_scheme.py --days 3          # length of the series
 """
 from __future__ import annotations
 
@@ -85,7 +85,7 @@ from sensitivity_zd import (                                          # noqa: E4
 #: values >= XUNDEF are undefined in TEB-Ru (MODD_SURF_PAR:XUNDEF = 1.0e20)
 XUNDEF = 1.0e19
 
-#: variables compared between the reference and the tau runs: column ->
+#: variables compared between the reference and the cbs runs: column ->
 #: (label, unit, colour)
 CMP = {
     'T_CANYON':    ('canyon air temperature',                'K',     '#1f77b4'),
@@ -108,28 +108,28 @@ AUX = ('T_ROAD1', 'Forc_TA', 'Forc_WIND', 'U_CANYON', 'WIND_TOP')
 
 #: diurnal-cycle figures: (variable, file name, y label). One variable per
 #: figure: temperature and humidity differ by orders of magnitude, and a single
-#: curve pair per panel keeps the effect of the tau scheme readable
+#: curve pair per panel keeps the effect of the cbs scheme readable
 DIURNAL = (
-    ('T_CANYON', 'tau_canyon_diurnal.png',   'canyon air temperature (K)'),
-    ('T_CAN1',   'tau_tcan1_diurnal.png',    'free layer air temperature (K)'),
-    ('Q_CANYON', 'tau_humidity_diurnal.png', 'canyon air sp. humidity (kg/kg)'),
-    ('H_TOWN',   'tau_htown_diurnal.png',    'H town (W/m2)'),
-    ('LE_TOWN',  'tau_letown_diurnal.png',   'LE town (W/m2)'),
-    ('H_ROAD',   'tau_hroad_diurnal.png',    'H road, actual (W/m2)'),
-    ('LE_ROAD',  'tau_lroad_diurnal.png',    'LE road, actual (W/m2)'),
+    ('T_CANYON', 'cbs_canyon_diurnal.png',   'canyon air temperature (K)'),
+    ('T_CAN1',   'cbs_tcan1_diurnal.png',    'free layer air temperature (K)'),
+    ('Q_CANYON', 'cbs_humidity_diurnal.png', 'canyon air sp. humidity (kg/kg)'),
+    ('H_TOWN',   'cbs_htown_diurnal.png',    'H town (W/m2)'),
+    ('LE_TOWN',  'cbs_letown_diurnal.png',   'LE town (W/m2)'),
+    ('H_ROAD',   'cbs_hroad_diurnal.png',    'H road, actual (W/m2)'),
+    ('LE_ROAD',  'cbs_lroad_diurnal.png',    'LE road, actual (W/m2)'),
 )
 
 #: time-series figures: (variable, file name, y label)
 TIMESERIES = (
-    ('T_CANYON', 'tau_canyon_timeseries.png', 'canyon air temperature (K)'),
-    ('H_TOWN',   'tau_htown_timeseries.png',  'H town (W/m2)'),
+    ('T_CANYON', 'cbs_canyon_timeseries.png', 'canyon air temperature (K)'),
+    ('H_TOWN',   'cbs_htown_timeseries.png',  'H town (W/m2)'),
 )
 
 #: potential components of the road flux drawn with the actual road flux of the
-#: tau run (they show that the actual flux is their tau-weighted mean)
+#: cbs run (they show that the actual flux is their tau-weighted mean)
 ROAD_COMPONENTS = ('H_ROAD_CAN', 'H_ROAD_ATM')
 
-#: the reference (tau scheme off) is drawn in grey and dashed, the tau run in
+#: the reference (cbs scheme off) is drawn in grey and dashed, the cbs run in
 #: the colour of the variable and solid
 COLOUR_REF = '#7f7f7f'
 
@@ -138,7 +138,7 @@ COLOUR_REF = '#7f7f7f'
 #: is an input: it is identical in the two runs, so it is drawn once per panel
 #: ('ref') and shows how far the canyon air follows the forcing. All the other
 #: curves are model diagnostics, which differ between the two runs: they must be
-#: taken from the tau run ('run'), otherwise the figure shows the reference
+#: taken from the cbs run ('run'), otherwise the figure shows the reference
 #: canyon air instead of the tau-relaxed one.
 EXTRA = {
     'T_CANYON': (('Forc_TA', 'T forcing level', '#000000', ':', 1.8, 'ref'),),
@@ -151,7 +151,7 @@ EXTRA = {
 Z0_DEFAULT = '0.1H'
 ZD_DEFAULT = 'H/3'
 
-#: default tau scheme parameters (same as the driver defaults)
+#: default cbs scheme parameters (same as the driver defaults)
 TAU_THRESH_DEFAULT = 0.5
 TAU_WIDTH_DEFAULT = 0.25
 
@@ -162,29 +162,29 @@ WASTE_OFF_THEAT = 200.0
 
 
 def tau_of(hw_ratio: float, thresh: float, width: float) -> float:
-    """tau of the tau scheme: tanh relaxation of the canyon H/W ratio.
+    """tau of the cbs scheme: tanh relaxation of the canyon H/W ratio.
 
     tau -> 0 for very sparse buildings (H/W -> 0) and tau -> 1 for a dense
     canyon (H/W well above the threshold). Same formula as (and kept in sync
-    with) the TAU_URBAN function of TEB_GARDEN.
+    with) the CBS_TAU function of TEB_GARDEN.
     """
     return 0.5 * (1.0 + math.tanh((hw_ratio - thresh) / max(width, 1.0e-12)))
 
 
-def cases(use_tau: bool = True):
-    """Deterministic list of (case, lcz_tag, wind_type, tau_scheme)."""
+def cases(use_cbs: bool = True):
+    """Deterministic list of (case, lcz_tag, wind_type, cbs_scheme)."""
     out = []
     for lcz_tag in LCZ:
         for wind_type, wind_tag in WIND_TYPES.items():
             out.append((f'{lcz_tag}_{wind_tag}', lcz_tag, wind_type, False))
-            if use_tau:
-                out.append((f'{lcz_tag}_{wind_tag}_tau', lcz_tag, wind_type, True))
+            if use_cbs:
+                out.append((f'{lcz_tag}_{wind_tag}_cbs', lcz_tag, wind_type, True))
     return out
 
 
-def pairs(use_tau: bool = True):
-    """Reference/tau case pairs: (case, case_tau or None, lcz_tag, wind_type)."""
-    return [(f'{lcz_tag}_{wind_tag}', f'{lcz_tag}_{wind_tag}_tau' if use_tau else None,
+def pairs(use_cbs: bool = True):
+    """Reference/tau case pairs: (case, case_cbs or None, lcz_tag, wind_type)."""
+    return [(f'{lcz_tag}_{wind_tag}', f'{lcz_tag}_{wind_tag}_cbs' if use_cbs else None,
              lcz_tag, wind_type)
             for lcz_tag in LCZ for wind_type, wind_tag in WIND_TYPES.items()]
 
@@ -193,7 +193,7 @@ def build_namelist(base_nml: Path, lcz_tag: str, wind_type: int, path: Path,
                    garden: bool, fr_garden: float, tau: bool,
                    tau_thresh: float, tau_width: float,
                    ahf_traffic: float = 0.0, waste: bool = True) -> Path:
-    """Namelist of one case: base namelist + LCZ + wind scheme + tau scheme.
+    """Namelist of one case: base namelist + LCZ + wind scheme + cbs scheme.
 
     `ahf_traffic` is the annual mean anthropogenic heat flux due to traffic
     [W/m2] of the namelist (a daily cycle is applied by the driver, see
@@ -214,7 +214,7 @@ def build_namelist(base_nml: Path, lcz_tag: str, wind_type: int, path: Path,
     p['urb_zd_town'] = ZD_DEFAULT
     p['teb_lgarden'] = bool(garden)
     p['fr_garden'] = float(fr_garden) if garden else 0.0
-    p['teb_ltau_scheme'] = bool(tau)
+    p['teb_lcbs_scheme'] = bool(tau)
     p['teb_tau_hw_thresh'] = float(tau_thresh)
     p['teb_tau_hw_width'] = float(tau_width)
     p['ahf_traffic'] = float(ahf_traffic)
@@ -261,7 +261,7 @@ def mean_of(x):
 
 
 def case_statistics(case: str, ref: dict, run: dict, tau_val: float) -> list:
-    """One row per compared variable: reference, tau run and their difference."""
+    """One row per compared variable: reference, cbs run and their difference."""
     rows = []
     for name, (label, unit, _) in CMP.items():
         a, b = ref.get(name), run.get(name)
@@ -273,11 +273,11 @@ def case_statistics(case: str, ref: dict, run: dict, tau_val: float) -> list:
             d = b[m] - a[m]
         rows.append(dict(case=case, variable=name, label=label, unit=unit,
                          tau=tau_val, n=int(d.size),
-                         mean_ref=st_a['mean'], mean_tau=st_b['mean'],
+                         mean_ref=st_a['mean'], mean_cbs=st_b['mean'],
                          mean_diff=float(np.mean(d)) if d.size else np.nan,
                          min_diff=float(np.min(d)) if d.size else np.nan,
                          max_diff=float(np.max(d)) if d.size else np.nan,
-                         std_ref=st_a['std'], std_tau=st_b['std']))
+                         std_ref=st_a['std'], std_cbs=st_b['std']))
     return rows
 
 
@@ -317,7 +317,7 @@ def plot_timeseries(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
 
     `extra` lists further curves (variable, label, colour, style, line width,
     source): 'ref' for the forcing (an input, identical in both runs) and 'run'
-    for the model diagnostics of the tau run.
+    for the model diagnostics of the cbs run.
     """
     label, unit, col = CMP[name]
     keys = list(info)
@@ -337,14 +337,14 @@ def plot_timeseries(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
         ]
         for vname, vlabel, vcol, vls, vlw, src in extra:
             #: 'ref' for the forcing (an input, identical in both runs),
-            #: 'run' for the model diagnostics of the tau run
+            #: 'run' for the model diagnostics of the cbs run
             y = (run[case] if src == 'run' else ref[case]).get(vname)
             series.append((vlabel, None if y is None else y[:nshow], vcol, vls, vlw))
         _panel(ax, case, info, tau_vals[case], x, series, ylabel)
     for ax in axes[len(keys):]:
         ax.axis('off')
     fig.suptitle(f'{label}, first {days:g} days: '
-                 f'reference (tau scheme off) versus tau scheme', fontsize=11)
+                 f'reference (cbs scheme off) versus cbs scheme', fontsize=11)
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     fig.savefig(path, dpi=150)
     plt.close(fig)
@@ -360,14 +360,14 @@ def _hourly_mean(y, hours, xh):
 def plot_diurnal(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
                  ylabel: str, path: Path, ref_line: bool = True, run_only=(),
                  extra=()):
-    """Mean diurnal cycle of one variable: reference versus tau scheme.
+    """Mean diurnal cycle of one variable: reference versus cbs scheme.
 
-    With `ref_line = False` only the tau run is drawn (used for the potential
+    With `ref_line = False` only the cbs run is drawn (used for the potential
     components figure). `run_only` lists further variables drawn for the tau
     run, in their own colour and dotted. `extra` lists further curves
     (variable, label, colour, style, line width, source): 'ref' for the forcing
     (an input, identical in both runs) and 'run' for the model diagnostics of
-    the tau run (T_CAN0 and T_CANYON differ between the two runs, so the
+    the cbs run (T_CAN0 and T_CANYON differ between the two runs, so the
     reference values would draw the canyon air without relaxation).
     """
     label, unit, col = CMP[name]
@@ -396,7 +396,7 @@ def plot_diurnal(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
             series.append((f'{lab2} (tau on)', _hourly_mean(y, hours, xh), col2, ':'))
         for vname, vlabel, vcol, vls, vlw, src in extra:
             #: 'ref' for the forcing (an input, identical in both runs),
-            #: 'run' for the model diagnostics of the tau run
+            #: 'run' for the model diagnostics of the cbs run
             y = (run[case] if src == 'run' else ref[case]).get(vname)
             if y is None or not np.any(np.isfinite(y)):
                 continue
@@ -405,7 +405,7 @@ def plot_diurnal(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
         ax.set_xlabel('hour (UTC)')
     for ax in axes[len(keys):]:
         ax.axis('off')
-    fig.suptitle(f'Mean diurnal cycle of {label}: reference versus tau scheme',
+    fig.suptitle(f'Mean diurnal cycle of {label}: reference versus cbs scheme',
                  fontsize=11)
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     fig.savefig(path, dpi=150)
@@ -413,7 +413,7 @@ def plot_diurnal(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
 
 
 def plot_scatter(ref: dict, run: dict, info: dict, name: str, path: Path):
-    """tau run versus reference: canyon temperature and road flux."""
+    """cbs run versus reference: canyon temperature and road flux."""
     label, unit, col = CMP[name]
     fig, ax = plt.subplots(1, 1, figsize=(6.8, 6.0))
     lo, hi = np.inf, -np.inf
@@ -429,9 +429,9 @@ def plot_scatter(ref: dict, run: dict, info: dict, name: str, path: Path):
         hi = max(hi, float(np.nanmax(a[m])), float(np.nanmax(b[m])))
     if np.isfinite(lo) and np.isfinite(hi):
         ax.plot([lo, hi], [lo, hi], color='k', lw=0.8, ls='--', label='1:1')
-    ax.set_xlabel(f'{label}: reference, tau scheme off ({unit})')
-    ax.set_ylabel(f'{label}: tau scheme on ({unit})')
-    ax.set_title(f'{label}: tau scheme versus reference', fontsize=10)
+    ax.set_xlabel(f'{label}: reference, cbs scheme off ({unit})')
+    ax.set_ylabel(f'{label}: cbs scheme on ({unit})')
+    ax.set_title(f'{label}: cbs scheme versus reference', fontsize=10)
     ax.grid(alpha=0.3)
     ax.legend(fontsize=7)
     fig.tight_layout()
@@ -450,9 +450,9 @@ def write_readme(out_root: Path, base: Path, forcing_nml: Path, info: dict,
         hw = float(LCZ[lcz_tag]['h2w'])
         lines.append(f'| `{case}` | {LCZ[lcz_tag]["label"]} | {wind_type} | '
                      f'{hw:g} | {tau_of(hw, tau_thresh, tau_width):.3f} |')
-    txt = f"""# Comparison of the tau scheme of the road fluxes (TEB-Ru)
+    txt = f"""# Comparison of the cbs scheme of the road fluxes (TEB-Ru)
 
-Generated by `python_tests/compare_tau_scheme.py`. The simulation data are kept here.
+Generated by `python_tests/compare_cbs_scheme.py`. The simulation data are kept here.
 
 ## Configuration
 
@@ -467,8 +467,8 @@ Generated by `python_tests/compare_tau_scheme.py`. The simulation data are kept 
 * Anthropogenic heat flux due to traffic: `ahf_traffic = {ahf_traffic:g}` W/m2
   (daily cycle applied by the driver, `teb_utc_hour` of the base namelist),
   `ahf_industry = 0`
-* Every case is run twice: `teb_ltau_scheme = .FALSE.` (reference) and `.TRUE.`
-  (tau scheme), with `teb_tau_hw_thresh = {tau_thresh:g}` and
+* Every case is run twice: `teb_lcbs_scheme = .FALSE.` (reference) and `.TRUE.`
+  (cbs scheme), with `teb_tau_hw_thresh = {tau_thresh:g}` and
   `teb_tau_hw_width = {tau_width:g}`
 
 ## Cases and tau
@@ -494,11 +494,11 @@ Generated by `python_tests/compare_tau_scheme.py`. The simulation data are kept 
 | `H_WASTE` | sensible waste heat of the buildings (HVAC + infiltration/ventilation) |
 
 `AHF_TRAFFIC` and `H_WASTE` are already contained in `H_TOWN` with their full
-weight: the tau scheme replaces the road exchange only and does not weight the
+weight: the cbs scheme replaces the road exchange only and does not weight the
 anthropogenic fluxes (verified numerically by `python_tests/check_anthro_heat.py`),
 so that `H_TOWN - AHF_TRAFFIC - H_WASTE` is the flux of the urban surfaces.
 
-With the tau scheme the actual road flux is the weighted mean
+With the cbs scheme the actual road flux is the weighted mean
 `tau * *_ROAD_CAN + (1 - tau) * *_ROAD_ATM`: only the tau fraction of the road
 exchange heats the canyon air, the remaining part exchanging directly with the
 air of the forcing level.
@@ -523,7 +523,7 @@ members (`T_CAN = tau * T_CAN0 + (1 - tau) * T_CAN1`):
   contributions of the walls, the waste heat and the traffic vanish with the
   building density.
 
-With `teb_ltau_scheme = .FALSE.` the driver sets `tau = 1`, so
+With `teb_lcbs_scheme = .FALSE.` the driver sets `tau = 1`, so
 `T_CAN = T_CAN0` and the reference run is exactly the former model (verified
 bit-for-bit); the two tau limits are also reachable through the namelist without
 any code switch (`teb_tau_hw_thresh = -1000` gives `tau = 1`,
@@ -534,35 +534,35 @@ any code switch (`teb_tau_hw_thresh = -1000` gives `tau = 1`,
 * `namelists/<case>.nml` - namelist of every case
 * `output_<case>/TEB_output.csv` - full model output
 * `logs/<case>.log` - model log
-* `summary_tau_scheme.csv` - statistics of every variable per case
-* `plots/tau_canyon_timeseries.png` - canyon temperature, first {days:g} days,
+* `summary_cbs_scheme.csv` - statistics of every variable per case
+* `plots/cbs_canyon_timeseries.png` - canyon temperature, first {days:g} days,
   with the forcing-level temperature
-* `plots/tau_htown_timeseries.png` - town sensible heat flux, first {days:g} days
-* `plots/tau_canyon_diurnal.png` - mean diurnal cycle of the canyon temperature,
+* `plots/cbs_htown_timeseries.png` - town sensible heat flux, first {days:g} days
+* `plots/cbs_canyon_diurnal.png` - mean diurnal cycle of the canyon temperature,
   with the forcing-level temperature (the temperature and the humidity are drawn
   separately: they differ by orders of magnitude)
-* `plots/tau_tcan1_diurnal.png` - mean diurnal cycle of the free layer air
+* `plots/cbs_tcan1_diurnal.png` - mean diurnal cycle of the free layer air
   temperature, with the canyon air without tau (`T_CAN0`), the tau relaxed canyon
   air and the forcing-level temperature
-* `plots/tau_humidity_diurnal.png` - mean diurnal cycle of the canyon humidity
-* `plots/tau_htown_diurnal.png` - mean diurnal cycle of the town sensible heat
-  flux (the main effect of the tau scheme)
-* `plots/tau_letown_diurnal.png` - mean diurnal cycle of the town latent heat flux
-* `plots/tau_hroad_diurnal.png` - mean diurnal cycle of the actual road sensible
-  heat flux: reference versus tau scheme
-* `plots/tau_hroad_components_diurnal.png` - tau run: actual road sensible heat
+* `plots/cbs_humidity_diurnal.png` - mean diurnal cycle of the canyon humidity
+* `plots/cbs_htown_diurnal.png` - mean diurnal cycle of the town sensible heat
+  flux (the main effect of the cbs scheme)
+* `plots/cbs_letown_diurnal.png` - mean diurnal cycle of the town latent heat flux
+* `plots/cbs_hroad_diurnal.png` - mean diurnal cycle of the actual road sensible
+  heat flux: reference versus cbs scheme
+* `plots/cbs_hroad_components_diurnal.png` - cbs run: actual road sensible heat
   flux and its potential components (tau = 1 and tau = 0)
-* `plots/tau_lroad_diurnal.png` - mean diurnal cycle of the actual road latent
+* `plots/cbs_lroad_diurnal.png` - mean diurnal cycle of the actual road latent
   heat flux
-* `plots/tau_tcanyon_scatter.png` - canyon temperature: tau scheme versus reference
-* `plots/tau_hroad_scatter.png` - road sensible heat flux: tau scheme versus reference
+* `plots/cbs_tcanyon_scatter.png` - canyon temperature: cbs scheme versus reference
+* `plots/cbs_hroad_scatter.png` - road sensible heat flux: cbs scheme versus reference
 
 ## Re-running
 
 ```
-python python_tests/compare_tau_scheme.py             # missing cases + figures
-python python_tests/compare_tau_scheme.py --force     # re-run everything
-python python_tests/compare_tau_scheme.py --skip-run  # figures and statistics only
+python python_tests/compare_cbs_scheme.py             # missing cases + figures
+python python_tests/compare_cbs_scheme.py --force     # re-run everything
+python python_tests/compare_cbs_scheme.py --skip-run  # figures and statistics only
 ```
 """
     (out_root / 'README.md').write_text(txt, encoding='utf-8')
@@ -575,7 +575,7 @@ def _read_text(path: Path):
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
-        description='tau scheme of the TEB-Ru road fluxes: reference versus tau run')
+        description='cbs scheme of the TEB-Ru road fluxes: reference versus cbs run')
     ap.add_argument('--work-dir', default=DEFAULT_WORK_DIR,
                     help='working directory of run_on_windows.ipynb (default: %(default)s)')
     ap.add_argument('--site', default='Moscow', help='site name (default: %(default)s)')
@@ -585,7 +585,7 @@ def main(argv=None) -> int:
     ap.add_argument('--forcing-nml', default=None,
                     help='forcing namelist (default: <site>/forcing_ERA5/namelist_forcing.nml)')
     ap.add_argument('--out-root', default=None,
-                    help='directory of the experiment (default: <site>/compare_tau_scheme)')
+                    help='directory of the experiment (default: <site>/compare_cbs_scheme)')
     ap.add_argument('--exe', default=None,
                     help='model executable (default: <repo>/build/TEB_offline.exe)')
     ap.add_argument('--only', default=None, help='comma separated list of case names')
@@ -594,8 +594,8 @@ def main(argv=None) -> int:
     ap.add_argument('--force', action='store_true',
                     help='run the cases even if their output already exists')
     ap.add_argument('--list', action='store_true', help='list the cases and exit')
-    ap.add_argument('--no-tau', action='store_true',
-                    help='run only the reference cases (tau scheme off)')
+    ap.add_argument('--no-cbs', action='store_true',
+                    help='run only the reference cases (cbs scheme off)')
     ap.add_argument('--no-garden', action='store_true',
                     help='do not activate the garden')
     ap.add_argument('--ahf-traffic', type=float, default=0.0,
@@ -624,12 +624,12 @@ def main(argv=None) -> int:
     forcing_nml = (Path(args.forcing_nml) if args.forcing_nml
                    else work / args.site / 'forcing_ERA5' / 'namelist_forcing.nml')
     out_root = (Path(args.out_root) if args.out_root
-                else work / args.site / 'compare_tau_scheme')
+                else work / args.site / 'compare_cbs_scheme')
     exe = Path(args.exe) if args.exe else MODEL_DIR / 'build' / 'TEB_offline.exe'
     garden = not args.no_garden
-    use_tau = not args.no_tau
+    use_cbs = not args.no_cbs
     waste = not args.no_waste
-    # BEM option of the base configuration (the tau scheme is evaluated with it)
+    # BEM option of the base configuration (the cbs scheme is evaluated with it)
     try:
         bem = str(f90nml.read(str(base))['tebparam']['teb_itype_bem']).strip()
     except Exception:                                     # noqa: BLE001
@@ -638,13 +638,13 @@ def main(argv=None) -> int:
     #: with --only) produces statistics and figures for the available cases only
     info, tau_vals = {}, {}
 
-    all_cases = cases(use_tau)
+    all_cases = cases(use_cbs)
     if args.list:
         for case, lcz_tag, wind_type, tau in all_cases:
             hw = float(LCZ[lcz_tag]['h2w'])
             tv = tau_of(hw, args.tau_hw_thresh, args.tau_hw_width)
             print(f'{case:<18} {LCZ[lcz_tag]["label"]:<44} teb_itype_wind={wind_type} '
-                  f'H/W={hw:g} tau={tv:.3f} ltau_scheme={tau}')
+                  f'H/W={hw:g} tau={tv:.3f} lcbs_scheme={tau}')
         return 0
 
     if args.only:
@@ -661,7 +661,7 @@ def main(argv=None) -> int:
             return 2
 
     print('==================================================================')
-    print('TEB-Ru tau scheme of the road fluxes: reference versus tau run')
+    print('TEB-Ru cbs scheme of the road fluxes: reference versus cbs run')
     print('  model          :', exe)
     print('  forcing nml    :', forcing_nml)
     print('  base nml       :', base)
@@ -693,7 +693,7 @@ def main(argv=None) -> int:
         rc = run_case(exe, forcing_nml, nml_path, out_dir, log_file)
         print(f'  [run ] {case}  (return code {rc})')
 
-    for case, case_tau, lcz_tag, wind_type in pairs(use_tau):
+    for case, case_cbs, lcz_tag, wind_type in pairs(use_cbs):
         if not (out_root / f'output_{case}' / 'TEB_output.csv').is_file():
             print(f'  [none] {case}  (no output: statistics and figures skipped)')
             continue
@@ -702,22 +702,22 @@ def main(argv=None) -> int:
                                 args.tau_hw_thresh, args.tau_hw_width)
 
     ref_data, run_data, rows = {}, {}, []
-    for case, case_tau, lcz_tag, wind_type in pairs(use_tau):
+    for case, case_cbs, lcz_tag, wind_type in pairs(use_cbs):
         if case not in info:
             continue
         ref = read_case(out_root / f'output_{case}')
         ref_data[case] = ref
-        if case_tau is None:
+        if case_cbs is None:
             continue
-        if not (out_root / f'output_{case_tau}' / 'TEB_output.csv').is_file():
-            print(f'  [none] {case_tau}  (no output: statistics and figures skipped)')
+        if not (out_root / f'output_{case_cbs}' / 'TEB_output.csv').is_file():
+            print(f'  [none] {case_cbs}  (no output: statistics and figures skipped)')
             continue
-        run = read_case(out_root / f'output_{case_tau}')
+        run = read_case(out_root / f'output_{case_cbs}')
         run_data[case] = run
         rows.extend(case_statistics(case, ref, run, tau_vals[case]))
 
     out_root.mkdir(parents=True, exist_ok=True)
-    stats_csv = out_root / 'summary_tau_scheme.csv'
+    stats_csv = out_root / 'summary_cbs_scheme.csv'
     stats = pd.DataFrame(rows)
     stats.to_csv(stats_csv, index=False, float_format='%.8f')
 
@@ -733,28 +733,28 @@ def main(argv=None) -> int:
                          plots / fname, extra=EXTRA.get(name, ()))
         plot_diurnal(ref_data, run_data, info, tau_vals, 'H_ROAD',
                      'H road (W/m2)',
-                     plots / 'tau_hroad_components_diurnal.png',
+                     plots / 'cbs_hroad_components_diurnal.png',
                      ref_line=False, run_only=ROAD_COMPONENTS)
         plot_scatter(ref_data, run_data, info, 'T_CANYON',
-                     plots / 'tau_tcanyon_scatter.png')
+                     plots / 'cbs_tcanyon_scatter.png')
         plot_scatter(ref_data, run_data, info, 'H_ROAD',
-                     plots / 'tau_hroad_scatter.png')
+                     plots / 'cbs_hroad_scatter.png')
     write_readme(out_root, base, forcing_nml, info, args.tau_hw_thresh,
                  args.tau_hw_width, args.days, garden, args.fr_garden,
                  args.ahf_traffic, waste, bem)
 
     pd.set_option('display.width', 200)
     if run_data:
-        print('\nEffect of the tau scheme (tau run minus reference):')
+        print('\nEffect of the cbs scheme (cbs run minus reference):')
         for name in ('T_CANYON', 'T_CAN0', 'T_CAN1', 'Q_CANYON', 'H_ROAD', 'LE_ROAD',
                      'H_TOWN', 'LE_TOWN'):
             sub = stats[stats.variable == name]
             print(f'\n{name} ({CMP[name][0]}, {CMP[name][1]}):')
-            print(sub.set_index('case')[['tau', 'mean_ref', 'mean_tau',
+            print(sub.set_index('case')[['tau', 'mean_ref', 'mean_cbs',
                                          'mean_diff', 'min_diff', 'max_diff']]
                   .round(4).to_string())
     else:
-        print('\nNo tau runs: only the reference cases were simulated (--no-tau)')
+        print('\nNo cbs runs: only the reference cases were simulated (--no-cbs)')
 
     print('\nStatistics :', stats_csv)
     print('Data kept  :', out_root)

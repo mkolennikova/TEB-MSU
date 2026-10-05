@@ -108,14 +108,14 @@
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
-!MV202609 tau scheme of the road
+!MV202609 cbs scheme of the road
                                                     PT_CAN0, PT_CAN1, PPHI_CAN1,                             &
-!MV202609 tau scheme of the road (revision: three-temperature construction)
-!MV202609 tau scheme of the road (revision: puddle diagnostics)
+!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 cbs scheme of the road (revision: puddle diagnostics)
                                                      PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                                                      LE_ROOF_WAT, LE_ROOF_SNOW, &
-                          OTAU_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
+                          OCBS_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
 !MV202609 garden thermal roughness (z0h)
                           XZ0_O_Z0H_GD, &
 !MV202609 greenroof model type, thermal roughness and surface humidity
@@ -123,7 +123,7 @@
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, &
-!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
                           PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
 !MV202609 greenroof diagnostics
                           PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
@@ -351,7 +351,7 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_ROOF       ! runoff over the grou
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_ROAD           ! net radiation over road
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_ROAD            ! sensible heat flux over road
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_ROAD           ! latent heat flux over road
-!MV202609 tau scheme of the road (revision: puddle diagnostics)
+!MV202609 cbs scheme of the road (revision: puddle diagnostics)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_ROAD_ATM_WAT   ! road water conductance (forcing level, water-limited)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: LE_ROAD_WAT        ! road latent heat flux of the snow-free road (W/m2 road)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: LE_ROAD_SNOW       ! road latent heat flux of the snow-covered road (W/m2 road)
@@ -389,7 +389,7 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PHSNOW_ROAD        ! sensible heat flux o
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PLESNOW_ROAD       ! latent heat flux over snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PGSNOW_ROAD        ! flux under the snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PMELT_ROAD         ! snow melt
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch diagnostics)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch diagnostics)
 !* branch diagnostics of the road snow exchange: they are READ by the canyon air
 !* nodes inside TEB_GARDEN (TEB_GARDEN2 -> AVG_URBAN_FLUXES) and WRITTEN by the
 !* snow scheme at the end of the same call (TEB -> URBAN_SNOW_EVOL). The arrays
@@ -484,7 +484,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_CAN      ! road sensible heat flux,
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_CAN     ! road latent heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_ATM      ! road sensible heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_ATM     ! road latent heat flux, road -> forcing level [W m-2]
-!MV202609 tau scheme of the road (revision: three-temperature construction)
+!MV202609 cbs scheme of the road (revision: three-temperature construction)
 REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN0          ! canyon air temperature without tau [K]
 REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN1          ! free layer (second canopy) air temperature [K]
 REAL, DIMENSION(:), INTENT(OUT)   :: PPHI_CAN1        ! free layer air temperature / theta* ratio of the MOST profile [-]
@@ -496,7 +496,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN       ! latent heat flux over th
 REAL, DIMENSION(:), INTENT(OUT)   :: PEVAP_GARDEN     ! total evaporation over the garden [kg/m2/s]
 REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_GARDEN     ! garden saturation specific humidity [kg/kg]
 REAL, DIMENSION(:), INTENT(OUT)   :: PHU_GARDEN       ! garden aggregated relative humidity [-]
-!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_GARDEN_CAN    ! garden sensible heat flux, garden -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_GARDEN_ATM    ! garden sensible heat flux, garden -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN_CAN   ! garden latent  heat flux, garden -> canyon air [W m-2]
@@ -516,10 +516,10 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GREENROOF_ATM! greenroof neutral drag 
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GREENROOF_ATM! greenroof roughness length for heat (atm.)
-!MV202609 tau scheme of the road
-LOGICAL,              INTENT(IN)  :: OTAU_SCHEME      ! flag to use the tau scheme for the road
-REAL,                 INTENT(IN)  :: XTAU_HW_THRESH   ! H/W giving tau = 0.5 (tau scheme)
-REAL,                 INTENT(IN)  :: XTAU_HW_WIDTH    ! width of the tanh relaxation (tau scheme)
+!MV202609 cbs scheme of the road
+LOGICAL,              INTENT(IN)  :: OCBS_SCHEME      ! flag to use the cbs scheme for the road
+REAL,                 INTENT(IN)  :: XTAU_HW_THRESH   ! H/W giving tau = 0.5 (cbs scheme)
+REAL,                 INTENT(IN)  :: XTAU_HW_WIDTH    ! width of the tanh relaxation (cbs scheme)
 !MV202609 garden thermal roughness (z0h)
 REAL,                 INTENT(IN)  :: XZ0_O_Z0H_GD      ! garden z0/z0h ratio (-), >= 1
 !MV202609 greenroof model type, thermal roughness and surface humidity
@@ -710,7 +710,7 @@ PRUNOFF_ROOF     = XUNDEF  ! runoff over the ground
 PRN_ROAD         = XUNDEF  ! net radiation over road
 PH_ROAD          = XUNDEF  ! sensible heat flux over road
 PLE_ROAD         = XUNDEF  ! latent heat flux over road
-!MV202609 tau scheme of the road (revision: puddle diagnostics)
+!MV202609 cbs scheme of the road (revision: puddle diagnostics)
 PAC_ROAD_ATM_WAT = XUNDEF  ! road water conductance (forcing level, water-limited)
 LE_ROAD_WAT      = XUNDEF  ! road latent heat flux of the snow-free road (W/m2 road)
 LE_ROAD_SNOW     = XUNDEF  ! road latent heat flux of the snow-covered road (W/m2 road)
@@ -791,7 +791,7 @@ PLE_GARDEN       = XUNDEF  ! latent heat flux over the garden
 PEVAP_GARDEN     = XUNDEF  ! total evaporation over the garden
 PQSAT_GARDEN     = XUNDEF  ! garden saturation specific humidity
 PHU_GARDEN       = XUNDEF  ! garden aggregated relative humidity
-!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
 PH_GARDEN_CAN    = XUNDEF  ! garden sensible heat flux, garden -> canyon air
 PH_GARDEN_ATM    = XUNDEF  ! garden sensible heat flux, garden -> forcing level
 PLE_GARDEN_CAN   = XUNDEF  ! garden latent  heat flux, garden -> canyon air
@@ -1010,10 +1010,10 @@ TOP%LGREENROOF   = OGREENROOF   ! T: green roofs (call ISBA from TEB)
 TOP%CTYPE_GARDEN = TYPE_GARDEN  ! garden model type ('PROXY_OLD','PROXY_NEW','EXT','EXT_NEU')
 TOP%CTYPE_GREENROOF = TYPE_GREENROOF  ! greenroof model type ('PROXY_OLD','PROXY_NEW')
 TOP%LSOLAR_PANEL = OSOLAR_PANEL ! T: solar panels on roofs
-!MV202609 tau scheme of the road
-TOP%LTAU_SCHEME    = OTAU_SCHEME    ! T: tau scheme for the road fluxes
-TOP%XTAU_HW_THRESH = XTAU_HW_THRESH ! H/W giving tau = 0.5 (tau scheme)
-TOP%XTAU_HW_WIDTH  = XTAU_HW_WIDTH  ! width of the tanh relaxation (tau scheme)
+!MV202609 cbs scheme of the road
+TOP%LCBS_SCHEME    = OCBS_SCHEME    ! T: cbs scheme for the road fluxes
+TOP%XTAU_HW_THRESH = XTAU_HW_THRESH ! H/W giving tau = 0.5 (cbs scheme)
+TOP%XTAU_HW_WIDTH  = XTAU_HW_WIDTH  ! width of the tanh relaxation (cbs scheme)
 !MV202609 garden thermal roughness (z0h)
 TOP%XZ0_O_Z0H_GD   = XZ0_O_Z0H_GD   ! garden z0/z0h ratio (-)
 !MV202609 greenroof model type and thermal roughness
@@ -1171,7 +1171,7 @@ TIR%XRD_24H_IRRIG   = PRD_24H_IRRIG   ! roads : total irrigation over 24 hours (
 !
 DMT%XZ0_TOWN = PZ0_TOWN   ! town roughness length
 !-------------------------------------------------------------------------------
-!MV202609 tau scheme of the road (snow-to-atmosphere branch diagnostics)
+!MV202609 cbs scheme of the road (snow-to-atmosphere branch diagnostics)
 !* The branch diagnostics of the snow-on-road exchange are read by the canyon air
 !* nodes at the BEGINNING of TEB_GARDEN (TEB_GARDEN2 -> AVG_URBAN_FLUXES) and are
 !* written by the snow scheme at its END (TEB -> URBAN_SNOW_EVOL): the canyon air
@@ -1194,7 +1194,7 @@ CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENR
                            PZREF, PUREF, PVMOD, PH_TRAFFIC, PLE_TRAFFIC, PTSTEP, PLEW_ROOF, PLEW_ROAD,             &
                            PLE_WALL_A, PLE_WALL_B, PRNSNOW_ROOF, PHSNOW_ROOF, PLESNOW_ROOF, PGSNOW_ROOF,PMELT_ROOF,&
                            PRNSNOW_ROAD, PHSNOW_ROAD, PLESNOW_ROAD, PGSNOW_ROAD, PMELT_ROAD, PRN_GRND, PH_GRND,    &
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
                            PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM,                          &
                            PLE_GRND, PGFLUX_GRND, PRN_TOWN, PH_TOWN, PLE_TOWN, PGFLUX_TOWN, PEVAP_TOWN,            &
                            PSFCO2, PUW_GRND, PUW_ROOF, PDUWDU_GRND, PDUWDU_ROOF,                                   &
@@ -1213,16 +1213,16 @@ CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENR
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
-!MV202609 tau scheme of the road
+!MV202609 cbs scheme of the road
                           PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                           LE_ROOF_WAT, LE_ROOF_SNOW, &
-!MV202609 tau scheme of the road (revision: three-temperature construction)
+!MV202609 cbs scheme of the road (revision: three-temperature construction)
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                             &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, &
-!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
                           PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
 !MV202609 greenroof diagnostics
                           PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
@@ -1235,7 +1235,7 @@ CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENR
 !
 ! update of BEM prognostic variables
 !
-!MV202609 tau scheme of the road (snow-to-atmosphere branch diagnostics)
+!MV202609 cbs scheme of the road (snow-to-atmosphere branch diagnostics)
 !* the snow scheme of TEB has just filled the branch diagnostics of the snow
 !* exchange: they are kept for the canyon air nodes of the next sub-step
 !
@@ -1314,7 +1314,7 @@ DMT%XPLESN_RD_ATM(:) = PLESN_RD_ATM(:)
  PH_WALL_A   = DMT%XH_WALL_A ! wall sensible heat flux          (W/m2)
  PH_WALL_B   = DMT%XH_WALL_B ! wall sensible heat flux          (W/m2)
  PH_ROOF     = DMT%XH_ROOF   ! roof sensible heat flux          (W/m2)
-!MV202609 tau scheme of the road
+!MV202609 cbs scheme of the road
 !* PH_ROAD (road sensible heat flux of the snow-free road as used by the road
 !* energy budget, i.e. the tau-aggregated flux) is returned by TEB_GARDEN
  PH_STRLROOF = DMT%XH_STRLROOF ! structural roof sens. heat flux  (W/m2)
@@ -1332,7 +1332,7 @@ DMT%XPLESN_RD_ATM(:) = PLESN_RD_ATM(:)
  PGFLUX_STRLROOF = DMT%XGFLUX_STRLROOF !net structural roof cond flux (W/m2)
  PGFLUX_BLT      = DMT%XGFLUX_BLT! net built surf conduction flux   (W/m2)
  PLE_ROOF        = DMT%XLE_ROOF  ! roof latent heat flux            (W/m2)
-!MV202609 tau scheme of the road
+!MV202609 cbs scheme of the road
 !* PLE_ROAD (road latent heat flux as used by the road energy budget, i.e. the
 !* tau-aggregated flux) is returned by TEB_GARDEN
  PLE_STRLROOF    = DMT%XLE_STRLROOF !structural roof latent heat flux (W/m2)

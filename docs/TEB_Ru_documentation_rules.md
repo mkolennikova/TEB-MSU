@@ -15,7 +15,7 @@ deviate, explain why in the commit message.
 | --- | --- | --- |
 | `README.md` (repository root) | short model description, build and run instructions, repository layout, links to the documents | scheme details |
 | `TEB_Ru_variables_description.md` (+ `.xlsx`) | namelist entries and output columns (English) | physics and formula derivations |
-| `TEB_Ru_tau_scheme_T_CAN_reformulation.md` | the **current** state of the tau scheme: concept, mathematics, implementation, properties, limitations, invariants | history, versions, rejected variants, run numbers |
+| `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` | the **current** state of the cbs scheme: concept, mathematics, implementation, properties, limitations, invariants | history, versions, rejected variants, run numbers |
 | `TEB_Ru_garden_diagnostic_scheme.md` | the **current** state of the diagnostic garden scheme (same structure) | the same |
 | `TEB_Ru_source_defects.md` | defects of the **original** model only (D1–D7) | defects of the driver, of the benches, of our own changes, open candidates |
 | `TEB_Ru_change_history.md` | commit-referenced history (registry `№1…№N`), rejected variants, measurement protocols, defects outside the original model (I1–I4), numerical defects of our own changes (N1–N2), open items (C1–C5) | the description of the current scheme |
@@ -78,7 +78,7 @@ deviate, explain why in the commit message.
 | entity | label |
 | --- | --- |
 | commits (history registry) | `№1…№N`, contiguous, in `git log` order |
-| tau scheme versions | `v1`, `v1.1`, `v1.2`, `v1.2.1`, `v1.3`, `v1.3.1`, `v1.4` |
+| cbs scheme versions | `v1`, `v1.1`, `v1.2`, `v1.2.1`, `v1.3`, `v1.3.1`, `v1.4` |
 | garden scheme versions | `G1`, `G2`, `G3`, `G4` |
 | defects of the original model | `D1…D7` |
 | defects of the driver, the forcing reader, the benches | `I1…I4` |
@@ -100,7 +100,7 @@ deviate, explain why in the commit message.
 ```
 
   with the same tag in every file of that change (for example
-  `!MV202609 tau scheme of the road` — 40+ places in `src/`). A change without code
+  `!MV202609 cbs scheme of the road` — 40+ places in `src/`). A change without code
   tags cannot be found by search and cannot be traced.
 * In `TEB_Ru_variables_description.md` the related sections and table rows carry the
   same tag as an HTML comment: `<!-- MV202609 <name> -->`.
@@ -161,7 +161,7 @@ Get-ChildItem docs/*.md | ForEach-Object {               # 2, 3
     ($t | Where-Object { $_ -match '^# ' }).Count,
     ($t | Where-Object { $_ -match '^```' }).Count,
     ($t | Where-Object { $_ -match '<!-- END -->' }).Count }
-Select-String -Path docs/TEB_Ru_tau_scheme_T_CAN_reformulation.md,`
+Select-String -Path docs/TEB_Ru_cbs_scheme_T_CAN_reformulation.md,`
   docs/TEB_Ru_garden_diagnostic_scheme.md -Pattern 'v1\.[0-9]|R-A|R-B|R-C|часть IV'   # 5
 ```
 

@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 """
 check_puddle_water.py - consistency tests of the road puddle (liquid water) path
-of the tau scheme of TEB-Ru.
+of the cbs scheme of TEB-Ru.
 
-The tau scheme splits the road energy/moisture exchange into a canyon branch
+The cbs scheme splits the road energy/moisture exchange into a canyon branch
 (weight tau) and a forcing-level branch (weight 1 - tau). This script checks,
 on the CSV diagnostics of an offline run (columns added by the puddle-diagnostics
 revision: PAC_ROAD_WAT, PAC_ROAD_ATM_WAT, PDN_RD, LE_ROAD_WAT, LE_ROAD_SNOW,

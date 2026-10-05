@@ -156,7 +156,7 @@ def build_namelist(base_nml: Path, lcz_tag: str, mode_tag: str, param, value,
                    path: Path, alb_values, emis_values) -> Path:
     """Namelist of one case: base namelist + LCZ + modes + one parameter.
 
-    The road tau scheme is switched OFF: the experiment isolates the two
+    The road cbs scheme is switched OFF: the experiment isolates the two
     vegetation surfaces. The four parameters under study are always written
     explicitly, so that the reference run of each mode is well defined.
     """
@@ -174,7 +174,7 @@ def build_namelist(base_nml: Path, lcz_tag: str, mode_tag: str, param, value,
     p['teb_type_garden'] = gtype
     p['teb_lgreenroof'] = bool(lgreenroof)
     p['teb_frac_gr'] = float(fr_gr)
-    p['teb_ltau_scheme'] = False
+    p['teb_lcbs_scheme'] = False
     p['urb_z0_gdn'] = 0.1                      # roughness: not studied here
     p['urb_z0_grf'] = 0.01
     p['urb_alb_gdn'] = float(alb_values[0])
@@ -558,7 +558,7 @@ def main(argv=None) -> int:
           '| `urb_emis_gdn` | garden emissivity | %g | %s |' % (emis_values[0], ', '.join('%g' % v for v in emis_values[1:])),
           '| `urb_emis_grf` | greenroof emissivity | %g | %s |' % (emis_values[0], ', '.join('%g' % v for v in emis_values[1:])),
           '',
-          'Configuration: %d cases (LCZ x mode x parameter), the road tau scheme is' % len(all_cases),
+          'Configuration: %d cases (LCZ x mode x parameter), the road cbs scheme is' % len(all_cases),
           'switched off so that the experiment isolates the two vegetation surfaces.',
           '',
           '## Checks',

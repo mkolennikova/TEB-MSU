@@ -277,9 +277,9 @@ they are undefined (`XUNDEF`):
 | `PHU_GARDEN` | - | Moisture multiplier of the canyon node for the garden: the surface relative humidity of the internal scheme (`proxy_phu_gdn`) or, for an external garden, `clamp(q_v/qsat(TS_GARDEN))` of the host |
 <!-- MV202609 garden thermal roughness (z0h) -->
 | `PAC_GARDEN` | m/s | Aerodynamic conductance of the garden **for heat and moisture** (the scalar coefficient `PCH` times `max(U_CANYON, 0.5)`) used by the canyon budget (`0` for `'PROXY_OLD'`) |
-| `PCD_GARDEN_CAN`, `PCH_GARDEN_CAN` | - | Garden/canyon exchange coefficients used by the garden of the model: momentum (`PCD`, friction only) and thermal (`PCH`, heat and moisture, from `urb_z0_o_z0h_gdn`); returned by the garden model itself (`GARDEN`/`GARDEN_TAU`) in the internal modes and by `URBAN_DRAG` in the external ones; `0` for `'PROXY_OLD'` and when the garden is off |
+| `PCD_GARDEN_CAN`, `PCH_GARDEN_CAN` | - | Garden/canyon exchange coefficients used by the garden of the model: momentum (`PCD`, friction only) and thermal (`PCH`, heat and moisture, from `urb_z0_o_z0h_gdn`); returned by the garden model itself (`GARDEN`/`GARDEN_CBS`) in the internal modes and by `URBAN_DRAG` in the external ones; `0` for `'PROXY_OLD'` and when the garden is off |
 | `ZZ0H_GARDEN_CAN`, `ZZ0H_GARDEN_ATM` | m | Thermal roughness `z0h` used by the `'EXT_NEU'` garden coefficients (`XUNDEF` for the internal garden, whose `z0h` is visible through `PCH_GARDEN_CAN`) |
-| `H_GARDEN_CAN` | W/m² | Garden sensible heat flux of the canyon branch (`_CAN`) of the tau scheme |
+| `H_GARDEN_CAN` | W/m² | Garden sensible heat flux of the canyon branch (`_CAN`) of the cbs scheme |
 | `H_GARDEN_ATM` | W/m² | Garden sensible heat flux of the direct garden/atmosphere branch (`_ATM`) |
 | `LE_GARDEN_CAN` | W/m² | Garden latent heat flux of the canyon branch (`_CAN`) |
 | `LE_GARDEN_ATM` | W/m² | Garden latent heat flux of the direct garden/atmosphere branch (`_ATM`) |
@@ -296,7 +296,7 @@ previous sub-step. The following columns are written only in this mode:
 
 | Column | Dimension | Comment |
 |:-------|:----------|:--------|
-| `EMU_TAU` | - | Weight of the canyon path of the garden exchange (the tanh relaxation of the canyon H/W ratio used by the tau scheme) |
+| `EMU_TAU` | - | Weight of the canyon path of the garden exchange (the tanh relaxation of the canyon H/W ratio used by the cbs scheme) |
 | `EMU_CD_EFF` | - | Effective momentum coefficient given to the external model: `PCD_canyon*max(V_canyon,Vmin)^2/max(V*,Vmin)^2` (TEB keeps the garden momentum on the canyon path only; the emulator friction uses this coefficient) |
 | `EMU_CH_EFF` | - | Effective heat/moisture coefficient: `Ca_eff/max(V*,Vmin)`, where `Ca_eff = tau*Ca_h_canyon+(1-tau)*Ca_h_atmosphere` are the **scalar** (thermal) conductances: the coefficient absorbs the covariance term `tau(1-tau)(Cd_C-Cd_A)(V_A-V_C)` of the averaging, so that `EMU_CH_EFF*max(V*,Vmin) = EMU_CA_EFF` exactly |
 | `EMU_CH_NAIVE` | - | Tau-averaged (naive) coefficient `tau*PCH_C+(1-tau)*PCH_A`, i.e. what an averaging without the covariance correction would give |
@@ -359,7 +359,7 @@ neutral ones). The coupling is validated by
 `python_tests/greenroof_emu_compare.py`.
 
 
-**Interaction with the tau scheme of the road.** With `teb_ltau_scheme = .TRUE.` and
+**Interaction with the cbs scheme of the road.** With `teb_lcbs_scheme = .TRUE.` and
 `teb_type_garden = 'PROXY_NEW'` the garden exchange is split in exactly the same way
 as the road one: the tau-aggregated conductance and reference air feed the diagnostic
 surface energy balance (`Ca_eff = tau*Ca_canyon + (1-tau)*Ca_atmosphere`,
@@ -372,9 +372,9 @@ branch the wind `PVMOD` at `PUREF` with the air `PTA`/`PQA`. The canyon branch f
 computed from the single garden surface temperature. With `'PROXY_OLD'` (the
 prescribed Bowen proxy does not depend on the meteorological forcing) and with
 `'EXT'` (a single set of fluxes, already computed for the averaged forcing) both
-branches are set equal to the actual flux, so the tau scheme does not change them.
+branches are set equal to the actual flux, so the cbs scheme does not change them.
 See `TEB_Ru_garden_diagnostic_scheme.md` (section 2.3) and
-`TEB_Ru_tau_scheme_T_CAN_reformulation.md` (sections 4.3 and 4.7).
+`TEB_Ru_cbs_scheme_T_CAN_reformulation.md` (sections 4.3 and 4.7).
 
 
 ### Solar Panels

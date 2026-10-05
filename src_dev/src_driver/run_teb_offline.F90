@@ -194,9 +194,9 @@ INTEGER  :: teb_itype_wind                              !IN TEB option for camyo
 													    ! 0 - default; 1 - Wang scheme
 REAL ,DIMENSION(nvec, 1:8) :: teb_fai                   !IN Frontal area index                 
 !
-!MV202609 tau scheme of the road
-! Input parameters for the tau scheme of the road
-LOGICAL  :: teb_ltau_scheme                             !IN Flag to use the tau scheme
+!MV202609 cbs scheme of the road
+! Input parameters for the cbs scheme of the road
+LOGICAL  :: teb_lcbs_scheme                             !IN Flag to use the cbs scheme
 REAL     :: teb_tau_hw_thresh                           !IN H/W giving tau = 0.5
 REAL     :: teb_tau_hw_width                            !IN width of the tanh relaxation
 
@@ -398,7 +398,7 @@ REAL ,DIMENSION(nvec) :: teb_pcdn_greenroof_atm           !OUT greenroof neutral
 REAL ,DIMENSION(nvec) :: teb_pch_greenroof_atm            !OUT greenroof drag coefficient for heat (atm.)
 REAL ,DIMENSION(nvec) :: teb_pri_greenroof_atm            !OUT greenroof Richardson number (atm.)
 REAL ,DIMENSION(nvec) :: teb_zz0h_greenroof_atm           !OUT greenroof roughness length for heat (atm.)
-!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
 REAL ,DIMENSION(nvec) :: teb_h_garden_can               !OUT garden sensible heat flux, garden -> canyon air (W/m2 garden)
 REAL ,DIMENSION(nvec) :: teb_h_garden_atm               !OUT garden sensible heat flux, garden -> forcing level (W/m2 garden)
 REAL ,DIMENSION(nvec) :: teb_le_garden_can              !OUT garden latent  heat flux, garden -> canyon air (W/m2 garden)
@@ -484,14 +484,14 @@ REAL ,DIMENSION(nvec) :: PH_ROAD_CAN      ! road sensible heat flux, road -> can
 REAL ,DIMENSION(nvec) :: PLE_ROAD_CAN     ! road latent heat flux, road -> canyon air [W m-2]
 REAL ,DIMENSION(nvec) :: PH_ROAD_ATM      ! road sensible heat flux, road -> forcing level [W m-2]
 REAL ,DIMENSION(nvec) :: PLE_ROAD_ATM      ! road latent heat flux, road -> forcing level [W m-2]
-!MV202609 tau scheme of the road (revision: three-temperature construction)
+!MV202609 cbs scheme of the road (revision: three-temperature construction)
 REAL ,DIMENSION(nvec) :: PT_CAN0           ! canyon air temperature without tau [K]
 REAL ,DIMENSION(nvec) :: PT_CAN1           ! free layer (second canopy) air temperature [K]
 REAL ,DIMENSION(nvec) :: PPHI_CAN1         ! free layer air temperature / theta* ratio of the MOST profile [-]
-!MV202609 tau scheme of the road
-REAL ,DIMENSION(nvec) :: PH_ROAD          ! road sensible heat flux, tau scheme [W m-2]
-REAL ,DIMENSION(nvec) :: PLE_ROAD         ! road latent heat flux, tau scheme [W m-2]
-!MV202609 tau scheme of the road (revision: puddle diagnostics)
+!MV202609 cbs scheme of the road
+REAL ,DIMENSION(nvec) :: PH_ROAD          ! road sensible heat flux, cbs scheme [W m-2]
+REAL ,DIMENSION(nvec) :: PLE_ROAD         ! road latent heat flux, cbs scheme [W m-2]
+!MV202609 cbs scheme of the road (revision: puddle diagnostics)
 REAL ,DIMENSION(nvec) :: PAC_ROAD_WAT     ! road water conductance (canyon, water-limited)
 REAL ,DIMENSION(nvec) :: PAC_ROAD_ATM_WAT ! road water conductance (forcing level, water-limited)
 REAL ,DIMENSION(nvec) :: PDN_RD           ! road snow fraction (-)
@@ -577,8 +577,8 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
                     teb_rd_irrig_end_h, teb_rd_irrig_sum, teb_utc_hour, teb_lshade, &
 !MV202609 z0 and zd to namelist
                     urb_z0_town, urb_zd_town,                                       &
-!MV202609 tau scheme of the road
-                    teb_ltau_scheme, teb_tau_hw_thresh, teb_tau_hw_width, &
+!MV202609 cbs scheme of the road
+                    teb_lcbs_scheme, teb_tau_hw_thresh, teb_tau_hw_width, &
 !MV202609 snow correction of the coupled model (default .FALSE.)
                     teb_snow_check
 
@@ -608,7 +608,7 @@ CHARACTER(LEN=*), PARAMETER :: nml_param_items =                                
      'teb_fai,teb_lgarden,teb_type_garden,urb_z0_gdn,urb_z0_o_z0h_gdn,urb_alb_gdn,urb_emis_gdn,teb_lgreenroof,teb_type_greenroof,teb_frac_gr,urb_z0_grf,urb_z0_o_z0h_grf,urb_alb_grf,urb_emis_grf,proxy_phu_gdn,proxy_phu_grf,teb_lsolar_panel,teb_fr_panel,'&
      //'teb_lroad_irrig,teb_rd_irrig_start_m,teb_rd_irrig_end_m,teb_rd_irrig_start_h,'&
      //'teb_rd_irrig_end_h,teb_rd_irrig_sum,teb_utc_hour,teb_lshade,urb_z0_town,'// &
-     'urb_zd_town,teb_ltau_scheme,teb_tau_hw_thresh,teb_tau_hw_width,teb_snow_check'
+     'urb_zd_town,teb_lcbs_scheme,teb_tau_hw_thresh,teb_tau_hw_width,teb_snow_check'
 
 !============================================================
 !============================================================
@@ -845,10 +845,10 @@ teb_cap_sys_heat(:)  =  90.         ! Capacity of the heating system [W m-2(bld)
 teb_itype_wind       = 0            !IN TEB option for camyon wond calculation:
 									! 0 - default; 1 - Wang scheme 
 teb_fai(:,1:8)       = 0.5          ! Frontal area index
-!MV202609 tau scheme of the road
-teb_ltau_scheme      = .FALSE.      ! Flag to use the tau scheme for the road
-teb_tau_hw_thresh    = 0.5          ! H/W giving tau = 0.5 (tau scheme)
-teb_tau_hw_width     = 0.25         ! width of the tanh relaxation (tau scheme)
+!MV202609 cbs scheme of the road
+teb_lcbs_scheme      = .FALSE.      ! Flag to use the cbs scheme for the road
+teb_tau_hw_thresh    = 0.5          ! H/W giving tau = 0.5 (cbs scheme)
+teb_tau_hw_width     = 0.25         ! width of the tanh relaxation (cbs scheme)
 !============================================================
 !============================================================
 ! Parameters for GREENROOF module 
@@ -1246,7 +1246,7 @@ END IF
 ! anthropogenic heat flux due to traffic at the current time-step and H_WASTE =
 ! sensible waste heat of the buildings (HVAC systems and infiltration/
 ! ventilation), both in W m-2(ground). They are already included in H_TOWN with
-! their full weight (the tau scheme weights the road exchange only), so
+! their full weight (the cbs scheme weights the road exchange only), so
 ! H_TOWN - AHF_TRAFFIC - H_WASTE is the flux of the urban surfaces alone.
 nout = 0
 nout = nout + 1; out_names(nout) = 'T_ROOF1'
@@ -1297,10 +1297,10 @@ nout = nout + 1; out_names(nout) = 'H_ROAD_CAN'
 nout = nout + 1; out_names(nout) = 'LE_ROAD_CAN'
 nout = nout + 1; out_names(nout) = 'H_ROAD_ATM'
 nout = nout + 1; out_names(nout) = 'LE_ROAD_ATM'
-!MV202609 tau scheme of the road
+!MV202609 cbs scheme of the road
 nout = nout + 1; out_names(nout) = 'H_ROAD'
 nout = nout + 1; out_names(nout) = 'LE_ROAD'
-!MV202609 tau scheme of the road (revision: puddle diagnostics)
+!MV202609 cbs scheme of the road (revision: puddle diagnostics)
 nout = nout + 1; out_names(nout) = 'PAC_ROAD_WAT'
 nout = nout + 1; out_names(nout) = 'PAC_ROAD_ATM_WAT'
 nout = nout + 1; out_names(nout) = 'PDN_RD'
@@ -1312,11 +1312,11 @@ nout = nout + 1; out_names(nout) = 'AHF_TRAFFIC'
 nout = nout + 1; out_names(nout) = 'H_WASTE'
 nout = nout + 1; out_names(nout) = 'LE_WASTE'
 nout = nout + 1; out_names(nout) = 'GFLUX_TOWN'
-!MV202609 tau scheme of the road (revision: three-temperature construction)
+!MV202609 cbs scheme of the road (revision: three-temperature construction)
 nout = nout + 1; out_names(nout) = 'T_CAN0'
 nout = nout + 1; out_names(nout) = 'T_CAN1'
 nout = nout + 1; out_names(nout) = 'PHI_CAN1'
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
 nout = nout + 1; out_names(nout) = 'WSNOW_RD'
 nout = nout + 1; out_names(nout) = 'TSNOW_RD'
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
@@ -1337,7 +1337,7 @@ nout = nout + 1; out_names(nout) = 'EVAP_GARDEN'
 nout = nout + 1; out_names(nout) = 'QSAT_GARDEN'
 nout = nout + 1; out_names(nout) = 'PHU_GARDEN'
 nout = nout + 1; out_names(nout) = 'PAC_GARDEN'
-!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
 nout = nout + 1; out_names(nout) = 'H_GARDEN_CAN'
 nout = nout + 1; out_names(nout) = 'H_GARDEN_ATM'
 nout = nout + 1; out_names(nout) = 'LE_GARDEN_CAN'
@@ -1565,13 +1565,13 @@ DO nstep= 1,nsteps - 1
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
-!MV202609 tau scheme of the road (revision: three-temperature construction)
+!MV202609 cbs scheme of the road (revision: three-temperature construction)
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                        &
-!MV202609 tau scheme of the road
+!MV202609 cbs scheme of the road
                           PH_ROAD, PLE_ROAD, PAC_ROAD_WAT, PAC_ROAD_ATM_WAT, PDN_RD, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                           PDN_RF, LE_ROOF_WAT, LE_ROOF_SNOW, &
-                          teb_ltau_scheme,                   &
+                          teb_lcbs_scheme,                   &
                           teb_tau_hw_thresh, teb_tau_hw_width,                  &
 !MV202609 anthropogenic heat diagnostics
                           teb_lewaste,                        &
@@ -1580,7 +1580,7 @@ DO nstep= 1,nsteps - 1
 !MV202609 garden diagnostics
                           teb_ts_garden, teb_rn_garden, teb_h_garden, teb_le_garden,       &
                           teb_evap_garden, teb_qsat_garden, teb_phu_garden,               &
-!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
                           teb_h_garden_can, teb_h_garden_atm,                             &
                           teb_le_garden_can, teb_le_garden_atm,                           &
                           teb_pac_garden,                                                 &
@@ -1668,10 +1668,10 @@ CALL CSV_APPEND(out_line, PH_ROAD_CAN(1))
 CALL CSV_APPEND(out_line, PLE_ROAD_CAN(1))
 CALL CSV_APPEND(out_line, PH_ROAD_ATM(1))
 CALL CSV_APPEND(out_line, PLE_ROAD_ATM(1))
-!MV202609 tau scheme of the road
+!MV202609 cbs scheme of the road
 CALL CSV_APPEND(out_line, PH_ROAD(1))
 CALL CSV_APPEND(out_line, PLE_ROAD(1))
-!MV202609 tau scheme of the road (revision: puddle diagnostics)
+!MV202609 cbs scheme of the road (revision: puddle diagnostics)
 CALL CSV_APPEND(out_line, PAC_ROAD_WAT(1))
 CALL CSV_APPEND(out_line, PAC_ROAD_ATM_WAT(1))
 CALL CSV_APPEND(out_line, PDN_RD(1))
@@ -1683,11 +1683,11 @@ CALL CSV_APPEND(out_line, ahf_traffic_now(1))
 CALL CSV_APPEND(out_line, teb_hwaste(1))
 CALL CSV_APPEND(out_line, teb_lewaste(1))
 CALL CSV_APPEND(out_line, teb_gflux(1))
-!MV202609 tau scheme of the road (revision: three-temperature construction)
+!MV202609 cbs scheme of the road (revision: three-temperature construction)
 CALL CSV_APPEND(out_line, PT_CAN0(1))
 CALL CSV_APPEND(out_line, PT_CAN1(1))
 CALL CSV_APPEND(out_line, PPHI_CAN1(1))
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
 CALL CSV_APPEND(out_line, teb_wsnow_road(1,1))
 CALL CSV_APPEND(out_line, teb_tsnow_road(1,1))
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
@@ -1708,7 +1708,7 @@ CALL CSV_APPEND(out_line, teb_evap_garden(1))
 CALL CSV_APPEND(out_line, teb_qsat_garden(1))
 CALL CSV_APPEND(out_line, teb_phu_garden(1))
 CALL CSV_APPEND(out_line, teb_pac_garden(1))
-!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
 CALL CSV_APPEND(out_line, teb_h_garden_can(1))
 CALL CSV_APPEND(out_line, teb_h_garden_atm(1))
 CALL CSV_APPEND(out_line, teb_le_garden_can(1))
@@ -2384,7 +2384,7 @@ END SUBROUTINE PRINT_USAGE
 !! one surface temperature given ONE conductance and ONE reference air. The host
 !! (this subroutine) prepares that input from what TEB has just computed:
 !!
-!!   the two paths of the tau split of the garden exchange (as in GARDEN_TAU),
+!!   the two paths of the tau split of the garden exchange (as in GARDEN_CBS),
 !!   the THERMAL (scalar) conductance of each path being the one that carries the
 !!   heat and the moisture (thermal roughness z0h = z0/urb_z0_o_z0h_gdn), while
 !!   the momentum coefficient keeps z0:
@@ -2422,11 +2422,11 @@ SUBROUTINE PCD_GARDEN
     INTEGER :: JI
     DO JI = 1, nvec
         !* tau of the garden exchange: the same tanh relaxation of the canyon
-        !* H/W ratio as TAU_URBAN of src/src_teb/teb_garden.F90 (which does not use
+        !* H/W ratio as CBS_TAU of src/src_teb/teb_garden.F90 (which does not use
         !* the building height), with the namelist parameters; tau = 1 when the
-        !* tau scheme is disabled
+        !* cbs scheme is disabled
         emu_tau(JI) = 1.
-        IF (teb_ltau_scheme) THEN
+        IF (teb_lcbs_scheme) THEN
             emu_tau(JI) = 0.5*(1.+TANH((urb_h2w(JI)-teb_tau_hw_thresh) &
                           /MAX(teb_tau_hw_width,TINY(1.))))
         END IF

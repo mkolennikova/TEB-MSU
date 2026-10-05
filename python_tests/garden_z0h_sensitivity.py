@@ -17,7 +17,7 @@ with ``zref = H/2`` the canyon reference height of TEB, ``z0 = urb_z0_gdn`` and
 formulation without thermal roughness, and is reproduced exactly.
 
 This script runs the offline model on the Moscow ERA5 forcing for the three LCZs
-of ``python_tests/sensitivity_zd.py``, two settings of the road tau scheme (OFF
+of ``python_tests/sensitivity_zd.py``, two settings of the road cbs scheme (OFF
 and ``tau = 0.5`` exactly) and four values of ``R`` (1, 2, 4, 8) -- 24 runs --
 and checks
 
@@ -39,10 +39,10 @@ and checks
   H7  the actual sensitivity of the garden, of the canyon and of the town to R
       (effect tables, diurnal cycles in the figures).
 
-Configurations (3 LCZ x 2 tau settings x 4 ratios = 24 runs)
+Configurations (3 LCZ x 2 cbs settings x 4 ratios = 24 runs)
 ------------------------------------------------------------
-    tOFF : teb_ltau_scheme = .FALSE.  (garden exchanges with the canyon air)
-    t05  : teb_ltau_scheme = .TRUE., teb_tau_hw_thresh = urb_h2w -> tau = 0.5 exactly
+    tOFF : teb_lcbs_scheme = .FALSE.  (garden exchanges with the canyon air)
+    t05  : teb_lcbs_scheme = .TRUE., teb_tau_hw_thresh = urb_h2w -> tau = 0.5 exactly
 
 The garden is 'PROXY_NEW' with ``fr_garden = 0.3`` in every case.
 
@@ -97,10 +97,10 @@ XUNDEF = 1.0e19
 XKARMAN = 0.4
 XVMIN_GD = 0.5
 
-#: tau settings: tag -> (teb_ltau_scheme, description)
-TAU_SETTINGS = {
-    'tOFF': (False, 'tau scheme OFF (garden <-> canyon air only)'),
-    't05': (True,  'tau scheme ON with the threshold of the site: tau = 0.5 exactly'),
+#: cbs settings: tag -> (teb_lcbs_scheme, description)
+CBS_SETTINGS = {
+    'tOFF': (False, 'cbs scheme OFF (garden <-> canyon air only)'),
+    't05': (True,  'cbs scheme ON with the threshold of the site: tau = 0.5 exactly'),
 }
 
 #: z0/z0h ratios compared (-): no thermal roughness, the namelist default and two
@@ -109,7 +109,7 @@ R_VALUES = (1.0, 2.0, 4.0, 8.0)
 R_REF = 1.0
 
 #: the model is compiled with -ffpe-trap=invalid,zero: rare intermittent IEEE
-#: traps have been observed in the sparse / tau-on configurations WITH THE
+#: traps have been observed in the sparse / cbs-on configurations WITH THE
 #: REFERENCE BUILD AS WELL (an uninitialised-value or marginal-division defect of
 #: the model, not related to z0h), so a failed case is simply retried.
 RUN_RETRIES = 3
@@ -130,27 +130,27 @@ def r_tag(ratio: float) -> str:
     return 'R%03d' % round(ratio * 100.0)
 
 
-def cases(ratio_values=None, lcz_tags=None, tau_tags=None):
-    """Deterministic list of (case, lcz_tag, tau_tag, ratio)."""
+def cases(ratio_values=None, lcz_tags=None, cbs_tags=None):
+    """Deterministic list of (case, lcz_tag, cbs_tag, ratio)."""
     out = []
     for lcz_tag in (lcz_tags or list(LCZ)):
-        for tau_tag in TAU_SETTINGS:
-            if tau_tags and tau_tag not in tau_tags:
+        for cbs_tag in CBS_SETTINGS:
+            if cbs_tags and cbs_tag not in cbs_tags:
                 continue
             for ratio in (ratio_values or R_VALUES):
-                out.append((f'{lcz_tag}_{tau_tag}_{r_tag(ratio)}', lcz_tag, tau_tag,
+                out.append((f'{lcz_tag}_{cbs_tag}_{r_tag(ratio)}', lcz_tag, cbs_tag,
                             float(ratio)))
     return out
 
 
-def build_namelist(base_nml: Path, lcz_tag: str, tau_tag: str, ratio: float,
+def build_namelist(base_nml: Path, lcz_tag: str, cbs_tag: str, ratio: float,
                    path: Path, fr_garden: float, z0_gdn: float) -> Path:
     """Namelist of one case: base namelist + LCZ + tau + urb_z0_o_z0h_gdn."""
     import f90nml
     nml = f90nml.read(str(base_nml))
     p = nml['tebparam']
     lcz = LCZ[lcz_tag]
-    ltau, _desc = TAU_SETTINGS[tau_tag]
+    lcbs, _desc = CBS_SETTINGS[cbs_tag]
     p['urb_h_bld'] = float(lcz['h_bld'])
     p['urb_fr_bld'] = float(lcz['fr_bld'])
     p['urb_h2w'] = float(lcz['h2w'])
@@ -160,8 +160,8 @@ def build_namelist(base_nml: Path, lcz_tag: str, tau_tag: str, ratio: float,
     p['teb_type_garden'] = 'PROXY_NEW'
     p['urb_z0_gdn'] = float(z0_gdn)
     p['urb_z0_o_z0h_gdn'] = float(ratio)         # the item under study
-    p['teb_ltau_scheme'] = bool(ltau)
-    if ltau:
+    p['teb_lcbs_scheme'] = bool(lcbs)
+    if lcbs:
         # tanh(0) = 0 -> tau = 0.5 exactly, whatever the morphology
         p['teb_tau_hw_thresh'] = float(lcz['h2w'])
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -257,13 +257,13 @@ def main(argv=None) -> int:
     if R_REF not in ratio_values:
         ratio_values = [R_REF] + ratio_values
     lcz_tags = [x for x in str(args.lcz).split(',')] if args.lcz else None
-    tau_tags = [x for x in str(args.tau).split(',')] if args.tau else None
-    all_cases = cases(ratio_values, lcz_tags, tau_tags)
+    cbs_tags = [x for x in str(args.tau).split(',')] if args.tau else None
+    all_cases = cases(ratio_values, lcz_tags, cbs_tags)
 
     if args.list:
         print(f'{"case":<22} {"LCZ":<46} {"tau":<5} {"R":>5}')
-        for case, lcz_tag, tau_tag, ratio in all_cases:
-            print(f'{case:<22} {LCZ[lcz_tag]["label"]:<46} {tau_tag:<5} {ratio:>5g}')
+        for case, lcz_tag, cbs_tag, ratio in all_cases:
+            print(f'{case:<22} {LCZ[lcz_tag]["label"]:<46} {cbs_tag:<5} {ratio:>5g}')
         return 0
 
     print('  model exe      :', exe)
@@ -277,11 +277,11 @@ def main(argv=None) -> int:
     out_root.mkdir(parents=True, exist_ok=True)
 
     # ---------------------------------------------------------------- runs
-    for case, lcz_tag, tau_tag, ratio in all_cases:
+    for case, lcz_tag, cbs_tag, ratio in all_cases:
         if only and case not in only:
             continue
         out_dir = out_root / f'output_{case}'
-        nml_path = build_namelist(base, lcz_tag, tau_tag, ratio,
+        nml_path = build_namelist(base, lcz_tag, cbs_tag, ratio,
                                   out_root / 'namelists' / f'{case}.nml',
                                   args.fr_garden, args.z0_garden)
         log_file = out_root / 'logs' / f'{case}.log'
@@ -305,7 +305,7 @@ def main(argv=None) -> int:
     # ------------------------------------------------------------- checks
     checks, ca_rows, eff_rows = [], [], []
     store = {}
-    for case, lcz_tag, tau_tag, ratio in all_cases:
+    for case, lcz_tag, cbs_tag, ratio in all_cases:
         if only and case not in only:
             continue
         out_dir = out_root / f'output_{case}'
@@ -313,7 +313,7 @@ def main(argv=None) -> int:
         if df is None:
             print(f'  WARNING: no output for {case}')
             continue
-        store[case] = (lcz_tag, tau_tag, ratio, df)
+        store[case] = (lcz_tag, cbs_tag, ratio, df)
         lcz = LCZ[lcz_tag]
         zref = float(lcz['h_bld']) / 2.0
         z0 = float(args.z0_garden)
@@ -369,7 +369,7 @@ def main(argv=None) -> int:
                                    - df['LE_GARDEN'].to_numpy(dtype=float))))
         add_check(checks, case, 'H5c RN_GARDEN = H_GARDEN + LE_GARDEN',
                   d_rn, '<= 1e-9 W/m2', d_rn <= 1e-9)
-        ca_rows.append(dict(case=case, lcz=lcz_tag, tau=tau_tag, ratio=ratio,
+        ca_rows.append(dict(case=case, lcz=lcz_tag, tau=cbs_tag, ratio=ratio,
                             zfh_analytic=zfh_a, pcd_analytic=pcd_a, pch_analytic=pch_a,
                             pcd_model=float(df['PCD_GARDEN_CAN'].mean()),
                             pch_model=float(df['PCH_GARDEN_CAN'].mean()),
@@ -377,15 +377,15 @@ def main(argv=None) -> int:
 
     # H4 and H6: compare each R case with the reference case of its configuration
     for lcz_tag in LCZ:
-        for tau_tag in TAU_SETTINGS:
-            ref_case = f'{lcz_tag}_{tau_tag}_{r_tag(R_REF)}'
+        for cbs_tag in CBS_SETTINGS:
+            ref_case = f'{lcz_tag}_{cbs_tag}_{r_tag(R_REF)}'
             if ref_case not in store:
                 continue
             _l, _t, _r, ref = store[ref_case]
             zref = float(LCZ[lcz_tag]['h_bld']) / 2.0
             z0 = float(args.z0_garden)
             for case, (lcz2, tau2, ratio, df) in store.items():
-                if (lcz2, tau2) != (lcz_tag, tau_tag) or case == ref_case:
+                if (lcz2, tau2) != (lcz_tag, cbs_tag) or case == ref_case:
                     continue
                 a = ref['PAC_GARDEN'].to_numpy(dtype=float)
                 b = df['PAC_GARDEN'].to_numpy(dtype=float)
@@ -408,7 +408,7 @@ def main(argv=None) -> int:
                 for col in EFFECT_COLS:
                     x = df[col].to_numpy(dtype=float)
                     y = ref[col].to_numpy(dtype=float)
-                    eff_rows.append(dict(case=case, lcz=lcz_tag, tau=tau_tag,
+                    eff_rows.append(dict(case=case, lcz=lcz_tag, tau=cbs_tag,
                                          ratio=ratio, var=col,
                                          mean_ref=float(y.mean()), mean_new=float(x.mean()),
                                          delta=float(x.mean() - y.mean()),
@@ -447,16 +447,16 @@ def _plot_conductance(ca_df: pd.DataFrame, plots: Path):
     for j, lcz_tag in enumerate(lcz_tags):
         ax = axes[0][j]
         ref = ca_df[(ca_df['lcz'] == lcz_tag) & (ca_df['ratio'] == R_REF)]
-        for tau_tag, color in zip(TAU_SETTINGS, ('#1f77b4', '#d62728')):
-            sub = ca_df[(ca_df['lcz'] == lcz_tag) & (ca_df['tau'] == tau_tag)]
+        for cbs_tag, color in zip(CBS_SETTINGS, ('#1f77b4', '#d62728')):
+            sub = ca_df[(ca_df['lcz'] == lcz_tag) & (ca_df['tau'] == cbs_tag)]
             if not len(sub) or not len(ref):
                 continue
             pac_ref = float(ref['pac_model'].iloc[0])
             r = sub['ratio'].to_numpy(dtype=float)
             meas = sub['pac_model'].to_numpy(dtype=float) / pac_ref
-            ax.plot(r, meas, 'o', color=color, label=f'{tau_tag}: measured')
+            ax.plot(r, meas, 'o', color=color, label=f'{cbs_tag}: measured')
             ax.plot(r, sub['zfh_analytic'].to_numpy(dtype=float), '-', color=color,
-                    alpha=0.6, label=f'{tau_tag}: ZFH analytic')
+                    alpha=0.6, label=f'{cbs_tag}: ZFH analytic')
         ax.set_xlabel('z0/z0h ratio (-)')
         ax.set_ylabel('PAC_GARDEN(R) / PAC_GARDEN(1) (-)')
         ax.set_title(LCZ[lcz_tag]['label'])
@@ -483,13 +483,13 @@ def _plot_diurnal(store, all_cases, plots: Path):
     for j, lcz_tag in enumerate(lcz_tags):
         for i, (col, unit) in enumerate(rows):
             ax = axes[i][j]
-            for tau_tag, ls in zip(TAU_SETTINGS, ('-', '--')):
-                c_ref = f'{lcz_tag}_{tau_tag}_{r_tag(R_REF)}'
-                c_new = f'{lcz_tag}_{tau_tag}_{r_tag(ratio_new)}'
+            for cbs_tag, ls in zip(CBS_SETTINGS, ('-', '--')):
+                c_ref = f'{lcz_tag}_{cbs_tag}_{r_tag(R_REF)}'
+                c_new = f'{lcz_tag}_{cbs_tag}_{r_tag(ratio_new)}'
                 if c_ref not in store or c_new not in store:
                     continue
-                for case, color, lab in ((c_ref, '#1f77b4', f'{tau_tag} R={R_REF:g}'),
-                                         (c_new, '#d62728', f'{tau_tag} R={ratio_new:g}')):
+                for case, color, lab in ((c_ref, '#1f77b4', f'{cbs_tag} R={R_REF:g}'),
+                                         (c_new, '#d62728', f'{cbs_tag} R={ratio_new:g}')):
                     x = store[case][3][col].to_numpy(dtype=float)
                     hours = np.arange(len(x)) % 24
                     prof = np.array([x[hours == k].mean() if (hours == k).any() else np.nan

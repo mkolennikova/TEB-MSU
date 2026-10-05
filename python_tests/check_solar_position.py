@@ -52,7 +52,7 @@ Usage:
                                    [--tol-elev DEG] [--tol-azim DEG]
                                    [--forcing-nml FILE] [--plot FIGURE]
 Examples:
-    python check_solar_position.py D:/TEB_work/Moscow/compare_tau_scheme/output_LCZ2_w0/TEB_output.csv
+    python check_solar_position.py D:/TEB_work/Moscow/compare_cbs_scheme/output_LCZ2_w0/TEB_output.csv
     python check_solar_position.py out.csv --lat 55.7 --lon 37.5 --plot solar.png
 """
 from __future__ import annotations

@@ -13,20 +13,20 @@ INTERFACE
                                 PDN_RD, PLE_WL_A, PLE_WL_B, PLEW_RF, PLESN_RF,     &
                                 PLEW_RD, PLESN_RD, PHSN_RD,                        &
                                 PTSRAD_GD, PRN_GD, PH_GD, PLE_GD, PGFLUX_GD, PEVAP_GD,&
-!MV202609 tau scheme of the garden (atmosphere branch of the garden fluxes)
+!MV202609 cbs scheme of the garden (atmosphere branch of the garden fluxes)
                                 PH_GD_ATM, PLE_GD_ATM,                       &
                                 PRUNOFF_GD, PEVAP_GR, PRUNOFF_GR, PDRAIN_GR,       &
                                 PRN_GRND, PH_GRND, PLE_GRND, PGFLX_GRND,           &
                                 PRN_TWN, PH_TWN, PLE_TWN, PGFLX_TWN, PEVAP_TWN,    &
                                 PEMIT_LW_RD, PEMIT_LW_GD, PEMIT_LW_GRND, PEMIS_GD, PLW_UP, &
-!MV202609 tau scheme of the road
+!MV202609 cbs scheme of the road
                                 PTAU,                                        &
-!MV202609 tau scheme of the road (revision: three-temperature construction)
+!MV202609 cbs scheme of the road (revision: three-temperature construction)
                                 PH_ROAD_ATM, PLE_ROAD_ATM, PCD_ROAD_ATM,     &
                                 ZZ0H_ROAD_ATM, PZREF, PVMOD,                 &
                                 PT_CAN0, PT_CAN1, PPHI_CAN1,                 &
                                 PQ_CAN0, PQ_CAN1,                             &
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
                                 PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
@@ -119,7 +119,7 @@ REAL, DIMENSION(:), INTENT(IN)    :: PTSRAD_GD     ! green area surface temperat
 REAL, DIMENSION(:), INTENT(IN)    :: PRN_GD        ! net radiation over green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PH_GD         ! sensible heat flux over green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PLE_GD        ! latent heat flux over green areas
-!MV202609 tau scheme of the garden (atmosphere branch of the garden fluxes)
+!MV202609 cbs scheme of the garden (atmosphere branch of the garden fluxes)
 REAL, DIMENSION(:), INTENT(IN)    :: PH_GD_ATM     ! garden sensible heat flux towards the atmosphere [W m-2 garden]
 REAL, DIMENSION(:), INTENT(IN)    :: PLE_GD_ATM    ! garden latent  heat flux towards the atmosphere [W m-2 garden]
 REAL, DIMENSION(:), INTENT(IN)    :: PGFLUX_GD     ! flux through the green areas
@@ -146,9 +146,9 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PEMIT_LW_GRND ! LW emitted by the ground (r
 !
 REAL, DIMENSION(:), INTENT(IN)    :: PEMIS_GD  ! garden emissivity
 REAL, DIMENSION(:), INTENT(OUT)   :: PLW_UP    ! upwards longwave radiation
-!MV202609 tau scheme of the road
-REAL, DIMENSION(:), INTENT(IN)    :: PTAU      ! tau scheme weight of the canyon path (-)
-!MV202609 tau scheme of the road (revision: three-temperature construction)
+!MV202609 cbs scheme of the road
+REAL, DIMENSION(:), INTENT(IN)    :: PTAU      ! cbs scheme weight of the canyon path (-)
+!MV202609 cbs scheme of the road (revision: three-temperature construction)
 REAL, DIMENSION(:), INTENT(IN)    :: PH_ROAD_ATM    ! road sensible heat flux towards the atmosphere [W m-2 road]
 REAL, DIMENSION(:), INTENT(IN)    :: PLE_ROAD_ATM   ! road latent  heat flux towards the atmosphere [W m-2 road]
 REAL, DIMENSION(:), INTENT(IN)    :: PCD_ROAD_ATM   ! road drag coefficient to the atmosphere (-)
@@ -160,7 +160,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN1        ! free layer (second canopy)
 REAL, DIMENSION(:), INTENT(OUT)   :: PPHI_CAN1      ! free layer air temperature / theta* ratio of the MOST profile (-)
 REAL, DIMENSION(:), INTENT(OUT)   :: PQ_CAN0        ! canyon air humidity without tau (kg kg-1)
 REAL, DIMENSION(:), INTENT(OUT)   :: PQ_CAN1        ! free layer air humidity (kg kg-1)
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
 REAL, DIMENSION(:), INTENT(IN)    :: PHSN_RD_CAN    ! snow -> canyon air sensible heat flux (W/m2 road snow)
 REAL, DIMENSION(:), INTENT(IN)    :: PHSN_RD_ATM    ! snow -> forcing level sensible heat flux (W/m2 road snow)
 REAL, DIMENSION(:), INTENT(IN)    :: PLESN_RD_CAN   ! snow -> canyon air latent heat flux (W/m2 road snow)

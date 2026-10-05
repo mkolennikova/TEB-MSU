@@ -10,7 +10,7 @@
                                PLESN_RF, PGSN_RF, PMELT_RF, PRNSN_RD, PHSN_RD, PLESN_RD,    &
                                PGSN_RD, PMELT_RD, PLW_WA_TO_NR , PLW_WB_TO_NR, PLW_S_TO_NR, &
                                PLW_WIN_TO_NR, PDQS_SN_RF, PDQS_SN_RD, PSNOWD_RF, PSNOWD_RD,  &
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
                                PTAU, PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM )  
 !   ##########################################################################
 !
@@ -94,8 +94,8 @@ REAL, DIMENSION(:), INTENT(IN)    :: PTA      ! temperature at the lowest level
 REAL, DIMENSION(:), INTENT(IN)    :: PQA      ! specific humidity
                                               ! at the lowest level
 REAL, DIMENSION(:), INTENT(IN)    :: PVMOD    ! module of the horizontal wind
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
-REAL, DIMENSION(:), INTENT(IN)    :: PTAU     ! tau scheme weight of the canyon path (-)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+REAL, DIMENSION(:), INTENT(IN)    :: PTAU     ! cbs scheme weight of the canyon path (-)
 REAL, DIMENSION(:), INTENT(IN)    :: PRHOA    ! air density at the lowest level
 REAL, DIMENSION(:), INTENT(IN)    :: PLW_RAD  ! atmospheric infrared radiation
 REAL, DIMENSION(:), INTENT(IN)    :: PSR      ! snow rate
@@ -122,7 +122,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RF   ! snow melt
 REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RD ! net radiation over snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD  ! sensible heat flux over snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD ! latent heat flux over snow
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_CAN  ! sensible heat flux over snow, snow -> canyon air
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_ATM  ! sensible heat flux over snow, snow -> forcing level
 REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD_CAN ! latent heat flux over snow, snow -> canyon air
@@ -231,7 +231,7 @@ IF ( GSN_RF ) THEN
                           PTA, PQA, PVMOD, PPS, PRHOA, ZSR_RF, PZREF, PUREF,     &
                           PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF, PMELT_RF,        &
                           PDQS_SN_RF, PABS_LW_SN_RF, PSNOWD_RF,                  &
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
                           PTA, PQA, PVMOD, PZREF, PUREF, PTAU, .FALSE.,          &
                           PHSN_RF, PHSN_RF, PLESN_RF, PLESN_RF )	  
 !
@@ -283,7 +283,7 @@ IF ( GSN_RD ) THEN
                            PT_LWCN, PQ_LWCN, PU_LWCN, PPS, PRHOA, ZSR_RD, PZ_LWCN,&
                            PZ_LWCN, PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD,         &
                            PMELT_RD, PDQS_SN_RD, PABS_LW_SN_RD, PSNOWD_RD,       &
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
                            PTA, PQA, PVMOD, PZREF, PUREF, PTAU, .TRUE.,          &
                            PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM )
 				   

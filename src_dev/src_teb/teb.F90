@@ -13,7 +13,7 @@
                      PLE_WL_B, PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF, PMELT_RF, PRN_GR, &
                      PH_GR, PLE_GR, PGFLUX_GR, PDRAIN_GR, PTSRAD_GR, PRUNOFF_GR, PRNSN_RD,    &
                      PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RD, PUW_RD, PUW_RF, PDUWDU_RD,   &
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
                       PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM,   &
                      PDUWDU_RF, PUSTAR_TWN, PCD, PCDN, PCH_TWN, PRI_TWN, PRESA_TWN,     &
                      PAC_RF, PAC_RD, PAC_WL, PAC_TOP, PAC_GARDEN, PAC_RF_WAT,           &
@@ -36,7 +36,7 @@
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
                           PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
-!MV202609 tau scheme of the road
+!MV202609 cbs scheme of the road
                           PTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                           LE_ROOF_WAT, LE_ROOF_SNOW)
@@ -314,7 +314,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RF   ! snow melt
 REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RD ! net radiation over snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD  ! sensible heat flux over snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD ! latent heat flux over snow
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_CAN  ! sensible heat flux over snow, snow -> canyon air
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_ATM  ! sensible heat flux over snow, snow -> forcing level
 REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD_CAN ! latent heat flux over snow, snow -> canyon air
@@ -419,10 +419,10 @@ REAL, DIMENSION(:), INTENT(OUT) :: PH_ROAD_ATM   ! sensible heat flux, road -> f
 REAL, DIMENSION(:), INTENT(OUT) :: PLE_ROAD_ATM  ! latent heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT) :: PH_ROAD_CAN   ! sensible heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT) :: PLE_ROAD_CAN  ! latent heat flux, road -> canyon air [W m-2]
-!MV202609 tau scheme of the road
-REAL, DIMENSION(:), INTENT(OUT) :: PH_ROAD       ! road sensible heat flux, tau scheme [W m-2]
-REAL, DIMENSION(:), INTENT(OUT) :: PLE_ROAD      ! road latent heat flux, tau scheme [W m-2]
-!MV202609 tau scheme of the road (revision: puddle diagnostics)
+!MV202609 cbs scheme of the road
+REAL, DIMENSION(:), INTENT(OUT) :: PH_ROAD       ! road sensible heat flux, cbs scheme [W m-2]
+REAL, DIMENSION(:), INTENT(OUT) :: PLE_ROAD      ! road latent heat flux, cbs scheme [W m-2]
+!MV202609 cbs scheme of the road (revision: puddle diagnostics)
 REAL, DIMENSION(:), INTENT(OUT) :: PAC_ROAD_ATM_WAT ! road water conductance, road -> forcing level (water-limited)
 REAL, DIMENSION(:), INTENT(OUT) :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
 REAL, DIMENSION(:), INTENT(OUT) :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
@@ -438,13 +438,13 @@ REAL, DIMENSION(SIZE(PTA)) :: ZWS_RD_MAX   ! and road water reservoirs
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 REAL, DIMENSION(SIZE(PTA)) :: ZAC_RD_ATM_WAT ! road conductance for water (forcing level)
 REAL, DIMENSION(SIZE(PTA)) :: ZDF_RD         ! snow-free road fraction (for the atm. flux)
-!MV202609 tau scheme of the road
-REAL, DIMENSION(:), INTENT(IN) :: PTAU       ! tau scheme weight of the canyon path (-)
+!MV202609 cbs scheme of the road
+REAL, DIMENSION(:), INTENT(IN) :: PTAU       ! cbs scheme weight of the canyon path (-)
 REAL, DIMENSION(SIZE(PTA)) :: ZPAC_RD        ! road conductance, tau-aggregated
 REAL, DIMENSION(SIZE(PTA)) :: ZPAC_RD_WAT    ! road water conductance, tau-aggregated
 REAL, DIMENSION(SIZE(PTA)) :: ZT_REF         ! reference air temperature of the road fluxes [K]
 REAL, DIMENSION(SIZE(PTA)) :: ZQ_REF         ! reference air humidity of the road fluxes [kg kg-1]
-INTEGER                    :: JJ             ! loop index (tau scheme)
+INTEGER                    :: JJ             ! loop index (cbs scheme)
 !
 REAL, DIMENSION(SIZE(PTA)) :: ZAC_BLD        ! surface conductance inside the building itself in DEF building model
 REAL, DIMENSION(SIZE(PTA)) :: ZTA            ! air temperature extrapolated at roof level
@@ -657,7 +657,7 @@ ZWS_RD_MAX(:) = ZWS_RD_MAX(:) * PDF_RD(:)
 !MV202609 greenroof-to-atm exchange diagnostics
                   PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
                   PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM )
-!MV202609 tau scheme of the road (revision: puddle diagnostics)
+!MV202609 cbs scheme of the road (revision: puddle diagnostics)
 !* road -> forcing level water-limited conductance (diagnostic; also used by the
 !* tau aggregation and by the reference humidity ZQ_REF of the road budget)
 PAC_ROAD_ATM_WAT(:) = ZAC_RD_ATM_WAT(:)
@@ -713,7 +713,7 @@ ZQA(:) = PQA(:) * QSAT(ZTA(:),PPS(:)) / QSAT(PTA(:),PPA(:))
                       PMELT_RF, PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RD,           &
                       PLW_WA_TO_NR, PLW_WB_TO_NR, PLW_S_TO_NR, PLW_WIN_TO_NR, ZDQS_SN_RF, &
                       ZDQS_SN_RD, PSNOWD_RF, PSNOWD_RD, PTAU,                           &
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
                       PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM      )
 					  
 
@@ -784,9 +784,9 @@ END SELECT
 			   
 
 
-!MV202609 tau scheme of the road
+!MV202609 cbs scheme of the road
 !* effective conductance and reference air of the road energy budget: when the
-!* tau scheme is activated the road budget is fed with the tau-weighted mean of
+!* cbs scheme is activated the road budget is fed with the tau-weighted mean of
 !* the road/canyon and road/forcing-level exchanges (this is exact, the flux
 !* being linear in the conductance at a given surface temperature); with the
 !* scheme disabled the effective values are the canyon ones, so that the former
@@ -796,7 +796,7 @@ ZPAC_RD(:)     = PAC_RD(:)
 ZPAC_RD_WAT(:) = PAC_RD_WAT(:)
 ZT_REF(:)      = PT_LOWCAN(:)
 ZQ_REF(:)      = PQ_LOWCAN(:)
-IF (TOP%LTAU_SCHEME) THEN
+IF (TOP%LCBS_SCHEME) THEN
   ZPAC_RD(:)     = PTAU(:) * PAC_RD(:)     + (1.-PTAU(:)) * PAC_ROAD_ATM(:)
   ZPAC_RD_WAT(:) = PTAU(:) * PAC_RD_WAT(:) + (1.-PTAU(:)) * ZAC_RD_ATM_WAT(:)
   !* the effective reference air is only needed where the effective conductance
@@ -828,9 +828,9 @@ ENDIF
                           PLW_WIN_TO_R, PEMIT_LW_RD, ZDQS_RD, DMT%XABS_LW_ROAD,  &
                           DMT%XH_ROAD, PLEW_RD, ZIMB_RD, PRR+DMT%XIRRIG_ROAD    )
 !
-!MV202609 tau scheme of the road
+!MV202609 cbs scheme of the road
 !* actual road fluxes: sensible and latent heat fluxes used by the road energy
-!* budget (i.e. the tau-aggregated fluxes when the tau scheme is activated)
+!* budget (i.e. the tau-aggregated fluxes when the cbs scheme is activated)
 PH_ROAD(:)  = DMT%XH_ROAD(:)
 PLE_ROAD(:) = PLEW_RD(:)
 !MV202609 fixes of the road puddle water normalization (PLEW_RD is tile-mean, no double PDF_RD weight)

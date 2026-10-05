@@ -8,7 +8,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! This file contains the garden parameterizations of TEB-Ru:
 !
-!   GARDEN_TAU  - garden of the model: the exchange is split by tau between the
+!   GARDEN_CBS  - garden of the model: the exchange is split by tau between the
 !                 canyon air and the air of the forcing level. THIS IS THE ONLY
 !                 ROUTINE CALLED BY TEB.
 !   GARDEN      - reduced diagnostic garden without the tau split: the
@@ -16,7 +16,7 @@
 !                 computed from the reference height and the garden roughness
 !                 lengths (PCD for the momentum, PCH for heat and moisture with
 !                 the thermal roughness z0h = z0/PZ0_O_Z0H) and GARDEN_PCD is
-!                 called (behaviour of the model before the tau scheme of the
+!                 called (behaviour of the model before the cbs scheme of the
 !                 garden was introduced). Used by the offline experiments.
 !   GARDEN_PCD  - same diagnostic garden, but the dimensionless coefficients and
 !                 the reference state (T, q, wind) are provided by the caller: no
@@ -31,11 +31,11 @@
 ! (PZ0_O_Z0H = 1) the two coincide and the formulation without thermal roughness
 ! is reproduced exactly.
 !
-! ONLY GARDEN_TAU returns the tau-branch decomposition (PH_GARDEN_CAN/ATM,
+! ONLY GARDEN_CBS returns the tau-branch decomposition (PH_GARDEN_CAN/ATM,
 ! PLE_GARDEN_CAN/ATM): it is the only routine that knows the two path
 ! conductances and the two reference airs. GARDEN and GARDEN_PCD have no tau
 ! split and return a SINGLE set of fluxes; their caller duplicates the flux in
-! both branches when a branch presentation is needed (this is what GARDEN_TAU
+! both branches when a branch presentation is needed (this is what GARDEN_CBS
 ! itself does in its non-tau path, and what TEB does for an external garden).
 !
 ! The three routines share the same diagnostic surface energy balance
@@ -55,7 +55,7 @@
 !!      the neutral log coefficients shared by its users, used by the three
 !!      garden routines of this file:
 !!
-!!        GARDEN_TAU  computes the tau-aggregated (thermal) conductance and
+!!        GARDEN_CBS  computes the tau-aggregated (thermal) conductance and
 !!                    reference air and calls GARDEN_BALANCE with them directly
 !!        GARDEN_PCD  builds the thermal conductance Ca_h = PCH*max(V, Vmin) from
 !!                    the coefficients and the wind given by its caller (and the
@@ -99,7 +99,7 @@ IMPLICIT NONE
 !* temperature is not anchored by the turbulent fluxes any more. It is applied by
 !* GARDEN_PCD_NEUTRAL / GARDEN_PCH_NEUTRAL and their conductances below, i.e. it
 !* is the single wind floor of the neutral garden formulation - both for the
-!* internal garden (GARDEN, GARDEN_TAU) and for the external garden of URBAN_DRAG
+!* internal garden (GARDEN, GARDEN_CBS) and for the external garden of URBAN_DRAG
 !* ('EXT_NEU').
 REAL, PARAMETER :: XVMIN_GD  = 0.5
 !* Numerical parameters of the diagnostic Newton iteration
@@ -296,7 +296,7 @@ END MODULE MODE_GARDEN_BALANCE
 !!      'PROXY_OLD' / 'EXT' select the historical fixed Bowen-ratio proxy: it
 !!      does not use the coefficient in the energy balance at all (only the
 !!      friction flux uses it).
-!!      This routine is NOT called by the model (TEB calls GARDEN_TAU): GARDEN
+!!      This routine is NOT called by the model (TEB calls GARDEN_CBS): GARDEN
 !!      calls it with the neutral-log coefficient of the garden roughness, the
 !!      coupling experiments call it with their own (averaged) coefficient.
 !!      It returns a SINGLE set of fluxes: it has no information about the tau
@@ -485,7 +485,7 @@ END SUBROUTINE GARDEN_PCD
 !!    PURPOSE
 !!    -------
 !!      Reduced diagnostic garden of TEB-Ru, without the tau split: this is the
-!!      behaviour of the model before the tau scheme of the garden exchange was
+!!      behaviour of the model before the cbs scheme of the garden exchange was
 !!      introduced. The dimensionless coefficients of the neutral log profiles
 !!      are computed here from the reference height and the garden roughness
 !!      lengths: PCD = (kappa/ln(zref/z0))**2 for the momentum (friction) and
@@ -494,9 +494,9 @@ END SUBROUTINE GARDEN_PCD
 !!      them (that routine performs the surface balance itself).
 !!      'PROXY_OLD' / 'EXT' select the historical fixed Bowen-ratio proxy, which
 !!      does not use any exchange coefficient at all.
-!!      This routine is NOT called by the model (TEB calls GARDEN_TAU): it is the
+!!      This routine is NOT called by the model (TEB calls GARDEN_CBS): it is the
 !!      reference implementation used by the offline garden experiments.
-!!      It returns a SINGLE set of fluxes (no tau scheme, hence no canyon /
+!!      It returns a SINGLE set of fluxes (no cbs scheme, hence no canyon /
 !!      atmosphere branch decomposition: the caller duplicates the flux).
 !!
 !!**  METHOD
@@ -614,36 +614,36 @@ PHU_AGG_GARDEN(:) = proxy_phu_gdn
 END SUBROUTINE GARDEN
 !
 !     #############
-    SUBROUTINE GARDEN_TAU(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD, &
+    SUBROUTINE GARDEN_CBS(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD, &
                 PZ0_O_Z0H,                                                       &
-                PUREF, PVMOD, PTA, PQA, PTAU, LTAU_SPLIT,                                  &
+                PUREF, PVMOD, PTA, PQA, PTAU, LCBS_SPLIT,                                  &
                 PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                   &
                 PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                      &
                 PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                  &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                        &
                 PDRAIN_GARDEN, PIRRIG_GARDEN,              &
-!MV202609 tau scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
                 PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM,              &
 !MV202609 garden exchange coefficients and moisture multiplier, returned to the caller
                 PPCD_GD, PPCH_GD, PHU_AGG_GARDEN                                       )
 !   ##########################################################################
 !
-!!****  *GARDEN_TAU*
+!!****  *GARDEN_CBS*
 !!
 !!    PURPOSE
 !!    -------
-!!      Garden model of TEB with the tau scheme: the exchange of the garden is
+!!      Garden model of TEB with the cbs scheme: the exchange of the garden is
 !!      split into a garden/canyon path (weight tau) and a direct
 !!      garden/atmosphere path (weight 1 - tau). The garden remains a single
 !!      surface, so the energy budget is solved for one surface temperature with
 !!      the tau-aggregated conductance and the tau-aggregated reference air
 !!      (GARDEN_BALANCE is called directly: the tau-aggregated conductance cannot
 !!      be represented by a single PCD*max(V, Vmin) product).
-!!      Without the split ('PROXY_NEW' with the tau scheme disabled) and for the
+!!      Without the split ('PROXY_NEW' with the cbs scheme disabled) and for the
 !!      historical Bowen-ratio proxy ('PROXY_OLD' / 'EXT') the reduced GARDEN
 !!      routine is called instead, so that the behaviour of the model before the
-!!      tau scheme is reproduced exactly.
-!!      GARDEN_TAU is the ONLY garden routine returning the canyon / atmosphere
+!!      cbs scheme is reproduced exactly.
+!!      GARDEN_CBS is the ONLY garden routine returning the canyon / atmosphere
 !!      branch decomposition PH_GARDEN_CAN/ATM and PLE_GARDEN_CAN/ATM. In the
 !!      non-tau path the reduced garden has a single flux: it is reported in
 !!      both branches, so that the blend H = PTAU*H_CAN + (1-PTAU)*H_ATM holds
@@ -695,14 +695,14 @@ REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length 
 !* z0h = PZ0_GD/PZ0_O_Z0H, see GARDEN_PCH_NEUTRAL
 REAL,               INTENT(IN)  :: PZ0_O_Z0H        ! garden z0/z0h ratio (-)
 
-!MV202609 tau scheme of the garden
+!MV202609 cbs scheme of the garden
 !* Reference state of the air of the forcing level (used by the tau split)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PUREF            ! height of the wind of the forcing level (m)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PVMOD            ! wind speed at the forcing level (m/s)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PTA              ! air temperature of the forcing level (K)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PQA              ! air specific humidity of the forcing level (kg/kg)
 REAL, DIMENSION(:)  , INTENT(IN)  :: PTAU             ! tau weight of the canyon path (-)
-LOGICAL             , INTENT(IN)  :: LTAU_SPLIT       ! .TRUE.: split the garden exchange by tau
+LOGICAL             , INTENT(IN)  :: LCBS_SPLIT       ! .TRUE.: split the garden exchange by tau
 !
 REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GD            ! garden albedo
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GD           ! garden emissivity
@@ -755,11 +755,11 @@ INTEGER :: JI_GD
 !-------------------------------------------------------------------------------
 !
 !* Garden model selected by teb_type_garden (namelist):
-!*   'PROXY_NEW' with the tau scheme ON : diagnostic balance with the tau split
-!*   'PROXY_NEW' with the tau scheme OFF: reduced diagnostic garden (GARDEN)
+!*   'PROXY_NEW' with the cbs scheme ON : diagnostic balance with the tau split
+!*   'PROXY_NEW' with the cbs scheme OFF: reduced diagnostic garden (GARDEN)
 !*   'PROXY_OLD' / 'EXT'                : historical Bowen proxy (GARDEN)
 !
-IF (TYPE_GARDEN == 'PROXY_NEW' .AND. LTAU_SPLIT) THEN
+IF (TYPE_GARDEN == 'PROXY_NEW' .AND. LCBS_SPLIT) THEN
 !
 !-------------------------------------------------------------------------------
 !*      2.     Diagnostic closed surface energy balance with the tau split
@@ -851,7 +851,7 @@ CALL GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,    
 !MV202609 garden exchange coefficients returned by the reduced garden
             ZPCD_GD, ZPCH_GD, ZPHU_AGG_GD)
 !
-!* GARDEN_TAU is the ONLY routine returning the tau-branch decomposition: the
+!* GARDEN_CBS is the ONLY routine returning the tau-branch decomposition: the
 !* reduced garden has no tau split, so both branches carry its single modelled
 !* flux (the blend H = PTAU*H_CAN + (1-PTAU)*H_ATM is then trivial and, with
 !* tau = 1, reproduces the former single-forcing behaviour exactly)
@@ -878,4 +878,4 @@ PDRAIN_GARDEN (:) = 0.    ! garden total (vertical) drainage
 PIRRIG_GARDEN (:) = 0.    ! garden irrigation during time step
 !-------------------------------------------------------------------------------
 !
-END SUBROUTINE GARDEN_TAU
+END SUBROUTINE GARDEN_CBS

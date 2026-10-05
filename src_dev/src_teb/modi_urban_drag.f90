@@ -51,7 +51,7 @@ REAL, DIMENSION(:), INTENT(IN)    :: PTS_GARDEN     ! surface temperature
 REAL, DIMENSION(:), INTENT(IN)    :: PQS_GARDEN     ! surface humidity
 REAL, DIMENSION(:), INTENT(IN)    :: PDELT_SNOW_ROOF! fraction of snow on roof
 REAL, DIMENSION(:), INTENT(IN)    :: PDELT_SNOW_ROAD! fraction of snow on road
-REAL, DIMENSION(:), INTENT(IN)    :: PTAU           ! tau scheme weight of the canyon path (-)
+REAL, DIMENSION(:), INTENT(IN)    :: PTAU           ! cbs scheme weight of the canyon path (-)
 REAL, DIMENSION(:), INTENT(IN)    :: PEXNS          ! surface exner function
 REAL, DIMENSION(:), INTENT(IN)    :: PTA            ! temperature at the lowest level
 REAL, DIMENSION(:), INTENT(IN)    :: PQA            ! specific humidity

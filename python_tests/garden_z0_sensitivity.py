@@ -51,7 +51,7 @@ Configurations (3 LCZ x 4 garden modes x 2 values of urb_z0_gdn = 24 runs)
     gNEW : teb_lgarden = .TRUE., teb_type_garden = 'PROXY_NEW'  (Z3, Z5)
     gEXT : teb_lgarden = .TRUE., teb_type_garden = 'EXT'        (Z4)
 
-The tau scheme of the road is OFF in every case and ``fr_garden = 0.3``.
+The cbs scheme of the road is OFF in every case and ``fr_garden = 0.3``.
 
 Files (kept; use --force to re-run a case)
 ------------------------------------------
@@ -158,7 +158,7 @@ def build_namelist(base_nml: Path, lcz_tag: str, mode_tag: str, z0: float,
                    path: Path, fr_garden: float) -> Path:
     """Namelist of one case: base namelist + LCZ + garden mode + urb_z0_gdn.
 
-    The road tau scheme is switched OFF: the experiment isolates the garden.
+    The road cbs scheme is switched OFF: the experiment isolates the garden.
     """
     import f90nml
     nml = f90nml.read(str(base_nml))
@@ -172,7 +172,7 @@ def build_namelist(base_nml: Path, lcz_tag: str, mode_tag: str, z0: float,
     p['teb_lgarden'] = bool(lgarden)
     p['fr_garden'] = float(fr_garden) if lgarden else 0.0
     p['teb_type_garden'] = gtype
-    p['teb_ltau_scheme'] = False
+    p['teb_lcbs_scheme'] = False
     p['urb_z0_gdn'] = float(z0)                  # the item under study
     path.parent.mkdir(parents=True, exist_ok=True)
     nml.write(str(path), force=True)
@@ -722,7 +722,7 @@ def main(argv=None) -> int:
     md.append(f'- model: `{exe}`')
     md.append(f'- base namelist: `{base}`')
     md.append(f'- forcing: `{forcing_nml}`')
-    md.append(f'- `fr_garden = {args.fr_garden:g}`; tau scheme of the road: OFF')
+    md.append(f'- `fr_garden = {args.fr_garden:g}`; cbs scheme of the road: OFF')
     md.append(f'- z0 values: ' + ', '.join('`%g m`' % z for z in z0_values)
               + f' (reference `{z0_ref:g} m`)')
     md.append('')

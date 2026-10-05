@@ -6,9 +6,9 @@ INTERFACE
                                  TPSNOW, PTG, PTG_COEFA, PTG_COEFB, PABS_SW, PLW1, PLW2, &
                                  PTA, PQA, PVMOD, PPS, PRHOA, PSR, PZREF, PUREF, PRNSNOW,&
                                  PHSNOW, PLESNOW, PGSNOW, PMELT, PDQS_SNOW, PABS_LW, PSNOW_D  ,&
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
                                  PTA_ATM, PQA_ATM, PVMOD_ATM, PZREF_ATM, PUREF_ATM,    &
-                                 PTAU, LTAU_SPLIT, PHSNOW_CAN, PHSNOW_ATM,             &
+                                 PTAU, LCBS_SPLIT, PHSNOW_CAN, PHSNOW_ATM,             &
                                  PLESNOW_CAN, PLESNOW_ATM   )  
 USE MODD_TYPE_SNOW, ONLY : SURF_SNOW
 IMPLICIT NONE
@@ -47,14 +47,14 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PMELT    ! snow melting rate (kg/m2/s)
 REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SNOW! heat storage inside snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW  ! absorbed LW rad by snow (W/m2)
 REAL, DIMENSION(:), INTENT(OUT)   :: PSNOW_D  ! snow depth
-!MV202609 tau scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
 REAL, DIMENSION(:), INTENT(IN)    :: PTA_ATM      ! air temperature of the forcing level (free atmosphere)
 REAL, DIMENSION(:), INTENT(IN)    :: PQA_ATM      ! specific humidity of the forcing level
 REAL, DIMENSION(:), INTENT(IN)    :: PVMOD_ATM    ! wind of the forcing level
 REAL, DIMENSION(:), INTENT(IN)    :: PZREF_ATM    ! reference height of the forcing level (temperature)
 REAL, DIMENSION(:), INTENT(IN)    :: PUREF_ATM    ! reference height of the forcing level (wind)
-REAL, DIMENSION(:), INTENT(IN)    :: PTAU         ! tau scheme weight of the canyon path (-)
-LOGICAL,              INTENT(IN)  :: LTAU_SPLIT   ! T: the tau split of the snow exchange is active
+REAL, DIMENSION(:), INTENT(IN)    :: PTAU         ! cbs scheme weight of the canyon path (-)
+LOGICAL,              INTENT(IN)  :: LCBS_SPLIT   ! T: the tau split of the snow exchange is active
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSNOW_CAN   ! sensible heat flux over snow, snow -> canyon air
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSNOW_ATM   ! sensible heat flux over snow, snow -> forcing level
 REAL, DIMENSION(:), INTENT(OUT)   :: PLESNOW_CAN  ! latent heat flux over snow, snow -> canyon air
