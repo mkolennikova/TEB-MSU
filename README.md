@@ -1,10 +1,10 @@
-# TEB-Ru: Single-Layer Urban Canopy Model
+# TEB-MSU: Single-Layer Urban Canopy Model
 
 [![Fortran](https://img.shields.io/badge/Fortran-734f96?logo=fortran&logoColor=white)](https://fortran-lang.org/)
 [![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-CeCILL--C-blue.svg)](https://cecill.info/licences/Licence_CeCILL-C_V1-en.html)
 
-TEB-Ru is a single-layer urban canopy model developed at Lomonosov Moscow State University based on the popular French open-source model TEB (Town Energy Balance) [[Masson, 2000]](#references). This model provides simplified but computationally effective parameterization of turbulent and radiant energy exchange within the urban canopy described as an idealized street canyon, considering building energy use, including heating and air conditioning, simulated by building energy model (BEM) [[Bueno et al., 2012]](#references). It also allows representing urban vegetation inside the street canyon [[Lemonsu et al., 2012]](#references) and on buildings' roofs [[De Munck et al., 2013]](#references), as well as solar panels on the roofs.
+TEB-MSU is a single-layer urban canopy model developed at Lomonosov Moscow State University based on the popular French open-source model TEB (Town Energy Balance) [[Masson, 2000]](#references). This model provides simplified but computationally effective parameterization of turbulent and radiant energy exchange within the urban canopy described as an idealized street canyon, considering building energy use, including heating and air conditioning, simulated by building energy model (BEM) [[Bueno et al., 2012]](#references). It also allows representing urban vegetation inside the street canyon [[Lemonsu et al., 2012]](#references) and on buildings' roofs [[De Munck et al., 2013]](#references), as well as solar panels on the roofs.
 
 ## Key Features
 
@@ -16,9 +16,9 @@ TEB-Ru is a single-layer urban canopy model developed at Lomonosov Moscow State 
 - **Anthropogenic heat flux** from traffic with diurnal cycle parameterization
 - **Flexible coupling interface** for standalone mode with given atmospheric forcing or two-way coupling with atmospheric models (e.g., COSMO) [[Tarasova et al., 2025]](#references)
 
-## Distinctive Features of TEB-Ru
+## Distinctive Features of TEB-MSU
 
-Compared to the original TEB model, TEB-Ru includes:
+Compared to the original TEB model, TEB-MSU includes:
 
 - **Improvements to physical parameterizations** and their adaptation to Russian cities
 - **Elaborate program interfaces** for easier coupling and configuration
@@ -33,7 +33,7 @@ Compared to the original TEB model, TEB-Ru includes:
 
 #### Option 1: Google Colab (Recommended)
 
-Open and run the [`run_in_collab.ipynb`](https://github.com/mkolennikova/TEB-Ru/blob/main/run_in_collab.ipynb) notebook in Google Colab. It will automatically:
+Open and run the [`run_in_collab.ipynb`](https://github.com/mkolennikova/TEB-MSU/blob/main/run_in_collab.ipynb) notebook in Google Colab. It will automatically:
 
 1. Clone the repository
 2. Set up the environment
@@ -44,12 +44,12 @@ Open and run the [`run_in_collab.ipynb`](https://github.com/mkolennikova/TEB-Ru/
 
 #### Option 2: Local Build
 
-To build and run TEB-Ru locally:
+To build and run TEB-MSU locally:
 
 ```bash
 # Clone the repository
-git clone https://github.com/mkolennikova/TEB-Ru.git
-cd TEB-Ru
+git clone https://github.com/mkolennikova/TEB-MSU.git
+cd TEB-MSU
 
 # Check compiler flags in src/gfortran_args
 # The model automatically detects ifort or gfortran
@@ -71,7 +71,7 @@ make -C src
 | `python/` | Python libraries shared by the notebooks: output handling (`output_utils.py`), forcing preparation (`forcing_ERA5.py`, `forcing_utils.py`) and the notebook helpers (`run_utils.py`, `install_utils.py`) |
 | `python_tests/` | Python test benches and comparison/sensitivity experiments verifying the model revisions |
 | `build/` | Build output of `make`: `obj/` (object and module files) and `TEB_offline.exe`; created automatically and not tracked |
-| `docs/` | Model documentation: the variable description (Markdown and spreadsheet), the description of the implemented τ-scheme (`TEB_Ru_tau_scheme_T_CAN_reformulation.md`), of the diagnostic garden scheme (`TEB_Ru_garden_diagnostic_scheme.md`), of the defects of the original TEB found and fixed in TEB-Ru (`TEB_Ru_source_defects.md`), the commit-referenced change history (`TEB_Ru_change_history.md`) and the documentation rules (`TEB_Ru_documentation_rules.md`) |
+| `docs/` | Model documentation: the variable description (Markdown and spreadsheet), the description of the implemented τ-scheme (`TEB_Ru_tau_scheme_T_CAN_reformulation.md`), of the diagnostic garden scheme (`TEB_Ru_garden_diagnostic_scheme.md`), of the defects of the original TEB found and fixed in TEB-MSU (`TEB_Ru_source_defects.md`), the commit-referenced change history (`TEB_Ru_change_history.md`) and the documentation rules (`TEB_Ru_documentation_rules.md`) |
 | `namelist/`, `input/`, `output_ref/` | Namelists, reference atmospheric forcing and reference output of the test case |
 | `output/` | Output of the last run (created at run time, not tracked) |
 | `run_in_collab.ipynb`, `run_on_windows.ipynb` | Step-by-step notebooks: Google Colab pipeline and local Windows build/run |
@@ -81,10 +81,10 @@ reads `namelist/` and `input/` and writes `output/` relative to the working dire
 
 ## Configuration
 
-Model configuration is controlled through Fortran namelist files in the [`namelist/`](https://github.com/mkolennikova/TEB-Ru/tree/main/namelist) directory:
+Model configuration is controlled through Fortran namelist files in the [`namelist/`](https://github.com/mkolennikova/TEB-MSU/tree/main/namelist) directory:
 
-- **[namelist_forcing.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/namelist/namelist_forcing.nml)** – Atmospheric forcing parameters (temperature, humidity, wind, radiation, precipitation, etc.)
-- **[namelist.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/namelist/namelist.nml)** – Urban geometry, material properties, BEM parameters, vegetation settings, and other model options
+- **[namelist_forcing.nml](https://github.com/mkolennikova/TEB-MSU/blob/main/namelist/namelist_forcing.nml)** – Atmospheric forcing parameters (temperature, humidity, wind, radiation, precipitation, etc.)
+- **[namelist.nml](https://github.com/mkolennikova/TEB-MSU/blob/main/namelist/namelist.nml)** – Urban geometry, material properties, BEM parameters, vegetation settings, and other model options
 
 <!-- MV202609 strict namelist date/time reading -->
 ⚠️ **The driver stops if a namelist cannot be read.** Both namelist files
@@ -106,7 +106,7 @@ The date used by a finished run can also be verified from its output with
 `SOLAR_ZENITH`/`SOLAR_ELEV`/`SOLAR_AZIM` columns of `TEB_output.csv` with the
 [`pysolar`](https://pysolar.readthedocs.io) library.
 
-Description of model options from [namelist.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/namelist/namelist.nml), as wel as model output variables is avaible in [here](https://github.com/mkolennikova/TEB-Ru/blob/main/docs/TEB_Ru_variables_description.md). 
+Description of model options from [namelist.nml](https://github.com/mkolennikova/TEB-MSU/blob/main/namelist/namelist.nml), as wel as model output variables is avaible in [here](https://github.com/mkolennikova/TEB-MSU/blob/main/docs/TEB_Ru_variables_description.md). 
 
 ### Model Output
 
@@ -131,7 +131,7 @@ df = output_utils.read_output('output_old/', fmt='txt',   # legacy <VAR>.txt fil
 
 ### Compiler Flags
 
-Compiler settings are defined in [`src/gfortran_args`](https://github.com/mkolennikova/TEB-Ru/blob/main/src/gfortran_args). The model automatically detects the available compiler:
+Compiler settings are defined in [`src/gfortran_args`](https://github.com/mkolennikova/TEB-MSU/blob/main/src/gfortran_args). The model automatically detects the available compiler:
 
 - `ifort` – Intel Fortran Compiler (if available)
 - `gfortran` – GNU Fortran Compiler (fallback)
@@ -168,7 +168,7 @@ measurements are in §5.8 of [`docs/TEB_Ru_change_history.md`](docs/TEB_Ru_chang
 
 ## Citation
 
-If you use TEB-Ru in your research, please cite:
+If you use TEB-MSU in your research, please cite:
 
 > [Tarasova, M.A., Varentsov, M.I., Debolskiy, A.V., Stepanenko, V.M., 2025. Coupling the Town Energy Balance (TEB) Scheme with the COSMO Atmospheric Model: Evaluation Against a Bulk Parameterization (TERRA_URB) for the Moscow Megacity. GES 18, 118–134.](https://doi.org/10.24057/2071-9388-2025-3975)
 
@@ -176,8 +176,8 @@ Also, please cite the original TEB model and the relevant references listed abov
 
 ## License
 
-TEB-Ru is distributed under the [CeCILL-C](https://cecill.info/licences/Licence_CeCILL-C_V1-en.html) license, following the original TEB model.
+TEB-MSU is distributed under the [CeCILL-C](https://cecill.info/licences/Licence_CeCILL-C_V1-en.html) license, following the original TEB model.
 
 ## Acknowledgments
 
-TEB-Ru development is supported by Lomonosov Moscow State University and acknowledges the original TEB model development team at CNRM (Météo-France/CNRS).
+TEB-MSU development is supported by Lomonosov Moscow State University and acknowledges the original TEB model development team at CNRM (Météo-France/CNRS).
