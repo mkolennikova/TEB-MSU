@@ -31,10 +31,10 @@ Compared to the original TEB model, TEB-MSU includes:
 
 The development line (`src_dev`, see [Two source trees](#two-source-trees-src_dev-and-src_ctrl)) additionally contains:
 
-- **Fixes of defects of the original TEB** found during this work: the weighting of the snow fluxes in the canyon nodes, the latent heat of the phase change (`XLVTT`/`XLSTT`), the melt-water path, and the uninitialised radiation diagnostics of the green surfaces and canyon ground temperature — [`docs/TEB_Ru_source_defects.md`](docs/TEB_Ru_source_defects.md)
-- **canyon bypass (cbs) scheme of the surface–canyon exchange**: a weight τ ∈ [0, 1] blends the "through the canyon" and the "directly to the forcing level" paths (τ = 1 reproduces the original TEB, τ → 0 makes the surface flat); the air seen by the surfaces is a τ-relaxation of the classical canyon node (`T_CAN0`) and of the surface layer (`T_CAN1`) — [`docs/TEB_Ru_cbs_scheme_T_CAN_reformulation.md`](docs/TEB_Ru_cbs_scheme_T_CAN_reformulation.md)
-- **Diagnostic garden and green-roof scheme**: the surface energy balance `Rn = H + LE` with a surface relative humidity, solved by Newton iterations, coupled to the canyon air, with external modes (`EXT`, `EXT_NEU`) — [`docs/TEB_Ru_garden_diagnostic_scheme.md`](docs/TEB_Ru_garden_diagnostic_scheme.md)
-- **Urban roughness and displacement height from the namelist or from the Macdonald et al. (1998) morphometric scheme** [[Macdonald et al., 1998]](#references) instead of the hard-coded `zd = H/3` correction — [`docs/TEB_Ru_source_defects.md`](docs/TEB_Ru_source_defects.md) (D7)
+- **Fixes of defects of the original TEB** found during this work: the weighting of the snow fluxes in the canyon nodes, the latent heat of the phase change (`XLVTT`/`XLSTT`), the melt-water path, and the uninitialised radiation diagnostics of the green surfaces and canyon ground temperature — [`docs/TEB_MSU_source_defects.md`](docs/TEB_MSU_source_defects.md)
+- **canyon bypass (cbs) scheme of the surface–canyon exchange**: a weight τ ∈ [0, 1] blends the "through the canyon" and the "directly to the forcing level" paths (τ = 1 reproduces the original TEB, τ → 0 makes the surface flat); the air seen by the surfaces is a τ-relaxation of the classical canyon node (`T_CAN0`) and of the surface layer (`T_CAN1`) — [`docs/TEB_MSU_cbs_scheme_T_CAN_reformulation.md`](docs/TEB_MSU_cbs_scheme_T_CAN_reformulation.md)
+- **Diagnostic garden and green-roof scheme**: the surface energy balance `Rn = H + LE` with a surface relative humidity, solved by Newton iterations, coupled to the canyon air, with external modes (`EXT`, `EXT_NEU`) — [`docs/TEB_MSU_garden_diagnostic_scheme.md`](docs/TEB_MSU_garden_diagnostic_scheme.md)
+- **Urban roughness and displacement height from the namelist or from the Macdonald et al. (1998) morphometric scheme** [[Macdonald et al., 1998]](#references) instead of the hard-coded `zd = H/3` correction — [`docs/TEB_MSU_source_defects.md`](docs/TEB_MSU_source_defects.md) (D7)
 
 ### Quick Start
 
@@ -98,7 +98,7 @@ runs of the two trees can be compared line by line.
 | `python_tests/` | Python test benches and comparison/sensitivity experiments verifying the model revisions |
 | `tests/` | Test cases; `tests/CAPITOUL/` is the reference case: `namelist/`, `input/` (ASCII forcing) and `output_ref/` |
 | `build/` | Build output of `make`: `obj_dev/`, `obj_ctrl/`, `logs/` (the `make` logs) and the executables; created automatically and not tracked |
-| `docs/` | Model documentation: the variable description (`TEB_Ru_variables_description.md`), the canyon bypass scheme (`TEB_Ru_cbs_scheme_T_CAN_reformulation.md`), the diagnostic garden and green-roof scheme (`TEB_Ru_garden_diagnostic_scheme.md`), the defects of the original TEB found and fixed in TEB-MSU (`TEB_Ru_source_defects.md`), the commit-referenced change history (`TEB_Ru_change_history.md`), the coupling checklist (`TEB_Ru_coupling_checklist.md`) and the documentation rules (`TEB_Ru_documentation_rules.md`) |
+| `docs/` | Model documentation: the variable description (`TEB_MSU_variables_description.md`), the canyon bypass scheme (`TEB_MSU_cbs_scheme_T_CAN_reformulation.md`), the diagnostic garden and green-roof scheme (`TEB_MSU_garden_diagnostic_scheme.md`), the defects of the original TEB found and fixed in TEB-MSU (`TEB_MSU_source_defects.md`), the commit-referenced change history (`TEB_MSU_change_history.md`), the coupling checklist (`TEB_MSU_coupling_checklist.md`) and the documentation rules (`TEB_MSU_documentation_rules.md`) |
 | `TEB_sandbox.ipynb` | Step-by-step pipeline notebook: Google Colab and local (Windows) build and run |
 
 The executable is started in the directory of the case, because the driver reads `namelist/` and
@@ -111,7 +111,7 @@ case that is `tests/CAPITOUL/`). The command-line options `-forcing_nml`, `-para
 The model is configured by two Fortran namelist files — `namelist.nml` (model parameters) and
 `namelist_forcing.nml` (atmospheric forcing and the period of the run) — which the driver reads at
 start-up. They must be composed according to the rules of
-[`docs/TEB_Ru_variables_description.md`](docs/TEB_Ru_variables_description.md), which documents
+[`docs/TEB_MSU_variables_description.md`](docs/TEB_MSU_variables_description.md), which documents
 every item, its type, units, accepted values and defaults.
 
 Namelist examples for CAPITOUL test case availible at  
@@ -146,7 +146,7 @@ each step, to a single semicolon-separated file `<output_dir>/TEB_output.csv`
 (`-output <dir>` on the command line, `output/` by default). The file contains one line
 per forcing step: first the time column `time` (ISO 8601, the end of the forcing
 interval, e.g. `2004-02-20 00:30:00`), then the model variables, then the forcing
-columns `Forc_*` (see [TEB_Ru_variables_description.md](docs/TEB_Ru_variables_description.md)).
+columns `Forc_*` (see [TEB_MSU_variables_description.md](docs/TEB_MSU_variables_description.md)).
 The columns depend on the model options (e.g. `HVAC_*` only with the Building Energy
 Model, `SOLAR_PROD` only with solar panels).
 
@@ -183,7 +183,7 @@ also in `src_ctrl`): the formatted output of real numbers of `libgfortran` saves
 `setlocale` pointer that the UCRT invalidates, which causes rare `SIGSEGV` failures of long
 runs. The workaround does not change the results (`WRAP_LOCALE=0` disables it explicitly);
 details and measurements are in §5.8 of
-[`docs/TEB_Ru_change_history.md`](docs/TEB_Ru_change_history.md).
+[`docs/TEB_MSU_change_history.md`](docs/TEB_MSU_change_history.md).
 
 ## References
 

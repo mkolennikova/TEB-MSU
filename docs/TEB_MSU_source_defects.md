@@ -9,11 +9,11 @@ upstream `TEB-model/teb`, ветка `master`, состояние 2022) и за�
 
 Дефекты драйвера, читалки форсинга и стендов (I1–I4), численные дефекты собственных
 правок (N1) и найденные, но не исправленные вопросы (C1–C4) в этот документ не
-входят — они перенесены в `TEB_Ru_change_history.md` (§5.5–§5.7).
+входят — они перенесены в `TEB_MSU_change_history.md` (§5.5–§5.7).
 
-Текущее описание схемы — в `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` и
-`TEB_Ru_garden_diagnostic_scheme.md`; привязка исправлений к коммитам — в
-`TEB_Ru_change_history.md`.
+Текущее описание схемы — в `TEB_MSU_cbs_scheme_T_CAN_reformulation.md` и
+`TEB_MSU_garden_diagnostic_scheme.md`; привязка исправлений к коммитам — в
+`TEB_MSU_change_history.md`.
 
 > Состояние кода: коммит `91308a7` (2026-09-22), ветка `MV_devs`.
 
@@ -35,7 +35,7 @@ upstream `TEB-model/teb`, ветка `master`, состояние 2022) и за�
 
 Дефекты, не относящиеся к исходной модели (драйвер, читалка форсинга, стенды и
 собственные правки), а также найденные, но не исправленные вопросы, вынесены в
-`TEB_Ru_change_history.md` (§5.5–§5.7).
+`TEB_MSU_change_history.md` (§5.5–§5.7).
 
 ---
 
@@ -260,7 +260,7 @@ teb_garden_struct ← call_driver`); после правки эта точка �
 оно давало `NaN`/`SIGFPE`. В `src_ctrl` перенесена ровно dev-реализация.
 
 **Ветка `main` содержит оба дефекта.** Побайтовая сверка (см. §0 в
-`TEB_Ru_change_history.md`) показала, что `src_teb/teb_garden.F90` и `src_teb/urban_drag.F90`
+`TEB_MSU_change_history.md`) показала, что `src_teb/teb_garden.F90` и `src_teb/urban_drag.F90`
 в `main` равны версии первого коммита, а собственный неймлист `main` задаёт ровно
 вырожденную конфигурацию (`teb_lgarden=.FALSE.`, `fr_garden=0.0`,
 `teb_lgreenroof=.FALSE.`, `teb_frac_gr=0.0`). Поэтому сравнение `src_ctrl` с `main` на
@@ -289,12 +289,12 @@ teb_garden_struct ← call_driver`); после правки эта точка �
 
 ## 4. Ссылки
 
-* `TEB_Ru_change_history.md` — привязка каждого исправления к коммиту (№1…№22),
+* `TEB_MSU_change_history.md` — привязка каждого исправления к коммиту (№1…№22),
   протоколы измерений, а также дефекты вне исходной модели: драйвер, читалка
   форсинга и стенды (I1–I4, §5.5), численные дефекты собственных правок (N1, §5.6),
   найденное, но не исправленное (C1–C4, §5.7);
-* `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` — текущее описание cbs-схемы (в том числе
+* `TEB_MSU_cbs_scheme_T_CAN_reformulation.md` — текущее описание cbs-схемы (в том числе
   нормировок и членов снега);
-* `TEB_Ru_garden_diagnostic_scheme.md` — текущее описание схемы сада;
+* `TEB_MSU_garden_diagnostic_scheme.md` — текущее описание схемы сада;
 * upstream TEB: `https://github.com/TEB-model/teb`.
 

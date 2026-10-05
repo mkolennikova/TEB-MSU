@@ -6,11 +6,11 @@
 
 Смежные документы:
 
-* `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` — cbs-схема дороги и семантика
+* `TEB_MSU_cbs_scheme_T_CAN_reformulation.md` — cbs-схема дороги и семантика
   температур каньона (`T_CAN0`, `T_CAN1`, `T_CAN`), с которыми связан сад;
-* `TEB_Ru_source_defects.md` — дефекты исходного TEB, найденные и исправленные
+* `TEB_MSU_source_defects.md` — дефекты исходного TEB, найденные и исправленные
   в ходе работы;
-* `TEB_Ru_change_history.md` — история версий схемы и протоколы измерений.
+* `TEB_MSU_change_history.md` — история версий схемы и протоколы измерений.
 
 > Состояние кода: коммит `21c9acb` (2026-09-23), ветка `MV_devs`; эмулятор внешней
 > зелёной кровли `PCD_GREENROOF` и стенд `greenroof_emu_compare.py` — рабочая копия
@@ -321,7 +321,7 @@ Rn_GARDEN = H_GARDEN + LE_GARDEN                       (G = 0)
 * **одна температура поверхности** — осознанное решение: две независимые `Ts`
   («затенённая/открытая часть сада») требуют либо разрыва замыкания `Rn = H + LE`,
   либо рассинхронизации узлов `T_CAN0`/`T_CAN1`, а выигрыш по потокам ≤ 1 Вт/м²
-  (см. §5.3 в `TEB_Ru_change_history.md`).
+  (см. §5.3 в `TEB_MSU_change_history.md`).
 
 ---
 
@@ -511,7 +511,7 @@ PGFLUX  = 0      ! нет обмена с грунтом
 * **Садовые диагностики выводятся в `TEB_output.csv`** (на м² сада, §4).
 * **τ-ветви** (§2.3) входят в узел `T_CAN0` каньонной ветвью, а в свободный слой
   `T_CAN1` — атмосферной; подробности семантики `T_CAN0`/`T_CAN1`/`T_CAN` —
-  в `TEB_Ru_cbs_scheme_T_CAN_reformulation.md`.
+  в `TEB_MSU_cbs_scheme_T_CAN_reformulation.md`.
 
 ---
 
@@ -675,7 +675,7 @@ TEB на следующем подшаге (лаг — один подшаг; п
    и её проводимость в каньон (новый вход интерфейса `EXT`).
 5. **Остаточная ошибка эмулятора структурна** (единая смесь `T* = T_CAN`, отсутствие
    неявной связи, лаг в один подшаг) и не является сдвигом по времени; её величины
-   по сайтам и морфологиям — в `TEB_Ru_change_history.md`.
+   по сайтам и морфологиям — в `TEB_MSU_change_history.md`.
 6. **Нет физиологии растительности**: `PHU` фиксирована, нет фотосинтеза (`PSFCO2 = 0`),
    нет зависимости устьичного сопротивления от влаги почвы и CO₂, нет полива, стока
    и дренажа (`PIRRIG = PRUNOFF = PDRAIN = 0`), нет обмена с грунтом (`G = 0`).
@@ -728,7 +728,7 @@ TEB на следующем подшаге (лаг — один подшаг; п
   коэффициенты обмена.
 
 Числовые протоколы конкретных прогонов (морфологии, даты, таблицы эффектов,
-сравнение эмулятора с внутренней схемой) — в `TEB_Ru_change_history.md`.
+сравнение эмулятора с внутренней схемой) — в `TEB_MSU_change_history.md`.
 
 ---
 
@@ -743,6 +743,6 @@ TEB на следующем подшаге (лаг — один подшаг; п
 * `src/src_teb/avg_urban_fluxes.F90` — вклад сада в узлы каньона;
 * `src/src_driver/run_teb_offline.F90` — колонки CSV и эмулятор `PCD_GARDEN`.
 
-Документы: `TEB_Ru_cbs_scheme_T_CAN_reformulation.md`,
-`TEB_Ru_source_defects.md`, `TEB_Ru_change_history.md`,
-`TEB_Ru_variables_description.md`.
+Документы: `TEB_MSU_cbs_scheme_T_CAN_reformulation.md`,
+`TEB_MSU_source_defects.md`, `TEB_MSU_change_history.md`,
+`TEB_MSU_variables_description.md`.

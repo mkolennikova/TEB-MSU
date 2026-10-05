@@ -5,9 +5,9 @@
 Кроме того, здесь собраны дефекты, не относящиеся к исходной модели: драйвера,
 читалки форсинга и стендов (I1–I4, §5.5), численные дефекты собственных правок
 (N1–N2, §5.6) и найденные, но не исправленные вопросы (C1–C6, §5.7).
-Актуальное описание схемы — в `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` и
-`TEB_Ru_garden_diagnostic_scheme.md`; список дефектов исходной модели — в
-`TEB_Ru_source_defects.md`.
+Актуальное описание схемы — в `TEB_MSU_cbs_scheme_T_CAN_reformulation.md` и
+`TEB_MSU_garden_diagnostic_scheme.md`; список дефектов исходной модели — в
+`TEB_MSU_source_defects.md`.
 
 Ветка разработки: `MV_devs` (репозиторий `https://github.com/mkolennikova/TEB-MSU`).
 
@@ -33,7 +33,7 @@
   умолчанию совпадают с базовыми, поэтому словник без этих ключей воспроизводит первый
   коммит;
 * при этом прогоне найдены и перенесены в `src_ctrl` два дефекта базовой физики — **D8** и
-  **D9** (`TEB_Ru_source_defects.md`): неинициализированные альбедо/эмиссивность/радиационная
+  **D9** (`TEB_MSU_source_defects.md`): неинициализированные альбедо/эмиссивность/радиационная
   температура зелёных поверхностей и неинициализированная `ZTS_GROUND`. Оба уже исправлены в
   `src_dev` и отсутствовали в первом коммите, поэтому на общем словнике (сад и кровля
   выключены) `src_ctrl` давал `NaN`/`SIGFPE` через несколько шагов. После переноса
@@ -206,12 +206,12 @@
   `'PROXY_OLD'` и во внешнем режиме `src_ctrl`, где сад раньше отсутствовал в узле влажности
   каньона; проверка — компиляция обеих ветвей (`make -C src_ctrl`, `make -C src_dev`).
 
-**Документация.** `TEB_Ru_variables_description.md` (строка колонки `PAC_AGG_GARDEN`
-удалена; зеркальный `TEB_Ru_variables_description.xlsx` правится вручную),
-`TEB_Ru_garden_diagnostic_scheme.md` (§1, §2.3, §4, §8),
-`TEB_Ru_cbs_scheme_T_CAN_reformulation.md` (§4.4), `python_tests/compare_garden_scheme.py` и
+**Документация.** `TEB_MSU_variables_description.md` (строка колонки `PAC_AGG_GARDEN`
+удалена; зеркальный `TEB_MSU_variables_description.xlsx` правится вручную),
+`TEB_MSU_garden_diagnostic_scheme.md` (§1, §2.3, §4, §8),
+`TEB_MSU_cbs_scheme_T_CAN_reformulation.md` (§4.4), `python_tests/compare_garden_scheme.py` и
 `python_tests/garden_z0_sensitivity.py` (списки садовых колонок). Ветка `main` правкой не
-затронута (см. `TEB_Ru_coupling_checklist.md`).
+затронута (см. `TEB_MSU_coupling_checklist.md`).
 **Множитель влажности узла каньона перенесён из прокси-моделей сада в `TEB_GARDEN`;
 во внешнем режиме прокси-модели сада не вызываются.** Величина `PHU_AGG_GARDEN` в
 прокси была либо эхом собственного входного аргумента (`= PPHU_GD` во всех ветвях
@@ -244,10 +244,10 @@ CSV **побитово** совпадает с прогонами до прав�
 `d6c16cf4…`/`cf4801ef…`; ctrl: 35 колонок, `5e3fec27…`/`dda1e68b…`), т.е. перенос
 множителя и пропуск прокси для `EXT` результатов не меняют.
 
-**Документация.** `TEB_Ru_garden_diagnostic_scheme.md` (§4 — выходы прокси и колонки,
-§9 — внешний сад без прокси-модели), `TEB_Ru_variables_description.md` (`urb_phu_gdn`,
+**Документация.** `TEB_MSU_garden_diagnostic_scheme.md` (§4 — выходы прокси и колонки,
+§9 — внешний сад без прокси-модели), `TEB_MSU_variables_description.md` (`urb_phu_gdn`,
 колонка `PHU_GARDEN`), комментарии `XPHU_GD` в `MODD_PROXI_SVAT_PAR` обеих ветвей,
-`TEB_Ru_coupling_checklist.md` (§5 п.1). Сопряжённый режим с хостом COSMO
+`TEB_MSU_coupling_checklist.md` (§5 п.1). Сопряжённый режим с хостом COSMO
 описан там же (§2–§4), обе наши ветви — в одной матрице (§3).
 
 **Отложено (следующий заход).** Кровля: `PHU_AGG_GREENROOF` в прокси — такой же
@@ -257,7 +257,7 @@ CSV **побитово** совпадает с прогонами до прав�
 `PAC_GREENROOF` — см. запись ниже.
 
 **Согласованность внешнего сада с COSMO-TEB: z0 и коэффициенты обмена.** По итогам третьего
-прохода сравнения (`TEB_Ru_coupling_checklist.md`, §3.1) устранены два расхождения,
+прохода сравнения (`TEB_MSU_coupling_checklist.md`, §3.1) устранены два расхождения,
 которые ломали сопряжение:
 
 * **коэффициенты обмена сада** (`PCH_GD`/`PCD_GD` → `ZCH_GD`/`ZCD_GD` → `teb_tch_gd`/`teb_tcm_gd`,
@@ -281,8 +281,8 @@ CSV **побитово** совпадает с прогонами до прав�
 совпадает с прогонами до правки (`d6c16cf4…`/`cf4801ef…` в `src_dev`, `5e3fec27…`/`dda1e68b…`
 в `src_ctrl`), т.е. правки меняют только величины, уходящие сопряжённому хосту.
 
-**Документация.** `TEB_Ru_garden_diagnostic_scheme.md` (§9 — коэффициенты и z0 внешнего сада),
-`TEB_Ru_coupling_checklist.md` (§3.1, §4, §6 п.7).
+**Документация.** `TEB_MSU_garden_diagnostic_scheme.md` (§9 — коэффициенты и z0 внешнего сада),
+`TEB_MSU_coupling_checklist.md` (§3.1, §4, §6 п.7).
 
 **Прокси сада сами считают и возвращают коэффициенты обмена.** Интерфейс `GARDEN`/`GARDEN_CBS`
 (`src_proxi_SVAT/garden.F90`) расширен двумя выходными аргументами — парой безразмерных
@@ -313,11 +313,11 @@ CSV **побитово** совпадает с прогонами до прав�
 в dev новая проверка: `PCD_GARDEN_CAN = PCH_GARDEN_CAN = 0.0` (нули теперь приходят из прокси),
 для `'PROXY_NEW'` — прежние нейтральные значения (`7.544…e-3`/`5.798…e-3`).
 
-**Документация.** `TEB_Ru_garden_diagnostic_scheme.md` (§1 таблица файлов, §2.1 список потребителей
+**Документация.** `TEB_MSU_garden_diagnostic_scheme.md` (§1 таблица файлов, §2.1 список потребителей
 нейтральных формул, §4 выходы, §9 внешний сад, §12 ссылки, §11 новый инвариант G13),
 `python_tests/compare_exch_coef.py` (текст README: пара возвращается прокси, а не зануляется в
-`TEB_GARDEN`), `TEB_Ru_variables_description.md` (описание колонок `PCD_GARDEN_CAN`/`PCH_GARDEN_CAN`),
-`TEB_Ru_coupling_checklist.md` (§3.1, §4).
+`TEB_GARDEN`), `TEB_MSU_variables_description.md` (описание колонок `PCD_GARDEN_CAN`/`PCH_GARDEN_CAN`),
+`TEB_MSU_coupling_checklist.md` (§3.1, §4).
 
 **Зелёная кровля: `PAC_AGG_GREENROOF` заменена настоящей проводимостью `PAC_GREENROOF`.**
 `PAC_AGG_GREENROOF` была эхо-выходом прокси: `= ZCA_GR` для `'PROXY_NEW'` и `0.` для остальных
@@ -346,9 +346,9 @@ CSV **побитово** совпадает с прогонами до прав�
 * `src_ctrl`: база по-прежнему `fe0a3c08…`, прогоны с садом (`'EXT'` и внутренний режим) —
   бит-в-бит (в `src_ctrl` эта величина наружу не выводилась, наблюдаемых изменений нет).
 
-**Документация.** `TEB_Ru_variables_description.md` (строка колонки `PAC_GREENROOF`),
-`TEB_Ru_garden_diagnostic_scheme.md` (§9.1 — исправлено утверждение, будто проводимость кровли
-входит в узлы `T_CAN0`/`Q_CAN0`), `TEB_Ru_coupling_checklist.md` (§3.2).
+**Документация.** `TEB_MSU_variables_description.md` (строка колонки `PAC_GREENROOF`),
+`TEB_MSU_garden_diagnostic_scheme.md` (§9.1 — исправлено утверждение, будто проводимость кровли
+входит в узлы `T_CAN0`/`Q_CAN0`), `TEB_MSU_coupling_checklist.md` (§3.2).
 
 **Параметры прокси-модели вынесены в её модуль; внешние поверхности прокси не вызывают
 (рабочая копия).** Правка преследует две цели: (1) параметры модели (PHU = β) принадлежат
@@ -400,11 +400,11 @@ CSV **побитово** совпадает с прогонами до прав�
 * переименование проверено на словнике со старым ключом `urb_phu_gdn`: драйвер печатает
   предупреждение и использует значение по умолчанию (прогон завершается штатно).
 
-**Документация.** `TEB_Ru_variables_description.md` (ключи `proxy_phu_*` и примечание о
+**Документация.** `TEB_MSU_variables_description.md` (ключи `proxy_phu_*` и примечание о
 переименовании, вход `teb_qs_gr`, колонки `PHU_GARDEN`/`PHU_GREENROOF`),
-`TEB_Ru_garden_diagnostic_scheme.md` (§1 таблица, §2.1, §4 — множитель возвращают прокси,
-§5 таблица параметров, §9/§9.1 — внешние режимы), `TEB_Ru_documentation_rules.md` (пример
-идентификатора), `TEB_Ru_coupling_checklist.md` (§3.1, §5).
+`TEB_MSU_garden_diagnostic_scheme.md` (§1 таблица, §2.1, §4 — множитель возвращают прокси,
+§5 таблица параметров, §9/§9.1 — внешние режимы), `TEB_MSU_documentation_rules.md` (пример
+идентификатора), `TEB_MSU_coupling_checklist.md` (§3.1, §5).
 
 **Не сделано (кандидат `Cn`).** Поток от зелёной кровли в конструкцию крыши
 (`DMT%XG_GREENROOF_ROOF`) для внешней кровли жёстко равен нулю; если у хоста есть субстрат,
@@ -437,21 +437,21 @@ CSV **побитово** совпадает с прогонами до прав�
   хосту как `UW_GRND`/`UW_ROOF` (в offline-обёртке эти величины дальше не передаются);
 * `src_ctrl` не менялся (5 стендов бит-в-бит).
 
-**Документация.** `TEB_Ru_garden_diagnostic_scheme.md` (§9/§9.1 — откуда берётся трение, §10 — новый открытый пункт 9,
-§11 — инвариант G14), `TEB_Ru_change_history.md` (§5.7 — `C6`),
-`TEB_Ru_documentation_rules.md` (метки `C1…C6`, `G1…G14`), `TEB_Ru_variables_description.md` (описания режимов `'EXT'`/`'EXT_NEU'`);
+**Документация.** `TEB_MSU_garden_diagnostic_scheme.md` (§9/§9.1 — откуда берётся трение, §10 — новый открытый пункт 9,
+§11 — инвариант G14), `TEB_MSU_change_history.md` (§5.7 — `C6`),
+`TEB_MSU_documentation_rules.md` (метки `C1…C6`, `G1…G14`), `TEB_MSU_variables_description.md` (описания режимов `'EXT'`/`'EXT_NEU'`);
 аутпут-таблица не менялась.
 
 **Сопряжение с COSMO-TEB вынесено в постоянный документ; временные черновики удалены.**
-Три черновых файла сравнения (`_TEMP_TEB_Ru_vs_COSMO_TEB_physics.md` и версии v2, v3) заменены
-постоянным `TEB_Ru_coupling_checklist.md`: он описывает контракт сопряжения
+Три черновых файла сравнения (`_TEMP_TEB_MSU_vs_COSMO_TEB_physics.md` и версии v2, v3) заменены
+постоянным `TEB_MSU_coupling_checklist.md`: он описывает контракт сопряжения
 (`CALL_DRIVER`, входы и выходы хоста), матрицу «`A_ctrl`/`A_dev` против TEB стороны B» по каждой
 величине, чек-лист выравнивания, осознанные расхождения и открытые вопросы. Причины переноса:
 устаревшие документы не удаляются молча, а сторона A в v3 была только `src_ctrl`, тогда как новые
 расхождения появились в `src_dev` — в новом документе обе ветви разведены по столбцам. Ссылки на
 `_TEMP_`-черновики из этой истории заменены ссылками на новый документ; контроль цитат нового
 документа — 132 ссылки (85 с якорем), 0 ошибок. Постоянные документы сами не менялись: `README.md`
-и `TEB_Ru_documentation_rules.md` оставлены как есть (указание автора), поэтому строка таблицы
+и `TEB_MSU_documentation_rules.md` оставлены как есть (указание автора), поэтому строка таблицы
 документов для нового файла в правилах не заведена.
 
 **Схема переименована: tau-схема → cbs-схема (canyon bypass scheme).** По решению автора
@@ -468,7 +468,7 @@ scheme** (сокращённо **cbs**). Переименование чисто
 | `TAU_URBAN` | `CBS_TAU` | функция веса τ (`TEB_GARDEN`) |
 | `GARDEN_TAU` | `GARDEN_CBS` | подача ветвей сада (`src_proxi_SVAT`) |
 | `LTAU_SPLIT` | `LCBS_SPLIT` | флаг расщепления снега/сада |
-| «tau-схема», `TEB_Ru_tau_scheme_T_CAN_reformulation.md` | «cbs-схема», `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` | название схемы и документ |
+| «tau-схема», `TEB_MSU_tau_scheme_T_CAN_reformulation.md` | «cbs-схема», `TEB_MSU_cbs_scheme_T_CAN_reformulation.md` | название схемы и документ |
 | стенд `compare_tau_scheme.py` | стенд `compare_cbs_scheme.py` | сравнение с референсом |
 
 **Сохранены (обозначают сам весовой множитель τ, а не схему):** массивы веса `PTAU` / `ZTAU`,
@@ -496,7 +496,7 @@ scheme** (сокращённо **cbs**). Переименование чисто
 ## 1. Правила ведения
 
 Общие требования к документации (состав файлов, формат, ссылки, маркировка правок в
-коде, проверки перед коммитом) собраны в `TEB_Ru_documentation_rules.md`
+коде, проверки перед коммитом) собраны в `TEB_MSU_documentation_rules.md`
 (на английском); здесь приведены только правила этого файла.
 
 * **Нумерация.** Каждой записи присвоен сквозной номер `№N` (нумерация — «номер
@@ -532,7 +532,7 @@ scheme** (сокращённо **cbs**). Переименование чисто
 | 1 | [`788ea00`](https://github.com/mkolennikova/TEB-MSU/commit/788ea00) | 2026-09-14 | feat | ключи `urb_z0_town`/`urb_zd_town`, схема Macdonald (1998) | инфраструктура | variables description (Urban Aerodynamics) |
 | 2 | [`42638ab`](https://github.com/mkolennikova/TEB-MSU/commit/42638ab) | 2026-09-14 | feat | единый CSV-файл вывода с колонками форсинга | инфраструктура | variables description, README |
 | 3 | [`49e09d2`](https://github.com/mkolennikova/TEB-MSU/commit/49e09d2) | 2026-09-15 | feat | диагностики обмена дороги и сада с каньоном и с атмосферой | инфраструктура | variables description |
-| 4 | [`991c2bd`](https://github.com/mkolennikova/TEB-MSU/commit/991c2bd) | 2026-09-16 | feat | cbs-схема потоков дороги (каньон / уровень форсинга) | τ v1 | создан `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` |
+| 4 | [`991c2bd`](https://github.com/mkolennikova/TEB-MSU/commit/991c2bd) | 2026-09-16 | feat | cbs-схема потоков дороги (каньон / уровень форсинга) | τ v1 | создан `TEB_MSU_cbs_scheme_T_CAN_reformulation.md` |
 | 5 | [`41f0271`](https://github.com/mkolennikova/TEB-MSU/commit/41f0271) | 2026-09-16 | feat | ревизия «три температуры»: `T_CAN0`, свободный слой, `T_CAN` | τ v1.1 | tau-документ |
 | 6 | [`f9a6211`](https://github.com/mkolennikova/TEB-MSU/commit/f9a6211) | 2026-09-16 | refactor | переименование свободного слоя в `CAN1`; предел заголовка CSV | τ v1.1 | tau-документ |
 | 7 | [`b321ecd`](https://github.com/mkolennikova/TEB-MSU/commit/b321ecd) | 2026-09-16 | fix | приём координат точки форсинга как скалярных переменных | инфраструктура | — |
@@ -654,13 +654,13 @@ z0/h = (1 − d/h)·exp( −( 0.5·β·(Cd/κ²)·(1 − d/h)·λf )^(−0.5) ) 
 разрешаются независимо, поэтому схему можно комбинировать с явным значением во
 втором ключе.
 
-**Попутно устранён дефект официального TEB** (D7 в `TEB_Ru_source_defects.md`):
+**Попутно устранён дефект официального TEB** (D7 в `TEB_MSU_source_defects.md`):
 в официальном коде высота вытеснения не является параметром, а задаётся жёсткой
 поправкой `+ urb_h_bld/3.` (эквивалент `zd = 2/3·H`), что противоречит его же
 ветровому профилю (`H − zd` даёт `zd = 1/3·H`). В TEB-MSU обе части используют
 одно значение `urb_zd_town`.
 
-**Документация.** `TEB_Ru_variables_description.md`, раздел «Urban Aerodynamics»
+**Документация.** `TEB_MSU_variables_description.md`, раздел «Urban Aerodynamics»
 (формы записи, формулы Macdonald, сопоставление с официальным TEB).
 
 ### №2 · [`42638ab`](https://github.com/mkolennikova/TEB-MSU/commit/42638ab) · 2026-09-14 · `feat(output): single CSV output file with the forcing used at each step`
@@ -740,7 +740,7 @@ cbs-схемы (тождества ветвей, пределы τ).
 суммарная аномалия **0.874 K → 0.145 K** при оценке теории подобия
 `θ*/κ = 0.86…0.96 K`. Именно это наблюдение стало причиной ревизии v1.1.
 
-**Документация.** Создан `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` (часть I —
+**Документация.** Создан `TEB_MSU_cbs_scheme_T_CAN_reformulation.md` (часть I —
 описание v1, часть II — постановка проблемы и отвергнутые варианты, см. §5 ниже).
 
 ### №5 · [`41f0271`](https://github.com/mkolennikova/TEB-MSU/commit/41f0271) · 2026-09-16 · `feat(urban): cbs scheme revision (canyon air, free layer air, tau relaxation)`
@@ -1000,7 +1000,7 @@ ALL PASS на летнем (Москва 2022) и зимнем (мелт 2024) �
   'PROXY_NEW' | 'EXT'`, хранится в `TOP%CTYPE_GARDEN`) вместо логического
   `OGARDEN_EXT`; добавлен диагностический режим `'PROXY_NEW'` (замкнутый
   энергобаланс поверхности с относительной влажностью поверхности и минимумом
-  ветра, `G = 0`), см. `TEB_Ru_garden_diagnostic_scheme.md`;
+  ветра, `G = 0`), см. `TEB_MSU_garden_diagnostic_scheme.md`;
 * свойства поверхностей читаются из намлиста вместо констант: `urb_z0_gdn`
   (было `z0_garden`, по умолчанию `XZ0_GD = 0.1` м), `urb_alb_gdn`/`urb_emis_gdn`
   (по умолчанию 0.15/0.98), `urb_z0_grf` (по умолчанию `XZ0_GR = 0.01` м),
@@ -1046,8 +1046,8 @@ ALL PASS на летнем (Москва 2022) и зимнем (мелт 2024) �
   диагностической схемы — использовались при её проектировании и проверке;
 * `python_tests/compare_exch_coef.py` — коэффициенты обмена сада документированы.
 
-**Документация.** Создан `TEB_Ru_garden_diagnostic_scheme.md` (459 строк);
-`TEB_Ru_variables_description.md` дополнен на 102 строки (режимы сада, ключи
+**Документация.** Создан `TEB_MSU_garden_diagnostic_scheme.md` (459 строк);
+`TEB_MSU_variables_description.md` дополнен на 102 строки (режимы сада, ключи
 свойств поверхностей, новые колонки).
 
 **Измерения.** См. приложение А (§6): стенды Z1–Z4, S1–S4, B1–B6.
@@ -1096,12 +1096,12 @@ ALL PASS на летнем (Москва 2022) и зимнем (мелт 2024) �
   `τ(1−τ)(Cd_C−Cd_A)(V_A−V_C)`, так что `EMU_CH_EFF·max(V*,Vmin) = EMU_CA_EFF`
   точно) и состояние, возвращаемое TEB на следующем подшаге.
 * **Хозработы:** `Makefile` (`garden.o ← modi_garden.o`, `run_teb_offline.o ← garden.o,
-  modi_garden.o`); `TEB_Ru_variables_description.md` — четыре новые колонки, блок
+  modi_garden.o`); `TEB_MSU_variables_description.md` — четыре новые колонки, блок
   `EMU_*`, значения `teb_type_garden` и способ сопряжения внешнего сада.
 
-**Документация.** `TEB_Ru_garden_diagnostic_scheme.md` — разделы 7.6–7.11 (cbs-схема
+**Документация.** `TEB_MSU_garden_diagnostic_scheme.md` — разделы 7.6–7.11 (cbs-схема
 сада, песочницы, `'EXT_NEU'` с таблицей эффекта, сравнение при τ = 0.5);
-`TEB_Ru_cbs_scheme_T_CAN_reformulation.md` — ветви сада (в текущей редакции §4.7).
+`TEB_MSU_cbs_scheme_T_CAN_reformulation.md` — ветви сада (в текущей редакции §4.7).
 
 **Измерения (№19).** Московский стенд ERA5 `D:\TEB_work\Moscow\tau_garden_check`:
 
@@ -1160,28 +1160,28 @@ ALL PASS на летнем (Москва 2022) и зимнем (мелт 2024) �
 протоколы прогонов) вынесено в новый файл истории с привязкой к коммитам. Созданы
 ещё два документа — список дефектов исходной модели и правила ведения документации.
 
-* `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` — описание **только текущей** cbs-схемы
+* `TEB_MSU_cbs_scheme_T_CAN_reformulation.md` — описание **только текущей** cbs-схемы
   (1803 → 663 строки): часть II (R-A v2, R-B, R-C и ранний линейный вариант), теги
   версий v1.1…v1.4, фразы «было → стало» и таблицы прогонов удалены и перенесены в
   историю;
-* `TEB_Ru_garden_diagnostic_scheme.md` — описание текущей схемы сада
+* `TEB_MSU_garden_diagnostic_scheme.md` — описание текущей схемы сада
   (1203 → 565 строк): зелёная кровля из документа исключена (тема отложена),
   τ-ветви сада документируются здесь, а не в части tau-документа;
-* `TEB_Ru_change_history.md` (новый) — реестр 22 коммитов, таблицы
+* `TEB_MSU_change_history.md` (новый) — реестр 22 коммитов, таблицы
   «версия / режим → коммит», записи по коммитам, отвергнутые варианты, дефекты вне
   исходной модели (I1–I4), численный дефект собственных правок (N1), открытые
   вопросы (C1–C4) и статус upstream, приложение А с таблицами измерений, перенесённых
   из схемных документов, предыстория `main`, инструкции восстановления прежнего
   состояния;
-* `TEB_Ru_source_defects.md` (новый) — дефекты **только исходной** модели (D1–D7):
+* `TEB_MSU_source_defects.md` (новый) — дефекты **только исходной** модели (D1–D7):
   суть, следствие, исправление, коммит, проверка, а также методы проверок;
-* `TEB_Ru_documentation_rules.md` (новый, английский) — правила ведения
+* `TEB_MSU_documentation_rules.md` (новый, английский) — правила ведения
   документации: состав и зона ответственности файлов, разделение «текущего» и
   «исторического», формат, ссылки и реестр меток, маркировка правок в коде
   (`!MV<ГГГГММ>`), формат коммитов и записей истории, проверки перед коммитом.
 
 **Документация.** Обновлены `README.md` (строка `docs/` в таблице раскладки каталогов
-со ссылками на все шесть документов) и `TEB_Ru_variables_description.md` (ссылка
+со ссылками на все шесть документов) и `TEB_MSU_variables_description.md` (ссылка
 «part IV» заменена на актуальные разделы схемных документов).
 
 **Проверка.** В схемных документах не осталось остатков истории (поиск `v1.[0-9]`,
@@ -1229,10 +1229,10 @@ ALL PASS на летнем (Москва 2022) и зимнем (мелт 2024) �
 * хозработы: `Makefile` (`modd_teb_optionn.o ← modd_proxi_svat_par.o`,
   `teb_garden.o ← garden.o`).
 
-**Документация.** `TEB_Ru_garden_diagnostic_scheme.md` (§1, §2.1 «Проводимости,
+**Документация.** `TEB_MSU_garden_diagnostic_scheme.md` (§1, §2.1 «Проводимости,
 тепловая шероховатость и трение», §2.2, §2.3, §3, §4, §5, §7, §9, §10 и инварианты
-G11, G12 в §11), `TEB_Ru_variables_description.md` (ключ, режимы, колонки, таблицы
-значений), `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` (§4.7), настоящая запись.
+G11, G12 в §11), `TEB_MSU_variables_description.md` (ключ, режимы, колонки, таблицы
+значений), `TEB_MSU_cbs_scheme_T_CAN_reformulation.md` (§4.7), настоящая запись.
 
 **Измерения (якоря, `R = 1` ⇒ прежняя формулировка).** Два бинарника (текущая сборка
 и сборка из `HEAD` до правки) на московском ERA5 (`params_CTRL.nml`, август 2022,
@@ -1296,8 +1296,8 @@ C5 (§5.7).
   `EVAP_GREENROOF`, `QSAT_GREENROOF`, `PHU_GREENROOF`, `PAC_AGG_GREENROOF`;
   замыкание `RN = H + LE` — на уровне машинного нуля.
 
-**Документация.** `TEB_Ru_garden_diagnostic_scheme.md` (режимы кровли, общий
-решатель), `TEB_Ru_variables_description.md` (ключи, колонки), настоящая история.
+**Документация.** `TEB_MSU_garden_diagnostic_scheme.md` (режимы кровли, общий
+решатель), `TEB_MSU_variables_description.md` (ключи, колонки), настоящая история.
 
 ### №26 · [`21c9acb`](https://github.com/mkolennikova/TEB-MSU/commit/21c9acb) · 2026-09-23 · `feat(greenroof)`: режимы `EXT`/`EXT_NEU`
 
@@ -1329,8 +1329,8 @@ C5 (§5.7).
 `'EXT'` в ночных прогонах упирается в предел `SURFACE_RI` (`PRI = 0.2`), при
 этом `PCD` падает примерно до `0.4` от нейтрального (`0.0011` против `0.0025`).
 
-**Документация.** `TEB_Ru_garden_diagnostic_scheme.md` (§9, режимы кровли),
-`TEB_Ru_variables_description.md`, настоящая история.
+**Документация.** `TEB_MSU_garden_diagnostic_scheme.md` (§9, режимы кровли),
+`TEB_MSU_variables_description.md`, настоящая история.
 
 ### Эмулятор внешней кровли `PCD_GREENROOF` · `feat(greenroof)`: стенд сопряжения
 
@@ -1433,7 +1433,7 @@ H_ROAD = ρ·cp·A_1(τ)·(T_rd − T_c)      (в стационаре = ρ·cp�
 Эти дефекты **не относятся к исходной модели**: они затрагивали драйвер TEB-MSU,
 читалку форсинга и стенды. На физику они не влияли, но делали результаты
 непригодными для проверок (или мешали запуску). Раньше они описывались в
-`TEB_Ru_source_defects.md`; в этот файл отнесены, потому что дефектами исходного TEB
+`TEB_MSU_source_defects.md`; в этот файл отнесены, потому что дефектами исходного TEB
 не являются.
 
 **I1. Переполнение массива имён колонок CSV (№6).** Имена колонок писались в массив
@@ -1545,7 +1545,7 @@ H_ROAD = ρ·cp·A_1(τ)·(T_rd − T_c)      (в стационаре = ρ·cp�
 upstream — только перенос в `src/` и лицензия (2019–2021), `urban_hydro.F90`
 совпадает дословно. Наши правки — локальные расхождения, поэтому целесообразно
 завести issue в upstream. Список дефектов исходной модели (D1–D7) — в
-`TEB_Ru_source_defects.md`.
+`TEB_MSU_source_defects.md`.
 
 ### 5.8 Обход дефекта тулчейна (C5): `setlocale` и libgfortran
 
@@ -2024,8 +2024,8 @@ T4 замыкание водного бюджета, T5 тайл-средняя 
 | --- | --- | --- |
 | [`db83799`](https://github.com/mkolennikova/TEB-MSU/commit/db83799) | 2026-06-29 | добавлен флаг `lshade` |
 | [`9a1334d`](https://github.com/mkolennikova/TEB-MSU/commit/9a1334d) | 2026-06-29 | правки `call_driver.F90` |
-| [`83d8dab`](https://github.com/mkolennikova/TEB-MSU/commit/83d8dab) | 2026-06-29 | создана таблица `TEB_Ru_variables_description.xlsx` |
-| [`e88ba7a`](https://github.com/mkolennikova/TEB-MSU/commit/e88ba7a) | 2026-06-29 | создан документ `TEB_Ru_variables_description.md` |
+| [`83d8dab`](https://github.com/mkolennikova/TEB-MSU/commit/83d8dab) | 2026-06-29 | создана таблица `TEB_MSU_variables_description.xlsx` |
+| [`e88ba7a`](https://github.com/mkolennikova/TEB-MSU/commit/e88ba7a) | 2026-06-29 | создан документ `TEB_MSU_variables_description.md` |
 | [`a6b2e15`](https://github.com/mkolennikova/TEB-MSU/commit/a6b2e15) | 2026-06-29 | ссылка на описание опций модели в README |
 | [`56518eb`](https://github.com/mkolennikova/TEB-MSU/commit/56518eb) | 2026-06-29 | исправлена ссылка на описание выходных переменных |
 | [`35a2963`](https://github.com/mkolennikova/TEB-MSU/commit/35a2963) | 2026-06-30 | печать настроек намлиста в `call_driver` |
@@ -2045,8 +2045,8 @@ T4 замыкание водного бюджета, T5 тайл-средняя 
   `src_struct/`. Примеры:
 
 ```
-git show 991c2bd:TEB_Ru_cbs_scheme_T_CAN_reformulation.md      # документ до раскладки по каталогам
-git show c37b29c:TEB_Ru_garden_diagnostic_scheme.md
+git show 991c2bd:TEB_MSU_cbs_scheme_T_CAN_reformulation.md      # документ до раскладки по каталогам
+git show c37b29c:TEB_MSU_garden_diagnostic_scheme.md
 git show 41f0271:src_teb/avg_urban_fluxes.F90                  # код до раскладки
 ```
 
@@ -2059,9 +2059,9 @@ git show 41f0271:src_teb/avg_urban_fluxes.F90                  # код до р�
 
 ## 9. Ссылки
 
-* `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` — текущее описание cbs-схемы дороги и каньона;
-* `TEB_Ru_garden_diagnostic_scheme.md` — текущее описание диагностической схемы сада;
-* `TEB_Ru_source_defects.md` — дефекты **исходной** модели, найденные и исправленные
+* `TEB_MSU_cbs_scheme_T_CAN_reformulation.md` — текущее описание cbs-схемы дороги и каньона;
+* `TEB_MSU_garden_diagnostic_scheme.md` — текущее описание диагностической схемы сада;
+* `TEB_MSU_source_defects.md` — дефекты **исходной** модели, найденные и исправленные
   (D1–D7); прочие дефекты (драйвер и стенды — I1–I4, собственные правки — N1,
   найденное, но не исправленное — C1–C6) описаны в §5.5–§5.7 этого файла;
-* `TEB_Ru_variables_description.md` — ключи намлиста и колонки вывода.
+* `TEB_MSU_variables_description.md` — ключи намлиста и колонки вывода.

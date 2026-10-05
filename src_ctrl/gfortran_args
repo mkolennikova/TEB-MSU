@@ -19,7 +19,7 @@ else
     # canyon radiation and momentum budgets -> NaN / SIGFPE / SIGSEGV after a few
     # steps, intermittently, and only in configurations the base model had not been
     # exercised with, e.g. garden and greenroof inactive). Both are FIXED in this
-    # tree - see docs/TEB_Ru_source_defects.md (D8, D9) and the comments in
+    # tree - see docs/TEB_MSU_source_defects.md (D8, D9) and the comments in
     # src_teb/teb_garden.F90 and src_teb/urban_drag.F90 - so the trap is a
     # regression guard again: the reference run of src_ctrl completes with it on
     # (18000 CSV rows, no NaN/Inf, no SIGFPE).

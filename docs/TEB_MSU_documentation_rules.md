@@ -14,12 +14,12 @@ deviate, explain why in the commit message.
 | file | content | must not contain |
 | --- | --- | --- |
 | `README.md` (repository root) | short model description, build and run instructions, repository layout, links to the documents | scheme details |
-| `TEB_Ru_variables_description.md` (+ `.xlsx`) | namelist entries and output columns (English) | physics and formula derivations |
-| `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` | the **current** state of the cbs scheme: concept, mathematics, implementation, properties, limitations, invariants | history, versions, rejected variants, run numbers |
-| `TEB_Ru_garden_diagnostic_scheme.md` | the **current** state of the diagnostic garden scheme (same structure) | the same |
-| `TEB_Ru_source_defects.md` | defects of the **original** model only (D1–D7) | defects of the driver, of the benches, of our own changes, open candidates |
-| `TEB_Ru_change_history.md` | commit-referenced history (registry `№1…№N`), rejected variants, measurement protocols, defects outside the original model (I1–I4), numerical defects of our own changes (N1–N2), open items (C1–C5) | the description of the current scheme |
-| `TEB_Ru_documentation_rules.md` | this file (English); the scheme, history and defect documents are in Russian | — |
+| `TEB_MSU_variables_description.md` (+ `.xlsx`) | namelist entries and output columns (English) | physics and formula derivations |
+| `TEB_MSU_cbs_scheme_T_CAN_reformulation.md` | the **current** state of the cbs scheme: concept, mathematics, implementation, properties, limitations, invariants | history, versions, rejected variants, run numbers |
+| `TEB_MSU_garden_diagnostic_scheme.md` | the **current** state of the diagnostic garden scheme (same structure) | the same |
+| `TEB_MSU_source_defects.md` | defects of the **original** model only (D1–D7) | defects of the driver, of the benches, of our own changes, open candidates |
+| `TEB_MSU_change_history.md` | commit-referenced history (registry `№1…№N`), rejected variants, measurement protocols, defects outside the original model (I1–I4), numerical defects of our own changes (N1–N2), open items (C1–C5) | the description of the current scheme |
+| `TEB_MSU_documentation_rules.md` | this file (English); the scheme, history and defect documents are in Russian | — |
 
 ---
 
@@ -29,13 +29,13 @@ deviate, explain why in the commit message.
   version history (`v1.1`, "previously it was"), rejected variants, dates, commit
   numbers in the body text (except for the single "code state" header line), run
   tables, or phrases such as "fixed in §…".
-* Everything that is not current goes to `TEB_Ru_change_history.md`, with the commit
+* Everything that is not current goes to `TEB_MSU_change_history.md`, with the commit
   record number (`№N`) and, when useful, the section of the scheme document it
   refers to.
 * **Measurements.** A scheme document keeps only guaranteed numbers (identities and
   tolerances, e.g. "residual ≤ 1e-11 W/m²") and the commands that reproduce them.
   Effect tables and run protocols live in Appendix A of the change history.
-* **Defects.** A defect of the original model goes to `TEB_Ru_source_defects.md`
+* **Defects.** A defect of the original model goes to `TEB_MSU_source_defects.md`
   (label `Dn`). A defect of the driver, of the forcing reader or of a bench goes to
   the change history (label `In`); a numerical defect of our own change is `Nn` (`N1`, `N2`); a
   known but unfixed item is `Cn`.
@@ -54,7 +54,7 @@ deviate, explain why in the commit message.
 * Tables are used for parameters, modes, registries and checks; code blocks carry a
   language tag (`fortran`) or no tag when they contain formulas or pseudocode.
 * Language: the scheme, history and defect documents are in **Russian**;
-  `README.md`, `TEB_Ru_variables_description.md` and this rules file are in
+  `README.md`, `TEB_MSU_variables_description.md` and this rules file are in
   **English**. Code names and identifiers are written as in the source
   (`proxy_phu_gdn`, `PAC_GARDEN`, `TEB_output.csv`).
 * The header of a scheme document lists the related documents and carries the code
@@ -71,7 +71,7 @@ deviate, explain why in the commit message.
   listed in the history registry. A commit not pushed to `origin` is marked
   **(local)** — otherwise its link does not open.
 * A scheme document refers to the history by section or record ("see §5.7 of
-  `TEB_Ru_change_history.md`"), and the history refers back to the section of the
+  `TEB_MSU_change_history.md`"), and the history refers back to the section of the
   scheme document. The link must work in both directions.
 * Labels (do not change without a reason):
 
@@ -102,7 +102,7 @@ deviate, explain why in the commit message.
   with the same tag in every file of that change (for example
   `!MV202609 cbs scheme of the road` — 40+ places in `src/`). A change without code
   tags cannot be found by search and cannot be traced.
-* In `TEB_Ru_variables_description.md` the related sections and table rows carry the
+* In `TEB_MSU_variables_description.md` the related sections and table rows carry the
   same tag as an HTML comment: `<!-- MV202609 <name> -->`.
 * Find every place of a change with:
 
@@ -161,8 +161,8 @@ Get-ChildItem docs/*.md | ForEach-Object {               # 2, 3
     ($t | Where-Object { $_ -match '^# ' }).Count,
     ($t | Where-Object { $_ -match '^```' }).Count,
     ($t | Where-Object { $_ -match '<!-- END -->' }).Count }
-Select-String -Path docs/TEB_Ru_cbs_scheme_T_CAN_reformulation.md,`
-  docs/TEB_Ru_garden_diagnostic_scheme.md -Pattern 'v1\.[0-9]|R-A|R-B|R-C|часть IV'   # 5
+Select-String -Path docs/TEB_MSU_cbs_scheme_T_CAN_reformulation.md,`
+  docs/TEB_MSU_garden_diagnostic_scheme.md -Pattern 'v1\.[0-9]|R-A|R-B|R-C|часть IV'   # 5
 ```
 
 ---

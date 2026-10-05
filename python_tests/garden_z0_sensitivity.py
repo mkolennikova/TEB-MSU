@@ -807,7 +807,7 @@ def main(argv=None) -> int:
     md.append('')
     md.append('See also `python_tests/garden_z0_sensitivity.py` (this experiment),'
               ' `python_tests/compare_garden_scheme.py` (the garden schemes and the energy'
-              ' balance closure) and `TEB_Ru_garden_diagnostic_scheme.md`.')
+              ' balance closure) and `TEB_MSU_garden_diagnostic_scheme.md`.')
     (out_root / 'README.md').write_text('\n'.join(md), encoding='utf-8')
 
     print()

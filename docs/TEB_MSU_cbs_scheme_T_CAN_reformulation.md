@@ -6,11 +6,11 @@
 
 Смежные документы:
 
-* `TEB_Ru_garden_diagnostic_scheme.md` — диагностическая прокси-модель сада
+* `TEB_MSU_garden_diagnostic_scheme.md` — диагностическая прокси-модель сада
   (включая её τ-ветви «сад↔каньон» / «сад↔атмосфера»);
-* `TEB_Ru_source_defects.md` — дефекты исходного TEB, найденные и исправленные
+* `TEB_MSU_source_defects.md` — дефекты исходного TEB, найденные и исправленные
   в ходе работы;
-* `TEB_Ru_change_history.md` — история версий схемы, отвергнутые варианты и
+* `TEB_MSU_change_history.md` — история версий схемы, отвергнутые варианты и
   протоколы измерений.
 
 > Состояние кода: коммит `91308a7` (2026-09-22), ветка `MV_devs`.
@@ -406,7 +406,7 @@ PQ_CAN  = PTAU*PQ_CAN0 + (1-PTAU)*PQ_CAN1        ! при выключенной
 
 Фазовые переходы учитываются своими теплотами: жидкая влага (лужа на дороге,
 стены, трафик, мусорное тепло) — через `XLVTT`, снег — через `XLSTT`
-(`XLSTT/XLVTT = 1.1334`), см. `TEB_Ru_source_defects.md`.
+(`XLSTT/XLVTT = 1.1334`), см. `TEB_MSU_source_defects.md`.
 
 ### 4.5 Снег на дороге: ветвь «снег↔атмосфера»
 
@@ -448,7 +448,7 @@ ZTA_REF, ZQA_REF — та же τ-смесь, что у дороги (§4.1)
   обнуляются при аллокации и переносятся в `TEB_GARDEN` и обратно вокруг вызова, а их
   `INTENT` — `INOUT`. Локальными автоматическими массивами они быть не могут: тогда
   узлы каньона получали мусор стека, умноженный на `PDN_RD` (дефект N2, §5.6 в
-  `TEB_Ru_change_history.md`).
+  `TEB_MSU_change_history.md`).
 
 ### 4.6 Водный путь дороги (лужа)
 
@@ -520,7 +520,7 @@ T_ref  = (τ·Ca_h_C·PT_LOWCAN + (1−τ)·Ca_h_A·PTA) / Ca_eff  (аналог
 (то же для `LE`). Расщепление включается только для `teb_type_garden = 'PROXY_NEW'`
 (`LCBS_SPLIT`); для `'PROXY_OLD'`, `'EXT'`/`'EXT_NEU'` и при выключенной схеме обе
 ветви принудительно равны фактическому потоку. Полное описание схемы сада —
-в `TEB_Ru_garden_diagnostic_scheme.md`.
+в `TEB_MSU_garden_diagnostic_scheme.md`.
 
 ---
 
@@ -614,7 +614,7 @@ T_ref  = (τ·Ca_h_C·PT_LOWCAN + (1−τ)·Ca_h_A·PTA) / Ca_eff  (аналог
 4. **Диагностика `PIMB_ROAD`** в `road_layer_e_budget.F90` вычитает
    `ZDF_ROAD·(PHFREE_ROAD + PLEFREE_ROAD)`, тогда как оба потока уже содержат
    `ZDF_ROAD` — вероятное двойное взвешивание в диагностике (физику бюджета не
-   затрагивает; см. C1 в §5.7 файла `TEB_Ru_change_history.md`).
+   затрагивает; см. C1 в §5.7 файла `TEB_MSU_change_history.md`).
 5. **Водный путь крыши:** в `URBAN_HYDRO` передаётся `XLE_ROOF`, включающая снежную
    часть с `XLVTT`; `PMELT_RD` (таяние, «на м² снега») добавляется в лужу без
    множителя `PDN_RD` — кандидаты на отдельные правки.
@@ -627,7 +627,7 @@ T_ref  = (τ·Ca_h_C·PT_LOWCAN + (1−τ)·Ca_h_A·PTA) / Ca_eff  (аналог
    `PDF_RD`, нормировка снежных членов, `XLVTT`/`XLSTT`, водный путь таяния)
    исправлены только в TEB-MSU; в `TEB-model/teb` (ветка `master`, состояние 2022)
    они по-прежнему присутствуют — целесообразно завести issue (см. §5.7 файла
-   `TEB_Ru_change_history.md`).
+   `TEB_MSU_change_history.md`).
 
 ---
 
@@ -658,7 +658,7 @@ T_ref  = (τ·Ca_h_C·PT_LOWCAN + (1−τ)·Ca_h_A·PTA) / Ca_eff  (аналог
   поверхность↔каньон / поверхность↔атмосфера.
 
 Числовые протоколы конкретных прогонов и стендов (морфологии, даты, значения
-разностей) приведены в `TEB_Ru_change_history.md`.
+разностей) приведены в `TEB_MSU_change_history.md`.
 
 ---
 
@@ -675,5 +675,5 @@ T_ref  = (τ·Ca_h_C·PT_LOWCAN + (1−τ)·Ca_h_A·PTA) / Ca_eff  (аналог
 * `src/src_teb/urban_fluxes.F90`, `src/src_teb/urban_hydro.F90` — нормировка потоков и водный путь;
 * `src/src_driver/run_teb_offline.F90` — колонки CSV.
 
-Документы: `TEB_Ru_garden_diagnostic_scheme.md`, `TEB_Ru_source_defects.md`,
-`TEB_Ru_change_history.md`, `TEB_Ru_variables_description.md`.
+Документы: `TEB_MSU_garden_diagnostic_scheme.md`, `TEB_MSU_source_defects.md`,
+`TEB_MSU_change_history.md`, `TEB_MSU_variables_description.md`.

@@ -193,7 +193,7 @@ $(EXEC): $(OBJ) | $(OBJDIR)
 # The libgfortran formatted REAL output saves the setlocale(LC_NUMERIC, NULL)
 # pointer and the UCRT invalidates it on the next setlocale call: a rare
 # layout-dependent SIGSEGV in the first formatted REAL write (see
-# docs/TEB_Ru_change_history.md, §5.7 (C5) and §5.8).
+# docs/TEB_MSU_change_history.md, §5.7 (C5) and §5.8).
 #
 # The workaround links libgfortran statically and routes its setlocale
 # references to src_driver/wrap_setlocale.c, which answers the name == NULL

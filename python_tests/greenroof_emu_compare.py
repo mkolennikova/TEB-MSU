@@ -7,7 +7,7 @@ Purpose
 The greenroof of TEB-MSU can be provided by an external model through the
 ``teb_type_greenroof = 'EXT'`` / ``'EXT_NEU'`` interface: the driver owns the
 greenroof surface temperature and fluxes and TEB reads them back at every model
-sub-step (see ``run_teb_offline.F90`` and ``TEB_Ru_garden_diagnostic_scheme.md``).
+sub-step (see ``run_teb_offline.F90`` and ``TEB_MSU_garden_diagnostic_scheme.md``).
 
 This script validates that interface by replacing the external model with the
 emulator ``PCD_GREENROOF`` of the offline driver, i.e. with the *internal*

@@ -20,7 +20,7 @@ A. Bowen proxy (the current ``src/src_proxi_SVAT/garden.F90``): a fixed Bowen ra
        G  = 0             (conduction neglected)
 
 B. Diagnostic proxy (the proposed ``VEG_SURF_BALANCE``, see
-   ``TEB_Ru_garden_diagnostic_scheme.md``): a diagnostic surface energy balance
+   ``TEB_MSU_garden_diagnostic_scheme.md``): a diagnostic surface energy balance
    with no heat flux into the soil::
 
        Rn = (1-alb)*SW + emis*(LW - sigma*Ts**4)
