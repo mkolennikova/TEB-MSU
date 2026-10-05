@@ -25,14 +25,17 @@ and .TRUE. (cbs scheme) - and compares the effect of the scheme on
 Experiment design
 -----------------
 Same forcing and building parameters as `python_tests/sensitivity_zd.py`: the Moscow
-ERA5 forcing (hlev_teb = 10 m), the LCZ 2 and LCZ 9 morphologies and the two
-canyon-wind schemes (teb_itype_wind = 0 and 1). The urban roughness length and
-the displacement height keep their default prescriptions (urb_z0_town = '0.1H'
-and urb_zd_town = 'H/3').
+ERA5 forcing (hlev_teb = 10 m), the LCZ 2, LCZ 6D, LCZ 9 and SPARSE morphologies
+(LCZ 6D is the extra low but dense one) and the two canyon-wind schemes
+(teb_itype_wind = 0 and 1). The urban roughness length and the displacement height
+keep their default prescriptions (urb_z0_town = '0.1H' and urb_zd_town = 'H/3').
 
 The cbs scheme is driven by the canyon H/W ratio of the morphology (urb_h2w):
-LCZ 2 (compact midrise) is a dense canyon (tau close to 1) whereas LCZ 9
-(sparsely built) is close to the free atmosphere (small tau).
+LCZ 2 (compact midrise) is a dense canyon (tau close to 1), LCZ 6D (low but dense
+buildings) sits exactly on the driver default of the threshold, urb_h2w = 0.5 =
+teb_tau_hw_thresh, so that tau = 0.5 (the worst case of the cbs averaging, where
+the canyon path and the atmosphere path carry the same weight), and LCZ 9 and
+SPARSE (sparsely built) are close to the free atmosphere (small tau).
 
 Files (kept, not deleted; use --force to re-run a simulation):
   <out_root>/namelists/<case>.nml      namelist of every case
@@ -76,9 +79,12 @@ PYTHON_DIR = MODEL_DIR / 'python'      # shared libraries of the repository
 if str(PYTHON_DIR) not in sys.path:
     sys.path.append(str(PYTHON_DIR))
 
-# the experiment reuses the site/forcing/base-namelist logic of sensitivity_zd.py
-from sensitivity_zd import (                                          # noqa: E402
-    LCZ, WIND_TYPES, DEFAULT_WORK_DIR,
+# the experiment reuses the site/forcing/base-namelist logic of sensitivity_zd.py;
+# the building configurations come from the shared morphology.py (the single set
+# LCZ, which includes the low but dense LCZ6D with tau = 0.5)
+from morphology import LCZ                                           # noqa: E402
+from sensitivity_zd import (                                         # noqa: E402
+    WIND_TYPES, DEFAULT_WORK_DIR,
     run_case, series, stats_of, banner_values, read_forcing,
 )
 
