@@ -1,4 +1,4 @@
-"""Building configurations (urban morphologies) used by the TEB-Ru benches.
+"""Building configurations (urban morphologies) used by the TEB-MSU benches.
 
 This module is the single source of truth for the description of the built
 surfaces of a case: every bench that varies the urban morphology imports its set

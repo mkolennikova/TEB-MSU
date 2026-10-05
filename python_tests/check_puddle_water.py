@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 check_puddle_water.py - consistency tests of the road puddle (liquid water) path
-of the cbs scheme of TEB-Ru.
+of the cbs scheme of TEB-MSU.
 
 The cbs scheme splits the road energy/moisture exchange into a canyon branch
 (weight tau) and a forcing-level branch (weight 1 - tau). This script checks,

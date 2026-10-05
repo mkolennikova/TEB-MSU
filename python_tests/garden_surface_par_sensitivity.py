@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Sensitivity of the TEB-Ru garden and greenroof to their radiative surface
+Sensitivity of the TEB-MSU garden and greenroof to their radiative surface
 properties taken from the namelist:
 
     urb_alb_gdn / urb_emis_gdn   garden albedo / emissivity

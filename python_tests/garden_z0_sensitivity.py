@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Sensitivity of the TEB-Ru garden model to the garden roughness length (urb_z0_gdn).
+Sensitivity of the TEB-MSU garden model to the garden roughness length (urb_z0_gdn).
 
 The roughness length of the garden is a namelist item of ALL the garden versions
 (``urb_z0_gdn``, default 0.1 m = MODD_PROXI_SVAT_PAR:XZ0_GD). It fixes the
@@ -101,7 +101,7 @@ from sensitivity_zd import (                                          # noqa: E4
     LCZ, DEFAULT_WORK_DIR, run_case, series, stats_of,
 )
 
-#: values >= XUNDEF are undefined in TEB-Ru (MODD_SURF_PAR:XUNDEF = 1.0e20)
+#: values >= XUNDEF are undefined in TEB-MSU (MODD_SURF_PAR:XUNDEF = 1.0e20)
 XUNDEF = 1.0e19
 
 #: garden modes: tag -> (teb_lgarden, teb_type_garden, description)
@@ -715,7 +715,7 @@ def main(argv=None) -> int:
     md = []
     md.append('# Garden roughness length (`urb_z0_gdn`): sensitivity experiment')
     md.append('')
-    md.append('Garden model of TEB-Ru (`teb_type_garden`) tested on the Moscow ERA5'
+    md.append('Garden model of TEB-MSU (`teb_type_garden`) tested on the Moscow ERA5'
               ' forcing, with the garden roughness length taken from the namelist item'
               ' `urb_z0_gdn` (all the garden versions).')
     md.append('')

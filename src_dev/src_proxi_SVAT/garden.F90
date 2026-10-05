@@ -6,7 +6,7 @@
 ! http://www.cecill.info/licences/Licence_CeCILL-C_V1-fr.txt
 ! The CeCILL-C licence is compatible with L-GPL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-! This file contains the garden parameterizations of TEB-Ru:
+! This file contains the garden parameterizations of TEB-MSU:
 !
 !   GARDEN_CBS  - garden of the model: the exchange is split by tau between the
 !                 canyon air and the air of the forcing level. THIS IS THE ONLY
@@ -76,7 +76,7 @@
 !!
 !!    AUTHOR
 !!    ------
-!!      TEB-Ru
+!!      TEB-MSU
 !!
 !!    MODIFICATIONS
 !!    -------------
@@ -314,7 +314,7 @@ END MODULE MODE_GARDEN_BALANCE
 !!    MODIFICATIONS
 !!    -------------
 !!      Original    05/2009
-!!                  01/2026   external coefficient interface (TEB-Ru)
+!!                  01/2026   external coefficient interface (TEB-MSU)
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -484,7 +484,7 @@ END SUBROUTINE GARDEN_PCD
 !!
 !!    PURPOSE
 !!    -------
-!!      Reduced diagnostic garden of TEB-Ru, without the tau split: this is the
+!!      Reduced diagnostic garden of TEB-MSU, without the tau split: this is the
 !!      behaviour of the model before the cbs scheme of the garden exchange was
 !!      introduced. The dimensionless coefficients of the neutral log profiles
 !!      are computed here from the reference height and the garden roughness
@@ -510,7 +510,7 @@ END SUBROUTINE GARDEN_PCD
 !!    MODIFICATIONS
 !!    -------------
 !!      Original    05/2009
-!!                  01/2026   split of the garden routines (TEB-Ru)
+!!                  01/2026   split of the garden routines (TEB-MSU)
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -660,7 +660,7 @@ END SUBROUTINE GARDEN
 !!    MODIFICATIONS
 !!    -------------
 !!      Original    05/2009
-!!                  01/2026   tau split of the garden exchange (TEB-Ru)
+!!                  01/2026   tau split of the garden exchange (TEB-MSU)
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

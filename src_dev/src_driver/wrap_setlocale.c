@@ -7,7 +7,7 @@
  * as a locale name; if that memory holds no NUL before the end of the committed
  * heap, the byte scan inside setlocale faults (SIGSEGV). It happens at the first
  * formatted REAL write, rarely and depending on the heap layout, and it is not a
- * defect of TEB-Ru: see docs/TEB_Ru_change_history.md, §5.7 (item C5) and §5.8.
+ * defect of TEB-MSU: see docs/TEB_Ru_change_history.md, §5.7 (item C5) and §5.8.
  *
  * This file is compiled and used only with
  *

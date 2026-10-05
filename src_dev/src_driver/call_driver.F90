@@ -1156,7 +1156,7 @@ IF (ntstep == 1) THEN
 		! Print configuration parameters (only on first time step)
 		!-------------------------------------------------------------------
 		PRINT*, '=================================================='
-		PRINT*, 'TEB-Ru Configuration Parameters (from namelists):'
+		PRINT*, 'TEB-MSU Configuration Parameters (from namelists):'
 		PRINT*, '  Geometry:'
 		PRINT*, '    ZBLD          = ', ZBLD(1)
 		PRINT*, '    ZGARDEN       = ', ZGARDEN(1)

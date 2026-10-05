@@ -1,6 +1,6 @@
 """Verification of the anthropogenic heat fluxes of the town energy balance.
 
-The town sensible heat flux H_TOWN of TEB-Ru contains, in addition to the
+The town sensible heat flux H_TOWN of TEB-MSU contains, in addition to the
 surface fluxes, the anthropogenic heat flux of the traffic (AHF_TRAFFIC, a daily
 cycle applied to the annual mean `ahf_traffic` of the namelist) and the waste
 heat of the buildings (H_WASTE: HVAC systems and infiltration/ventilation of

@@ -1,4 +1,4 @@
-# Сопряжение TEB-Ru с COSMO-TEB: контракт, матрица соответствия и чек-лист выравнивания
+# Сопряжение TEB-MSU с COSMO-TEB: контракт, матрица соответствия и чек-лист выравнивания
 
 > Code state: commit `6e5b46e` (2026-10-04), branch `MV_devs`. Сторона A — деревья этого
 > репозитория; сторона B — `D:\Work\git\COSMO-TEB_vers_29_09_2026\TEB_in_function_external_forcing_Lom_vers_27_09_2026`

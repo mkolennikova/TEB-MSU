@@ -35,7 +35,7 @@ def read_output_txt(output_dir, namelist_path):
 
 
 def read_output (output_path, namelist_path=None, fmt='auto', include_forcing=True):
-  """Read the output of a TEB-Ru offline run.
+  """Read the output of a TEB-MSU offline run.
 
   Two formats are supported:
 
@@ -234,7 +234,7 @@ def preview_output_mpl(df, subplots_config=None, figsize=(10, 18),
                        forcing_df=None, forcing_color='black',
                        forcing_linewidth=1.5):
     """
-    Preview TEB-Ru outputs using Matplotlib.
+    Preview TEB-MSU outputs using Matplotlib.
     
     Parameters:
     -----------
@@ -378,7 +378,7 @@ def preview_output_plotly(df, subplots_config=None, save_path=None, height=None,
                           forcing_df=None, forcing_color='black',
                           forcing_linewidth=1.5):
     """
-    Preview TEB-Ru outputs using Plotly (interactive) with grouped vertical legend.
+    Preview TEB-MSU outputs using Plotly (interactive) with grouped vertical legend.
     
     Parameters:
     -----------

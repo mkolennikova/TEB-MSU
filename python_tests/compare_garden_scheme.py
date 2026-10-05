@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Extended testing of the garden scheme of TEB-Ru over Moscow local climate zones.
+Extended testing of the garden scheme of TEB-MSU over Moscow local climate zones.
 
 Purpose
 -------
@@ -80,7 +80,7 @@ from sensitivity_zd import (                                          # noqa: E4
     LCZ, DEFAULT_WORK_DIR, run_case, series, stats_of,
 )
 
-#: values >= XUNDEF are undefined in TEB-Ru (MODD_SURF_PAR:XUNDEF = 1.0e20)
+#: values >= XUNDEF are undefined in TEB-MSU (MODD_SURF_PAR:XUNDEF = 1.0e20)
 XUNDEF = 1.0e19
 
 #: garden modes: tag -> (teb_lgarden, teb_type_garden, description)
@@ -544,7 +544,7 @@ def main(argv=None) -> int:
     md = []
     md.append('# Garden scheme: extended testing over Moscow LCZs')
     md.append('')
-    md.append('Garden model of TEB-Ru (`teb_type_garden`) tested on the Moscow ERA5'
+    md.append('Garden model of TEB-MSU (`teb_type_garden`) tested on the Moscow ERA5'
               ' forcing (`%s`).' % forcing_nml)
     md.append('')
     md.append('## Configurations')

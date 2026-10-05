@@ -45,7 +45,7 @@
 !!
 !!    AUTHOR
 !!    ------
-!!      TEB-Ru
+!!      TEB-MSU
 !!
 !!    MODIFICATIONS
 !!    -------------

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-check_solar_position.py - validation of the solar position that TEB-Ru uses, on
+check_solar_position.py - validation of the solar position that TEB-MSU uses, on
 the CSV diagnostics of an offline run (columns SOLAR_ZENITH, SOLAR_ELEV,
 SOLAR_AZIM added by the solar-position revision of RUN_TEB_OFFLINE).
 
@@ -72,7 +72,7 @@ SEP = ';'
 
 
 def read_output(path: Path) -> pd.DataFrame:
-    """CSV of a TEB-Ru offline run: numeric columns, XUNDEF masked to NaN."""
+    """CSV of a TEB-MSU offline run: numeric columns, XUNDEF masked to NaN."""
     d = pd.read_csv(path, sep=SEP)
     num = d.select_dtypes(include='number').columns
     d[num] = d[num].mask(d[num] >= XUNDEF)
@@ -199,7 +199,7 @@ def make_plot(tab: pd.DataFrame, d: pd.DataFrame, lat: float, lon: float, fig: P
     t = pd.to_datetime(sub['time'], utc=True)
     hh = t.dt.hour + t.dt.minute / 60.
     _, ax = plt.subplots(2, 1, figsize=(9, 7))
-    ax[0].plot(hh, sub['SOLAR_ELEV'].values, 'o-', label='TEB-Ru (SUNPOS)')
+    ax[0].plot(hh, sub['SOLAR_ELEV'].values, 'o-', label='TEB-MSU (SUNPOS)')
     ax[0].plot(hh, alt, 'x--', label='pysolar (geometric)')
     ax[0].axhline(0., color='k', lw=0.5)
     ax[0].set_title('solar elevation, %s' % t.dt.date.iloc[0])
@@ -207,7 +207,7 @@ def make_plot(tab: pd.DataFrame, d: pd.DataFrame, lat: float, lon: float, fig: P
     ax[0].set_ylabel('elevation (deg)')
     ax[0].legend()
     ax[0].grid(alpha=0.3)
-    ax[1].plot(tab['day'], tab['elev_mod'], 'o-', label='TEB-Ru (SUNPOS)')
+    ax[1].plot(tab['day'], tab['elev_mod'], 'o-', label='TEB-MSU (SUNPOS)')
     ax[1].plot(tab['day'], tab['elev_ps'], 'x--', label='pysolar (geometric)')
     ax[1].plot(tab['day'], tab['elev_analytic'], ':', label='90 - |lat - decl|')
     ax[1].set_title('maximum elevation of the day')

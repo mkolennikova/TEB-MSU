@@ -643,7 +643,7 @@ IF (ncmdargs > 0) THEN
     END DO
 END IF
 WRITE(*,*) '----------------------------------------------------'
-WRITE(*,*) 'TEB-Ru Offline Model (control tree)'
+WRITE(*,*) 'TEB-MSU Offline Model (control tree)'
 WRITE(*,*) '  Forcing namelist: ', TRIM(namelist_forcing_path_local)
 WRITE(*,*) '  Parameter namelist: ', TRIM(namelist_path_local)
 WRITE(*,*) '  Output directory: ', TRIM(output_dir)
@@ -682,17 +682,17 @@ IF (.NOT. NML_FORCING_OK()) THEN
     STOP 1
 END IF
 IF (rc < 0) THEN
-    WRITE(*,'(A)') ' TEB-Ru offline: note: the namelist file does not end with an' &
+    WRITE(*,'(A)') ' TEB-MSU offline: note: the namelist file does not end with an' &
          //' end-of-line (IOSTAT = -1 of the READ); all required items were read'
 END IF
 CALL NML_REPORT_ABSENT('tebforcing', namelist_forcing_path_local, nml_forcing_items)
-WRITE(*,'(A,A)') ' TEB-Ru offline: forcing namelist = ', TRIM(namelist_forcing_path_local)
+WRITE(*,'(A,A)') ' TEB-MSU offline: forcing namelist = ', TRIM(namelist_forcing_path_local)
 WRITE(*,'(A,I4,A,I2.2,A,I2.2,A,I2.2,A,I2.2,A)')                                &
-     ' TEB-Ru offline: start date ', teb_year, '-', teb_month, '-', teb_day,     &
+     ' TEB-MSU offline: start date ', teb_year, '-', teb_month, '-', teb_day,     &
      ' ', teb_hour, ':', teb_min, ' (teb_year/month/day/hour/min of the namelist)'
-WRITE(*,'(A,I10,A,F12.1,A,A)') ' TEB-Ru offline: nsteps = ', nsteps,             &
+WRITE(*,'(A,I10,A,F12.1,A,A)') ' TEB-MSU offline: nsteps = ', nsteps,             &
      '   forc_step = ', forc_step, ' s', ' (forcing window of the run)'
-WRITE(*,'(A,A)') ' TEB-Ru offline: forcing_path = ', TRIM(forcing_path)
+WRITE(*,'(A,A)') ' TEB-MSU offline: forcing_path = ', TRIM(forcing_path)
 CALL NML_PRINT_END_DATE()
 forcing_path2=trim(forcing_path)
 !===========================================================================
@@ -727,7 +727,7 @@ IF (dt(1) <= 0. .OR. MOD(forc_step, dt(1)) /= 0.) THEN
     WRITE(*,*) '       dt must be > 0 and forc_step must be a multiple of dt'
     STOP 1
 END IF
-WRITE(*,'(A,F10.1,A,F12.1,A,I0,A)') ' TEB-Ru offline: dt = ', dt(1), ' s, forc_step = ', &
+WRITE(*,'(A,F10.1,A,F12.1,A,I0,A)') ' TEB-MSU offline: dt = ', dt(1), ' s, forc_step = ', &
      forc_step, ' s -> INB_ATM = ', NINT(forc_step / dt(1)), ' model sub-steps per forcing step'
 
 !===========================================================================
@@ -749,9 +749,9 @@ teb_alb_gr(:) = urb_alb_grf
 teb_emis_gr(:) = urb_emis_grf
 !* The roughness length of the greenroof is used directly by GREENROOF (friction
 !* flux), so it is read there from MODD_PROXI_SVAT_PAR: urb_z0_grf.
-WRITE(*,'(A,F8.3,A,F6.3,A,F6.3,A)') ' TEB-Ru offline: garden  z0/alb/emis = ', urb_z0_gdn, &
+WRITE(*,'(A,F8.3,A,F6.3,A,F6.3,A)') ' TEB-MSU offline: garden  z0/alb/emis = ', urb_z0_gdn, &
      ' m / ', urb_alb_gdn, ' / ', urb_emis_gdn
-WRITE(*,'(A,F8.3,A,F6.3,A,F6.3,A)') ' TEB-Ru offline: greenroof z0/alb/emis = ', urb_z0_grf, &
+WRITE(*,'(A,F8.3,A,F6.3,A,F6.3,A)') ' TEB-MSU offline: greenroof z0/alb/emis = ', urb_z0_grf, &
      ' m / ', urb_alb_grf, ' / ', urb_emis_grf
 
 !MV202609 garden / greenroof model types (namelist keys of the dev tree)
@@ -786,21 +786,21 @@ END IF
 !* OGREENROOF_EXT); they are set here from the model type
 IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
    teb_lgarden_ext = .TRUE.
-   WRITE(*,'(A,A,A)') ' TEB-Ru offline: external garden (teb_type_garden = ', &
+   WRITE(*,'(A,A,A)') ' TEB-MSU offline: external garden (teb_type_garden = ', &
         TRIM(teb_type_garden), '), prescribed by the Bowen emulator'
    IF (.NOT. teb_lgarden) WRITE(*,*) &
-        ' TEB-Ru offline: WARNING - teb_lgarden = .FALSE., the garden is OFF: '// &
+        ' TEB-MSU offline: WARNING - teb_lgarden = .FALSE., the garden is OFF: '// &
         'the external garden will not be used'
 END IF
 IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') THEN
    teb_lgreenroof_ext = .TRUE.
-   WRITE(*,'(A,A,A)') ' TEB-Ru offline: external greenroof (teb_type_greenroof = ', &
+   WRITE(*,'(A,A,A)') ' TEB-MSU offline: external greenroof (teb_type_greenroof = ', &
         TRIM(teb_type_greenroof), '), prescribed by the Bowen emulator'
    IF (.NOT. teb_lgreenroof) WRITE(*,*) &
-        ' TEB-Ru offline: WARNING - teb_lgreenroof = .FALSE., the greenroof is OFF: '// &
+        ' TEB-MSU offline: WARNING - teb_lgreenroof = .FALSE., the greenroof is OFF: '// &
         'the external greenroof will not be used'
 END IF
-WRITE(*,'(A,A,A,A,A)') ' TEB-Ru offline: teb_type_garden = ', TRIM(teb_type_garden), &
+WRITE(*,'(A,A,A,A,A)') ' TEB-MSU offline: teb_type_garden = ', TRIM(teb_type_garden), &
      ', teb_type_greenroof = ', TRIM(teb_type_greenroof), &
      ' (internal proxy or external emulator)'
 
@@ -1267,7 +1267,7 @@ SUBROUTINE NML_REPORT_ABSENT(group, path, items)
         END IF
     END DO
     IF (nabs == 0) RETURN
-    WRITE(*,'(A,I0,2A)') ' TEB-Ru offline: '//TRIM(group)//' namelist: ', nabs, &
+    WRITE(*,'(A,I0,2A)') ' TEB-MSU offline: '//TRIM(group)//' namelist: ', nabs, &
          ' item(s) are not in the file, the driver default is used: ', TRIM(list)
 END SUBROUTINE NML_REPORT_ABSENT
 
@@ -1440,9 +1440,9 @@ SUBROUTINE NML_PRINT_END_DATE()
     khr = teb_hour; kmi = teb_min  ; ksec = teb_sec
     CALL NML_STEP_DATE(kyr, kmo, kda, khr, kmi, ksec, idays, isec)
     WRITE(*,'(A,I4,A,I2.2,A,I2.2,A,I2.2,A,I2.2,A,I2.2,A)')                        &
-         ' TEB-Ru offline: end   date ', kyr, '-', kmo, '-', kda, ' ', khr, ':',  &
+         ' TEB-MSU offline: end   date ', kyr, '-', kmo, '-', kda, ' ', khr, ':',  &
          kmi, ':', ksec, ' UTC (= start + (nsteps-1)*forc_step)'
-    WRITE(*,'(A)') ' TEB-Ru offline: the first output line is stamped start + forc_step'
+    WRITE(*,'(A)') ' TEB-MSU offline: the first output line is stamped start + forc_step'
 END SUBROUTINE NML_PRINT_END_DATE
 
 !> Body of one namelist group of a file: the lines between '&group' and the line

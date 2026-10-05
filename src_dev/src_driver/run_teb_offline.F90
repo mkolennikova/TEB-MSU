@@ -690,7 +690,7 @@ END IF
 
 ! Print information about which files are being used
 WRITE(*,*) '----------------------------------------------------'
-WRITE(*,*) 'TEB-Ru Offline Model'
+WRITE(*,*) 'TEB-MSU Offline Model'
 WRITE(*,*) '  Forcing namelist: ', TRIM(namelist_forcing_path_local)
 WRITE(*,*) '  Parameter namelist: ', TRIM(namelist_path_local)
 WRITE(*,*) '  Output directory: ', TRIM(output_dir)
@@ -945,20 +945,20 @@ IF (.NOT. NML_FORCING_OK()) THEN
     STOP 1
 END IF
 IF (rc < 0) THEN
-    WRITE(*,'(A)') ' TEB-Ru offline: note: the namelist file does not end with an' &
+    WRITE(*,'(A)') ' TEB-MSU offline: note: the namelist file does not end with an' &
          //' end-of-line (IOSTAT = -1 of the READ); all required items were read'
 END IF
 CALL NML_REPORT_ABSENT('tebforcing', namelist_forcing_path_local, nml_forcing_items)
 
 ! Echo the settings that are really used (the date/time items are required and
 ! validated just above, so the date below is always the date of the namelist)
-WRITE(*,'(A,A)') ' TEB-Ru offline: forcing namelist = ', TRIM(namelist_forcing_path_local)
+WRITE(*,'(A,A)') ' TEB-MSU offline: forcing namelist = ', TRIM(namelist_forcing_path_local)
 WRITE(*,'(A,I4,A,I2.2,A,I2.2,A,I2.2,A,I2.2,A)')                                &
-     ' TEB-Ru offline: start date ', teb_year, '-', teb_month, '-', teb_day,     &
+     ' TEB-MSU offline: start date ', teb_year, '-', teb_month, '-', teb_day,     &
      ' ', teb_hour, ':', teb_min, ' (teb_year/month/day/hour/min of the namelist)'
-WRITE(*,'(A,I10,A,F12.1,A,A)') ' TEB-Ru offline: nsteps = ', nsteps,             &
+WRITE(*,'(A,I10,A,F12.1,A,A)') ' TEB-MSU offline: nsteps = ', nsteps,             &
      '   forc_step = ', forc_step, ' s', ' (forcing window of the run)'
-WRITE(*,'(A,A)') ' TEB-Ru offline: forcing_path = ', TRIM(forcing_path)
+WRITE(*,'(A,A)') ' TEB-MSU offline: forcing_path = ', TRIM(forcing_path)
 CALL NML_PRINT_END_DATE()
 forcing_path2=trim(forcing_path)
 
@@ -1009,7 +1009,7 @@ IF (dt <= 0. .OR. MOD(forc_step, dt) /= 0.) THEN
     WRITE(*,*) '       dt must be > 0 and forc_step must be a multiple of dt'
     STOP 1
 END IF
-WRITE(*,'(A,F10.1,A,F12.1,A,I0,A)') ' TEB-Ru offline: dt = ', dt, ' s, forc_step = ', &
+WRITE(*,'(A,F10.1,A,F12.1,A,I0,A)') ' TEB-MSU offline: dt = ', dt, ' s, forc_step = ', &
      forc_step, ' s -> INB_ATM = ', NINT(forc_step / dt), ' model sub-steps per forcing step'
 
 !MV202609 garden model type
@@ -1024,7 +1024,7 @@ IF (teb_type_garden /= 'PROXY_OLD' .AND. teb_type_garden /= 'PROXY_NEW' .AND. &
     WRITE(*,*) "       supported values: 'PROXY_OLD', 'PROXY_NEW', 'EXT', 'EXT_NEU'"
     STOP 1
 END IF
-WRITE(*,'(A,A)') ' TEB-Ru offline: teb_type_garden = ', TRIM(teb_type_garden)
+WRITE(*,'(A,A)') ' TEB-MSU offline: teb_type_garden = ', TRIM(teb_type_garden)
 !
 !MV202609 greenroof model type
 !* the type of the greenroof model must be one of the supported values.
@@ -1038,13 +1038,13 @@ IF (teb_type_greenroof /= 'PROXY_OLD' .AND. teb_type_greenroof /= 'PROXY_NEW' .A
     WRITE(*,*) "       supported values: 'PROXY_OLD', 'PROXY_NEW', 'EXT', 'EXT_NEU'"
     STOP 1
 END IF
-WRITE(*,'(A,A)') ' TEB-Ru offline: teb_type_greenroof = ', TRIM(teb_type_greenroof)
+WRITE(*,'(A,A)') ' TEB-MSU offline: teb_type_greenroof = ', TRIM(teb_type_greenroof)
 !MV202609 external greenroof: EXT/EXT_NEU implies the external data path,
 !* exactly as EXT/EXT_NEU of the garden does (the legacy flag teb_lgreenroof_ext
 !* stays valid and is forced here for consistency)
 IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') THEN
     teb_lgreenroof_ext = .TRUE.
-    WRITE(*,'(A)') ' TEB-Ru offline: external greenroof (teb_type_greenroof = EXT/EXT_NEU)'
+    WRITE(*,'(A)') ' TEB-MSU offline: external greenroof (teb_type_greenroof = EXT/EXT_NEU)'
 END IF
 
 !MV202609 roughness length, albedo and emissivity of the garden and of the
@@ -1123,20 +1123,20 @@ teb_emis_gd(:) = urb_emis_gdn
 teb_z0_gr(:)   = urb_z0_grf
 teb_alb_gr(:)  = urb_alb_grf
 teb_emis_gr(:) = urb_emis_grf
-WRITE(*,'(A,F8.3,A)') ' TEB-Ru offline: urb_z0_gdn = ', urb_z0_gdn, ' m (all garden versions)'
+WRITE(*,'(A,F8.3,A)') ' TEB-MSU offline: urb_z0_gdn = ', urb_z0_gdn, ' m (all garden versions)'
 !MV202609 garden thermal roughness (z0h)
 !* the thermal (scalar) roughness actually used for heat and moisture by all the
 !* garden versions: z0h = urb_z0_gdn/urb_z0_o_z0h_gdn
-WRITE(*,'(A,F8.3,A,F9.5,A)') ' TEB-Ru offline: urb_z0_o_z0h_gdn = ', urb_z0_o_z0h_gdn,   &
+WRITE(*,'(A,F8.3,A,F9.5,A)') ' TEB-MSU offline: urb_z0_o_z0h_gdn = ', urb_z0_o_z0h_gdn,   &
                              ' -> z0h(garden) = ', urb_z0_gdn/urb_z0_o_z0h_gdn, ' m'
-WRITE(*,'(A,F8.3,A)') ' TEB-Ru offline: urb_z0_grf = ', urb_z0_grf, ' m (all greenroof versions)'
+WRITE(*,'(A,F8.3,A)') ' TEB-MSU offline: urb_z0_grf = ', urb_z0_grf, ' m (all greenroof versions)'
 !MV202609 greenroof thermal roughness (z0h)
-WRITE(*,'(A,F8.3,A,F9.5,A)') ' TEB-Ru offline: urb_z0_o_z0h_grf = ', urb_z0_o_z0h_grf,   &
+WRITE(*,'(A,F8.3,A,F9.5,A)') ' TEB-MSU offline: urb_z0_o_z0h_grf = ', urb_z0_o_z0h_grf,   &
                              ' -> z0h(greenroof) = ', urb_z0_grf/urb_z0_o_z0h_grf, ' m'
-WRITE(*,'(A,F8.3,A,F8.3)') ' TEB-Ru offline: garden    alb/emis = ', urb_alb_gdn, ' / ', urb_emis_gdn
-WRITE(*,'(A,F8.3,A,F8.3)') ' TEB-Ru offline: greenroof alb/emis = ', urb_alb_grf, ' / ', urb_emis_grf
+WRITE(*,'(A,F8.3,A,F8.3)') ' TEB-MSU offline: garden    alb/emis = ', urb_alb_gdn, ' / ', urb_emis_gdn
+WRITE(*,'(A,F8.3,A,F8.3)') ' TEB-MSU offline: greenroof alb/emis = ', urb_alb_grf, ' / ', urb_emis_grf
 !MV202609 tunable surface relative humidity
-WRITE(*,'(A,F6.3,A,F6.3)') ' TEB-Ru offline: garden/greenroof PHU = ', proxy_phu_gdn, ' / ', proxy_phu_grf
+WRITE(*,'(A,F6.3,A,F6.3)') ' TEB-MSU offline: garden/greenroof PHU = ', proxy_phu_gdn, ' / ', proxy_phu_grf
 
 !===========================================================================
 !===========================================================================
@@ -1192,7 +1192,7 @@ IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
    teb_lhfl_gd(:)   = 0.
    teb_qvfl_gd(:)   = 0.
    teb_runoff_gd(:) = 0.
-   WRITE(*,'(A)') ' TEB-Ru offline: garden = EXTERNAL, emulated by PCD_GARDEN' &
+   WRITE(*,'(A)') ' TEB-MSU offline: garden = EXTERNAL, emulated by PCD_GARDEN' &
         //' at every model sub-step (state: Ts = air temperature, fluxes = 0)'
 END IF
 !MV202609 greenroof emulation (teb_type_greenroof = 'EXT' or 'EXT_NEU')
@@ -1208,7 +1208,7 @@ IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') THEN
    teb_lhfl_gr(:)   = 0.
    teb_qvfl_gr(:)   = 0.
    teb_runoff_gr(:) = 0.
-   WRITE(*,'(A)') ' TEB-Ru offline: greenroof = EXTERNAL, emulated by PCD_GREENROOF' &
+   WRITE(*,'(A)') ' TEB-MSU offline: greenroof = EXTERNAL, emulated by PCD_GREENROOF' &
        //' at every model sub-step (state: Ts = air temperature, fluxes = 0)'
 END IF
 
@@ -1791,7 +1791,7 @@ END DO
 !* the time integration) - a mismatch between them and the expected period of the
 !* forcing is immediately visible in the log.
 WRITE(*,'(A,I4,A,I2.2,A,I2.2,A,I2.2,A,I2.2,A,I2.2,A)')                         &
-     ' TEB-Ru offline: model ended at ', teb_year, '-', teb_month, '-', teb_day, &
+     ' TEB-MSU offline: model ended at ', teb_year, '-', teb_month, '-', teb_day, &
      ' ', INT(teb_hour_seconds(1)/3600.), ':',                                   &
      INT(MOD(teb_hour_seconds(1), 3600.)/60.), ':',                              &
      INT(MOD(teb_hour_seconds(1), 60.)), ' UTC (timestamp of the last line)'
@@ -1815,7 +1815,7 @@ CLOSE(fu_out)
 !
     WRITE(*,*) ' '
     WRITE(*,*) '    --------------------------'
-    WRITE(*,*) '    |  TEB-Ru OFFLINE SIMULATION ENDS CORRECTLY |'
+    WRITE(*,*) '    |  TEB-MSU OFFLINE SIMULATION ENDS CORRECTLY |'
     WRITE(*,*) '    --------------------------'
     WRITE(*,*) ' '
 !
@@ -2009,7 +2009,7 @@ SUBROUTINE NML_REPORT_ABSENT(group, path, items)
         END IF
     END DO
     IF (nabs == 0) RETURN
-    WRITE(*,'(A,I0,2A)') ' TEB-Ru offline: '//TRIM(group)//' namelist: ', nabs, &
+    WRITE(*,'(A,I0,2A)') ' TEB-MSU offline: '//TRIM(group)//' namelist: ', nabs, &
          ' item(s) are not in the file, the driver default is used: ', TRIM(list)
 END SUBROUTINE NML_REPORT_ABSENT
 
@@ -2206,9 +2206,9 @@ SUBROUTINE NML_PRINT_END_DATE()
     khr = teb_hour; kmi = teb_min  ; ksec = teb_sec
     CALL NML_STEP_DATE(kyr, kmo, kda, khr, kmi, ksec, idays, isec)
     WRITE(*,'(A,I4,A,I2.2,A,I2.2,A,I2.2,A,I2.2,A,I2.2,A)')                        &
-         ' TEB-Ru offline: end   date ', kyr, '-', kmo, '-', kda, ' ', khr, ':',  &
+         ' TEB-MSU offline: end   date ', kyr, '-', kmo, '-', kda, ' ', khr, ':',  &
          kmi, ':', ksec, ' UTC (= start + (nsteps-1)*forc_step)'
-    WRITE(*,'(A)') ' TEB-Ru offline: the first output line is stamped start + forc_step'
+    WRITE(*,'(A)') ' TEB-MSU offline: the first output line is stamped start + forc_step'
 END SUBROUTINE NML_PRINT_END_DATE
 
 !> Body of one namelist group of a file: the lines between '&group' and the line
@@ -2492,11 +2492,11 @@ SUBROUTINE PCD_GARDEN
     IF (.NOT. lemu_checked) THEN
         lemu_checked = .TRUE.
         WRITE(*,'(A,ES12.4,A,ES12.4,A)')                                        &
-             ' TEB-Ru offline: garden emulator: CH_eff*max(V*,Vmin)-Ca_eff = ', &
+             ' TEB-MSU offline: garden emulator: CH_eff*max(V*,Vmin)-Ca_eff = ', &
              emu_ch_eff(1)*MAX(emu_v_star(1),XVMIN_GD) - emu_ca_eff(1),         &
              ' (tau = ', emu_tau(1), ')'
         WRITE(*,'(A,F10.6,A,F9.4,A,F10.7,A,F10.6,A)')                           &
-             ' TEB-Ru offline: garden emulator: V* = ', emu_v_star(1),          &
+             ' TEB-MSU offline: garden emulator: V* = ', emu_v_star(1),          &
              ' m/s, T* = ', emu_t_star(1), ' K, q* = ', emu_q_star(1),          &
              ' kg/kg, CH_eff = ', emu_ch_eff(1), ' (-)'
     END IF
@@ -2562,11 +2562,11 @@ SUBROUTINE PCD_GREENROOF
     IF (.NOT. lemu_gr_checked) THEN
         lemu_gr_checked = .TRUE.
         WRITE(*,'(A,ES12.4,A,ES12.4,A)')                                              &
-             ' TEB-Ru offline: greenroof emulator: CH_eff*max(V*,Vmin)-Ca = ',         &
+             ' TEB-MSU offline: greenroof emulator: CH_eff*max(V*,Vmin)-Ca = ',         &
              emu_gr_ch(1)*MAX(emu_gr_v(1),XVMIN_GD) - emu_gr_ca(1),                    &
              ' (PCH = ', emu_gr_pch(1), ')'
         WRITE(*,'(A,F10.6,A,F9.4,A,F10.7,A,F10.6,A)')                                 &
-             ' TEB-Ru offline: greenroof emulator: V* = ', emu_gr_v(1),                &
+             ' TEB-MSU offline: greenroof emulator: V* = ', emu_gr_v(1),                &
              ' m/s, T* = ', emu_gr_t(1), ' K, q* = ', emu_gr_q(1),                     &
              ' kg/kg, CH_eff = ', emu_gr_ch(1), ' (-)'
     END IF

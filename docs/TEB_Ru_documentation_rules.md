@@ -1,4 +1,4 @@
-# TEB-Ru Documentation Rules
+# TEB-MSU Documentation Rules
 
 Short rules for `docs/` and `README.md`: the purpose of each document, the file
 format, cross-references, the marking of code changes and the checks to run before a
@@ -67,7 +67,7 @@ deviate, explain why in the commit message.
 ## 4. Links and traceability
 
 * A commit is referenced as
-  ``[`<sha>`](https://github.com/mkolennikova/TEB-Ru/commit/<sha>)``; the full SHAs are
+  ``[`<sha>`](https://github.com/mkolennikova/TEB-MSU/commit/<sha>)``; the full SHAs are
   listed in the history registry. A commit not pushed to `origin` is marked
   **(local)** — otherwise its link does not open.
 * A scheme document refers to the history by section or record ("see §5.7 of

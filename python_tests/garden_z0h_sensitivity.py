@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Sensitivity of the TEB-Ru garden model to its thermal (scalar) roughness z0h.
+Sensitivity of the TEB-MSU garden model to its thermal (scalar) roughness z0h.
 
 The diagnostic garden exchanges heat and moisture through the neutral scalar
 coefficient of the log profile built from the thermal roughness z0h, while the
@@ -90,7 +90,7 @@ from sensitivity_zd import (                                          # noqa: E4
     LCZ, DEFAULT_WORK_DIR, run_case, series, stats_of,
 )
 
-#: values >= XUNDEF are undefined in TEB-Ru (MODD_SURF_PAR:XUNDEF = 1.0e20)
+#: values >= XUNDEF are undefined in TEB-MSU (MODD_SURF_PAR:XUNDEF = 1.0e20)
 XUNDEF = 1.0e19
 
 #: von Karman constant and wind floor of the garden (MODD_CSTS, MODE_GARDEN_BALANCE)
@@ -510,7 +510,7 @@ def _write_readme(out_root: Path, base: Path, forcing_nml: Path, check_df, eff_d
     """Description of the experiment and its results."""
     md = ['# Garden thermal roughness (`urb_z0_o_z0h_gdn`): sensitivity experiment',
           '',
-          'Garden model of TEB-Ru (`teb_type_garden = PROXY_NEW`) tested on the Moscow',
+          'Garden model of TEB-MSU (`teb_type_garden = PROXY_NEW`) tested on the Moscow',
           'ERA5 forcing with the thermal (scalar) roughness `z0h = urb_z0_gdn/R`,',
           '`R = urb_z0_o_z0h_gdn` (namelist item, default `4.0`). The garden exchanges',
           'heat and moisture through the neutral scalar coefficient',

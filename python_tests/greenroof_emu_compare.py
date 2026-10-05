@@ -4,7 +4,7 @@ External greenroof emulator (``PCD_GREENROOF``) versus the internal greenroof.
 
 Purpose
 -------
-The greenroof of TEB-Ru can be provided by an external model through the
+The greenroof of TEB-MSU can be provided by an external model through the
 ``teb_type_greenroof = 'EXT'`` / ``'EXT_NEU'`` interface: the driver owns the
 greenroof surface temperature and fluxes and TEB reads them back at every model
 sub-step (see ``run_teb_offline.F90`` and ``TEB_Ru_garden_diagnostic_scheme.md``).
@@ -130,7 +130,7 @@ from sensitivity_zd import (                                          # noqa: E4
     LCZ, DEFAULT_WORK_DIR, run_case, series,
 )
 
-#: values >= XUNDEF are undefined in TEB-Ru (MODD_SURF_PAR:XUNDEF = 1.0e20)
+#: values >= XUNDEF are undefined in TEB-MSU (MODD_SURF_PAR:XUNDEF = 1.0e20)
 XUNDEF = 1.0e19
 
 #: greenroof modes: tag -> (teb_type_greenroof, description)
@@ -625,7 +625,7 @@ def write_readme(out_root: Path, base_nml: Path, forcing_nml: Path, keys, checks
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description='External greenroof emulator (PCD_GREENROOF) versus the '
-                    'internal greenroof of TEB-Ru.')
+                    'internal greenroof of TEB-MSU.')
     ap.add_argument('--work-dir', default=DEFAULT_WORK_DIR,
                     help='root of the experiments (default: %(default)s)')
     ap.add_argument('--site', default='Moscow', help='site name (default: %(default)s)')

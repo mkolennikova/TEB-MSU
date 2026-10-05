@@ -1,4 +1,4 @@
-# История изменений TEB-Ru: cbs-схема, диагностический сад и сопутствующие правки
+# История изменений TEB-MSU: cbs-схема, диагностический сад и сопутствующие правки
 
 Документ содержит историю разработки cbs-схемы потоков дороги и сада, диагностической
 прокси-модели сада и сопутствующих правок, **с привязкой к нумерации коммитов**.
@@ -9,7 +9,7 @@
 `TEB_Ru_garden_diagnostic_scheme.md`; список дефектов исходной модели — в
 `TEB_Ru_source_defects.md`.
 
-Ветка разработки: `MV_devs` (репозиторий `https://github.com/mkolennikova/TEB-Ru`).
+Ветка разработки: `MV_devs` (репозиторий `https://github.com/mkolennikova/TEB-MSU`).
 
 ---
 
@@ -501,7 +501,7 @@ scheme** (сокращённо **cbs**). Переименование чисто
 
 * **Нумерация.** Каждой записи присвоен сквозной номер `№N` (нумерация — «номер
   коммита» в этой истории). Хеш коммита приводится в сокращённом виде и ссылкой
-  вида `https://github.com/mkolennikova/TEB-Ru/commit/<sha>`; порядок записей —
+  вида `https://github.com/mkolennikova/TEB-MSU/commit/<sha>`; порядок записей —
   топологический (как в `git log`), дата — дата автора коммита.
 * **Что включено.** Все содержательные коммиты ветки, начиная с того, где появились
   ключи `urb_z0_town`/`urb_zd_town` (№1), и до текущего состояния.
@@ -529,32 +529,32 @@ scheme** (сокращённо **cbs**). Переименование чисто
 
 | № | коммит | дата | тип | суть | версия / режим | документация |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | [`788ea00`](https://github.com/mkolennikova/TEB-Ru/commit/788ea00) | 2026-09-14 | feat | ключи `urb_z0_town`/`urb_zd_town`, схема Macdonald (1998) | инфраструктура | variables description (Urban Aerodynamics) |
-| 2 | [`42638ab`](https://github.com/mkolennikova/TEB-Ru/commit/42638ab) | 2026-09-14 | feat | единый CSV-файл вывода с колонками форсинга | инфраструктура | variables description, README |
-| 3 | [`49e09d2`](https://github.com/mkolennikova/TEB-Ru/commit/49e09d2) | 2026-09-15 | feat | диагностики обмена дороги и сада с каньоном и с атмосферой | инфраструктура | variables description |
-| 4 | [`991c2bd`](https://github.com/mkolennikova/TEB-Ru/commit/991c2bd) | 2026-09-16 | feat | cbs-схема потоков дороги (каньон / уровень форсинга) | τ v1 | создан `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` |
-| 5 | [`41f0271`](https://github.com/mkolennikova/TEB-Ru/commit/41f0271) | 2026-09-16 | feat | ревизия «три температуры»: `T_CAN0`, свободный слой, `T_CAN` | τ v1.1 | tau-документ |
-| 6 | [`f9a6211`](https://github.com/mkolennikova/TEB-Ru/commit/f9a6211) | 2026-09-16 | refactor | переименование свободного слоя в `CAN1`; предел заголовка CSV | τ v1.1 | tau-документ |
-| 7 | [`b321ecd`](https://github.com/mkolennikova/TEB-Ru/commit/b321ecd) | 2026-09-16 | fix | приём координат точки форсинга как скалярных переменных | инфраструктура | — |
-| 8 | [`86306b2`](https://github.com/mkolennikova/TEB-Ru/commit/86306b2) | 2026-09-16 | feat | τ-раздел потока снега на дороге (ветвь «снег↔атмосфера») | τ v1.2 | tau-документ |
-| 9 | [`9da2ff7`](https://github.com/mkolennikova/TEB-Ru/commit/9da2ff7) | 2026-09-16 | fix | нормировка явного снежного члена каньона на площадь грунта | τ v1.2 | tau-документ, дефекты модели (D1) |
-| 10 | [`ff7718e`](https://github.com/mkolennikova/TEB-Ru/commit/ff7718e) | 2026-09-16 | fix | латентная теплота сублимации снега в узле влажности каньона | τ v1.2 | tau-документ, дефекты модели (D2) |
-| 11 | [`9dc5ae2`](https://github.com/mkolennikova/TEB-Ru/commit/9dc5ae2) | 2026-09-16 | fix | зануление диагностик мусорного тепла при BEM off | τ v1.2.1 | tau-документ, дефекты модели (D6) |
-| 12 | [`40da099`](https://github.com/mkolennikova/TEB-Ru/commit/40da099) | 2026-09-16 | fix | графики стенда читают диагностики τ-прогона, а не референса | стенд | — |
-| 13 | [`604eb6c`](https://github.com/mkolennikova/TEB-Ru/commit/604eb6c) | 2026-09-16 | feat | τ-консистентный водный путь дороги: единый запас воды, диагностики | τ v1.3 | tau-документ, дефекты модели (D4) |
-| 14 | [`edeeb5d`](https://github.com/mkolennikova/TEB-Ru/commit/edeeb5d) | 2026-09-16 | fix | устранение двойного веса `PDF_RD` в потоках и стоке лужи | τ v1.3.1 | tau-документ, дефекты модели (D3) |
-| 15 | [`1edd967`](https://github.com/mkolennikova/TEB-Ru/commit/1edd967) | 2026-09-18 | fix | водный путь таяния снега и лужи крыши | τ v1.3.1 | tau-документ, дефекты модели (D5) |
-| 16 | [`b3b25e5`](https://github.com/mkolennikova/TEB-Ru/commit/b3b25e5) | 2026-09-18 | feat | строгое чтение намлистов, эхо даты, колонки `SOLAR_*` | инфраструктура | variables description, README, §5.5 (I2, I3) |
-| 17 | [`51dbeef`](https://github.com/mkolennikova/TEB-Ru/commit/51dbeef) | 2026-09-19 | feat | диагностический сад по ключу `teb_type_garden`, свойства поверхностей из намлиста | сад G1 | создан документ схемы сада |
-| 18 | [`7e39f0a`](https://github.com/mkolennikova/TEB-Ru/commit/7e39f0a) | 2026-09-19 | test | стенды сравнения схем и чувствительностей, документация | сад G2 | документ схемы сада |
-| 19 | [`c37b29c`](https://github.com/mkolennikova/TEB-Ru/commit/c37b29c) | 2026-09-20 | feat | τ-раздел обмена сада, режим `'EXT_NEU'`, эмулятор в offline-драйвере | τ v1.4, сад G3 | документ схемы сада, tau-документ, variables description |
-| 20 | [`5e2cd79`](https://github.com/mkolennikova/TEB-Ru/commit/5e2cd79) | 2026-09-21 | chore | разбиение репозитория на `src/`, `build/`, `python/`, `python_tests/`, `docs/` | инфраструктура (**локальный**) | все документы |
-| 21 | [`bfbf13a`](https://github.com/mkolennikova/TEB-Ru/commit/bfbf13a) | 2026-09-21 | chore | тяжёлый набор CAPITOUL выведен за пределы репозитория | инфраструктура (**локальный**) | `data/README.md` |
-| 22 | [`15158ef`](https://github.com/mkolennikova/TEB-Ru/commit/15158ef) | 2026-08-17¹ | docs | CAPITOUL больше не входит в историю репозитория | инфраструктура (**локальный**) | `data/README.md` |
-| 23 | [`08b9dd0`](https://github.com/mkolennikova/TEB-Ru/commit/08b9dd0) | 2026-09-22 | docs | реорганизация документации: схемные документы — только текущее состояние; созданы история изменений, список дефектов исходной модели и правила ведения документации | инфраструктура (**локальный**) | все документы |
-| 24 | [`91308a7`](https://github.com/mkolennikova/TEB-Ru/commit/91308a7) | 2026-09-22 | feat | тепловая шероховатость сада: ключ `urb_z0_o_z0h_gdn`, скалярный коэффициент `PCH = PCD·ZFH`, разведение тепловой и импульсной проводимостей | сад G4 (**локальный**) | документ схемы сада, переменные, tau-документ |
-| 25 | [`09aa166`](https://github.com/mkolennikova/TEB-Ru/commit/09aa166) | 2026-09-22 | feat | диагностический прокси зелёной кровли (ключ `teb_type_greenroof`, `'PROXY_OLD'`/`'PROXY_NEW'`, общий решатель `GARDEN_BALANCE`), тепловая шероховатость `urb_z0_o_z0h_grf`, настраиваемая `PHU` обеих поверхностей (`urb_phu_gdn`/`urb_phu_grf`), колонки `*_GREENROOF` в CSV | кровля G1 (**локальный**) | документ схемы сада, переменные, история |
-| 26 | [`21c9acb`](https://github.com/mkolennikova/TEB-Ru/commit/21c9acb) | 2026-09-23 | feat | режимы `'EXT'`/`'EXT_NEU'` зелёной кровли: коэффициенты обмена кровли в `URBAN_DRAG`, колонки `*_GREENROOF_ATM`, исправление `ZRN_GD` -> `ZRN_GR`, `nout_max` 16 -> 24 | кровля G2 (**локальный**) | документ схемы сада, переменные, tau-документ |
+| 1 | [`788ea00`](https://github.com/mkolennikova/TEB-MSU/commit/788ea00) | 2026-09-14 | feat | ключи `urb_z0_town`/`urb_zd_town`, схема Macdonald (1998) | инфраструктура | variables description (Urban Aerodynamics) |
+| 2 | [`42638ab`](https://github.com/mkolennikova/TEB-MSU/commit/42638ab) | 2026-09-14 | feat | единый CSV-файл вывода с колонками форсинга | инфраструктура | variables description, README |
+| 3 | [`49e09d2`](https://github.com/mkolennikova/TEB-MSU/commit/49e09d2) | 2026-09-15 | feat | диагностики обмена дороги и сада с каньоном и с атмосферой | инфраструктура | variables description |
+| 4 | [`991c2bd`](https://github.com/mkolennikova/TEB-MSU/commit/991c2bd) | 2026-09-16 | feat | cbs-схема потоков дороги (каньон / уровень форсинга) | τ v1 | создан `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` |
+| 5 | [`41f0271`](https://github.com/mkolennikova/TEB-MSU/commit/41f0271) | 2026-09-16 | feat | ревизия «три температуры»: `T_CAN0`, свободный слой, `T_CAN` | τ v1.1 | tau-документ |
+| 6 | [`f9a6211`](https://github.com/mkolennikova/TEB-MSU/commit/f9a6211) | 2026-09-16 | refactor | переименование свободного слоя в `CAN1`; предел заголовка CSV | τ v1.1 | tau-документ |
+| 7 | [`b321ecd`](https://github.com/mkolennikova/TEB-MSU/commit/b321ecd) | 2026-09-16 | fix | приём координат точки форсинга как скалярных переменных | инфраструктура | — |
+| 8 | [`86306b2`](https://github.com/mkolennikova/TEB-MSU/commit/86306b2) | 2026-09-16 | feat | τ-раздел потока снега на дороге (ветвь «снег↔атмосфера») | τ v1.2 | tau-документ |
+| 9 | [`9da2ff7`](https://github.com/mkolennikova/TEB-MSU/commit/9da2ff7) | 2026-09-16 | fix | нормировка явного снежного члена каньона на площадь грунта | τ v1.2 | tau-документ, дефекты модели (D1) |
+| 10 | [`ff7718e`](https://github.com/mkolennikova/TEB-MSU/commit/ff7718e) | 2026-09-16 | fix | латентная теплота сублимации снега в узле влажности каньона | τ v1.2 | tau-документ, дефекты модели (D2) |
+| 11 | [`9dc5ae2`](https://github.com/mkolennikova/TEB-MSU/commit/9dc5ae2) | 2026-09-16 | fix | зануление диагностик мусорного тепла при BEM off | τ v1.2.1 | tau-документ, дефекты модели (D6) |
+| 12 | [`40da099`](https://github.com/mkolennikova/TEB-MSU/commit/40da099) | 2026-09-16 | fix | графики стенда читают диагностики τ-прогона, а не референса | стенд | — |
+| 13 | [`604eb6c`](https://github.com/mkolennikova/TEB-MSU/commit/604eb6c) | 2026-09-16 | feat | τ-консистентный водный путь дороги: единый запас воды, диагностики | τ v1.3 | tau-документ, дефекты модели (D4) |
+| 14 | [`edeeb5d`](https://github.com/mkolennikova/TEB-MSU/commit/edeeb5d) | 2026-09-16 | fix | устранение двойного веса `PDF_RD` в потоках и стоке лужи | τ v1.3.1 | tau-документ, дефекты модели (D3) |
+| 15 | [`1edd967`](https://github.com/mkolennikova/TEB-MSU/commit/1edd967) | 2026-09-18 | fix | водный путь таяния снега и лужи крыши | τ v1.3.1 | tau-документ, дефекты модели (D5) |
+| 16 | [`b3b25e5`](https://github.com/mkolennikova/TEB-MSU/commit/b3b25e5) | 2026-09-18 | feat | строгое чтение намлистов, эхо даты, колонки `SOLAR_*` | инфраструктура | variables description, README, §5.5 (I2, I3) |
+| 17 | [`51dbeef`](https://github.com/mkolennikova/TEB-MSU/commit/51dbeef) | 2026-09-19 | feat | диагностический сад по ключу `teb_type_garden`, свойства поверхностей из намлиста | сад G1 | создан документ схемы сада |
+| 18 | [`7e39f0a`](https://github.com/mkolennikova/TEB-MSU/commit/7e39f0a) | 2026-09-19 | test | стенды сравнения схем и чувствительностей, документация | сад G2 | документ схемы сада |
+| 19 | [`c37b29c`](https://github.com/mkolennikova/TEB-MSU/commit/c37b29c) | 2026-09-20 | feat | τ-раздел обмена сада, режим `'EXT_NEU'`, эмулятор в offline-драйвере | τ v1.4, сад G3 | документ схемы сада, tau-документ, variables description |
+| 20 | [`5e2cd79`](https://github.com/mkolennikova/TEB-MSU/commit/5e2cd79) | 2026-09-21 | chore | разбиение репозитория на `src/`, `build/`, `python/`, `python_tests/`, `docs/` | инфраструктура (**локальный**) | все документы |
+| 21 | [`bfbf13a`](https://github.com/mkolennikova/TEB-MSU/commit/bfbf13a) | 2026-09-21 | chore | тяжёлый набор CAPITOUL выведен за пределы репозитория | инфраструктура (**локальный**) | `data/README.md` |
+| 22 | [`15158ef`](https://github.com/mkolennikova/TEB-MSU/commit/15158ef) | 2026-08-17¹ | docs | CAPITOUL больше не входит в историю репозитория | инфраструктура (**локальный**) | `data/README.md` |
+| 23 | [`08b9dd0`](https://github.com/mkolennikova/TEB-MSU/commit/08b9dd0) | 2026-09-22 | docs | реорганизация документации: схемные документы — только текущее состояние; созданы история изменений, список дефектов исходной модели и правила ведения документации | инфраструктура (**локальный**) | все документы |
+| 24 | [`91308a7`](https://github.com/mkolennikova/TEB-MSU/commit/91308a7) | 2026-09-22 | feat | тепловая шероховатость сада: ключ `urb_z0_o_z0h_gdn`, скалярный коэффициент `PCH = PCD·ZFH`, разведение тепловой и импульсной проводимостей | сад G4 (**локальный**) | документ схемы сада, переменные, tau-документ |
+| 25 | [`09aa166`](https://github.com/mkolennikova/TEB-MSU/commit/09aa166) | 2026-09-22 | feat | диагностический прокси зелёной кровли (ключ `teb_type_greenroof`, `'PROXY_OLD'`/`'PROXY_NEW'`, общий решатель `GARDEN_BALANCE`), тепловая шероховатость `urb_z0_o_z0h_grf`, настраиваемая `PHU` обеих поверхностей (`urb_phu_gdn`/`urb_phu_grf`), колонки `*_GREENROOF` в CSV | кровля G1 (**локальный**) | документ схемы сада, переменные, история |
+| 26 | [`21c9acb`](https://github.com/mkolennikova/TEB-MSU/commit/21c9acb) | 2026-09-23 | feat | режимы `'EXT'`/`'EXT_NEU'` зелёной кровли: коэффициенты обмена кровли в `URBAN_DRAG`, колонки `*_GREENROOF_ATM`, исправление `ZRN_GD` -> `ZRN_GR`, `nout_max` 16 -> 24 | кровля G2 (**локальный**) | документ схемы сада, переменные, tau-документ |
 
 ¹ Дата автора коммита `15158ef` — 2026-08-17, хотя топологически это последний коммит
 ветки; расхождение возникло при переносе истории. Порядок записей — как в `git log`.
@@ -636,7 +636,7 @@ scheme** (сокращённо **cbs**). Переименование чисто
 появились), **измерения** (числа прогонов, перенесённые из схемных документов),
 **не вошло / отвергнуто**.
 
-### №1 · [`788ea00`](https://github.com/mkolennikova/TEB-Ru/commit/788ea00) · 2026-09-14 · `feat(urban): add z0/zd namelist entries and Macdonald1998 scheme`
+### №1 · [`788ea00`](https://github.com/mkolennikova/TEB-MSU/commit/788ea00) · 2026-09-14 · `feat(urban): add z0/zd namelist entries and Macdonald1998 scheme`
 
 **Что сделано.** В намлист добавлены внешние параметры `urb_z0_town` (шероховатость)
 и `urb_zd_town` (высота вытеснения) с формами записи: метры, доля высоты здания
@@ -657,13 +657,13 @@ z0/h = (1 − d/h)·exp( −( 0.5·β·(Cd/κ²)·(1 − d/h)·λf )^(−0.5) ) 
 **Попутно устранён дефект официального TEB** (D7 в `TEB_Ru_source_defects.md`):
 в официальном коде высота вытеснения не является параметром, а задаётся жёсткой
 поправкой `+ urb_h_bld/3.` (эквивалент `zd = 2/3·H`), что противоречит его же
-ветровому профилю (`H − zd` даёт `zd = 1/3·H`). В TEB-Ru обе части используют
+ветровому профилю (`H − zd` даёт `zd = 1/3·H`). В TEB-MSU обе части используют
 одно значение `urb_zd_town`.
 
 **Документация.** `TEB_Ru_variables_description.md`, раздел «Urban Aerodynamics»
 (формы записи, формулы Macdonald, сопоставление с официальным TEB).
 
-### №2 · [`42638ab`](https://github.com/mkolennikova/TEB-Ru/commit/42638ab) · 2026-09-14 · `feat(output): single CSV output file with the forcing used at each step`
+### №2 · [`42638ab`](https://github.com/mkolennikova/TEB-MSU/commit/42638ab) · 2026-09-14 · `feat(output): single CSV output file with the forcing used at each step`
 
 **Что сделано.** Вместо одного текстового файла на переменную (units 13–28) драйвер
 пишет один файл `<output_dir>/TEB_output.csv` (разделитель `;`) со строкой заголовка
@@ -681,7 +681,7 @@ list-directed, т.е. теми же цифрами, что раньше.
 **Измерения.** Переменные модели бит-в-бит с прежним выводом, колонки времени и
 форсинга соответствуют входным файлам, набор колонок меняется с опциями модели.
 
-### №3 · [`49e09d2`](https://github.com/mkolennikova/TEB-Ru/commit/49e09d2) · 2026-09-15 · `feat(urban): road and garden exchange diagnostics vs canyon and forcing level`
+### №3 · [`49e09d2`](https://github.com/mkolennikova/TEB-MSU/commit/49e09d2) · 2026-09-15 · `feat(urban): road and garden exchange diagnostics vs canyon and forcing level`
 
 **Что сделано.** Добавлен полный набор выходов `URBAN_EXCH_COEF` для обмена дороги
 и сада с воздухом каньона (`_CAN`, раздел 8.2) и с воздухом уровня форсинга
@@ -703,7 +703,7 @@ cbs-схемы (тождества ветвей, пределы τ).
 **Примечание.** Все блоки кода помечены единым тегом
 `!MV202609 road-to-atm and garden-to-atm exchange diagnostics`.
 
-### №4 · [`991c2bd`](https://github.com/mkolennikova/TEB-Ru/commit/991c2bd) · 2026-09-16 · `feat(urban): cbs scheme for the road fluxes (canyon vs forcing level)`
+### №4 · [`991c2bd`](https://github.com/mkolennikova/TEB-MSU/commit/991c2bd) · 2026-09-16 · `feat(urban): cbs scheme for the road fluxes (canyon vs forcing level)`
 
 **Что сделано (τ v1).** Турбулентный обмен дороги заменён τ-взвешенной комбинацией
 путей «дорога↔каньон» и «дорога↔уровень форсинга». Вес τ — tanh-релаксация
@@ -743,7 +743,7 @@ cbs-схемы (тождества ветвей, пределы τ).
 **Документация.** Создан `TEB_Ru_cbs_scheme_T_CAN_reformulation.md` (часть I —
 описание v1, часть II — постановка проблемы и отвергнутые варианты, см. §5 ниже).
 
-### №5 · [`41f0271`](https://github.com/mkolennikova/TEB-Ru/commit/41f0271) · 2026-09-16 · `feat(urban): cbs scheme revision (canyon air, free layer air, tau relaxation)`
+### №5 · [`41f0271`](https://github.com/mkolennikova/TEB-MSU/commit/41f0271) · 2026-09-16 · `feat(urban): cbs scheme revision (canyon air, free layer air, tau relaxation)`
 
 **Что сделано (τ v1.1, «три температуры»).** Схема перестала взвешивать проводимости
 узла каньона и вместо этого релаксирует **температуру воздуха**, которую видят
@@ -780,7 +780,7 @@ cbs-схемы (тождества ветвей, пределы τ).
 
 **Не вошло.** Снег на дороге в свободный слой ещё не входил (следующий шаг, №8).
 
-### №6 · [`f9a6211`](https://github.com/mkolennikova/TEB-Ru/commit/f9a6211) · 2026-09-16 · `refactor(urban): rename the free layer air variables to CAN1 and fix the CSV header bound`
+### №6 · [`f9a6211`](https://github.com/mkolennikova/TEB-MSU/commit/f9a6211) · 2026-09-16 · `refactor(urban): rename the free layer air variables to CAN1 and fix the CSV header bound`
 
 **Что сделано.** Переменные свободного слоя переименованы в `*_CAN1` симметрично
 классическому воздуху каньона (`CAN0`): `PT_LAYER → PT_CAN1`, `PPHI_LAYER → PPHI_CAN1`,
@@ -799,7 +799,7 @@ cbs-схемы (тождества ветвей, пределы τ).
 референсные прогоны бит-в-бит по 62 числовым колонкам; тождество бленда, пределы
 τ и замыкание города не изменились.
 
-### №7 · [`b321ecd`](https://github.com/mkolennikova/TEB-Ru/commit/b321ecd) · 2026-09-16 · `fix(forcing): accept point coordinates returned as scalar data variables`
+### №7 · [`b321ecd`](https://github.com/mkolennikova/TEB-MSU/commit/b321ecd) · 2026-09-16 · `fix(forcing): accept point coordinates returned as scalar data variables`
 
 **Что сделано.** Точечные временные ряды CDS могут отдавать координаты точки
 (`latitude`, `longitude`) как скалярные data-переменные, из-за чего
@@ -810,7 +810,7 @@ cbs-схемы (тождества ветвей, пределы τ).
 744 часовых шага, производная доля снега (`Forc_SNOW` из `tp` и `t2m ≤ 0`) даёт
 238 снежных часов и 40.1 мм снегозапаса за месяц.
 
-### №8 · [`86306b2`](https://github.com/mkolennikova/TEB-Ru/commit/86306b2) · 2026-09-16 · `feat(urban): tau split of the road snow exchange (snow-to-atmosphere branch)`
+### №8 · [`86306b2`](https://github.com/mkolennikova/TEB-MSU/commit/86306b2) · 2026-09-16 · `feat(urban): tau split of the road snow exchange (snow-to-atmosphere branch)`
 
 **Что сделано (τ v1.2).** В `snow_cover_1layer.F90` добавлен второй вызов
 `SURFACE_RI`/`SURFACE_AERO_COND` с воздухом и ветром уровня форсинга (та же
@@ -831,7 +831,7 @@ cbs-схемы (тождества ветвей, пределы τ).
 и `τ → 0` (LCZ2), разница температуры снега 0.01 K для разрежённого кейса
 (`τ = 0.019`); при `PDN_RD = 0` все снежные члены строго исчезают.
 
-### №9 · [`9da2ff7`](https://github.com/mkolennikova/TEB-Ru/commit/9da2ff7) · 2026-09-16 · `fix(urban): road snow sensible heat in the canyon air node (area weight)`
+### №9 · [`9da2ff7`](https://github.com/mkolennikova/TEB-MSU/commit/9da2ff7) · 2026-09-16 · `fix(urban): road snow sensible heat in the canyon air node (area weight)`
 
 **Что сделано (дефект D1).** Узел воздуха каньона смешивает все слагаемые как
 потоки на площадь грунта (`ZRD` применяется к дороге, воде на дороге, саду, стенам
@@ -848,7 +848,7 @@ cbs-схемы (тождества ветвей, пределы τ).
 [−6.8e-3, +5.1e-3] K) — совпала с прямым A/B. Снег на дороге присутствовал 7.8 %
 часов, средний явный снежный поток `PHSN_RD_CAN·PDN_RD` = −0.71 Вт/м² (до ±3.7).
 
-### №10 · [`ff7718e`](https://github.com/mkolennikova/TEB-Ru/commit/ff7718e) · 2026-09-16 · `fix(urban): sublimation latent heat of the road snow in the canyon humidity`
+### №10 · [`ff7718e`](https://github.com/mkolennikova/TEB-MSU/commit/ff7718e) · 2026-09-16 · `fix(urban): sublimation latent heat of the road snow in the canyon humidity`
 
 **Что сделано (дефект D2).** Скрытый поток снега считается через `XLSTT`
 (сублимация), и сам снежный блок, городское испарение и бюджет снежной массы
@@ -864,7 +864,7 @@ cbs-схемы (тождества ветвей, пределы τ).
 1.0e-6), `T_CAN0` в среднем +1.5e-6 K, `LE_ROAD_CAN/ATM` ≤ 6e-3 Вт/м², `WSNOW_RD`
 ≤ 1.5e-5 кг/м²; энергобаланс городка сохранён (замыкание 30.6176 против 30.6176).
 
-### №11 · [`9dc5ae2`](https://github.com/mkolennikova/TEB-Ru/commit/9dc5ae2) · 2026-09-16 · `fix(urban): zero the waste heat diagnostics when the BEM is off`
+### №11 · [`9dc5ae2`](https://github.com/mkolennikova/TEB-MSU/commit/9dc5ae2) · 2026-09-16 · `fix(urban): zero the waste heat diagnostics when the BEM is off`
 
 **Что сделано (дефект D6).** `DMT%XH_WASTE`/`DMT%XLE_WASTE` заполняются только BEM,
 поэтому при `teb_itype_bem = 'DEF'` они сохраняли неинициализированные значения
@@ -878,7 +878,7 @@ cbs-схемы (тождества ветвей, пределы τ).
 часах из 744). Контрольный прогон с активным BEM бит-в-бит по 65 общим колонкам с
 ненулевым `H_WASTE = 95.3 Вт/м²`.
 
-### №12 · [`40da099`](https://github.com/mkolennikova/TEB-Ru/commit/40da099) · 2026-09-16 · `fix(python): draw the tau-run diagnostics in the cbs scheme figures`
+### №12 · [`40da099`](https://github.com/mkolennikova/TEB-MSU/commit/40da099) · 2026-09-16 · `fix(python): draw the tau-run diagnostics in the cbs scheme figures`
 
 **Что сделано.** Дополнительные кривые `plot_diurnal`/`plot_timeseries` читались из
 референсного прогона. Это верно для форсинга, но не для диагностик модели:
@@ -886,7 +886,7 @@ cbs-схемы (тождества ветвей, пределы τ).
 `T_CANYON == T_CAN0` точно), поэтому кривая «T canyon (tau relaxed)» показывала
 значения референса. Кривые τ-прогона теперь берутся из него самого.
 
-### №13 · [`604eb6c`](https://github.com/mkolennikova/TEB-Ru/commit/604eb6c) · 2026-09-16 · `feat(urban): tau-consistent road puddle path (single water reservoir, liquid-only budget) + diagnostics`
+### №13 · [`604eb6c`](https://github.com/mkolennikova/TEB-MSU/commit/604eb6c) · 2026-09-16 · `feat(urban): tau-consistent road puddle path (single water reservoir, liquid-only budget) + diagnostics`
 
 **Что сделано (τ v1.3).**
 
@@ -911,7 +911,7 @@ T2 равенство ветвевых факторов ограничения, 
 семантика диагностики `LE_ROAD_ATM` (теперь «потенциальный поток ветви при общем
 ограничении воды»): летом до ~7.4 Вт/м² на пиковых событиях.
 
-### №14 · [`edeeb5d`](https://github.com/mkolennikova/TEB-Ru/commit/edeeb5d) · 2026-09-16 · `fix(urban): road puddle normalization - no double PDF_RD weight, puddle drained by PLEW_RD`
+### №14 · [`edeeb5d`](https://github.com/mkolennikova/TEB-MSU/commit/edeeb5d) · 2026-09-16 · `fix(urban): road puddle normalization - no double PDF_RD weight, puddle drained by PLEW_RD`
 
 **Диагноз (измерен).** `ROAD_LAYER_E_BUDGET` написан в тайл-средней формулировке
 (`ZDF_ROAD = 1−PDN_ROAD` внутри `ZRHO_ACF_R_WAT`), поэтому его выходы
@@ -939,7 +939,7 @@ upstream `TEB-model/teb` master (2022).
 ~0.2 мм (транзиент, ~20 % ёмкости); `T_ROAD1` до ~0.17 K (в среднем ~0.015 K),
 `T_CANYON` до ~8e-3 K. Лето — бит-в-бит.
 
-### №15 · [`1edd967`](https://github.com/mkolennikova/TEB-Ru/commit/1edd967) · 2026-09-18 · `fix(urban): water path of the snow melt and of the roof puddle`
+### №15 · [`1edd967`](https://github.com/mkolennikova/TEB-MSU/commit/1edd967) · 2026-09-18 · `fix(urban): water path of the snow melt and of the roof puddle`
 
 **Что сделано (дефект D5).** Водный бюджет дорожного и крышевого резервуаров не
 замыкался в сезон таяния (остаток −75.4 и −66.8 кг/м² за 91 сутки московского
@@ -960,7 +960,7 @@ upstream `TEB-model/teb` master (2022).
 растёт с ~18 до ~94 кг/м² (дорога) и с ~15 до ~88 кг/м² (крыша). Проверка — A/B
 мелт-тест (Москва, 2024-01-01…2024-03-31, LCZ2/LCZ9/SPARSE).
 
-### №16 · [`b3b25e5`](https://github.com/mkolennikova/TEB-Ru/commit/b3b25e5) · 2026-09-18 · `feat(driver): strict namelist reading, start-date echo and solar-position output`
+### №16 · [`b3b25e5`](https://github.com/mkolennikova/TEB-MSU/commit/b3b25e5) · 2026-09-18 · `feat(driver): strict namelist reading, start-date echo and solar-position output`
 
 **Что сделано.** Чтение обоих намлистов стало строгим и явным.
 
@@ -992,7 +992,7 @@ upstream `TEB-model/teb` master (2022).
 ALL PASS на летнем (Москва 2022) и зимнем (мелт 2024) прогонах; результаты модели
 бит-в-бит (колонки прежней ревизии не изменились).
 
-### №17 · [`51dbeef`](https://github.com/mkolennikova/TEB-Ru/commit/51dbeef) · 2026-09-19 · `feat(garden): diagnostic garden scheme selected by namelist, surface properties from namelists`
+### №17 · [`51dbeef`](https://github.com/mkolennikova/TEB-MSU/commit/51dbeef) · 2026-09-19 · `feat(garden): diagnostic garden scheme selected by namelist, surface properties from namelists`
 
 **Что сделано (сад G1).**
 
@@ -1027,7 +1027,7 @@ ALL PASS на летнем (Москва 2022) и зимнем (мелт 2024) �
 расходится в 41–45 колонках из 92, максимум ≈ 53 Вт/м² (`LE_ROAD_CAN`/`LE_ROAD`
 в LCZ2, `LE_ROAD_ATM` ≈ 38 Вт/м²), `RN_GARDEN` до ≈ 9.7 Вт/м².
 
-### №18 · [`7e39f0a`](https://github.com/mkolennikova/TEB-Ru/commit/7e39f0a) · 2026-09-19 · `test(garden): scheme comparison and sensitivity benches, documentation`
+### №18 · [`7e39f0a`](https://github.com/mkolennikova/TEB-MSU/commit/7e39f0a) · 2026-09-19 · `test(garden): scheme comparison and sensitivity benches, documentation`
 
 **Что сделано.** Добавлены стенды и документация схемы сада:
 
@@ -1052,7 +1052,7 @@ ALL PASS на летнем (Москва 2022) и зимнем (мелт 2024) �
 
 **Измерения.** См. приложение А (§6): стенды Z1–Z4, S1–S4, B1–B6.
 
-### №19 · [`c37b29c`](https://github.com/mkolennikova/TEB-Ru/commit/c37b29c) · 2026-09-20 · `feat(garden): tau split of the garden exchange and neutral external garden ('EXT_NEU')`
+### №19 · [`c37b29c`](https://github.com/mkolennikova/TEB-MSU/commit/c37b29c) · 2026-09-20 · `feat(garden): tau split of the garden exchange and neutral external garden ('EXT_NEU')`
 
 **Что сделано (сад G3 / τ v1.4).**
 
@@ -1122,7 +1122,7 @@ ALL PASS на летнем (Москва 2022) и зимнем (мелт 2024) �
 
 Полные таблицы эффектов и сравнений — в приложении А (§6, А.5–А.8).
 
-### №20 · [`5e2cd79`](https://github.com/mkolennikova/TEB-Ru/commit/5e2cd79) · 2026-09-21 · `chore(repo): split sources, build output, python tools and docs into directories` (**локальный**)
+### №20 · [`5e2cd79`](https://github.com/mkolennikova/TEB-MSU/commit/5e2cd79) · 2026-09-21 · `chore(repo): split sources, build output, python tools and docs into directories` (**локальный**)
 
 **Что сделано.** Репозиторий разложен по каталогам: `src/` (исходники Фортрана,
 `Makefile`, `gfortran_args`, скрипт конвертации makefile; сборка — `make -C src`),
@@ -1138,7 +1138,7 @@ ALL PASS на летнем (Москва 2022) и зимнем (мелт 2024) �
 (не в `docs/`), а исходники — в `src_teb/`, `src_driver/`, `src_proxi_SVAT/`,
 `src_struct/`; это учитывается при восстановлении прежних состояний (§8).
 
-### №21 · [`bfbf13a`](https://github.com/mkolennikova/TEB-Ru/commit/bfbf13a) · 2026-09-21 · `chore(repo): keep the heavy CAPITOUL dataset outside the repository` (**локальный**)
+### №21 · [`bfbf13a`](https://github.com/mkolennikova/TEB-MSU/commit/bfbf13a) · 2026-09-21 · `chore(repo): keep the heavy CAPITOUL dataset outside the repository` (**локальный**)
 
 **Что сделано.** `data/` теперь только описывает, где лежат наборы данных, и
 игнорирует всё содержимое (`data/.gitignore`), поэтому локальный набор не может
@@ -1148,12 +1148,12 @@ ALL PASS на летнем (Москва 2022) и зимнем (мелт 2024) �
 быть восстановлены командой
 `git restore --source=main --worktree "CAPITOUL DATA"`.
 
-### №22 · [`15158ef`](https://github.com/mkolennikova/TEB-Ru/commit/15158ef) · 2026-08-17¹ · `docs(data): CAPITOUL is no longer part of the repository history` (**локальный**)
+### №22 · [`15158ef`](https://github.com/mkolennikova/TEB-MSU/commit/15158ef) · 2026-08-17¹ · `docs(data): CAPITOUL is no longer part of the repository history` (**локальный**)
 
 **Что сделано.** `data/README.md` приведён в соответствие с решением вывести
 тяжёлый набор из истории репозитория (4 вставки, 7 удалений).
 
-### №23 · [`08b9dd0`](https://github.com/mkolennikova/TEB-Ru/commit/08b9dd0) · 2026-09-22 · `docs(repo): restructure the scheme documentation, add change history, defect list and rules` (**локальный**)
+### №23 · [`08b9dd0`](https://github.com/mkolennikova/TEB-MSU/commit/08b9dd0) · 2026-09-22 · `docs(repo): restructure the scheme documentation, add change history, defect list and rules` (**локальный**)
 
 **Что сделано.** Схемные документы и история разделены: схемные документы
 описывают только текущее состояние, всё историческое (версии, отвергнутые варианты,
@@ -1193,7 +1193,7 @@ ALL PASS на летнем (Москва 2022) и зимнем (мелт 2024) �
 
 ---
 
-### №24 · [`91308a7`](https://github.com/mkolennikova/TEB-Ru/commit/91308a7) · 2026-09-22 · `feat(garden): thermal (scalar) roughness of the diagnostic garden (z0h)` (**локальный**)
+### №24 · [`91308a7`](https://github.com/mkolennikova/TEB-MSU/commit/91308a7) · 2026-09-22 · `feat(garden): thermal (scalar) roughness of the diagnostic garden (z0h)` (**локальный**)
 
 **Что сделано (сад G4).**
 
@@ -1271,7 +1271,7 @@ C5 (§5.7).
 * зелёная кровля (`GREENROOF`) не переведена на тепловую шероховатость (тема
   отложена, см. §5.4).
 
-### №25 · [`09aa166`](https://github.com/mkolennikova/TEB-Ru/commit/09aa166) · 2026-09-22 · `feat(greenroof)`: диагностический баланс кровли
+### №25 · [`09aa166`](https://github.com/mkolennikova/TEB-MSU/commit/09aa166) · 2026-09-22 · `feat(greenroof)`: диагностический баланс кровли
 
 **Что сделано.** Тот же диагностический баланс энергии поверхности, что у сада,
 доступен для зелёной кровли:
@@ -1299,7 +1299,7 @@ C5 (§5.7).
 **Документация.** `TEB_Ru_garden_diagnostic_scheme.md` (режимы кровли, общий
 решатель), `TEB_Ru_variables_description.md` (ключи, колонки), настоящая история.
 
-### №26 · [`21c9acb`](https://github.com/mkolennikova/TEB-Ru/commit/21c9acb) · 2026-09-23 · `feat(greenroof)`: режимы `EXT`/`EXT_NEU`
+### №26 · [`21c9acb`](https://github.com/mkolennikova/TEB-MSU/commit/21c9acb) · 2026-09-23 · `feat(greenroof)`: режимы `EXT`/`EXT_NEU`
 
 **Что сделано.** Внешняя зелёная кровля подключается по штатному интерфейсу `EXT`
 (эмулятора тогда ещё не было), а диагностические коэффициенты обмена кровли
@@ -1430,7 +1430,7 @@ H_ROAD = ρ·cp·A_1(τ)·(T_rd − T_c)      (в стационаре = ρ·cp�
 
 ### 5.5 Дефекты драйвера, читалки форсинга и стендов (I1–I4)
 
-Эти дефекты **не относятся к исходной модели**: они затрагивали драйвер TEB-Ru,
+Эти дефекты **не относятся к исходной модели**: они затрагивали драйвер TEB-MSU,
 читалку форсинга и стенды. На физику они не влияли, но делали результаты
 непригодными для проверок (или мешали запуску). Раньше они описывались в
 `TEB_Ru_source_defects.md`; в этот файл отнесены, потому что дефектами исходного TEB
@@ -1537,7 +1537,7 @@ H_ROAD = ρ·cp·A_1(τ)·(T_rd − T_c)      (в стационаре = ρ·cp�
 | C2 | `teb.F90`, `urban_hydro.F90` | в `URBAN_HYDRO` передаётся `XLE_ROOF`, включающая снежную часть (`PLEW_RF·PDF_RF + PLESN_RF·PDN_RF`) с `XLVTT` | та же семья, что у дороги до v1.3.1; двойного веса у крыши нет (её бюджет «на м² снег-фри»), но снежный сток считается с теплотой жидкости — кандидат на отдельную правку |
 | C3 | `teb.F90` | `PMELT_RD` (таяние, «на м² снега») добавляется в лужу без множителя `×PDN_RD` | приводит к переливу талой воды в `1/PDN_RD` раз; требует отдельной проверки и правки |
 | C4 | `avg_urban_fluxes.F90` | случай `H > z_ref` (LCZ2: 20 м > 10 м): уровень свободного слоя защищён `MIN(XBLD_HEIGHT, PZREF)`, т.е. фактически `z_ref/2` | отложено по договорённости; на текущих стендах эффект мал |
-| C5 | весь код: **остаточные** редкие падения в разрежённых конфигурациях (SPARSE, LCZ 9) | тот же бинарник на том же намлисте падает примерно в 1 прогоне из 10 (код 3) с `Program received signal SIGSEGV: Segmentation fault - invalid memory reference`; CSV не создаётся, т.е. падение — в **предлупной** фазе драйвера (до открытия выходного файла: чтение намлистов, `OL_READ_ATM`, список колонок). Признаки: (1) результаты **не меняются** между успешными прогонами (4 прогона — 0 отличающихся колонок), (2) под отладчиком с выключенной рандомизацией адресов падения нет (18 попыток), (3) не ловится ни `-fcheck=all`, ни `-finit-real=snan -finit-integer=-999999 -finit-character -finit-derived`, ни `-fstack-protector-all`, ни ASan (не линкуется в этой связке MinGW) | **Основная** причина незакономерных падений (серия 2026-09-22) найдена и исправлена — это **N2** (ветвевые диагностики снега читались до записи; сборка с `-finit-real=snan` падала детерминированно с `PHSN_RD_CAN = NaN`, после правки проходит). **Диагноз (2026-09-22): это дефект тулчейна, а не TEB-Ru.** Падение — **чтение** (`kind=0`) внутри `ucrtbase.dll` в `setlocale` (`fault_pc = ucrtbase+0x2383`, байтовый скан `cmp %dil,(%rsi,%rbx,1)`; ближайшие экспорты — `setlocale+0x46/+0x2ea/+0x34f/+0x6bc`), вызванного из `libgfortran-5.dll` (в её таблице импорта есть `setlocale` и `localeconv`) на **первом форматированном выводе вещественного** (`WRITE` с форматом `F…`; у драйвера это строка `dt = …`, поэтому CSV ещё не создан). Механизм (доказан изолированной C-пробой): libgfortran делает `saved = setlocale(LC_NUMERIC, NULL)` → `setlocale(LC_NUMERIC, "C")` → `snprintf` → `setlocale(LC_NUMERIC, saved)`, а UCRT на втором вызове освобождает буфер, на который указывает `saved`; восстановление разбирает **уже переиспользованную память** как имя локали, и скан уходит в незакоммиченную часть кучи. Отсюда все наблюдённые признаки: нестабильность (содержимое освобождённого буфера зависит от раскладки и тайминга), невидимость для `-fcheck=all`/`-finit-*`/отладчика (дефект в библиотеке, а не в коде Fortran), отсутствие изменений в числах. Проверенный обход: статический libgfortran и обёртка `src/src_driver/wrap_setlocale.c`, возвращающая для `name = NULL` указатель на постоянный буфер; на Windows с gfortran включается автоматически (`make -C src FC=gfortran`), отключается ключом `WRAP_LOCALE=0`; A/B на одной раскладке: **12 падений из 100** без обёртки и **0 из 100** с ней, CSV бит-в-бит совпадает с обычной сборкой (код, команды и методика поиска — §5.8). В коде TEB-Ru править нечего; обход включён в сборку и на Windows с gfortran применяется автоматически, поэтому падения остаются только у сборок с `WRAP_LOCALE=0` и у сборок на другом рантайме |
+| C5 | весь код: **остаточные** редкие падения в разрежённых конфигурациях (SPARSE, LCZ 9) | тот же бинарник на том же намлисте падает примерно в 1 прогоне из 10 (код 3) с `Program received signal SIGSEGV: Segmentation fault - invalid memory reference`; CSV не создаётся, т.е. падение — в **предлупной** фазе драйвера (до открытия выходного файла: чтение намлистов, `OL_READ_ATM`, список колонок). Признаки: (1) результаты **не меняются** между успешными прогонами (4 прогона — 0 отличающихся колонок), (2) под отладчиком с выключенной рандомизацией адресов падения нет (18 попыток), (3) не ловится ни `-fcheck=all`, ни `-finit-real=snan -finit-integer=-999999 -finit-character -finit-derived`, ни `-fstack-protector-all`, ни ASan (не линкуется в этой связке MinGW) | **Основная** причина незакономерных падений (серия 2026-09-22) найдена и исправлена — это **N2** (ветвевые диагностики снега читались до записи; сборка с `-finit-real=snan` падала детерминированно с `PHSN_RD_CAN = NaN`, после правки проходит). **Диагноз (2026-09-22): это дефект тулчейна, а не TEB-MSU.** Падение — **чтение** (`kind=0`) внутри `ucrtbase.dll` в `setlocale` (`fault_pc = ucrtbase+0x2383`, байтовый скан `cmp %dil,(%rsi,%rbx,1)`; ближайшие экспорты — `setlocale+0x46/+0x2ea/+0x34f/+0x6bc`), вызванного из `libgfortran-5.dll` (в её таблице импорта есть `setlocale` и `localeconv`) на **первом форматированном выводе вещественного** (`WRITE` с форматом `F…`; у драйвера это строка `dt = …`, поэтому CSV ещё не создан). Механизм (доказан изолированной C-пробой): libgfortran делает `saved = setlocale(LC_NUMERIC, NULL)` → `setlocale(LC_NUMERIC, "C")` → `snprintf` → `setlocale(LC_NUMERIC, saved)`, а UCRT на втором вызове освобождает буфер, на который указывает `saved`; восстановление разбирает **уже переиспользованную память** как имя локали, и скан уходит в незакоммиченную часть кучи. Отсюда все наблюдённые признаки: нестабильность (содержимое освобождённого буфера зависит от раскладки и тайминга), невидимость для `-fcheck=all`/`-finit-*`/отладчика (дефект в библиотеке, а не в коде Fortran), отсутствие изменений в числах. Проверенный обход: статический libgfortran и обёртка `src/src_driver/wrap_setlocale.c`, возвращающая для `name = NULL` указатель на постоянный буфер; на Windows с gfortran включается автоматически (`make -C src FC=gfortran`), отключается ключом `WRAP_LOCALE=0`; A/B на одной раскладке: **12 падений из 100** без обёртки и **0 из 100** с ней, CSV бит-в-бит совпадает с обычной сборкой (код, команды и методика поиска — §5.8). В коде TEB-MSU править нечего; обход включён в сборку и на Windows с gfortran применяется автоматически, поэтому падения остаются только у сборок с `WRAP_LOCALE=0` и у сборок на другом рантайме |
 | C6 | `TEB_GARDEN` (§8.2/§8.3) | **τ-расщепление не распространено на импульс сада**: трение считается по одноканальной каньонной проводимости `Ca_m_C` (ветер каньона), хотя тепло и влага расщеплены на `_CAN`/`_ATM`; тот же принцип у внешних режимов (берётся `PCD_GARDEN_CAN`, атмосферной ветви импульса нет) | отложено по договорённости: нужна отдельная постановка (какой ветви приписывать трение, как согласовать с неявным решением ветра) и новая таблица измерений |
 
 **Upstream.** Дефекты D3 (двойной вес `PDF_RD`), C1 и C2 присутствуют в
@@ -1570,7 +1570,7 @@ upstream — только перенос в `src/` и лицензия (2019–2
 4. **Резолв по таблицам экспорта PE**: смещения `0x2383` и `0x2ca6/0x2f4a/0x2faf/0x331c`
    принадлежат `setlocale` (байтовый скан строки имени локали), а в таблице импорта
    `libgfortran-5.dll` есть `setlocale` и `localeconv`.
-5. **Изолированная проба** (внешняя: чистый C, вне репозитория, без TEB-Ru) воспроизводит
+5. **Изолированная проба** (внешняя: чистый C, вне репозитория, без TEB-MSU) воспроизводит
    паттерн, который libgfortran использует при форматированном выводе вещественных:
 
 ```c
@@ -2022,14 +2022,14 @@ T4 замыкание водного бюджета, T5 тайл-средняя 
 
 | коммит | дата | что сделано |
 | --- | --- | --- |
-| [`db83799`](https://github.com/mkolennikova/TEB-Ru/commit/db83799) | 2026-06-29 | добавлен флаг `lshade` |
-| [`9a1334d`](https://github.com/mkolennikova/TEB-Ru/commit/9a1334d) | 2026-06-29 | правки `call_driver.F90` |
-| [`83d8dab`](https://github.com/mkolennikova/TEB-Ru/commit/83d8dab) | 2026-06-29 | создана таблица `TEB_Ru_variables_description.xlsx` |
-| [`e88ba7a`](https://github.com/mkolennikova/TEB-Ru/commit/e88ba7a) | 2026-06-29 | создан документ `TEB_Ru_variables_description.md` |
-| [`a6b2e15`](https://github.com/mkolennikova/TEB-Ru/commit/a6b2e15) | 2026-06-29 | ссылка на описание опций модели в README |
-| [`56518eb`](https://github.com/mkolennikova/TEB-Ru/commit/56518eb) | 2026-06-29 | исправлена ссылка на описание выходных переменных |
-| [`35a2963`](https://github.com/mkolennikova/TEB-Ru/commit/35a2963) | 2026-06-30 | печать настроек намлиста в `call_driver` |
-| [`460a1c9`](https://github.com/mkolennikova/TEB-Ru/commit/460a1c9) | 2026-08-17 | исправлен поиск исполняемого файла без сборки |
+| [`db83799`](https://github.com/mkolennikova/TEB-MSU/commit/db83799) | 2026-06-29 | добавлен флаг `lshade` |
+| [`9a1334d`](https://github.com/mkolennikova/TEB-MSU/commit/9a1334d) | 2026-06-29 | правки `call_driver.F90` |
+| [`83d8dab`](https://github.com/mkolennikova/TEB-MSU/commit/83d8dab) | 2026-06-29 | создана таблица `TEB_Ru_variables_description.xlsx` |
+| [`e88ba7a`](https://github.com/mkolennikova/TEB-MSU/commit/e88ba7a) | 2026-06-29 | создан документ `TEB_Ru_variables_description.md` |
+| [`a6b2e15`](https://github.com/mkolennikova/TEB-MSU/commit/a6b2e15) | 2026-06-29 | ссылка на описание опций модели в README |
+| [`56518eb`](https://github.com/mkolennikova/TEB-MSU/commit/56518eb) | 2026-06-29 | исправлена ссылка на описание выходных переменных |
+| [`35a2963`](https://github.com/mkolennikova/TEB-MSU/commit/35a2963) | 2026-06-30 | печать настроек намлиста в `call_driver` |
+| [`460a1c9`](https://github.com/mkolennikova/TEB-MSU/commit/460a1c9) | 2026-08-17 | исправлен поиск исполняемого файла без сборки |
 
 Ранее (июнь 2026) в репозиторий вошли утилиты подготовки форсинга ERA5, ноутбуки
 запуска и утилиты работы с выводом — эти коммиты схемы не затрагивают.

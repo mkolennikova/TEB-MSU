@@ -1,6 +1,6 @@
-# TEB-Ru Model Variables Description
+# TEB-MSU Model Variables Description
 
-This document provides a comprehensive description of all input (namelist) and output variables used in the TEB-Ru model.
+This document provides a comprehensive description of all input (namelist) and output variables used in the TEB-MSU model.
 
 ## Namelist Variables
 
@@ -65,7 +65,7 @@ Notes:
   `ZZ0`, given in metres) and uses a hard-coded `+ urb_h_bld/3.` shift in
   `urban_drag.F90`, which corresponds to `zd = 2/3*urb_h_bld` and is inconsistent
   with its own wind profile, where `2/3*urb_h_bld = urb_h_bld - zd` gives
-  `zd = 1/3*urb_h_bld`; in TEB-Ru both places use the single value `urb_zd_town`;
+  `zd = 1/3*urb_h_bld`; in TEB-MSU both places use the single value `urb_zd_town`;
 - with the default wind scheme (`teb_itype_wind = 0`) the town exchange coefficient
   affects only the friction velocity (diagnostics and the coupling with an
   atmospheric model); it changes the offline results when the Wang scheme
@@ -194,7 +194,7 @@ construction:
 
 The values are validated by the driver (roughness length `> 0` and `< XUNDEF`, ratio
 `z0/z0h >= 1` and `< XUNDEF`, albedo in `[0, 1)`, emissivity in `(0, 1]`) and printed
-in the banner (`TEB-Ru offline: urb_z0_gdn = ...`, `urb_z0_o_z0h_gdn = ... -> z0h(garden) = ...`,
+in the banner (`TEB-MSU offline: urb_z0_gdn = ...`, `urb_z0_o_z0h_gdn = ... -> z0h(garden) = ...`,
 `urb_z0_grf = ...`, `garden alb/emis = ...`, `greenroof alb/emis = ...`); an
 out-of-range value stops the run (`STOP 1`).
 
