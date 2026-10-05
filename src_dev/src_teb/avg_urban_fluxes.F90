@@ -264,7 +264,7 @@ INTEGER :: JJ
 REAL :: ZU_ROAD_ATM      ! friction velocity of the road -> atmosphere path (m/s)
 REAL :: ZTH_CAN1         ! temperature scale of the free layer (K)
 REAL :: ZL_CAN1          ! Obukhov length of the free layer (m)
-REAL :: ZZ_MID           ! height of the free layer air: h_bld/2, bounded by the forcing level (m)
+REAL :: ZZ_MID           ! height of the free layer air: h_bld/2 (floored at 1 m) (m)
 REAL :: ZPHI_CAN1        ! free layer air temperature / theta* ratio of the MOST profile (-)
 REAL :: ZH_CAN1          ! heat input of the free layer (W/m2 canyon)
 REAL :: ZLE_CAN1         ! moisture input of the free layer (liquid water sources) (W/m2 canyon)
@@ -565,15 +565,23 @@ DO JJ=1,SIZE(T%XROAD)
     ZOK_CAN1    = ( PCD_ROAD_ATM(JJ) .GT. 0. .AND. PCD_ROAD_ATM(JJ) .LT. 1.            &
                 .AND. ZZ0H_ROAD_ATM(JJ) .GT. 0. .AND. ZZ0H_ROAD_ATM(JJ) .LT. 1.        &
                 .AND. PVMOD(JJ) .GT. 0. )
-    ZZ_MID      = MAX( 0.5 * MIN( T%XBLD_HEIGHT(JJ), PZREF(JJ) ), 1. )
+!MV202609 cbs scheme of the road (revision: free layer at/above the forcing level)
+!* the free layer is at H/2; when that level is at or above the reference level
+!* z_ref the MOST profile anchored at z_ref is not defined there, and the free
+!* layer is identified with the air of the forcing level: PHI_CAN1 = 0, so that
+!* T_CAN1 = PTA (and PQ_CAN1 = PQA).
+    ZZ_MID      = MAX( 0.5 * T%XBLD_HEIGHT(JJ), 1. )
     ZU_ROAD_ATM = MAX( SQRT( MAX( PCD_ROAD_ATM(JJ), 0. ) ) * PVMOD(JJ), ZU_ROAD_MIN )
     ZTH_CAN1    = ZH_CAN1 / ( PRHOA(JJ) * XCPD * ZU_ROAD_ATM )
-    ZPHI_CAN1   = LOG( PZREF(JJ) / ZZ_MID )                    ! neutral limit
-    IF ( ZOK_CAN1 .AND. ABS(ZTH_CAN1) .GE. ZTH_MIN ) THEN
-      ZL_CAN1   = - ZU_ROAD_ATM**2 * PTA(JJ) / ( XKARMAN * XG * ZTH_CAN1 )
-      ZPHI_CAN1 = LOG( PZREF(JJ) / ZZ_MID )                                            &
-                 - PSI_H_BD( MIN( PZREF(JJ) / ZL_CAN1, ZETA_STAB_MAX ) )               &
-                 + PSI_H_BD( MIN( ZZ_MID    / ZL_CAN1, ZETA_STAB_MAX ) )
+    ZPHI_CAN1   = 0.                                          ! H/2 >= z_ref
+    IF ( ZZ_MID .LT. PZREF(JJ) ) THEN
+      ZPHI_CAN1 = LOG( PZREF(JJ) / ZZ_MID )                   ! neutral limit
+      IF ( ZOK_CAN1 .AND. ABS(ZTH_CAN1) .GE. ZTH_MIN ) THEN
+        ZL_CAN1   = - ZU_ROAD_ATM**2 * PTA(JJ) / ( XKARMAN * XG * ZTH_CAN1 )
+        ZPHI_CAN1 = LOG( PZREF(JJ) / ZZ_MID )                                          &
+                   - PSI_H_BD( MIN( PZREF(JJ) / ZL_CAN1, ZETA_STAB_MAX ) )             &
+                   + PSI_H_BD( MIN( ZZ_MID    / ZL_CAN1, ZETA_STAB_MAX ) )
+      ENDIF
     ENDIF
     PT_CAN1(JJ)   = PTA(JJ) + ( ZTH_CAN1 / XKARMAN ) * ZPHI_CAN1
     PPHI_CAN1(JJ) = ZPHI_CAN1
