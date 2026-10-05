@@ -18,7 +18,7 @@ deviate, explain why in the commit message.
 | `TEB_MSU_cbs_scheme_T_CAN_reformulation.md` | the **current** state of the cbs scheme: concept, mathematics, implementation, properties, limitations, invariants | history, versions, rejected variants, run numbers |
 | `TEB_MSU_garden_diagnostic_scheme.md` | the **current** state of the diagnostic garden scheme (same structure) | the same |
 | `TEB_MSU_source_defects.md` | defects of the **original** model only (D1–D7) | defects of the driver, of the benches, of our own changes, open candidates |
-| `TEB_MSU_change_history.md` | commit-referenced history (registry `№1…№N`), rejected variants, measurement protocols, defects outside the original model (I1–I4), numerical defects of our own changes (N1–N2), open items (C1–C5) | the description of the current scheme |
+| `TEB_MSU_change_history.md` | commit-referenced history (registry `№1…№N`), rejected variants, measurement protocols, defects outside the original model (I1–I4), numerical defects of our own changes (N1–N2), open items (C1–C3, C5) | the description of the current scheme |
 | `TEB_MSU_documentation_rules.md` | this file (English); the scheme, history and defect documents are in Russian | — |
 
 ---
