@@ -29,18 +29,28 @@ Compared to the original TEB model, TEB-Ru includes:
 - **Flexible mode switching** between standalone and coupled operation
 - **Python library suite** for preparing atmospheric forcing data, including utilities for processing meteorological observations, reanalysis data, and generating input files for offline simulations
 
+The development line (`src_dev`, see [Two source trees](#two-source-trees-src_dev-and-src_ctrl)) additionally contains:
+
+- **Fixes of defects of the original TEB** found during this work: the weighting of the snow fluxes in the canyon nodes, the latent heat of the phase change (`XLVTT`/`XLSTT`), the melt-water path, and the uninitialised radiation diagnostics of the green surfaces and canyon ground temperature — [`docs/TEB_Ru_source_defects.md`](docs/TEB_Ru_source_defects.md)
+- **τ-scheme of the surface–canyon exchange**: a weight τ ∈ [0, 1] blends the "through the canyon" and the "directly to the forcing level" paths (τ = 1 reproduces the original TEB, τ → 0 makes the surface flat); the air seen by the surfaces is a τ-relaxation of the classical canyon node (`T_CAN0`) and of the surface layer (`T_CAN1`) — [`docs/TEB_Ru_tau_scheme_T_CAN_reformulation.md`](docs/TEB_Ru_tau_scheme_T_CAN_reformulation.md)
+- **Diagnostic garden and green-roof scheme**: the surface energy balance `Rn = H + LE` with a surface relative humidity, solved by Newton iterations, coupled to the canyon air, with external modes (`EXT`, `EXT_NEU`) — [`docs/TEB_Ru_garden_diagnostic_scheme.md`](docs/TEB_Ru_garden_diagnostic_scheme.md)
+- **Urban roughness and displacement height from the namelist or from the Macdonald et al. (1998) morphometric scheme** [[Macdonald et al., 1998]](#references) instead of the hard-coded `zd = H/3` correction — [`docs/TEB_Ru_source_defects.md`](docs/TEB_Ru_source_defects.md) (D7)
+
 ### Quick Start
 
 #### Option 1: Google Colab (Recommended)
 
-Open and run the [`run_in_collab.ipynb`](https://github.com/mkolennikova/TEB-Ru/blob/main/run_in_collab.ipynb) notebook in Google Colab. It will automatically:
+Open and run the [`TEB_sandbox.ipynb`](https://github.com/mkolennikova/TEB-Ru/blob/main/TEB_sandbox.ipynb) notebook in Google Colab. It will automatically:
 
 1. Clone the repository
 2. Set up the environment
-3. Compile the model
-4. Download meteorological forcing 
+3. Compile the model (the source tree `src_dev` or `src_ctrl` is selected in the notebook)
+4. Download the ERA5 meteorological forcing for the chosen site and period
 5. Run a test simulation
-6. Visualize results
+6. Visualize the results
+
+The same notebook is also the local (Windows) pipeline: it detects the repository, the
+toolchain and the Python environment instead of installing anything.
 
 #### Option 2: Local Build
 
@@ -51,40 +61,67 @@ To build and run TEB-Ru locally:
 git clone https://github.com/mkolennikova/TEB-Ru.git
 cd TEB-Ru
 
-# Check compiler flags in src/gfortran_args
+# Check the compiler flags in src_dev/gfortran_args (or src_ctrl/gfortran_args)
 # The model automatically detects ifort or gfortran
 
-# Build the model (the Fortran sources and the Makefile live in src/;
-# the object files and the executable are written to build/)
-make -C src clean
-make -C src
+# Build a source tree (sources and Makefile live in the tree; the object files
+# and the executable are written to build/)
+make -C src_dev clean
+make -C src_dev          # -> build/TEB_offline_dev.exe
 
-# Run the model (from the repository root, next to namelist/ and input/)
-./build/TEB_offline.exe
+# Run the reference case from its own directory
+cd tests/CAPITOUL
+../../build/TEB_offline_dev.exe
 ```
+
+### Two source trees: `src_dev` and `src_ctrl`
+
+The Fortran sources are split into two independent trees, each with its own `Makefile` and
+`gfortran_args` and its own executable:
+
+| Tree | Physics | Builds |
+| --- | --- | --- |
+| `src_dev/` | development line (branch `MV_devs`) with the modern I/O | `build/TEB_offline_dev.exe` |
+| `src_ctrl/` | control line (physics of the first commit `582c3ab`) with the same I/O and namelists | `build/TEB_offline_ctrl.exe` |
+
+Both trees share `tests/`, `python/` and `docs/`, are built in the same way
+(`make -C src_dev` / `make -C src_ctrl`) and write the same columns to `TEB_output.csv`, so
+runs of the two trees can be compared line by line.
 
 ## Repository Layout
 
 | Path | Content |
 | --- | --- |
-| `src/` | Fortran sources (`src_driver/`, `src_teb/`, `src_struct/`, `src_solar/`, `src_proxi_SVAT/`), the `Makefile`, `gfortran_args` and the makefile conversion script |
-| `python/` | Python libraries shared by the notebooks: output handling (`output_utils.py`), forcing preparation (`forcing_ERA5.py`, `forcing_utils.py`) and the notebook helpers (`run_utils.py`, `install_utils.py`) |
+| `src_dev/` | Development Fortran sources (`src_driver/`, `src_teb/`, `src_struct/`, `src_solar/`, `src_proxi_SVAT/`) with their `Makefile` and `gfortran_args`; builds `build/TEB_offline_dev.exe` |
+| `src_ctrl/` | Control Fortran sources (same layout, physics of the first commit); builds `build/TEB_offline_ctrl.exe` |
+| `python/` | Python libraries shared by the notebook and the test benches: output handling (`output_utils.py`), forcing preparation (`forcing_ERA5.py`, `forcing_utils.py`) and the notebook helpers (`run_utils.py`, `install_utils.py`) |
 | `python_tests/` | Python test benches and comparison/sensitivity experiments verifying the model revisions |
-| `build/` | Build output of `make`: `obj/` (object and module files) and `TEB_offline.exe`; created automatically and not tracked |
-| `docs/` | Model documentation: the variable description (Markdown and spreadsheet), the description of the implemented τ-scheme (`TEB_Ru_tau_scheme_T_CAN_reformulation.md`), of the diagnostic garden scheme (`TEB_Ru_garden_diagnostic_scheme.md`), of the defects of the original TEB found and fixed in TEB-Ru (`TEB_Ru_source_defects.md`), the commit-referenced change history (`TEB_Ru_change_history.md`) and the documentation rules (`TEB_Ru_documentation_rules.md`) |
-| `namelist/`, `input/`, `output_ref/` | Namelists, reference atmospheric forcing and reference output of the test case |
-| `output/` | Output of the last run (created at run time, not tracked) |
-| `run_in_collab.ipynb`, `run_on_windows.ipynb` | Step-by-step notebooks: Google Colab pipeline and local Windows build/run |
+| `tests/` | Test cases; `tests/CAPITOUL/` is the reference case: `namelist/`, `input/` (ASCII forcing) and `output_ref/` |
+| `build/` | Build output of `make`: `obj_dev/`, `obj_ctrl/`, `logs/` (the `make` logs) and the executables; created automatically and not tracked |
+| `docs/` | Model documentation: the variable description (`TEB_Ru_variables_description.md`), the τ-scheme (`TEB_Ru_tau_scheme_T_CAN_reformulation.md`), the diagnostic garden and green-roof scheme (`TEB_Ru_garden_diagnostic_scheme.md`), the defects of the original TEB found and fixed in TEB-Ru (`TEB_Ru_source_defects.md`), the commit-referenced change history (`TEB_Ru_change_history.md`), the coupling checklist (`TEB_Ru_coupling_checklist.md`) and the documentation rules (`TEB_Ru_documentation_rules.md`) |
+| `TEB_sandbox.ipynb` | Step-by-step pipeline notebook: Google Colab and local (Windows) build and run |
 
-The executable is started from the repository root (`./build/TEB_offline.exe`), because the driver
-reads `namelist/` and `input/` and writes `output/` relative to the working directory.
+The executable is started in the directory of the case, because the driver reads `namelist/` and
+the forcing directory and writes `output/` relative to the working directory (for the reference
+case that is `tests/CAPITOUL/`). The command-line options `-forcing_nml`, `-param_nml` and
+`-output` override each of them.
 
 ## Configuration
 
-Model configuration is controlled through Fortran namelist files in the [`namelist/`](https://github.com/mkolennikova/TEB-Ru/tree/main/namelist) directory:
+The model is configured by two Fortran namelist files — `namelist.nml` (model parameters) and
+`namelist_forcing.nml` (atmospheric forcing and the period of the run) — which the driver reads at
+start-up. They must be composed according to the rules of
+[`docs/TEB_Ru_variables_description.md`](docs/TEB_Ru_variables_description.md), which documents
+every item, its type, units, accepted values and defaults.
 
-- **[namelist_forcing.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/namelist/namelist_forcing.nml)** – Atmospheric forcing parameters (temperature, humidity, wind, radiation, precipitation, etc.)
-- **[namelist.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/namelist/namelist.nml)** – Urban geometry, material properties, BEM parameters, vegetation settings, and other model options
+Namelist examples for CAPITOUL test case availible at  
+[`tests/CAPITOUL/namelist/`](https://github.com/mkolennikova/TEB-Ru/tree/main/tests/CAPITOUL/namelist).
+
+- **[namelist_forcing.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/tests/CAPITOUL/namelist/namelist_forcing.nml)** – example of the atmospheric forcing parameters (temperature, humidity, wind, radiation, precipitation, etc.) and of the run period
+- **[namelist.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/tests/CAPITOUL/namelist/namelist.nml)** – example of the urban geometry, material properties, BEM parameters, vegetation settings and other model options
+
+For another site, copy and adapt these examples (the notebook `TEB_sandbox.ipynb` writes its own
+`params_<experiment>.nml` from the CAPITOUL parameters).
 
 <!-- MV202609 strict namelist date/time reading -->
 ⚠️ **The driver stops if a namelist cannot be read.** Both namelist files
@@ -101,12 +138,6 @@ real value (`teb_hour = 0.0`) makes the READ fail at that entry. The start date/
 items of the forcing namelist have **no default value** any more and are validated
 (range check): a run without a valid start date cannot start. The start date, the end
 date of the run, the forcing window and the location are echoed in the log.
-The date used by a finished run can also be verified from its output with
-[`python_tests/check_solar_position.py`](python_tests/check_solar_position.py), which compares the
-`SOLAR_ZENITH`/`SOLAR_ELEV`/`SOLAR_AZIM` columns of `TEB_output.csv` with the
-[`pysolar`](https://pysolar.readthedocs.io) library.
-
-Description of model options from [namelist.nml](https://github.com/mkolennikova/TEB-Ru/blob/main/namelist/namelist.nml), as wel as model output variables is avaible in [here](https://github.com/mkolennikova/TEB-Ru/blob/main/docs/TEB_Ru_variables_description.md). 
 
 ### Model Output
 
@@ -119,19 +150,24 @@ columns `Forc_*` (see [TEB_Ru_variables_description.md](docs/TEB_Ru_variables_de
 The columns depend on the model options (e.g. `HVAC_*` only with the Building Energy
 Model, `SOLAR_PROD` only with solar panels).
 
-The Python utility [`python/output_utils.py`](python/output_utils.py) reads both this
-file and the legacy per-variable `*.txt` output of older runs:
+The Python utility [`python/output_utils.py`](python/output_utils.py) reads this file (the
+`Forc_*` columns it contains are used as the forcing overlay in the plots) as well as the
+legacy per-variable `*.txt` output of older runs:
 
 ```python
 import output_utils
-df = output_utils.read_output('output/')                  # TEB_output.csv
+
+df = output_utils.read_output('output/TEB_output.csv')    # the output file itself
+df = output_utils.read_output('output/')                  # ... or its directory
 df = output_utils.read_output('output_old/', fmt='txt',   # legacy <VAR>.txt files
-                              namelist_path='namelist/namelist_forcing.nml')
+                              namelist_path='namelist_forcing.nml')
 ```
 
 ### Compiler Flags
 
-Compiler settings are defined in [`src/gfortran_args`](https://github.com/mkolennikova/TEB-Ru/blob/main/src/gfortran_args). The model automatically detects the available compiler:
+Compiler settings are defined in [`src_dev/gfortran_args`](https://github.com/mkolennikova/TEB-Ru/blob/main/src_dev/gfortran_args)
+(the same file exists in [`src_ctrl/gfortran_args`](https://github.com/mkolennikova/TEB-Ru/blob/main/src_ctrl/gfortran_args)).
+The model automatically detects the available compiler:
 
 - `ifort` – Intel Fortran Compiler (if available)
 - `gfortran` – GNU Fortran Compiler (fallback)
@@ -139,14 +175,15 @@ Compiler settings are defined in [`src/gfortran_args`](https://github.com/mkolen
 Key compilation flags:
 - `-ffree-line-length-0` – Allow unlimited line length (avoids line truncation errors)
 - `-fdefault-real-8` – Use double precision real numbers
-- `-J$(OBJDIR)` – Place module files in the `build/obj` directory
+- `-J$(OBJDIR)` – Place module files in the build directory (`build/obj_dev` or `build/obj_ctrl`)
 
 On Windows the build additionally links `libgfortran` statically and applies a small
-workaround for a locale defect of the UCRT runtime (`src/src_driver/wrap_setlocale.c`):
-the formatted output of real numbers of `libgfortran` saves a `setlocale` pointer that
-the UCRT invalidates, which causes rare `SIGSEGV` failures of long runs. The workaround
-does not change the results (`WRAP_LOCALE=0` disables it explicitly); details and
-measurements are in §5.8 of [`docs/TEB_Ru_change_history.md`](docs/TEB_Ru_change_history.md).
+workaround for a locale defect of the UCRT runtime (`src_dev/src_driver/wrap_setlocale.c`,
+also in `src_ctrl`): the formatted output of real numbers of `libgfortran` saves a
+`setlocale` pointer that the UCRT invalidates, which causes rare `SIGSEGV` failures of long
+runs. The workaround does not change the results (`WRAP_LOCALE=0` disables it explicitly);
+details and measurements are in §5.8 of
+[`docs/TEB_Ru_change_history.md`](docs/TEB_Ru_change_history.md).
 
 ## References
 
@@ -156,15 +193,17 @@ measurements are in §5.8 of [`docs/TEB_Ru_change_history.md`](docs/TEB_Ru_chang
 
 3. [Lemonsu, A., Masson, V., Shashua-Bar, L., Erell, E., Pearlmutter, D., 2012. Inclusion of vegetation in the Town Energy Balance model for modelling urban green areas. Geoscientific Model Development 5, 1377–1393.](https://doi.org/10.5194/gmd-5-1377-2012)
 
-4. [Masson, V., 2000. A Physically-Based Scheme For The Urban Energy Budget In Atmospheric Models. Boundary-Layer Meteorology 94, 357–397.](https://doi.org/10.1023/A:1002463829265)
+4. [Macdonald, R.W., Griffiths, R.F., Hall, D.J., 1998. An improved method for the estimation of surface roughness of obstacle arrays. Atmospheric Environment 32, 1857–1864.](https://doi.org/10.1016/S1352-2310(97)00403-2)
 
-5. [Meyer, D., Schoetter, R., Masson, V., Grimmond, S., 2020. Enhanced software and platform for the Town Energy Balance (TEB) model. Journal of Open Source Software 5, 2008.](https://doi.org/10.21105/joss.02008)
+5. [Masson, V., 2000. A Physically-Based Scheme For The Urban Energy Budget In Atmospheric Models. Boundary-Layer Meteorology 94, 357–397.](https://doi.org/10.1023/A:1002463829265)
 
-6. [Tarasova, M.A., Debolskiy, A.V., Mortikov, E.V., Varentsov, M.I., Glazunov, A.V., Stepanenko, V.M., 2024. On the Parameterization of the Mean Wind Profile for Urban Canopy Models. Lobachevskii Journal of Mathematics 45, 3198–3210.](https://doi.org/10.1134/S1995080224603801)
+6. [Meyer, D., Schoetter, R., Masson, V., Grimmond, S., 2020. Enhanced software and platform for the Town Energy Balance (TEB) model. Journal of Open Source Software 5, 2008.](https://doi.org/10.21105/joss.02008)
 
-7. [Tarasova, M.A., Varentsov, M.I., Debolskiy, A.V., Stepanenko, V.M., 2025. Coupling the Town Energy Balance (TEB) Scheme with the COSMO Atmospheric Model: Evaluation Against a Bulk Parameterization (TERRA_URB) for the Moscow Megacity. GES 18, 118–134.](https://doi.org/10.24057/2071-9388-2025-3975)
+7. [Tarasova, M.A., Debolskiy, A.V., Mortikov, E.V., Varentsov, M.I., Glazunov, A.V., Stepanenko, V.M., 2024. On the Parameterization of the Mean Wind Profile for Urban Canopy Models. Lobachevskii Journal of Mathematics 45, 3198–3210.](https://doi.org/10.1134/S1995080224603801)
 
-8. [Wang, W., 2012. An Analytical Model for Mean Wind Profiles in Sparse Canopies. Boundary-Layer Meteorology 142, 383–399.](https://doi.org/10.1007/s10546-011-9687-0)
+8. [Tarasova, M.A., Varentsov, M.I., Debolskiy, A.V., Stepanenko, V.M., 2025. Coupling the Town Energy Balance (TEB) Scheme with the COSMO Atmospheric Model: Evaluation Against a Bulk Parameterization (TERRA_URB) for the Moscow Megacity. GES 18, 118–134.](https://doi.org/10.24057/2071-9388-2025-3975)
+
+9. [Wang, W., 2012. An Analytical Model for Mean Wind Profiles in Sparse Canopies. Boundary-Layer Meteorology 142, 383–399.](https://doi.org/10.1007/s10546-011-9687-0)
 
 ## Citation
 

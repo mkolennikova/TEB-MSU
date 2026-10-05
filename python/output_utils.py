@@ -34,7 +34,7 @@ def read_output_txt(output_dir, namelist_path):
   return output_df
 
 
-def read_output (output_dir, namelist_path=None, fmt='auto', include_forcing=True):
+def read_output (output_path, namelist_path=None, fmt='auto', include_forcing=True):
   """Read the output of a TEB-Ru offline run.
 
   Two formats are supported:
@@ -50,8 +50,10 @@ def read_output (output_dir, namelist_path=None, fmt='auto', include_forcing=Tru
 
   Parameters
   ----------
-  output_dir : str
-      Directory with the output (with or without a trailing separator).
+  output_path : str
+      The output directory (with or without a trailing separator) or the output file
+      itself, e.g. ``.../output/TEB_output.csv``. A directory is looked up for
+      ``TEB_output.csv``.
   namelist_path : str, optional
       Forcing namelist. Required for the legacy txt format only, because the CSV file
       carries its own time stamps.
@@ -68,21 +70,32 @@ def read_output (output_dir, namelist_path=None, fmt='auto', include_forcing=Tru
       Model output indexed by time. Numeric values are parsed with the Python
       ``float`` (the pandas fast float parser may lose 1 ULP for some real(8) values).
   """
-  output_dir = str(output_dir)
-  if not output_dir.endswith((os.sep, '/')):
-    output_dir += os.sep
-  csv_file = os.path.join(output_dir, 'TEB_output.csv')
+  output_path = str(output_path)
+
+  # A path to a concrete file is used as is; a directory is looked up for TEB_output.csv.
+  output_is_file = os.path.isfile(output_path) or output_path.lower().endswith('.csv')
+  if output_is_file:
+    csv_file = output_path
+  else:
+    if not output_path.endswith((os.sep, '/')):
+      output_path += os.sep
+    if not os.path.isdir(output_path):
+      raise FileNotFoundError(f'no such directory: {output_path}')
+    csv_file = os.path.join(output_path, 'TEB_output.csv')
 
   fmt = fmt.lower()
   if fmt == 'auto':
-    fmt = 'csv' if os.path.isfile(csv_file) else 'txt'
+    fmt = 'csv' if (output_is_file or os.path.isfile(csv_file)) else 'txt'
   if fmt not in ('csv', 'txt'):
     raise ValueError(f"fmt must be 'auto', 'csv' or 'txt', got {fmt!r}")
 
   if fmt == 'txt':
+    if output_is_file:
+      raise ValueError(f'{output_path} is a file: the legacy txt output is a directory '
+                       'of <VARIABLE>.txt files - pass the directory instead')
     if namelist_path is None:
       raise ValueError('namelist_path is required to read the legacy txt output')
-    return read_output_txt(output_dir, namelist_path)
+    return read_output_txt(output_path, namelist_path)
 
   if not os.path.isfile(csv_file):
     raise FileNotFoundError(f'no such file: {csv_file}')
@@ -103,8 +116,8 @@ def read_output (output_dir, namelist_path=None, fmt='auto', include_forcing=Tru
 
 # ============================================================================
 # Default configuration for subplots (uses variable names in legend)
-# Optional 'forcing' entries overlay the corresponding columns of forcing_df
-# as black reference lines (see preview_output_mpl / preview_output_plotly)
+# Optional 'forcing' entries overlay the corresponding Forc_* columns as black
+# reference lines; they come from an explicit forcing_df or from the output itself
 # ============================================================================
 DEFAULT_SUBPLOTS_CONFIG = [
     {
@@ -172,9 +185,10 @@ def _resolve_forcing_series(forcing_df, config, color='black', linewidth=1.5):
 
     A subplot config may contain an optional 'forcing' list, e.g.
         'forcing': [{'column': 'Forc_TA', 'label': 'FORC_TA'}]
-    Each entry is looked up in `forcing_df` (a DataFrame with 'Forc_*' columns, e.g.
-    from forcing_utils.read_forcing). The keys 'color' and 'linewidth' of an entry
-    override the function-level defaults; the forcing lines are always solid.
+    Each entry is looked up in `forcing_df` (a DataFrame with 'Forc_*' columns: an
+    explicit one, or the model output itself - see _forcing_frame). The keys 'color' and
+    'linewidth' of an entry override the function-level defaults; the forcing lines are always
+    solid.
 
     Returns
     -------
@@ -197,6 +211,22 @@ def _resolve_forcing_series(forcing_df, config, color='black', linewidth=1.5):
         series.append((forcing_df.index, y, spec.get('label', column),
                        spec.get('color', color), spec.get('linewidth', linewidth)))
     return series
+
+
+def _forcing_frame(df, forcing_df=None):
+    """
+    DataFrame the forcing overlay is taken from.
+
+    `forcing_df` wins when it is given (e.g. from forcing_utils.read_forcing). Otherwise the
+    'Forc_*' columns of the output itself are used: recent versions of the model write the
+    atmospheric forcing of every step into TEB_output.csv, so a separate forcing file is not
+    needed. Returns None when there is nothing to overlay.
+    """
+    if forcing_df is not None:
+        return forcing_df
+    if df is not None and any(str(col).startswith('Forc_') for col in df.columns):
+        return df
+    return None
 
 
 def preview_output_mpl(df, subplots_config=None, figsize=(10, 18), 
@@ -224,9 +254,10 @@ def preview_output_mpl(df, subplots_config=None, figsize=(10, 18),
         End time for filtering DataFrame.
     forcing_df : pandas.DataFrame, optional
         Forcing data to overlay as black reference lines, indexed by time and with
-        'Forc_*' columns (e.g. from forcing_utils.read_forcing). The panels that show
-        forcing data declare the columns in their config with a 'forcing' key; if
-        forcing_df is None (default) nothing is overlaid.
+        'Forc_*' columns. If None (default), the 'Forc_*' columns of `df` itself are used
+        when present - recent model output already carries the forcing of every step, so
+        no separate forcing file is needed. The panels that show forcing data declare
+        the columns in their config with a 'forcing' key.
     forcing_color : str, optional
         Colour of the forcing curves (default 'black').
     forcing_linewidth : float, optional
@@ -241,8 +272,9 @@ def preview_output_mpl(df, subplots_config=None, figsize=(10, 18),
     # Filter DataFrame if time range specified
     df_plot = _filter_df_by_time(df, start, end)
 
-    # Forcing data are filtered with the same time range
-    forcing_plot = _filter_df_by_time(forcing_df, start, end) if forcing_df is not None else None
+    # Forcing overlay: an explicit forcing_df, otherwise the 'Forc_*' columns of df
+    forcing_source = _forcing_frame(df, forcing_df)
+    forcing_plot = _filter_df_by_time(forcing_source, start, end) if forcing_source is not None else None
     
     if subplots_config is None:
         subplots_config = DEFAULT_SUBPLOTS_CONFIG
@@ -370,9 +402,10 @@ def preview_output_plotly(df, subplots_config=None, save_path=None, height=None,
         Legend placement: 'right' (default) or 'left'.
     forcing_df : pandas.DataFrame, optional
         Forcing data to overlay as black reference lines, indexed by time and with
-        'Forc_*' columns (e.g. from forcing_utils.read_forcing). The panels that show
-        forcing data declare the columns in their config with a 'forcing' key; if
-        forcing_df is None (default) nothing is overlaid.
+        'Forc_*' columns. If None (default), the 'Forc_*' columns of `df` itself are used
+        when present - recent model output already carries the forcing of every step, so
+        no separate forcing file is needed. The panels that show forcing data declare
+        the columns in their config with a 'forcing' key.
     forcing_color : str, optional
         Colour of the forcing curves (default 'black').
     forcing_linewidth : float, optional
@@ -397,8 +430,9 @@ def preview_output_plotly(df, subplots_config=None, save_path=None, height=None,
     
     n_rows = len(subplots_config)
     
-    # Forcing data are filtered with the same time range
-    forcing_plot = _filter_df_by_time(forcing_df, start, end) if forcing_df is not None else None
+    # Forcing overlay: an explicit forcing_df, otherwise the 'Forc_*' columns of df
+    forcing_source = _forcing_frame(df, forcing_df)
+    forcing_plot = _filter_df_by_time(forcing_source, start, end) if forcing_source is not None else None
 
     if height is None:
         height = max(600, n_rows * 200)
