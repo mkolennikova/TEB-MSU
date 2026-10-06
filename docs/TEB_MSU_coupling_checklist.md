@@ -72,7 +72,7 @@
 логических флагов), `ZQV_GR_EXT` (`src_dev/src_driver/call_driver.F90:272` → `REAL,DIMENSION(1)                 :: ZQV_GR_EXT        !IN greenroof specific humidity (external model)`),
 `ZZ0_GR_EXT` (`src_dev/src_driver/call_driver.F90:266` → `REAL,DIMENSION(1)                 :: ZZ0_GR_EXT        !IN greenroof roughness length (external model)`),
 `HZ0_TOWN`/`HZD_TOWN` (`src_dev/src_driver/call_driver.F90:234` → `CHARACTER(LEN=16)                 :: HZ0_TOWN          !IN z0 of the urban surface (0.5 | 0.5m | 0.1H | H/3 | <name>)`)
-и OUT-диагностики cbs-схемы `ZCD_GARDEN_ATM`/`ZCH_GARDEN_ATM`
+и OUT-диагностики CBS-схемы `ZCD_GARDEN_ATM`/`ZCH_GARDEN_ATM`
 (`src_dev/src_driver/call_driver.F90:387` → `REAL,DIMENSION(1)                 :: ZCD_GARDEN_ATM         !OUT`).
 Пара, уходящая хосту как `teb_tch_gd`/`teb_tcm_gd`, в обеих ветвях называется одинаково —
 `ZCH_GD`/`ZCD_GD` (`src_driver/call_driver.F90:248` → `REAL,DIMENSION(1)                 :: ZCH_GD            !OUT garden transfer coefficient for heat (external model)`,
@@ -216,11 +216,11 @@
 | `A_ctrl` | 126 | 106 | 20 |
 | `A_dev` | 126 | 96 | 30 |
 
-`A_dev` отличается от `A_ctrl` десятью дополнительными файлами — это cbs-схема дороги и снеговые
+`A_dev` отличается от `A_ctrl` десятью дополнительными файлами — это CBS-схема дороги и снеговые
 модули (`alloc_teb_struct.F90`, `dealloc_teb_struct.F90`, `modd_diag_misc_tebn.F90`,
 `modd_teb_optionn.F90`, `modd_tebn.F90`, `modi_snow_cover_1layer.f90`, `modi_urban_snow_evol.f90`,
 `snow_cover_1layer.F90`, `urban_fluxes.F90`, `urban_snow_evol.F90`). Садовой области сопряжения они
-не касаются; они описаны в `TEB_MSU_cbs_scheme_T_CAN_reformulation.md` и в
+не касаются; они описаны в `TEB_MSU_CBS_scheme_T_CAN_reformulation.md` и в
 `TEB_MSU_change_history.md`.
 
 Только в наших деревьях: `src_proxi_SVAT/modd_proxi_svat_par.F90` (носитель ключей словника) и

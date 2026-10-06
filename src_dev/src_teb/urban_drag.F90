@@ -135,7 +135,7 @@ REAL, DIMENSION(:), INTENT(IN)    :: PTS_GARDEN     ! surface temperature
 REAL, DIMENSION(:), INTENT(IN)    :: PQS_GARDEN     ! surface humidity
 REAL, DIMENSION(:), INTENT(IN)    :: PDELT_SNOW_ROOF! fraction of snow on roof
 REAL, DIMENSION(:), INTENT(IN)    :: PDELT_SNOW_ROAD! fraction of snow on road
-REAL, DIMENSION(:), INTENT(IN)    :: PTAU           ! cbs scheme weight of the canyon path (-)
+REAL, DIMENSION(:), INTENT(IN)    :: PTAU           ! CBS scheme weight of the canyon path (-)
 REAL, DIMENSION(:), INTENT(IN)    :: PEXNS          ! surface exner function
 REAL, DIMENSION(:), INTENT(IN)    :: PTA            ! temperature at the lowest level
 REAL, DIMENSION(:), INTENT(IN)    :: PQA            ! specific humidity
@@ -687,7 +687,7 @@ DO JJ=1,SIZE(PTA)
   !
   ZLE_MAX(JJ)     = T%XWS_ROAD(JJ) / PTSTEP * XLVTT
   !
-  !MV202609 cbs scheme of the road (revision: single bucket over both branches)
+  !MV202609 CBS scheme of the road (revision: single bucket over both branches)
   !* free (unlimited) latent fluxes of the two branches of the road (canyon air
   !* and forcing level), per m2 of snow-free road
   ZLE_CAN_FREE(JJ) = ( PQSAT_ROAD(JJ) - PQ_LOWCAN(JJ) )                 &
@@ -700,7 +700,7 @@ DO JJ=1,SIZE(PTA)
   !   ZLE_TOT = tau*ZLE_CAN_FREE + (1-tau)*ZLE_ATM_FREE
   !   f       = min(1, ZLE_MAX/ZLE_TOT)   (no limit for condensation, ZLE_TOT <= 0)
   ! so the reservoir constraint applies to the branches taken together, not to
-  ! each branch separately (with tau = 1 or the cbs scheme disabled this reduces
+  ! each branch separately (with tau = 1 or the CBS scheme disabled this reduces
   ! to the classic canyon-branch rule and the former behaviour is reproduced
   ! exactly). The same factor f applies to both branches, therefore the actual
   ! road latent flux is exactly tau*PLE_ROAD_CAN + (1-tau)*PLE_ROAD_ATM also

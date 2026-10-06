@@ -15,20 +15,20 @@
                                 PDN_RD, PLE_WL_A, PLE_WL_B, PLEW_RF, PLESN_RF,     &
                                 PLEW_RD, PLESN_RD, PHSN_RD,                        &
                                 PTSRAD_GD, PRN_GD, PH_GD, PLE_GD, PGFLUX_GD, PEVAP_GD,&
-!MV202609 cbs scheme of the garden (atmosphere branch of the garden fluxes)
+!MV202609 CBS scheme of the garden (atmosphere branch of the garden fluxes)
                                 PH_GD_ATM, PLE_GD_ATM,                       &
                                 PRUNOFF_GD, PEVAP_GR, PRUNOFF_GR, PDRAIN_GR,       &
                                 PRN_GRND, PH_GRND, PLE_GRND, PGFLX_GRND,           &
                                 PRN_TWN, PH_TWN, PLE_TWN, PGFLX_TWN, PEVAP_TWN,    &
                                 PEMIT_LW_RD, PEMIT_LW_GD, PEMIT_LW_GRND, PEMIS_GD, PLW_UP, &
-!MV202609 cbs scheme of the road
+!MV202609 CBS scheme of the road
                                 PTAU,                                        &
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
                                 PH_ROAD_ATM, PLE_ROAD_ATM, PCD_ROAD_ATM,     &
                                 ZZ0H_ROAD_ATM, PZREF, PVMOD,                 &
                                 PT_CAN0, PT_CAN1, PPHI_CAN1,                 &
                                 PQ_CAN0, PQ_CAN1,                             &
-!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                                 PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM)
 !   ##########################################################################
 !
@@ -180,7 +180,7 @@ REAL, DIMENSION(:), INTENT(IN)    :: PTSRAD_GD     ! green area surface temperat
 REAL, DIMENSION(:), INTENT(IN)    :: PRN_GD        ! net radiation over green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PH_GD         ! sensible heat flux over green areas
 REAL, DIMENSION(:), INTENT(IN)    :: PLE_GD        ! latent heat flux over green areas
-!MV202609 cbs scheme of the garden (atmosphere branch of the garden fluxes)
+!MV202609 CBS scheme of the garden (atmosphere branch of the garden fluxes)
 REAL, DIMENSION(:), INTENT(IN)    :: PH_GD_ATM     ! garden sensible heat flux towards the atmosphere [W m-2 garden]
 REAL, DIMENSION(:), INTENT(IN)    :: PLE_GD_ATM    ! garden latent  heat flux towards the atmosphere [W m-2 garden]
 REAL, DIMENSION(:), INTENT(IN)    :: PGFLUX_GD     ! flux through the green areas
@@ -207,9 +207,9 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PEMIT_LW_GRND ! LW emitted by the ground (r
 !
 REAL, DIMENSION(:), INTENT(IN)    :: PEMIS_GD  ! garden emissivity
 REAL, DIMENSION(:), INTENT(OUT)   :: PLW_UP    ! upwards longwave radiation
-!MV202609 cbs scheme of the road
-REAL, DIMENSION(:), INTENT(IN)    :: PTAU      ! cbs scheme weight of the canyon path (-)
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road
+REAL, DIMENSION(:), INTENT(IN)    :: PTAU      ! CBS scheme weight of the canyon path (-)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
 REAL, DIMENSION(:), INTENT(IN)    :: PH_ROAD_ATM    ! road sensible heat flux towards the atmosphere [W m-2 road]
 REAL, DIMENSION(:), INTENT(IN)    :: PLE_ROAD_ATM   ! road latent  heat flux towards the atmosphere [W m-2 road]
 REAL, DIMENSION(:), INTENT(IN)    :: PCD_ROAD_ATM   ! road drag coefficient to the atmosphere (-)
@@ -221,7 +221,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN1        ! free layer (second canopy)
 REAL, DIMENSION(:), INTENT(OUT)   :: PPHI_CAN1      ! free layer air temperature / theta* ratio of the MOST profile (-)
 REAL, DIMENSION(:), INTENT(OUT)   :: PQ_CAN0        ! canyon air humidity without tau (kg kg-1)
 REAL, DIMENSION(:), INTENT(OUT)   :: PQ_CAN1        ! free layer air humidity (kg kg-1)
-!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 REAL, DIMENSION(:), INTENT(IN)    :: PHSN_RD_CAN    ! snow -> canyon air sensible heat flux (W/m2 road snow)
 REAL, DIMENSION(:), INTENT(IN)    :: PHSN_RD_ATM    ! snow -> forcing level sensible heat flux (W/m2 road snow)
 REAL, DIMENSION(:), INTENT(IN)    :: PLESN_RD_CAN   ! snow -> canyon air latent heat flux (W/m2 road snow)
@@ -260,7 +260,7 @@ REAL, DIMENSION(SIZE(T%XROAD)) :: ZRD, ZGD
 !
 REAL :: ZINTER
 INTEGER :: JJ
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
 REAL :: ZU_ROAD_ATM      ! friction velocity of the road -> atmosphere path (m/s)
 REAL :: ZTH_CAN1         ! temperature scale of the free layer (K)
 REAL :: ZL_CAN1          ! Obukhov length of the free layer (m)
@@ -514,7 +514,7 @@ DO JJ=1,SIZE(T%XROAD)
 	!print*, 'avg_urban_fluxes PH_TRAFFIC = ', PH_TRAFFIC(JJ)
 	!print*, 'avg_urban_fluxes T%XBLD (JJ) = ', T%XBLD (JJ)
 	
-!MV202609 cbs scheme of the road
+!MV202609 CBS scheme of the road
 !* only the tau fraction of the road exchange heats the canyon air; the
 !* remaining part exchanges directly with the air of the forcing level
     ZINTER = PAC_RD(JJ) * PDF_RD(JJ) * ZRD (JJ) +  PAC_GD(JJ) * ZGD(JJ) + PAC_WL(JJ) * PWL_O_GRND(JJ) + PAC_TOP(JJ) 
@@ -538,7 +538,7 @@ DO JJ=1,SIZE(T%XROAD)
       PT_CAN0(JJ) = PT_CAN0(JJ) + (DMT%XH_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ)) / PRHOA(JJ) / XCPD) / ZINTER
     ENDIF
 !
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
 !* T_CAN1 - free layer (second canopy air) temperature. The canyon surfaces are
 !* supposed to exchange directly with the atmosphere - the road and the garden
 !* through their surface-to-atmosphere fluxes, the walls and the windows (their
@@ -556,7 +556,7 @@ DO JJ=1,SIZE(T%XROAD)
                + PRHOA(JJ) * XCPD * PAC_WL(JJ) * PWL_O_GRND(JJ)                        &
                * ( ZWLWIN_EFF - PT_LOWCAN(JJ) )                                        &
                + PH_TRAFFIC(JJ) / (1.-T%XBLD(JJ))                                      &
-!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                + ZRD(JJ) * PHSN_RD_ATM(JJ) * PDN_RD(JJ)
     IF (TOP%CBEM=="BEM") THEN
       ZH_CAN1 = ZH_CAN1 + DMT%XH_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ))
@@ -565,7 +565,7 @@ DO JJ=1,SIZE(T%XROAD)
     ZOK_CAN1    = ( PCD_ROAD_ATM(JJ) .GT. 0. .AND. PCD_ROAD_ATM(JJ) .LT. 1.            &
                 .AND. ZZ0H_ROAD_ATM(JJ) .GT. 0. .AND. ZZ0H_ROAD_ATM(JJ) .LT. 1.        &
                 .AND. PVMOD(JJ) .GT. 0. )
-!MV202609 cbs scheme of the road (revision: free layer at/above the forcing level)
+!MV202609 CBS scheme of the road (revision: free layer at/above the forcing level)
 !* the free layer is at H/2; when that level is at or above the reference level
 !* z_ref the MOST profile anchored at z_ref is not defined there, and the free
 !* layer is identified with the air of the forcing level: PHI_CAN1 = 0, so that
@@ -620,7 +620,7 @@ DO JJ=1,SIZE(T%XROAD)
       PQ_CAN0(JJ) = PQ_CAN0(JJ) + (DMT%XLE_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ)) / PRHOA(JJ) / XLVTT) / ZINTER
     ENDIF
 !
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
 !* T_CAN1 humidity: same construction as the air temperature, with the moisture
 !* input of the free layer and the same MOST profile at H/2 (psi_q = psi_h)
 !
@@ -629,7 +629,7 @@ DO JJ=1,SIZE(T%XROAD)
     IF (TOP%CBEM=="BEM") THEN
       ZLE_CAN1 = ZLE_CAN1 + DMT%XLE_WASTE(JJ) * B%XF_WASTE_CAN(JJ) / (1-T%XBLD(JJ))
     ENDIF
-!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 !* the snow sublimates (XLSTT) while the other sources evaporate liquid water
 !* (XLVTT): the snow part is converted into its XLVTT-equivalent so that the
 !* single latent heat of the sub-layer formula can be applied to the whole sum
@@ -661,7 +661,7 @@ IF (LHOOK) CALL DR_HOOK('AVG_URBAN_FLUXES',1,ZHOOK_HANDLE)
 !
 CONTAINS
 !
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
 !* stability function for heat of the Businger-Dyer family, with the coefficients
 !* used by SURFACE_CD / SURFACE_AERO_COND (15 in the unstable regime, 5 in the
 !* stable one). PSI_H_BD = integral of (1 - phi_h) d(zeta) / zeta

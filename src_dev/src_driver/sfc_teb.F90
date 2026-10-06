@@ -66,9 +66,9 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                        &
-!MV202609 cbs scheme of the road
+!MV202609 CBS scheme of the road
                           PH_ROAD, PLE_ROAD, PAC_ROAD_WAT, PAC_ROAD_ATM_WAT, PDN_RD, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                           PDN_RF, LE_ROOF_WAT, LE_ROOF_SNOW, &
@@ -81,7 +81,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 !MV202609 garden diagnostics
                           teb_ts_garden, teb_rn_garden, teb_h_garden, teb_le_garden,       &
                           teb_evap_garden, teb_qsat_garden, teb_phu_garden,               &
-!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
                           teb_h_garden_can, teb_h_garden_atm,                             &
                           teb_le_garden_can, teb_le_garden_atm,                           &
                           teb_pac_garden,                                                 &
@@ -351,16 +351,16 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_CAN      ! road sensible heat flux,
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_CAN     ! road latent heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_ATM      ! road sensible heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_ATM     ! road latent heat flux, road -> forcing level [W m-2]
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
 REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN0          ! canyon air temperature without tau [K]
 REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN1          ! free layer (second canopy) air temperature [K]
 REAL, DIMENSION(:), INTENT(OUT)   :: PPHI_CAN1        ! free layer air temperature / theta* ratio of the MOST profile [-]
-!MV202609 cbs scheme of the road
-REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD          ! road sensible heat flux, cbs scheme [W m-2]
+!MV202609 CBS scheme of the road
+REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD          ! road sensible heat flux, CBS scheme [W m-2]
 !MV202609 anthropogenic heat diagnostics
 REAL, DIMENSION(:), INTENT(OUT)   :: teb_lewaste       ! latent waste heat of the buildings [W m-2]
-REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD         ! road latent heat flux, cbs scheme [W m-2]
-!MV202609 cbs scheme of the road (revision: puddle diagnostics)
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD         ! road latent heat flux, CBS scheme [W m-2]
+!MV202609 CBS scheme of the road (revision: puddle diagnostics)
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_WAT     ! road water conductance (canyon, water-limited)
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM_WAT ! road water conductance (forcing level, water-limited)
 REAL, DIMENSION(:), INTENT(OUT)   :: PDN_RD           ! road snow fraction (-)
@@ -378,7 +378,7 @@ REAL, DIMENSION(nvec), INTENT(OUT) :: teb_le_garden    ! latent heat flux over t
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_evap_garden  ! total evaporation over the garden (kg/m2/s)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_qsat_garden  ! garden saturation specific humidity (kg/kg)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_phu_garden   ! garden aggregated relative humidity (-)
-!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_h_garden_can  ! garden sensible heat flux, garden -> canyon air (W/m2 garden)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_h_garden_atm  ! garden sensible heat flux, garden -> forcing level (W/m2 garden)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_le_garden_can ! garden latent  heat flux, garden -> canyon air (W/m2 garden)
@@ -400,9 +400,9 @@ REAL, DIMENSION(nvec), INTENT(OUT) :: teb_pcdn_greenroof_atm ! greenroof neutral
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_pch_greenroof_atm  ! greenroof drag coefficient for heat (atm.)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_pri_greenroof_atm  ! greenroof Richardson number (atm.)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_zz0h_greenroof_atm ! greenroof roughness length for heat (atm.)
-LOGICAL,              INTENT(IN)  :: teb_lcbs_scheme  ! flag to use the cbs scheme for the road
-REAL,                 INTENT(IN)  :: teb_tau_hw_thresh! H/W giving tau = 0.5 (cbs scheme)
-REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxation (cbs scheme)
+LOGICAL,              INTENT(IN)  :: teb_lcbs_scheme  ! flag to use the CBS scheme for the road
+REAL,                 INTENT(IN)  :: teb_tau_hw_thresh! H/W giving tau = 0.5 (CBS scheme)
+REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxation (CBS scheme)
 	REAL ,DIMENSION(nvec) :: teb_rn_town
 	REAL ,DIMENSION(nvec) :: teb_wind_canyon
 	REAL ,DIMENSION(nvec) :: teb_tsroad
@@ -460,9 +460,9 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
                           PRI_ROAD_ATM(i), ZZ0H_ROAD_ATM(i), PCDN_GARDEN_CAN(i), PRI_GARDEN_CAN(i), &
                           ZZ0H_GARDEN_CAN(i), PAC_GARDEN_ATM(i), PCDN_GARDEN_ATM(i), PRI_GARDEN_ATM(i), ZZ0H_GARDEN_ATM(i), &
                           PH_ROAD_CAN(i), PLE_ROAD_CAN(i), PH_ROAD_ATM(i), PLE_ROAD_ATM(i), &
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
                           PT_CAN0(i), PT_CAN1(i), PPHI_CAN1(i),                            &
-!MV202609 cbs scheme of the road
+!MV202609 CBS scheme of the road
                           PH_ROAD(i), PLE_ROAD(i), PAC_ROAD_WAT(i), PAC_ROAD_ATM_WAT(i), PDN_RD(i), LE_ROAD_WAT(i), LE_ROAD_SNOW(i), &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                           PDN_RF(i), LE_ROOF_WAT(i), LE_ROOF_SNOW(i), &
@@ -475,7 +475,7 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxa
 !MV202609 garden diagnostics
                           teb_ts_garden(i), teb_rn_garden(i), teb_h_garden(i), teb_le_garden(i), &
                           teb_evap_garden(i), teb_qsat_garden(i), teb_phu_garden(i),            &
-!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
                           teb_h_garden_can(i), teb_h_garden_atm(i),                             &
                           teb_le_garden_can(i), teb_le_garden_atm(i),                           &
                           teb_pac_garden(i),                                                   &

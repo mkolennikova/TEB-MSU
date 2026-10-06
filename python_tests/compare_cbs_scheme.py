@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """
-Comparison of the TEB-MSU cbs scheme for the road fluxes.
+Comparison of the TEB-MSU CBS scheme for the road fluxes.
 
 Purpose
 -------
-With the cbs scheme the actual road fluxes are the weighted mean of the
+With the CBS scheme the actual road fluxes are the weighted mean of the
 road/canyon and road/forcing-level exchanges, with the weights tau and 1-tau:
 
     tau = 0.5 * (1 + tanh((H/W - teb_tau_hw_thresh) / teb_tau_hw_width))
@@ -14,7 +14,7 @@ air of the forcing level) and tau = 1 for a dense canyon (the road exchanges
 with the canyon air only).
 
 This script runs every case twice - with teb_lcbs_scheme = .FALSE. (reference)
-and .TRUE. (cbs scheme) - and compares the effect of the scheme on
+and .TRUE. (CBS scheme) - and compares the effect of the scheme on
 
   * the canyon air temperature T_CANYON and specific humidity Q_CANYON,
   * the actual road fluxes H_ROAD / LE_ROAD (as used by the road energy budget),
@@ -30,10 +30,10 @@ ERA5 forcing (hlev_teb = 10 m), the LCZ 2, LCZ 6D, LCZ 9 and SPARSE morphologies
 (teb_itype_wind = 0 and 1). The urban roughness length and the displacement height
 keep their default prescriptions (urb_z0_town = '0.1H' and urb_zd_town = 'H/3').
 
-The cbs scheme is driven by the canyon H/W ratio of the morphology (urb_h2w):
+The CBS scheme is driven by the canyon H/W ratio of the morphology (urb_h2w):
 LCZ 2 (compact midrise) is a dense canyon (tau close to 1), LCZ 6D (low but dense
 buildings) sits exactly on the driver default of the threshold, urb_h2w = 0.5 =
-teb_tau_hw_thresh, so that tau = 0.5 (the worst case of the cbs averaging, where
+teb_tau_hw_thresh, so that tau = 0.5 (the worst case of the CBS averaging, where
 the canyon path and the atmosphere path carry the same weight), and LCZ 9 and
 SPARSE (sparsely built) are close to the free atmosphere (small tau).
 
@@ -91,7 +91,7 @@ from sensitivity_zd import (                                         # noqa: E40
 #: values >= XUNDEF are undefined in TEB-MSU (MODD_SURF_PAR:XUNDEF = 1.0e20)
 XUNDEF = 1.0e19
 
-#: variables compared between the reference and the cbs runs: column ->
+#: variables compared between the reference and the CBS runs: column ->
 #: (label, unit, colour)
 CMP = {
     'T_CANYON':    ('canyon air temperature',                'K',     '#1f77b4'),
@@ -114,7 +114,7 @@ AUX = ('T_ROAD1', 'Forc_TA', 'Forc_WIND', 'U_CANYON', 'WIND_TOP')
 
 #: diurnal-cycle figures: (variable, file name, y label). One variable per
 #: figure: temperature and humidity differ by orders of magnitude, and a single
-#: curve pair per panel keeps the effect of the cbs scheme readable
+#: curve pair per panel keeps the effect of the CBS scheme readable
 DIURNAL = (
     ('T_CANYON', 'cbs_canyon_diurnal.png',   'canyon air temperature (K)'),
     ('T_CAN1',   'cbs_tcan1_diurnal.png',    'free layer air temperature (K)'),
@@ -132,10 +132,10 @@ TIMESERIES = (
 )
 
 #: potential components of the road flux drawn with the actual road flux of the
-#: cbs run (they show that the actual flux is their tau-weighted mean)
+#: CBS run (they show that the actual flux is their tau-weighted mean)
 ROAD_COMPONENTS = ('H_ROAD_CAN', 'H_ROAD_ATM')
 
-#: the reference (cbs scheme off) is drawn in grey and dashed, the cbs run in
+#: the reference (CBS scheme off) is drawn in grey and dashed, the CBS run in
 #: the colour of the variable and solid
 COLOUR_REF = '#7f7f7f'
 
@@ -144,7 +144,7 @@ COLOUR_REF = '#7f7f7f'
 #: is an input: it is identical in the two runs, so it is drawn once per panel
 #: ('ref') and shows how far the canyon air follows the forcing. All the other
 #: curves are model diagnostics, which differ between the two runs: they must be
-#: taken from the cbs run ('run'), otherwise the figure shows the reference
+#: taken from the CBS run ('run'), otherwise the figure shows the reference
 #: canyon air instead of the tau-relaxed one.
 EXTRA = {
     'T_CANYON': (('Forc_TA', 'T forcing level', '#000000', ':', 1.8, 'ref'),),
@@ -157,7 +157,7 @@ EXTRA = {
 Z0_DEFAULT = '0.1H'
 ZD_DEFAULT = 'H/3'
 
-#: default cbs scheme parameters (same as the driver defaults)
+#: default CBS scheme parameters (same as the driver defaults)
 TAU_THRESH_DEFAULT = 0.5
 TAU_WIDTH_DEFAULT = 0.25
 
@@ -168,7 +168,7 @@ WASTE_OFF_THEAT = 200.0
 
 
 def tau_of(hw_ratio: float, thresh: float, width: float) -> float:
-    """tau of the cbs scheme: tanh relaxation of the canyon H/W ratio.
+    """tau of the CBS scheme: tanh relaxation of the canyon H/W ratio.
 
     tau -> 0 for very sparse buildings (H/W -> 0) and tau -> 1 for a dense
     canyon (H/W well above the threshold). Same formula as (and kept in sync
@@ -199,7 +199,7 @@ def build_namelist(base_nml: Path, lcz_tag: str, wind_type: int, path: Path,
                    garden: bool, fr_garden: float, tau: bool,
                    tau_thresh: float, tau_width: float,
                    ahf_traffic: float = 0.0, waste: bool = True) -> Path:
-    """Namelist of one case: base namelist + LCZ + wind scheme + cbs scheme.
+    """Namelist of one case: base namelist + LCZ + wind scheme + CBS scheme.
 
     `ahf_traffic` is the annual mean anthropogenic heat flux due to traffic
     [W/m2] of the namelist (a daily cycle is applied by the driver, see
@@ -267,7 +267,7 @@ def mean_of(x):
 
 
 def case_statistics(case: str, ref: dict, run: dict, tau_val: float) -> list:
-    """One row per compared variable: reference, cbs run and their difference."""
+    """One row per compared variable: reference, CBS run and their difference."""
     rows = []
     for name, (label, unit, _) in CMP.items():
         a, b = ref.get(name), run.get(name)
@@ -323,7 +323,7 @@ def plot_timeseries(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
 
     `extra` lists further curves (variable, label, colour, style, line width,
     source): 'ref' for the forcing (an input, identical in both runs) and 'run'
-    for the model diagnostics of the cbs run.
+    for the model diagnostics of the CBS run.
     """
     label, unit, col = CMP[name]
     keys = list(info)
@@ -343,14 +343,14 @@ def plot_timeseries(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
         ]
         for vname, vlabel, vcol, vls, vlw, src in extra:
             #: 'ref' for the forcing (an input, identical in both runs),
-            #: 'run' for the model diagnostics of the cbs run
+            #: 'run' for the model diagnostics of the CBS run
             y = (run[case] if src == 'run' else ref[case]).get(vname)
             series.append((vlabel, None if y is None else y[:nshow], vcol, vls, vlw))
         _panel(ax, case, info, tau_vals[case], x, series, ylabel)
     for ax in axes[len(keys):]:
         ax.axis('off')
     fig.suptitle(f'{label}, first {days:g} days: '
-                 f'reference (cbs scheme off) versus cbs scheme', fontsize=11)
+                 f'reference (CBS scheme off) versus CBS scheme', fontsize=11)
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     fig.savefig(path, dpi=150)
     plt.close(fig)
@@ -366,14 +366,14 @@ def _hourly_mean(y, hours, xh):
 def plot_diurnal(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
                  ylabel: str, path: Path, ref_line: bool = True, run_only=(),
                  extra=()):
-    """Mean diurnal cycle of one variable: reference versus cbs scheme.
+    """Mean diurnal cycle of one variable: reference versus CBS scheme.
 
-    With `ref_line = False` only the cbs run is drawn (used for the potential
+    With `ref_line = False` only the CBS run is drawn (used for the potential
     components figure). `run_only` lists further variables drawn for the tau
     run, in their own colour and dotted. `extra` lists further curves
     (variable, label, colour, style, line width, source): 'ref' for the forcing
     (an input, identical in both runs) and 'run' for the model diagnostics of
-    the cbs run (T_CAN0 and T_CANYON differ between the two runs, so the
+    the CBS run (T_CAN0 and T_CANYON differ between the two runs, so the
     reference values would draw the canyon air without relaxation).
     """
     label, unit, col = CMP[name]
@@ -402,7 +402,7 @@ def plot_diurnal(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
             series.append((f'{lab2} (tau on)', _hourly_mean(y, hours, xh), col2, ':'))
         for vname, vlabel, vcol, vls, vlw, src in extra:
             #: 'ref' for the forcing (an input, identical in both runs),
-            #: 'run' for the model diagnostics of the cbs run
+            #: 'run' for the model diagnostics of the CBS run
             y = (run[case] if src == 'run' else ref[case]).get(vname)
             if y is None or not np.any(np.isfinite(y)):
                 continue
@@ -411,7 +411,7 @@ def plot_diurnal(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
         ax.set_xlabel('hour (UTC)')
     for ax in axes[len(keys):]:
         ax.axis('off')
-    fig.suptitle(f'Mean diurnal cycle of {label}: reference versus cbs scheme',
+    fig.suptitle(f'Mean diurnal cycle of {label}: reference versus CBS scheme',
                  fontsize=11)
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     fig.savefig(path, dpi=150)
@@ -419,7 +419,7 @@ def plot_diurnal(ref: dict, run: dict, info: dict, tau_vals: dict, name: str,
 
 
 def plot_scatter(ref: dict, run: dict, info: dict, name: str, path: Path):
-    """cbs run versus reference: canyon temperature and road flux."""
+    """CBS run versus reference: canyon temperature and road flux."""
     label, unit, col = CMP[name]
     fig, ax = plt.subplots(1, 1, figsize=(6.8, 6.0))
     lo, hi = np.inf, -np.inf
@@ -435,9 +435,9 @@ def plot_scatter(ref: dict, run: dict, info: dict, name: str, path: Path):
         hi = max(hi, float(np.nanmax(a[m])), float(np.nanmax(b[m])))
     if np.isfinite(lo) and np.isfinite(hi):
         ax.plot([lo, hi], [lo, hi], color='k', lw=0.8, ls='--', label='1:1')
-    ax.set_xlabel(f'{label}: reference, cbs scheme off ({unit})')
-    ax.set_ylabel(f'{label}: cbs scheme on ({unit})')
-    ax.set_title(f'{label}: cbs scheme versus reference', fontsize=10)
+    ax.set_xlabel(f'{label}: reference, CBS scheme off ({unit})')
+    ax.set_ylabel(f'{label}: CBS scheme on ({unit})')
+    ax.set_title(f'{label}: CBS scheme versus reference', fontsize=10)
     ax.grid(alpha=0.3)
     ax.legend(fontsize=7)
     fig.tight_layout()
@@ -456,7 +456,7 @@ def write_readme(out_root: Path, base: Path, forcing_nml: Path, info: dict,
         hw = float(LCZ[lcz_tag]['h2w'])
         lines.append(f'| `{case}` | {LCZ[lcz_tag]["label"]} | {wind_type} | '
                      f'{hw:g} | {tau_of(hw, tau_thresh, tau_width):.3f} |')
-    txt = f"""# Comparison of the cbs scheme of the road fluxes (TEB-MSU)
+    txt = f"""# Comparison of the CBS scheme of the road fluxes (TEB-MSU)
 
 Generated by `python_tests/compare_cbs_scheme.py`. The simulation data are kept here.
 
@@ -474,7 +474,7 @@ Generated by `python_tests/compare_cbs_scheme.py`. The simulation data are kept 
   (daily cycle applied by the driver, `teb_utc_hour` of the base namelist),
   `ahf_industry = 0`
 * Every case is run twice: `teb_lcbs_scheme = .FALSE.` (reference) and `.TRUE.`
-  (cbs scheme), with `teb_tau_hw_thresh = {tau_thresh:g}` and
+  (CBS scheme), with `teb_tau_hw_thresh = {tau_thresh:g}` and
   `teb_tau_hw_width = {tau_width:g}`
 
 ## Cases and tau
@@ -500,11 +500,11 @@ Generated by `python_tests/compare_cbs_scheme.py`. The simulation data are kept 
 | `H_WASTE` | sensible waste heat of the buildings (HVAC + infiltration/ventilation) |
 
 `AHF_TRAFFIC` and `H_WASTE` are already contained in `H_TOWN` with their full
-weight: the cbs scheme replaces the road exchange only and does not weight the
+weight: the CBS scheme replaces the road exchange only and does not weight the
 anthropogenic fluxes (verified numerically by `python_tests/check_anthro_heat.py`),
 so that `H_TOWN - AHF_TRAFFIC - H_WASTE` is the flux of the urban surfaces.
 
-With the cbs scheme the actual road flux is the weighted mean
+With the CBS scheme the actual road flux is the weighted mean
 `tau * *_ROAD_CAN + (1 - tau) * *_ROAD_ATM`: only the tau fraction of the road
 exchange heats the canyon air, the remaining part exchanging directly with the
 air of the forcing level.
@@ -552,16 +552,16 @@ any code switch (`teb_tau_hw_thresh = -1000` gives `tau = 1`,
   air and the forcing-level temperature
 * `plots/cbs_humidity_diurnal.png` - mean diurnal cycle of the canyon humidity
 * `plots/cbs_htown_diurnal.png` - mean diurnal cycle of the town sensible heat
-  flux (the main effect of the cbs scheme)
+  flux (the main effect of the CBS scheme)
 * `plots/cbs_letown_diurnal.png` - mean diurnal cycle of the town latent heat flux
 * `plots/cbs_hroad_diurnal.png` - mean diurnal cycle of the actual road sensible
-  heat flux: reference versus cbs scheme
-* `plots/cbs_hroad_components_diurnal.png` - cbs run: actual road sensible heat
+  heat flux: reference versus CBS scheme
+* `plots/cbs_hroad_components_diurnal.png` - CBS run: actual road sensible heat
   flux and its potential components (tau = 1 and tau = 0)
 * `plots/cbs_lroad_diurnal.png` - mean diurnal cycle of the actual road latent
   heat flux
-* `plots/cbs_tcanyon_scatter.png` - canyon temperature: cbs scheme versus reference
-* `plots/cbs_hroad_scatter.png` - road sensible heat flux: cbs scheme versus reference
+* `plots/cbs_tcanyon_scatter.png` - canyon temperature: CBS scheme versus reference
+* `plots/cbs_hroad_scatter.png` - road sensible heat flux: CBS scheme versus reference
 
 ## Re-running
 
@@ -581,7 +581,7 @@ def _read_text(path: Path):
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
-        description='cbs scheme of the TEB-MSU road fluxes: reference versus cbs run')
+        description='CBS scheme of the TEB-MSU road fluxes: reference versus CBS run')
     ap.add_argument('--work-dir', default=DEFAULT_WORK_DIR,
                     help='working directory of run_on_windows.ipynb (default: %(default)s)')
     ap.add_argument('--site', default='Moscow', help='site name (default: %(default)s)')
@@ -601,7 +601,7 @@ def main(argv=None) -> int:
                     help='run the cases even if their output already exists')
     ap.add_argument('--list', action='store_true', help='list the cases and exit')
     ap.add_argument('--no-cbs', action='store_true',
-                    help='run only the reference cases (cbs scheme off)')
+                    help='run only the reference cases (CBS scheme off)')
     ap.add_argument('--no-garden', action='store_true',
                     help='do not activate the garden')
     ap.add_argument('--ahf-traffic', type=float, default=0.0,
@@ -635,7 +635,7 @@ def main(argv=None) -> int:
     garden = not args.no_garden
     use_cbs = not args.no_cbs
     waste = not args.no_waste
-    # BEM option of the base configuration (the cbs scheme is evaluated with it)
+    # BEM option of the base configuration (the CBS scheme is evaluated with it)
     try:
         bem = str(f90nml.read(str(base))['tebparam']['teb_itype_bem']).strip()
     except Exception:                                     # noqa: BLE001
@@ -667,7 +667,7 @@ def main(argv=None) -> int:
             return 2
 
     print('==================================================================')
-    print('TEB-MSU cbs scheme of the road fluxes: reference versus cbs run')
+    print('TEB-MSU CBS scheme of the road fluxes: reference versus CBS run')
     print('  model          :', exe)
     print('  forcing nml    :', forcing_nml)
     print('  base nml       :', base)
@@ -751,7 +751,7 @@ def main(argv=None) -> int:
 
     pd.set_option('display.width', 200)
     if run_data:
-        print('\nEffect of the cbs scheme (cbs run minus reference):')
+        print('\nEffect of the CBS scheme (CBS run minus reference):')
         for name in ('T_CANYON', 'T_CAN0', 'T_CAN1', 'Q_CANYON', 'H_ROAD', 'LE_ROAD',
                      'H_TOWN', 'LE_TOWN'):
             sub = stats[stats.variable == name]
@@ -760,7 +760,7 @@ def main(argv=None) -> int:
                                          'mean_diff', 'min_diff', 'max_diff']]
                   .round(4).to_string())
     else:
-        print('\nNo cbs runs: only the reference cases were simulated (--no-cbs)')
+        print('\nNo CBS runs: only the reference cases were simulated (--no-cbs)')
 
     print('\nStatistics :', stats_csv)
     print('Data kept  :', out_root)

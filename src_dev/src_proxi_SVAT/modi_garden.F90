@@ -29,7 +29,7 @@ INTERFACE
                 PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                                   &
                 PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                        &
                 PDRAIN_GARDEN, PIRRIG_GARDEN,              &
-!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
                 PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM,              &
 !MV202609 garden exchange coefficients and moisture multiplier, returned to the caller
                 PPCD_GD, PPCH_GD, PHU_AGG_GARDEN                                       )

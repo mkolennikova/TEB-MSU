@@ -16,8 +16,8 @@ Typical values are taken from the LCZ literature, Stewart & Oke (2012) and the
 parameter tables used by WUDAPT-to-WRF.
 
 `LCZ` holds every configuration used by the benches, as a single set shared by all
-of them (sensitivity_zd, the garden and greenroof ones and the cbs comparison).
-`LCZ6D` is the low but dense morphology (its H/W is the driver default of the cbs
+of them (sensitivity_zd, the garden and greenroof ones and the CBS comparison).
+`LCZ6D` is the low but dense morphology (its H/W is the driver default of the CBS
 threshold, so that tau = 0.5 exactly).
 """
 
@@ -29,9 +29,9 @@ LCZ = {
     'LCZ2': dict(label='LCZ 2 - compact mid-rise (Moscow centre)',
                  h_bld=20.0, fr_bld=0.55, h2w=1.50, fai=0.40),
     #: LOW but DENSE buildings (a dense open low-rise, roughly a compact LCZ 6).
-    #: The aspect ratio is the driver default of the cbs threshold,
+    #: The aspect ratio is the driver default of the CBS threshold,
     #: urb_h2w = 0.5 = teb_tau_hw_thresh, so tanh(0) = 0 gives tau = 0.5 EXACTLY,
-    #: whatever the width: it is the worst case of the cbs averaging, where the
+    #: whatever the width: it is the worst case of the CBS averaging, where the
     #: canyon path and the atmosphere path carry the same weight (1/2 each). The
     #: plan area index follows the same geometry as SPARSE (fr_bld = 0.5/1.588 =
     #: 0.37, fai = 0.67 * fr_bld); the building height stays the low-rise one.

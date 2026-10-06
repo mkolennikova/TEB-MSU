@@ -17,7 +17,7 @@ with ``zref = H/2`` the canyon reference height of TEB, ``z0 = urb_z0_gdn`` and
 formulation without thermal roughness, and is reproduced exactly.
 
 This script runs the offline model on the Moscow ERA5 forcing for the three LCZs
-of ``python_tests/sensitivity_zd.py``, two settings of the road cbs scheme (OFF
+of ``python_tests/sensitivity_zd.py``, two settings of the road CBS scheme (OFF
 and ``tau = 0.5`` exactly) and four values of ``R`` (1, 2, 4, 8) -- 24 runs --
 and checks
 
@@ -39,7 +39,7 @@ and checks
   H7  the actual sensitivity of the garden, of the canyon and of the town to R
       (effect tables, diurnal cycles in the figures).
 
-Configurations (3 LCZ x 2 cbs settings x 4 ratios = 24 runs)
+Configurations (3 LCZ x 2 CBS settings x 4 ratios = 24 runs)
 ------------------------------------------------------------
     tOFF : teb_lcbs_scheme = .FALSE.  (garden exchanges with the canyon air)
     t05  : teb_lcbs_scheme = .TRUE., teb_tau_hw_thresh = urb_h2w -> tau = 0.5 exactly
@@ -97,10 +97,10 @@ XUNDEF = 1.0e19
 XKARMAN = 0.4
 XVMIN_GD = 0.5
 
-#: cbs settings: tag -> (teb_lcbs_scheme, description)
+#: CBS settings: tag -> (teb_lcbs_scheme, description)
 CBS_SETTINGS = {
-    'tOFF': (False, 'cbs scheme OFF (garden <-> canyon air only)'),
-    't05': (True,  'cbs scheme ON with the threshold of the site: tau = 0.5 exactly'),
+    'tOFF': (False, 'CBS scheme OFF (garden <-> canyon air only)'),
+    't05': (True,  'CBS scheme ON with the threshold of the site: tau = 0.5 exactly'),
 }
 
 #: z0/z0h ratios compared (-): no thermal roughness, the namelist default and two
@@ -109,7 +109,7 @@ R_VALUES = (1.0, 2.0, 4.0, 8.0)
 R_REF = 1.0
 
 #: the model is compiled with -ffpe-trap=invalid,zero: rare intermittent IEEE
-#: traps have been observed in the sparse / cbs-on configurations WITH THE
+#: traps have been observed in the sparse / CBS-on configurations WITH THE
 #: REFERENCE BUILD AS WELL (an uninitialised-value or marginal-division defect of
 #: the model, not related to z0h), so a failed case is simply retried.
 RUN_RETRIES = 3

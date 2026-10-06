@@ -112,10 +112,10 @@ INTERFACE
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
-!MV202609 cbs scheme of the road
+!MV202609 CBS scheme of the road
                                                     PT_CAN0, PT_CAN1, PPHI_CAN1,                             &
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
-!MV202609 cbs scheme of the road (revision: puddle diagnostics)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: puddle diagnostics)
                                                      PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                                                      LE_ROOF_WAT, LE_ROOF_SNOW, &
@@ -127,7 +127,7 @@ INTERFACE
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, &
-!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
                           PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
 !MV202609 greenroof diagnostics
                           PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
@@ -342,7 +342,7 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_ROOF       ! runoff over the grou
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_ROAD           ! net radiation over road
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_ROAD            ! sensible heat flux over road
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_ROAD           ! latent heat flux over road
-!MV202609 cbs scheme of the road (revision: puddle diagnostics)
+!MV202609 CBS scheme of the road (revision: puddle diagnostics)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_ROAD_ATM_WAT   ! road water conductance (forcing level, water-limited)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: LE_ROAD_WAT        ! road latent heat flux of the snow-free road (W/m2 road)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: LE_ROAD_SNOW       ! road latent heat flux of the snow-covered road (W/m2 road)
@@ -380,7 +380,7 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PHSNOW_ROAD        ! sensible heat flux o
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PLESNOW_ROAD       ! latent heat flux over snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PGSNOW_ROAD        ! flux under the snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PMELT_ROAD         ! snow melt
-!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 !* local branch diagnostics of the road snow exchange (internal to the wrapper)
 REAL, DIMENSION(SIZE(PWS_ROAD)) :: PHSN_RD_CAN        ! sensible heat flux over snow, snow -> canyon air
 REAL, DIMENSION(SIZE(PWS_ROAD)) :: PHSN_RD_ATM        ! sensible heat flux over snow, snow -> forcing level
@@ -470,7 +470,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_CAN      ! road sensible heat flux,
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_CAN     ! road latent heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_ATM      ! road sensible heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_ATM     ! road latent heat flux, road -> forcing level [W m-2]
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
 REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN0          ! canyon air temperature without tau [K]
 REAL, DIMENSION(:), INTENT(OUT)   :: PT_CAN1          ! free layer (second canopy) air temperature [K]
 REAL, DIMENSION(:), INTENT(OUT)   :: PPHI_CAN1        ! free layer air temperature / theta* ratio of the MOST profile [-]
@@ -482,7 +482,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN       ! latent heat flux over th
 REAL, DIMENSION(:), INTENT(OUT)   :: PEVAP_GARDEN     ! total evaporation over the garden [kg/m2/s]
 REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_GARDEN     ! garden saturation specific humidity [kg/kg]
 REAL, DIMENSION(:), INTENT(OUT)   :: PHU_GARDEN       ! garden aggregated relative humidity [-]
-!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_GARDEN_CAN    ! garden sensible heat flux, garden -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_GARDEN_ATM    ! garden sensible heat flux, garden -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_GARDEN_CAN   ! garden latent  heat flux, garden -> canyon air [W m-2]
@@ -502,10 +502,10 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GREENROOF_ATM! greenroof neutral drag 
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GREENROOF_ATM! greenroof roughness length for heat (atm.)
-!MV202609 cbs scheme of the road
-LOGICAL,              INTENT(IN)  :: OCBS_SCHEME      ! flag to use the cbs scheme for the road
-REAL,                 INTENT(IN)  :: XTAU_HW_THRESH   ! H/W giving tau = 0.5 (cbs scheme)
-REAL,                 INTENT(IN)  :: XTAU_HW_WIDTH    ! width of the tanh relaxation (cbs scheme)
+!MV202609 CBS scheme of the road
+LOGICAL,              INTENT(IN)  :: OCBS_SCHEME      ! flag to use the CBS scheme for the road
+REAL,                 INTENT(IN)  :: XTAU_HW_THRESH   ! H/W giving tau = 0.5 (CBS scheme)
+REAL,                 INTENT(IN)  :: XTAU_HW_WIDTH    ! width of the tanh relaxation (CBS scheme)
 !MV202609 garden thermal roughness (z0h)
 !MV202609 greenroof model type, thermal roughness and surface humidity
  REAL,                 INTENT(IN)  :: XZ0_O_Z0H_GR      ! greenroof z0/z0h ratio (-), >= 1

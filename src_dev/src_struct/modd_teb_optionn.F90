@@ -114,15 +114,15 @@ TYPE TEB_OPTIONS_t
 !* ratio z0/z0h of the namelist item urb_z0_o_z0h_grf (>= 1, default XZ0_O_Z0H_GR)
   REAL                           :: XZ0_O_Z0H_GR ! greenroof z0/z0h ratio (-)
 
-!MV202609 cbs scheme of the road
-! cbs scheme for the road: the actual road fluxes are the weighted mean of the
+!MV202609 CBS scheme of the road
+! CBS scheme for the road: the actual road fluxes are the weighted mean of the
 ! road/canyon and road/forcing-level fluxes, with the weights tau and 1-tau,
 ! tau being a tanh relaxation of the canyon H/W ratio (see CBS_TAU in
 ! TEB_GARDEN): tau -> 0 for very sparse building (H/W -> 0, the road exchanges
 ! directly with the air of the forcing level) and tau = 1 for dense canyons
 ! (H/W above the threshold, the road exchanges with the canyon air only).
 !
-  LOGICAL                        :: LCBS_SCHEME  ! T: cbs scheme activated
+  LOGICAL                        :: LCBS_SCHEME  ! T: CBS scheme activated
   REAL                           :: XTAU_HW_THRESH ! H/W giving tau = 0.5       (-)
   REAL                           :: XTAU_HW_WIDTH  ! width of the tanh relaxation (-)
 ! 

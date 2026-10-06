@@ -342,7 +342,7 @@ ALLOCATE(DMT%XLE_ROOF(1))    ! roof latent heat flux            (W/m2)
 ALLOCATE(DMT%XLE_ROAD(1))    ! road latent heat flux            (W/m2)
 ALLOCATE(DMT%XLE_STRLROOF(1)) !structural roof latent heat flux (W/m2)
 ALLOCATE(DMT%XLE_BLT(1))     ! built surf latent heat flux      (W/m2)
-!MV202609 cbs scheme of the road (snow-to-atmosphere branch diagnostics)
+!MV202609 CBS scheme of the road (snow-to-atmosphere branch diagnostics)
 !* persistent branch diagnostics of the snow-on-road exchange: they are read by
 !* the canyon air nodes of the NEXT sub-step (see MODD_DIAG_MISC_TEBN), so they
 !* are allocated AND set to zero here (they must not start as undefined memory)

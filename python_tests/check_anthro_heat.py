@@ -7,10 +7,10 @@ heat of the buildings (H_WASTE: HVAC systems and infiltration/ventilation of
 BEM). This script verifies, on simulations with BEM and with traffic, that
 
 * the traffic flux used by the model is exactly the prescribed daily cycle;
-* AHF_TRAFFIC and H_WASTE enter H_TOWN exactly once, in both cbs modes
+* AHF_TRAFFIC and H_WASTE enter H_TOWN exactly once, in both CBS modes
   (`teb_lcbs_scheme = .FALSE.` and `.TRUE.`), i.e. they are neither weighted,
-  nor duplicated, nor omitted by the cbs scheme;
-* the effect of the cbs scheme on H_TOWN is due to the road term alone.
+  nor duplicated, nor omitted by the CBS scheme;
+* the effect of the CBS scheme on H_TOWN is due to the road term alone.
 
 Method: the ground/building heat flux of the town is reconstructed from the
 model output as
@@ -38,8 +38,8 @@ Experiments (see `python_tests/compare_cbs_scheme.py`, `--no-garden`, BEM active
 | `<site>/compare_cbs_scheme_ahf20` | 20 W/m2 | active |
 | `<site>/compare_cbs_scheme_nowaste` | 0 | switched off (control) |
 
-Every root contains the reference (`teb_lcbs_scheme = .FALSE.`) and the cbs run
-of each case, so that every check is done with the cbs scheme off and on.
+Every root contains the reference (`teb_lcbs_scheme = .FALSE.`) and the CBS run
+of each case, so that every check is done with the CBS scheme off and on.
 
 Usage:
 
@@ -50,7 +50,7 @@ python python_tests/check_anthro_heat.py --cases LCZ9_w0,SPARSE_w0
 
 Files written into `<out-root>` (default `<site>/check_anthro_heat`):
 
-* `summary_anthro_heat.csv` - every check, one row per case and cbs mode
+* `summary_anthro_heat.csv` - every check, one row per case and CBS mode
 * `plots/anthro_traffic.png` - town balance residual: traffic on/off
 * `plots/anthro_waste.png` - town balance residual: waste heat on/off
 * `README.md` - method, results and the code path of the fluxes
@@ -86,8 +86,8 @@ COLS = ('RN_TOWN', 'H_TOWN', 'LE_TOWN', 'H_ROAD', 'T_CANYON', 'H_ROAD_CAN',
         'H_ROAD_ATM', 'TI_BLD', 'HVAC_COOL', 'HVAC_HEAT', 'AHF_TRAFFIC',
         'H_WASTE', 'LE_WASTE', 'GFLUX_TOWN')
 
-#: cbs mode -> (suffix of the case name, label)
-CBS_MODES = (('', 'cbs off'), ('_cbs', 'cbs on'))
+#: CBS mode -> (suffix of the case name, label)
+CBS_MODES = (('', 'CBS off'), ('_cbs', 'CBS on'))
 
 #: relative thresholds of the verdicts: the prescribed traffic flux and the
 #: switched anthropogenic fluxes must be accounted for at the round-off level
@@ -302,7 +302,7 @@ def col(runs: dict, key: tuple, name: str, size: int):
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(
         description='Verification of AHF_TRAFFIC and H_WASTE in H_TOWN '
-                    '(with the cbs scheme off and on)')
+                    '(with the CBS scheme off and on)')
     ap.add_argument('--work-dir', default=DEFAULT_WORK_DIR,
                     help='root of the simulation work (default: %(default)s)')
     ap.add_argument('--site', default='Moscow',
@@ -378,11 +378,11 @@ def main(argv=None) -> int:
                 out_dir = path / f'output_{case}{tag}'
                 if (out_dir / 'TEB_output.csv').is_file():
                     runs[(key, label)] = read_run(out_dir)
-        if ('base', 'cbs off') not in runs:
+        if ('base', 'CBS off') not in runs:
             print(f'  [skip] {case}: no reference run')
             continue
 
-        hours, minutes, seconds = clock(runs[('base', 'cbs off')]['time'])
+        hours, minutes, seconds = clock(runs[('base', 'CBS off')]['time'])
         size = len(hours)
         g = {key: balance(data, size) for key, data in runs.items()}
 
@@ -390,9 +390,9 @@ def main(argv=None) -> int:
         nml = root['traffic'] / 'namelists' / f'{case}.nml'
         ahf = float(namelist_get(nml, 'ahf_traffic', 0.0))
         utc_hour = int(namelist_get(nml, 'teb_utc_hour', 0))
-        traf_scale = mean_abs(col(runs, ('traffic', 'cbs off'), 'AHF_TRAFFIC', size))
-        anthro_waste = (mean_abs(col(runs, ('base', 'cbs off'), 'H_WASTE', size))
-                        + mean_abs(col(runs, ('base', 'cbs off'), 'LE_WASTE', size)))
+        traf_scale = mean_abs(col(runs, ('traffic', 'CBS off'), 'AHF_TRAFFIC', size))
+        anthro_waste = (mean_abs(col(runs, ('base', 'CBS off'), 'H_WASTE', size))
+                        + mean_abs(col(runs, ('base', 'CBS off'), 'LE_WASTE', size)))
         waste_scale = anthro_waste
 
         #: response of H_TOWN to the anthropogenic fluxes of the case
@@ -403,14 +403,14 @@ def main(argv=None) -> int:
                              col(runs, ('def', label), 'H_TOWN', size))
                  for tag, label in CBS_MODES}
 
-        #: the cbs scheme must leave both sensitivities unchanged
-        rows.append(result(case, '-', 'cbs: traffic sensitivity kept',
-                           'dH_TOWN(traffic), cbs on - cbs off',
-                           diff(d_traf['cbs on'], d_traf['cbs off']),
+        #: the CBS scheme must leave both sensitivities unchanged
+        rows.append(result(case, '-', 'CBS: traffic sensitivity kept',
+                           'dH_TOWN(traffic), CBS on - CBS off',
+                           diff(d_traf['CBS on'], d_traf['CBS off']),
                            traf_scale, TOL_KEPT, compare_mean=True))
-        rows.append(result(case, '-', 'cbs: BEM sensitivity kept',
-                           'dH_TOWN(BEM), cbs on - cbs off',
-                           diff(d_bem['cbs on'], d_bem['cbs off']),
+        rows.append(result(case, '-', 'CBS: BEM sensitivity kept',
+                           'dH_TOWN(BEM), CBS on - CBS off',
+                           diff(d_bem['CBS on'], d_bem['CBS off']),
                            anthro_waste, TOL_KEPT, compare_mean=True))
 
         for tag, label in CBS_MODES:
@@ -479,54 +479,54 @@ def main(argv=None) -> int:
                                    diff(g.get(('base', label)), g.get(('nowaste', label))),
                                    waste_scale))
 
-        # 5. the cbs scheme must not move the residual of the balance either
+        # 5. the CBS scheme must not move the residual of the balance either
         #    (informative: the residual has its own spikes, so the mean is used)
         rows.append(result(case, '-', 'balance residual vs tau (traffic)',
-                           'mean of R(cbs on) - R(cbs off), traffic on',
-                           diff(g.get(('traffic', 'cbs on')), g.get(('traffic', 'cbs off'))),
+                           'mean of R(CBS on) - R(CBS off), traffic on',
+                           diff(g.get(('traffic', 'CBS on')), g.get(('traffic', 'CBS off'))),
                            traf_scale + anthro_waste))
         rows.append(result(case, '-', 'balance residual vs tau (waste)',
-                           'mean of R(cbs on) - R(cbs off), waste on',
-                           diff(g.get(('base', 'cbs on')), g.get(('base', 'cbs off'))),
+                           'mean of R(CBS on) - R(CBS off), waste on',
+                           diff(g.get(('base', 'CBS on')), g.get(('base', 'CBS off'))),
                            traf_scale + anthro_waste))
 
-        # 6. the cbs scheme only moves the town flux through the road term
-        d_town = diff(col(runs, ('base', 'cbs on'), 'H_TOWN', size),
-                      col(runs, ('base', 'cbs off'), 'H_TOWN', size))
-        d_road = diff(col(runs, ('base', 'cbs on'), 'H_ROAD', size),
-                      col(runs, ('base', 'cbs off'), 'H_ROAD', size))
+        # 6. the CBS scheme only moves the town flux through the road term
+        d_town = diff(col(runs, ('base', 'CBS on'), 'H_TOWN', size),
+                      col(runs, ('base', 'CBS off'), 'H_TOWN', size))
+        d_road = diff(col(runs, ('base', 'CBS on'), 'H_ROAD', size),
+                      col(runs, ('base', 'CBS off'), 'H_ROAD', size))
         road_frac = 1.0 - fr_bld
         road_resid = (None if d_town is None or d_road is None
                       else d_town - road_frac * d_road)
-        rows.append(result(case, '-', 'cbs effect on H_TOWN (informative)',
+        rows.append(result(case, '-', 'CBS effect on H_TOWN (informative)',
                            f'dH_TOWN - {road_frac:g}*dH_ROAD (road fraction)',
                            road_resid, mean_abs(d_town)))
 
         #: diurnal cycles of the sensitivity of H_TOWN (figures)
-        h_waste = (np.asarray(vec(col(runs, ('base', 'cbs off'), 'H_WASTE', size), size))
-                   + np.asarray(vec(col(runs, ('base', 'cbs off'), 'LE_WASTE', size), size)))
+        h_waste = (np.asarray(vec(col(runs, ('base', 'CBS off'), 'H_WASTE', size), size))
+                   + np.asarray(vec(col(runs, ('base', 'CBS off'), 'LE_WASTE', size), size)))
         curves_traffic[case] = [
             (f'H_TOWN(traffic) - H_TOWN(no traffic), {label}', colour,
              diurnal_mean(d_traf[label], hours))
-            for label, colour in (('cbs off', '#1f77b4'), ('cbs on', '#d62728'))]
+            for label, colour in (('CBS off', '#1f77b4'), ('CBS on', '#d62728'))]
         curves_traffic[case].append(
             ('prescribed traffic flux', '#7f7f7f',
-             diurnal_mean(vec(col(runs, ('traffic', 'cbs off'), 'AHF_TRAFFIC', size), size),
+             diurnal_mean(vec(col(runs, ('traffic', 'CBS off'), 'AHF_TRAFFIC', size), size),
                           hours)))
         curves_waste[case] = [
             (f'H_TOWN(BEM) - H_TOWN(BEM off), {label}', colour,
              diurnal_mean(d_bem[label], hours))
-            for label, colour in (('cbs off', '#2ca02c'), ('cbs on', '#9467bd'))]
+            for label, colour in (('CBS off', '#2ca02c'), ('CBS on', '#9467bd'))]
         curves_waste[case].append(
             ('waste heat of the buildings', '#7f7f7f', diurnal_mean(h_waste, hours)))
         scale_traffic[case] = traf_scale
         scale_waste[case] = anthro_waste
         print(f'  [ok  ] {case}: dH_TOWN(traffic {traf_scale:6.2f} W/m2) = '
-              f'{nan_mean(d_traf["cbs off"]):+7.2f} (cbs off) / '
-              f'{nan_mean(d_traf["cbs on"]):+7.2f} W/m2 (cbs on); '
+              f'{nan_mean(d_traf["CBS off"]):+7.2f} (CBS off) / '
+              f'{nan_mean(d_traf["CBS on"]):+7.2f} W/m2 (CBS on); '
               f'dH_TOWN(BEM, waste {anthro_waste:5.2f} W/m2) = '
-              f'{nan_mean(d_bem["cbs off"]):+7.2f} / '
-              f'{nan_mean(d_bem["cbs on"]):+7.2f} W/m2')
+              f'{nan_mean(d_bem["CBS off"]):+7.2f} / '
+              f'{nan_mean(d_bem["CBS on"]):+7.2f} W/m2')
 
 
     out_root.mkdir(parents=True, exist_ok=True)
@@ -538,11 +538,11 @@ def main(argv=None) -> int:
     plots.mkdir(parents=True, exist_ok=True)
     plot_jump(plots / 'anthro_traffic.png', list(curves_traffic), curves_traffic,
               scale_traffic, 'Sensitivity of H_TOWN to the traffic heat flux '
-              '(cbs scheme off and on)', 'H_TOWN(traffic) - H_TOWN(no traffic) (W/m2)',
+              '(CBS scheme off and on)', 'H_TOWN(traffic) - H_TOWN(no traffic) (W/m2)',
               'traffic')
     plot_jump(plots / 'anthro_bem.png', list(curves_waste), curves_waste,
               scale_waste, 'Sensitivity of H_TOWN to the BEM (waste heat of the '
-              'buildings), cbs scheme off and on',
+              'buildings), CBS scheme off and on',
               'H_TOWN(BEM) - H_TOWN(BEM off) (W/m2)', 'waste heat')
     write_readme(out_root, root, cases, stats)
     print('\nCheck table:', stats_csv)
@@ -572,7 +572,7 @@ def write_readme(out_root: Path, root: dict, cases: list, stats: pd.DataFrame):
 #: checks) is inserted between README_HEAD and README_TAIL
 README_HEAD = """# Anthropogenic heat fluxes of the town balance (AHF_TRAFFIC, H_WASTE)
 
-Generated by `python_tests/check_anthro_heat.py`. It verifies, with the cbs scheme off
+Generated by `python_tests/check_anthro_heat.py`. It verifies, with the CBS scheme off
 and on, that the anthropogenic heat fluxes are accounted for correctly in the
 town sensible heat flux `H_TOWN`.
 
@@ -588,8 +588,8 @@ that differ by one source only (every pair is simulated twice, with
 | BEM | `teb_itype_bem = BEM` minus `DEF` | `H_TOWN` increases by the waste heat of the buildings (HVAC + infiltration/ventilation) |
 
 Both responses are compared with the flux itself (`reference` column) and the
-response of the cbs run is compared with the response of the reference run: the
-cbs scheme must not change them. In addition the energy balance of the town is
+response of the CBS run is compared with the response of the reference run: the
+CBS scheme must not change them. In addition the energy balance of the town is
 closed with model diagnostics only:
 
 ```
@@ -615,7 +615,7 @@ the sensitivities.)
 | `{def_}` | 0 | `DEF` (no building energy module) |
 
 Cases: {cases}. Every case is available with `teb_lcbs_scheme = .FALSE.` (tau
-off) and `.TRUE.` (cbs on).
+off) and `.TRUE.` (CBS on).
 
 ## Results
 
@@ -630,8 +630,8 @@ README_TAIL = """
   the town sensible heat flux to the source, compared with the source itself
   (it must be positive and close to the flux; part of the heat goes into storage
   and into the other surface fluxes).
-* `cbs: traffic sensitivity kept` / `cbs: BEM sensitivity kept`: the same
-  response in the cbs run minus the response in the reference run: the cbs scheme
+* `CBS: traffic sensitivity kept` / `CBS: BEM sensitivity kept`: the same
+  response in the CBS run minus the response in the reference run: the CBS scheme
   must not modify the sensitivity (it weights the road exchange only).
 * `traffic in H_TOWN`: change of the residual `R` of the town balance when the
   traffic is switched on: it must stay far below the traffic flux.
@@ -639,8 +639,8 @@ README_TAIL = """
   the model diagnostics have an intrinsic leak of their own).
 * `waste control`: `H_WASTE + LE_WASTE` of the configuration without HVAC and
   without ventilation, which must be zero.
-* `cbs effect on H_TOWN (informative)`: `dH_TOWN` of the tau pair minus
-  `(1 - fr_bld) * dH_ROAD`: the cbs scheme modifies the road exchange only, so
+* `CBS effect on H_TOWN (informative)`: `dH_TOWN` of the tau pair minus
+  `(1 - fr_bld) * dH_ROAD`: the CBS scheme modifies the road exchange only, so
   the change of the town flux must be the change of the road term.
 
 ## Code path of the anthropogenic fluxes
@@ -660,21 +660,21 @@ README_TAIL = """
 | `src/src_teb/urban_fluxes.F90:207-220` | canyon part of the waste heat added to the wall fluxes (`/ XWALL_O_HOR`) |
 | `src/src_teb/urban_fluxes.F90:282-285` | remaining part added to the roof fluxes (`/ XBLD`) |
 | `src/src_teb/urban_fluxes.F90:196-197` | wall ground fluxes computed *before* the waste heat is added: no double counting |
-| `src/src_teb/teb.F90:752-784` | cbs scheme: only the effective conductance and the reference air of the road budget are weighted |
+| `src/src_teb/teb.F90:752-784` | CBS scheme: only the effective conductance and the reference air of the road budget are weighted |
 | `src/src_driver/run_teb_offline.F90` | output columns `AHF_TRAFFIC` and `H_WASTE` |
 
-Conclusion: the cbs scheme replaces the road exchange (effective conductance and
+Conclusion: the CBS scheme replaces the road exchange (effective conductance and
 reference air of `ROAD_LAYER_E_BUDGET`) and weights the road terms of the canyon
 air and humidity balances. `AHF_TRAFFIC` and `H_WASTE` enter `H_TOWN` and the
-canyon air outside those terms, with their full weight, in both cbs modes.
+canyon air outside those terms, with their full weight, in both CBS modes.
 
 ## Files
 
-* `summary_anthro_heat.csv` - every check, one row per case and cbs mode
+* `summary_anthro_heat.csv` - every check, one row per case and CBS mode
 * `plots/anthro_traffic.png` - diurnal cycle of the response of `H_TOWN` to the
-  traffic (grey: the prescribed traffic flux), cbs scheme off and on
+  traffic (grey: the prescribed traffic flux), CBS scheme off and on
 * `plots/anthro_bem.png` - diurnal cycle of the response of `H_TOWN` to the BEM
-  (grey: the waste heat of the buildings), cbs scheme off and on
+  (grey: the waste heat of the buildings), CBS scheme off and on
 
 ## Re-running
 

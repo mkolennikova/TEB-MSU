@@ -11,7 +11,7 @@
                            PZREF, PUREF, PVMOD, PH_TRAFFIC, PLE_TRAFFIC, PTSTEP, PLEW_RF, PLEW_RD,&
                            PLE_WL_A, PLE_WL_B, PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF, PMELT_RF,    &
                            PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RD, PRN_GRND, PH_GRND,     &
-!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                            PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM,                  &
                            PLE_GRND, PGFLX_GRND, PRN_TWN, PH_TWN, PLE_TWN, PGFLX_TWN, PEVAP_TWN,  &
                            PSFCO2, PUW_GRND, PUW_RF, PDUWDU_GRND, PDUWDU_RF,                      &
@@ -32,16 +32,16 @@
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM,          &
-!MV202609 cbs scheme of the road
+!MV202609 CBS scheme of the road
                           PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                           LE_ROOF_WAT, LE_ROOF_SNOW, &
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                             &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, &
-!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
                           PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
 !MV202609 greenroof diagnostics (per m2 of greenroof)
                           PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
@@ -229,7 +229,7 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PMELT_RF         ! snow melt
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PRNSN_RD       ! net radiation over snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PHSN_RD        ! sensible heat flux over snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PLESN_RD       ! latent heat flux over snow
-!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 !* INOUT: the canyon air nodes of TEB_GARDEN2 read these branch diagnostics
 !* (AVG_URBAN_FLUXES) BEFORE the snow scheme of TEB writes them, so they carry the
 !* value of the previous sub-step (they are persistent in DMT, see TEB_GARDEN_STRUCT)
@@ -298,17 +298,17 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD_CAN   ! road sensible heat flux,
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD_CAN  ! road latent heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD_ATM   ! road sensible heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD_ATM  ! road latent heat flux, road -> forcing level [W m-2]
-!MV202609 cbs scheme of the road
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD       ! road sensible heat flux, cbs scheme [W m-2]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD      ! road latent heat flux, cbs scheme [W m-2]
-!MV202609 cbs scheme of the road (revision: puddle diagnostics)
+!MV202609 CBS scheme of the road
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD       ! road sensible heat flux, CBS scheme [W m-2]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD      ! road latent heat flux, CBS scheme [W m-2]
+!MV202609 CBS scheme of the road (revision: puddle diagnostics)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_ROAD_ATM_WAT ! road water conductance, road -> forcing level (water-limited)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROOF_WAT      ! roof latent heat flux of the snow-free roof (W/m2 roof)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROOF_SNOW     ! roof latent heat flux of the snow-covered roof (W/m2 roof)
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN0       ! canyon air temperature without tau [K]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN1       ! free layer (second canopy) air temperature [K]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PPHI_CAN1     ! free layer air temperature / theta* ratio of the MOST profile [-]
@@ -320,7 +320,7 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN     ! latent heat flux over t
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GARDEN   ! total evaporation over the garden [kg/m2/s]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GARDEN   ! garden saturation specific humidity [kg/kg]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GARDEN     ! garden aggregated relative humidity [-]
-!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 !* potential garden fluxes per m2 of garden (see GARDEN): the flux that the single
 !* garden surface would release if the whole exchange went through the canyon air
 !* (CAN) or directly to the air of the forcing level (ATM). Diagnostics only.
@@ -384,9 +384,9 @@ REAL, DIMENSION(SIZE(PTA)) :: ZDF_RF       ! free-snow fraction on roofs
 REAL, DIMENSION(SIZE(PTA)) :: ZDF_RD       ! free-snow fraction on roads
 REAL, DIMENSION(SIZE(PTA)) :: ZDELT_RD     ! fraction of water on roads
 REAL, DIMENSION(SIZE(PTA)) :: ZDELT_RF     ! fraction of water on roofs
-!MV202609 cbs scheme of the road
-REAL, DIMENSION(SIZE(PTA)) :: ZTAU         ! cbs scheme weight of the canyon path (-)
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road
+REAL, DIMENSION(SIZE(PTA)) :: ZTAU         ! CBS scheme weight of the canyon path (-)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
 REAL, DIMENSION(SIZE(PTA)) :: ZQ_CAN0      ! canyon air humidity without tau (kg/kg)
 REAL, DIMENSION(SIZE(PTA)) :: ZQ_CAN1        ! free layer air humidity (kg/kg)
 !REAL, DIMENSION(SIZE(PTA)) :: ZAC_RF       ! roof conductance
@@ -523,7 +523,7 @@ REAL, DIMENSION(SIZE(PTA)) :: ZEMIT_LW_RF       ! LW flux emitted UPWARDS   by t
 !
 REAL, DIMENSION(SIZE(PTA)) :: ZRN_GD, ZDRAIN_GD, ZIRRIG_GD, ZGFLUX_GD
 REAL, DIMENSION(SIZE(PTA)) :: ZH_GD, ZLE_GD, ZEVAP_GD, ZTSRAD_GD, ZRUNOFF_GD
-!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 REAL, DIMENSION(SIZE(PTA)) :: ZPH_GD_CAN, ZPH_GD_ATM     ! garden sensible heat flux, canyon / atmosphere branch
 REAL, DIMENSION(SIZE(PTA)) :: ZPLE_GD_CAN, ZPLE_GD_ATM   ! garden latent  heat flux, canyon / atmosphere branch
 REAL, DIMENSIOn(SIZE(PTA)) :: ZQV_GD
@@ -792,7 +792,7 @@ END IF
 !
 !-------------------------------------------------------------------------------
 !
-!MV202609 cbs scheme of the road (and of the garden)
+!MV202609 CBS scheme of the road (and of the garden)
 !* tau is the fraction of the surface exchange performed with the canyon air, the
 !* remaining part (1-tau) exchanging directly with the air of the forcing level.
 !* tau is a tanh relaxation of the canyon H/W ratio (see CBS_TAU below):
@@ -817,7 +817,7 @@ ENDIF
 !              -------------------------
 !
 
-!MV202609 cbs scheme of the road
+!MV202609 CBS scheme of the road
 !* (tau itself is computed above, before TEB_GARDEN2, and is used by the garden
 !* and by the road energy budget of TEB below)
 !
@@ -832,7 +832,7 @@ ENDIF
              ZRN_GR, ZH_GR, ZLE_GR, ZGFLUX_GR, ZDRAIN_GR, ZTSRAD_GR, ZRUNOFF_GR,              &
              PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RD, ZUW_RD, PUW_RF,       &
              ZDUWDU_RD,                                                             &
-!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
              PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM,                  &
              PDUWDU_RF, PUSTAR_TWN, PCD, PCDN, PCH_TWN, PRI_TWN, PRESA_TWN, &
              PAC_RF, PAC_RD, PAC_WL, PAC_TOP, PAC_GD, ZAC_RF_WAT, PAC_RD_WAT,      &
@@ -854,7 +854,7 @@ ENDIF
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
                           PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM,          &
-!MV202609 cbs scheme of the road
+!MV202609 CBS scheme of the road
                           ZTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                           LE_ROOF_WAT, LE_ROOF_SNOW)
@@ -896,18 +896,18 @@ END IF
                        ZRD_FRAC, ZGD_FRAC, ZTOTS_O_HORS, ZDF_RF, PDN_RF, ZDF_RD, PDN_RD,  &
                        PLE_WL_A, PLE_WL_B, PLEW_RF, PLESN_RF, PLEW_RD, PLESN_RD, PHSN_RD, &
                        ZTSRAD_GD, ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD, ZEVAP_GD,             &
-!MV202609 cbs scheme of the garden (atmosphere branch in the free layer)
+!MV202609 CBS scheme of the garden (atmosphere branch in the free layer)
                        ZPH_GD_ATM, ZPLE_GD_ATM,                                            &
                        ZRUNOFF_GD, ZEVAP_GR, ZRUNOFF_GR, ZDRAIN_GR,                       &
                        PRN_GRND, PH_GRND, PLE_GRND, PGFLX_GRND, PRN_TWN, PH_TWN, PLE_TWN, &
                        PGFLX_TWN, PEVAP_TWN, ZEMIT_LW_RD,ZEMIT_LW_GD, PEMIT_LW_GRND, ZEMIS_GD, PLW_UP, &
-!MV202609 cbs scheme of the road
+!MV202609 CBS scheme of the road
                        ZTAU,                                                               &
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
                        PH_ROAD_ATM, PLE_ROAD_ATM, PCD_ROAD_ATM, ZZ0H_ROAD_ATM,             &
                        PZREF, PVMOD,                                                       &
                        PT_CAN0, PT_CAN1, PPHI_CAN1, ZQ_CAN0, ZQ_CAN1,                       &
-!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                        PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM )
 !
 PSFCO2(:) = T%XGARDEN(:) * ZSFCO2_GD(:) + T%XBLD(:) * T%XGREENROOF(:) * ZSFCO2_GR(:) ! no CO2 flux from built and road yet.
@@ -929,7 +929,7 @@ PQSAT_GARDEN  (:) = ZQSAT_GD(:)
 !* NOT a diagnostic -- AVG_URBAN_FLUXES uses it for the water budget of the canyon
 !* air (the garden couples back to the canyon air, the greenroof does not)
 PHU_GARDEN    (:) = ZHU_AGG_GD(:)
-!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 PH_GARDEN_CAN (:) = ZPH_GD_CAN(:)
 PH_GARDEN_ATM (:) = ZPH_GD_ATM(:)
 PLE_GARDEN_CAN(:) = ZPLE_GD_CAN(:)
@@ -970,13 +970,13 @@ IF (LHOOK) CALL DR_HOOK('TEB_GARDEN',1,ZHOOK_HANDLE)
 CONTAINS
 !-------------------------------------------------------------------------------
 !
-!MV202609 cbs scheme of the road
+!MV202609 CBS scheme of the road
 !!****  *CBS_TAU*
 !!
 !!    PURPOSE
 !!    -------
 !!
-!!    Weight of the canyon path in the cbs scheme of the road: tau = 1 for a
+!!    Weight of the canyon path in the CBS scheme of the road: tau = 1 for a
 !!    dense canyon (the road exchanges with the canyon air only) and tau -> 0
 !!    for very sparse buildings (the road exchanges directly with the air of
 !!    the forcing level). The transition is a tanh relaxation centred on the
@@ -1066,7 +1066,7 @@ IF (TOP%LGARDEN) THEN
 !* balance is built from it (single value of TOP, the same one that URBAN_DRAG
 !* exports and that the emulator of the offline driver uses)
     TOP%XZ0_O_Z0H_GD,                                                          &
-!MV202609 cbs scheme of the garden
+!MV202609 CBS scheme of the garden
 !* the split (tau vs 1 - tau) is applied only to the internal diagnostic proxy:
 !* 'PROXY_OLD' has a single flux which is reported in both branches
     PUREF, PVMOD, PTA, PQA,                                                     &
@@ -1075,7 +1075,7 @@ IF (TOP%LGARDEN) THEN
     ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,                                          &
     ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,      &
     ZDRAIN_GD, ZIRRIG_GD,                              &
-!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
     ZPH_GD_CAN, ZPH_GD_ATM, ZPLE_GD_CAN, ZPLE_GD_ATM,                          &
 !MV202609 garden exchange coefficients, returned by the garden model
     PCD_GD, PCH_GD, ZHU_AGG_GD )
@@ -1133,7 +1133,7 @@ IF (TOP%LGARDEN) THEN
     ZHU_AGG_GD(:) = MAX(ZHU_AGG_GD(:), 0.01)
     ! COSMO+TEB GARDEN
     ZRN_GD(:) =  DMT%XABS_SW_GARDEN(:) + DMT%XABS_LW_GARDEN(:)
-    !MV202609 cbs scheme of the garden
+    !MV202609 CBS scheme of the garden
     !* the external model provides a single set of fluxes (already computed for the
     !* averaged forcing), so both branches of the tau split carry the same flux
     ZPH_GD_CAN (:) = ZH_GD(:)
@@ -1161,7 +1161,7 @@ ELSE
   ZHU_AGG_GD (:) = XUNDEF
   PAC_GD_WAT (:) = XUNDEF
   ZEMIT_LW_GD(:) = 0.
-  !MV202609 cbs scheme of the garden
+  !MV202609 CBS scheme of the garden
   ZPH_GD_CAN (:) = 0.
   ZPH_GD_ATM (:) = 0.
   ZPLE_GD_CAN(:) = 0.

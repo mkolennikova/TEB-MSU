@@ -9,7 +9,7 @@ INTERFACE
                            PZREF, PUREF, PVMOD, PH_TRAFFIC, PLE_TRAFFIC, PTSTEP, PLEW_RF, PLEW_RD,&
                            PLE_WL_A, PLE_WL_B, PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF, PMELT_RF,    &
                            PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RD, PRN_GRND, PH_GRND,     &
-!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                           PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM,                  &
                            PLE_GRND, PGFLX_GRND, PRN_TWN, PH_TWN, PLE_TWN, PGFLX_TWN, PEVAP_TWN,  &
                            PSFCO2, PUW_GRND, PUW_RF, PDUWDU_GRND, PDUWDU_RF,                      &
@@ -33,12 +33,12 @@ INTERFACE
                           PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                           LE_ROOF_WAT, LE_ROOF_SNOW, &
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
                           PT_CAN0, PT_CAN1, PPHI_CAN1,                             &
 !MV202609 garden diagnostics
                           PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
                           PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, &
-!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
                           PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
 !MV202609 greenroof diagnostics (per m2 of greenroof)
                            PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
@@ -150,7 +150,7 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PMELT_RF         ! snow melt
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PRNSN_RD       ! net radiation over snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PHSN_RD        ! sensible heat flux over snow
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PLESN_RD       ! latent heat flux over snow
-!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 !* INOUT: read by the canyon air nodes before the snow scheme of TEB writes them
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PHSN_RD_CAN    ! sensible heat flux over snow, snow -> canyon air
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PHSN_RD_ATM    ! sensible heat flux over snow, snow -> forcing level
@@ -214,17 +214,17 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD_CAN   ! road sensible heat flux,
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD_CAN  ! road latent heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD_ATM   ! road sensible heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD_ATM  ! road latent heat flux, road -> forcing level [W m-2]
-!MV202609 cbs scheme of the road
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD       ! road sensible heat flux, cbs scheme [W m-2]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD      ! road latent heat flux, cbs scheme [W m-2]
-!MV202609 cbs scheme of the road (revision: puddle diagnostics)
+!MV202609 CBS scheme of the road
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD       ! road sensible heat flux, CBS scheme [W m-2]
+REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD      ! road latent heat flux, CBS scheme [W m-2]
+!MV202609 CBS scheme of the road (revision: puddle diagnostics)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_ROAD_ATM_WAT ! road water conductance, road -> forcing level (water-limited)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROOF_WAT      ! roof latent heat flux of the snow-free roof (W/m2 roof)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROOF_SNOW     ! roof latent heat flux of the snow-covered roof (W/m2 roof)
-!MV202609 cbs scheme of the road (revision: three-temperature construction)
+!MV202609 CBS scheme of the road (revision: three-temperature construction)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN0       ! canyon air temperature without tau [K]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN1       ! free layer (second canopy) air temperature [K]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PPHI_CAN1     ! free layer air temperature / theta* ratio of the MOST profile [-]
@@ -236,7 +236,7 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN     ! latent heat flux over t
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GARDEN   ! total evaporation over the garden [kg/m2/s]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GARDEN   ! garden saturation specific humidity [kg/kg]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GARDEN     ! garden aggregated relative humidity [-]
-!MV202609 cbs scheme of the garden (canyon and atmosphere branch fluxes)
+!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN_CAN  ! garden sensible heat flux, garden -> canyon air [W m-2]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN_ATM  ! garden sensible heat flux, garden -> forcing level [W m-2]
 REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN_CAN ! garden latent  heat flux, garden -> canyon air [W m-2]

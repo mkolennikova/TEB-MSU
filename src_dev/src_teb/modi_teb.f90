@@ -11,7 +11,7 @@ INTERFACE
                      PLE_WL_B, PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF, PMELT_RF, PRN_GR, &
                      PH_GR, PLE_GR, PGFLUX_GR, PDRAIN_GR, PTSRAD_GR, PRUNOFF_GR, PRNSN_RD,    &
                      PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RD, PUW_RD, PUW_RF, PDUWDU_RD,   &
-!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                      PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM,   &
                      PDUWDU_RF, PUSTAR_TWN, PCD, PCDN, PCH_TWN, PRI_TWN, PRESA_TWN,     &
                      PAC_RF, PAC_RD, PAC_WL, PAC_TOP, PAC_GARDEN, PAC_RF_WAT,           &
@@ -34,7 +34,7 @@ INTERFACE
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
                           PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, &
                           PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
-!MV202609 cbs scheme of the road
+!MV202609 CBS scheme of the road
                           PTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                           LE_ROOF_WAT, LE_ROOF_SNOW)
@@ -123,7 +123,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RF   ! snow melt
 REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RD ! net radiation over snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD  ! sensible heat flux over snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD ! latent heat flux over snow
-!MV202609 cbs scheme of the road (revision: snow-to-atmosphere branch)
+!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_CAN  ! sensible heat flux over snow, snow -> canyon air
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_ATM  ! sensible heat flux over snow, snow -> forcing level
 REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD_CAN ! latent heat flux over snow, snow -> canyon air
@@ -225,17 +225,17 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN_ATM
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_ATM   ! sensible heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_ATM  ! latent heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD_CAN   ! sensible heat flux, road -> canyon air [W m-2]
-!MV202609 cbs scheme of the road
-REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD       ! road sensible heat flux, cbs scheme [W m-2]
-REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD      ! road latent heat flux, cbs scheme [W m-2]
-!MV202609 cbs scheme of the road (revision: puddle diagnostics)
+!MV202609 CBS scheme of the road
+REAL, DIMENSION(:), INTENT(OUT)   :: PH_ROAD       ! road sensible heat flux, CBS scheme [W m-2]
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD      ! road latent heat flux, CBS scheme [W m-2]
+!MV202609 CBS scheme of the road (revision: puddle diagnostics)
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM_WAT ! road water conductance, road -> forcing level (water-limited)
 REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
 REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROOF_WAT      ! roof latent heat flux of the snow-free roof (W/m2 roof)
 REAL, DIMENSION(:), INTENT(OUT)   :: LE_ROOF_SNOW     ! roof latent heat flux of the snow-covered roof (W/m2 roof)
-REAL, DIMENSION(:), INTENT(IN)    :: PTAU         ! cbs scheme weight of the canyon path (-)
+REAL, DIMENSION(:), INTENT(IN)    :: PTAU         ! CBS scheme weight of the canyon path (-)
 REAL, DIMENSION(:), INTENT(OUT)   :: PLE_ROAD_CAN  ! latent heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
