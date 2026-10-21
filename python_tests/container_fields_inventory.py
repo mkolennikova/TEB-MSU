@@ -60,10 +60,10 @@ OWNER_BY_TYPE = {
 #: type -> (module file, code prefix)
 TYPES = [
     ('TEB_OPTIONS_t', 'src_struct/modd_teb_optionn.F90', 'TOP'),
-    ('TEB_t', 'src_struct/modd_tebn.F90', 'T'),
+    ('TEB_t', 'src_struct/modd_tebn.F90', 'TSTATE'),
     ('TEB_PARAMS_t', 'src_struct/modd_teb_paramsn.F90', 'TP'),
     ('BEM_OPTIONS_t', 'src_struct/modd_bem_optionn.F90', 'BOP'),
-    ('BEM_t', 'src_struct/modd_bemn.F90', 'B'),
+    ('BEM_t', 'src_struct/modd_bemn.F90', 'BSTATE'),
     ('BEM_PARAMS_t', 'src_struct/modd_bem_paramsn.F90', 'BP'),
     ('TEB_PANEL_t', 'src_struct/modd_teb_paneln.F90', 'TPN'),
     ('TEB_IRRIG_t', 'src_struct/modd_teb_irrign.F90', 'TIR'),

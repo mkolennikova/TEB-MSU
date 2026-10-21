@@ -9,11 +9,7 @@ INTERFACE
 !
     SUBROUTINE TEB_GARDEN_STRUCT (icell, iblock, OGREENROOF_EXT, HIMPLICIT_WIND, PBEM_AC, PTSUN, PT_CAN, &
                  PQ_CAN, PU_CAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ_LOWCAN, &
-                 PTI_BLD, PT_ROOF, PT_ROAD, PT_WALL_A, PT_WALL_B, PWS_ROOF, &
-                 PWS_ROAD, HSNOW_ROOF, PWSNOW_ROOF, PTSNOW_ROOF, PRSNOW_ROOF, &
-                 PASNOW_ROOF, PTSSNOW_ROOF, PESNOW_ROOF, HSNOW_ROAD, &
-                 PWSNOW_ROAD, PTSNOW_ROAD, PRSNOW_ROAD, PASNOW_ROAD, &
-                 PTSSNOW_ROAD, PESNOW_ROAD, PPEW_A_COEF, PPEW_B_COEF, &
+                 PWS_ROAD, HSNOW_ROOF, HSNOW_ROAD, PPEW_A_COEF, PPEW_B_COEF, &
                  PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PPS, &
                  PPA, PEXNS, PEXNA, PTA, PQA, PRHOA, PCO2, PLW_RAD, PDIR_SW, &
                  PSCA_SW, PSW_BANDS, KSW, PZENITH, PAZIM, PRR, PSR, PZREF, &
@@ -43,43 +39,42 @@ INTERFACE
                  PABS_SW_GREENROOF, PABS_LW_GREENROOF, PG_GREENROOF_ROOF, &
                  PNATVENT, KDAY, PAUX_MAX, PT_FLOOR, PT_MASS, PH_BLD_COOL, &
                  PT_BLD_COOL, PH_BLD_HEAT, PLE_BLD_COOL, PLE_BLD_HEAT, &
-                 PH_WASTE, PLE_WASTE, PHVAC_COOL, PHVAC_HEAT, PT_WIN2, &
-                 PQI_BLD, PCAP_SYS_RAT, PT_ADP, PM_SYS_RAT, PCAP_SYS, PM_SYS, &
-                 PCOP, PQ_SYS, PT_SYS, PTR_SW_WIN, PFAN_POWER, PHC_FLOOR, &
-                 PTC_FLOOR, PD_FLOOR, PT_WIN1, PABS_SW_WIN, PABS_LW_WIN, &
-                 PUGG_WIN, PALB_WIN, PABS_WIN, PEMIT_LW_FAC, PEMIT_LW_GRND, &
-                 PT_RAD_IND, PREF_SW_GRND, PREF_SW_FAC, PHU_BLD, PTIME, &
-                 OSHADE, PSHADE, OSHAD_DAY, ONATVENT_NIGHT, OCANOPY, &
-                 PTRAN_WIN, OPAR_RD_IRRIG, PRD_START_MONTH, PRD_END_MONTH, &
-                 PRD_START_HOUR, PRD_END_HOUR, PRD_24H_IRRIG, PIRRIG_ROAD, &
-                 PEMIS_PANEL, PALB_PANEL, PEFF_PANEL, PFRAC_PANEL, &
-                 PTHER_PROD_PANEL, PPHOT_PROD_PANEL, PPROD_PANEL, &
-                 PTHER_PROD_BLD, PPHOT_PROD_BLD, PPROD_BLD, PTHER_PRODC_DAY, &
-                 PH_PANEL, PRN_PANEL, PCUR_TCOOL_TARGET, PCUR_THEAT_TARGET, &
-                 PCUR_QIN, PDN_RF, PDN_RD, PMELT_BLT, PSNOWD_RF, PSNOWD_RD, &
-                 PLW_UP, PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, &
-                 PTSRAD_GR_EXT, PQV_GR_EXT, PH_GR_EXT, PLE_GR_EXT, &
-                 PEVAP_GR_EXT, PRUNOFF_GR_EXT, PALB_GD_EXT, PEMIS_GD_EXT, &
-                 PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT, PLE_GD_EXT, &
-                 PEVAP_GD_EXT, PCH_GD, PCD_GD, PRUNOFF_GD_EXT, PCH_RD, &
-                 PCH_RF, PCH_WL, PCH_TOP, PAC_TOP, ILMO_ROAD, ILMO_ROOF, &
-                 ILMO_TOP, PCD_GARDEN_ATM, PCH_GARDEN_ATM, PCD_ROAD_CAN, &
-                 PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, PAC_ROAD_ATM, &
-                 PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, PRI_ROAD_ATM, &
-                 ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
-                 ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, &
-                 PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, PH_ROAD_CAN, PLE_ROAD_CAN, &
-                 PH_ROAD_ATM, PLE_ROAD_ATM, PT_CAN0, PT_CAN1, PPHI_CAN1, &
-                 PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, LE_ROOF_WAT, &
-                 LE_ROOF_SNOW, XTAU_HW_THRESH, XTAU_HW_WIDTH, PTSRAD_GARDEN, &
-                 PRN_GARDEN, PH_GARDEN, PLE_GARDEN, PEVAP_GARDEN, &
-                 PQSAT_GARDEN, PHU_GARDEN, PH_GARDEN_CAN, PH_GARDEN_ATM, &
-                 PLE_GARDEN_CAN, PLE_GARDEN_ATM, PTSRAD_GREENROOF, &
-                 PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, PEVAP_GREENROOF, &
+                 PH_WASTE, PLE_WASTE, PHVAC_COOL, PHVAC_HEAT, PT_ADP, &
+                 PCAP_SYS, PM_SYS, PCOP, PQ_SYS, PT_SYS, PTR_SW_WIN, &
+                 PFAN_POWER, PHC_FLOOR, PTC_FLOOR, PD_FLOOR, PABS_SW_WIN, &
+                 PABS_LW_WIN, PUGG_WIN, PALB_WIN, PABS_WIN, PEMIT_LW_FAC, &
+                 PEMIT_LW_GRND, PT_RAD_IND, PREF_SW_GRND, PREF_SW_FAC, &
+                 PHU_BLD, PTIME, PSHADE, OCANOPY, PTRAN_WIN, OPAR_RD_IRRIG, &
+                 PRD_START_MONTH, PRD_END_MONTH, PRD_START_HOUR, &
+                 PRD_END_HOUR, PRD_24H_IRRIG, PIRRIG_ROAD, PEMIS_PANEL, &
+                 PALB_PANEL, PEFF_PANEL, PFRAC_PANEL, PTHER_PROD_PANEL, &
+                 PPHOT_PROD_PANEL, PPROD_PANEL, PTHER_PROD_BLD, &
+                 PPHOT_PROD_BLD, PPROD_BLD, PTHER_PRODC_DAY, PH_PANEL, &
+                 PRN_PANEL, PCUR_TCOOL_TARGET, PCUR_THEAT_TARGET, PCUR_QIN, &
+                 PDN_RF, PDN_RD, PMELT_BLT, PSNOWD_RF, PSNOWD_RD, PLW_UP, &
+                 PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, &
+                 PQV_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT, &
+                 PRUNOFF_GR_EXT, PALB_GD_EXT, PEMIS_GD_EXT, PTSRAD_GD_EXT, &
+                 PQV_GD_EXT, PH_GD_EXT, PLE_GD_EXT, PEVAP_GD_EXT, PCH_GD, &
+                 PCD_GD, PRUNOFF_GD_EXT, PCH_RD, PCH_RF, PCH_WL, PCH_TOP, &
+                 PAC_TOP, ILMO_ROAD, ILMO_ROOF, ILMO_TOP, PCD_GARDEN_ATM, &
+                 PCH_GARDEN_ATM, PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, &
+                 ZZ0H_ROAD_CAN, PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, &
+                 PCDN_ROAD_ATM, PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, &
+                 PRI_GARDEN_CAN, ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, &
+                 PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
+                 PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
+                 PT_CAN0, PT_CAN1, PPHI_CAN1, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, &
+                 LE_ROAD_SNOW, LE_ROOF_WAT, LE_ROOF_SNOW, XTAU_HW_THRESH, &
+                 XTAU_HW_WIDTH, PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, &
+                 PLE_GARDEN, PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, &
+                 PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, &
+                 PLE_GARDEN_ATM, PTSRAD_GREENROOF, PRN_GREENROOF, &
+                 PH_GREENROOF, PLE_GREENROOF, PEVAP_GREENROOF, &
                  PQSAT_GREENROOF, PHU_GREENROOF, PAC_GREENROOF_ATM, &
                  PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
                  PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, DMT, TOP, TP, BOP, &
-                 BP, PZ0_TOWN)
+                 BP, PZ0_TOWN, TSTATE, BSTATE, TPN, TIR)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN_STRUCT*  
@@ -126,6 +121,10 @@ USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
+USE MODD_TEB_n,       ONLY : TEB_t
+USE MODD_BEM_n,       ONLY : BEM_t
+USE MODD_TEB_PANEL_n, ONLY : TEB_PANEL_t
+USE MODD_TEB_IRRIG_n, ONLY : TEB_IRRIG_t
 IMPLICIT NONE
 
 TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
@@ -164,27 +163,9 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PU_LOWCAN          ! wind near the road
 REAL, DIMENSION(:)  , INTENT(IN)    :: PT_LOWCAN          ! temp. near the road
 REAL, DIMENSION(:)  , INTENT(IN)    :: PQ_LOWCAN          ! hum. near the road
 REAL, DIMENSION(:)  , INTENT(IN)    :: PZ_LOWCAN          ! height of atm. var. near the road
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PTI_BLD            ! inside building temperature
-REAL, DIMENSION(:,:), INTENT(INOUT) :: PT_ROOF            ! roof layers temperatures
-REAL, DIMENSION(:,:), INTENT(INOUT) :: PT_ROAD            ! road layers temperatures
-REAL, DIMENSION(:,:), INTENT(INOUT) :: PT_WALL_A          ! wall layers temperatures
-REAL, DIMENSION(:,:), INTENT(INOUT) :: PT_WALL_B          ! wall layers temperatures
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PWS_ROOF           ! roof water reservoir
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PWS_ROAD           ! road water reservoir
  CHARACTER(LEN=*)    , INTENT(IN)    :: HSNOW_ROOF         ! snow roof scheme 'NONE', 'D95 ', '1-L '
  CHARACTER(LEN=*)    , INTENT(IN)    :: HSNOW_ROAD         ! snow road scheme 'NONE', 'D95 ', '1-L '
-REAL, DIMENSION(:,:), INTENT(INOUT) :: PWSNOW_ROOF        ! snow layers reservoir
-REAL, DIMENSION(:,:), INTENT(INOUT) :: PTSNOW_ROOF        ! snow layers temperature
-REAL, DIMENSION(:,:), INTENT(INOUT) :: PRSNOW_ROOF        ! snow layers density
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PASNOW_ROOF        ! snow albedo
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PESNOW_ROOF        ! snow emissivity
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PTSSNOW_ROOF       ! snow surface temperature
-REAL, DIMENSION(:,:), INTENT(INOUT) :: PWSNOW_ROAD        ! snow layers reservoir
-REAL, DIMENSION(:,:), INTENT(INOUT) :: PTSNOW_ROAD        ! snow layers temperature
-REAL, DIMENSION(:,:), INTENT(INOUT) :: PRSNOW_ROAD        ! snow layers density
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PASNOW_ROAD        ! snow albedo
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PESNOW_ROAD        ! snow emissivity
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PTSSNOW_ROAD       ! snow surface temperature
 REAL, DIMENSION(:)  , INTENT(IN)    :: PPEW_A_COEF        ! implicit coefficients
 REAL, DIMENSION(:)  , INTENT(IN)    :: PPEW_B_COEF        ! for wind coupling
 REAL, DIMENSION(:)  , INTENT(IN)    :: PPEW_A_COEF_LOWCAN ! implicit coefficients for wind coupling
@@ -417,6 +398,10 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GREENROOF_ATM ! greenroof drag coeffici
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GREENROOF_ATM! greenroof roughness length for heat (atm.)
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT   ! diagnostics container (owned by the driver)
+TYPE(TEB_t),         INTENT(INOUT) :: TSTATE   ! state of TEB
+TYPE(BEM_t),         INTENT(INOUT) :: BSTATE   ! state of BEM
+TYPE(TEB_PANEL_t),   INTENT(INOUT) :: TPN      ! solar panels
+TYPE(TEB_IRRIG_t),   INTENT(INOUT) :: TIR      ! irrigation
 !MV202609 CBS scheme of the road
 REAL,                 INTENT(IN)  :: XTAU_HW_THRESH   ! H/W giving tau = 0.5 (CBS scheme)
 REAL,                 INTENT(IN)  :: XTAU_HW_WIDTH    ! width of the tanh relaxation (CBS scheme)
@@ -451,14 +436,10 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PHVAC_COOL         ! Energy consumption o
                                                           ! [W m-2(bld)]
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PHVAC_HEAT         ! Energy consumption of the heating system
                                                           ! [W m-2(bld)]
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PT_WIN2            ! Indoor window temperature [K]
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PQI_BLD            ! Indoor air specific humidity [kg kg-1]
                                                           ! [W m-2(bld)]
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PCAP_SYS_RAT       ! Rated capacity of the cooling system
                                                           ! [W m-2(bld)]
 REAL, DIMENSION(:)  , INTENT(IN)    :: PT_ADP             ! Apparatus dewpoint temperature of the
                                                           ! cooling coil [K]
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PM_SYS_RAT         ! Rated HVAC mass flow rate 
                                                           ! [kg s-1 m-2(bld)]
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PCAP_SYS           ! Actual capacity of the cooling system
                                                           ! [W m-2(bld)] 
@@ -475,7 +456,6 @@ REAL, DIMENSION(:,:), INTENT(IN)    :: PTC_FLOOR          ! thermal conductivity
                                                           ! road layers
 REAL, DIMENSION(:,:), INTENT(IN)    :: PD_FLOOR           ! depth of road layers
 
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PT_WIN1            ! outdoor window temperature [K]
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PABS_SW_WIN        ! window absorbed shortwave radiation [W m-2] 
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PABS_LW_WIN        ! absorbed infrared rad. [W m-2]
 REAL, DIMENSION(:)  , INTENT(IN)    :: PUGG_WIN           ! window glass-to-glass U-factro [W m-2 K-1]
@@ -493,10 +473,7 @@ REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_BLD           ! Indoor relative humi
 !
 ! new arguments for shading, schedule or natural ventilation
 REAL                , INTENT(IN)     :: PTIME             ! current time since midnight (UTC, s)
-LOGICAL,DIMENSION(:), INTENT(IN)     :: OSHADE
 REAL, DIMENSION(:)  , INTENT(IN)     :: PSHADE            ! flag to activate shading devices -> REAL for i/o 0. or 1     
-LOGICAL,DIMENSION(:), INTENT(INOUT)  :: OSHAD_DAY         ! has shading been necessary this day ?
-LOGICAL,DIMENSION(:), INTENT(INOUT)  :: ONATVENT_NIGHT    ! has natural ventilation been necessary/possible this night ?
 !
 LOGICAL             , INTENT(IN)     :: OCANOPY           ! is canopy active ?
 !

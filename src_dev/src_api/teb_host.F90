@@ -26,17 +26,44 @@
 !
 !
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
-USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t, ALLOC_TEB_PARAMS, DEALLOC_TEB_PARAMS
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
-USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t, ALLOC_BEM_PARAMS, DEALLOC_BEM_PARAMS
+USE MODD_TEB_n,           ONLY : TEB_t
+USE MODD_BEM_n,           ONLY : BEM_t
+USE MODD_TEB_PANEL_n,     ONLY : TEB_PANEL_t
+USE MODD_TEB_IRRIG_n,     ONLY : TEB_IRRIG_t
+USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
+USE MODI_ALLOC_TEB_STRUCT,   ONLY : ALLOC_TEB_STRUCT
+USE MODI_DEALLOC_TEB_STRUCT, ONLY : DEALLOC_TEB_STRUCT
+USE MODI_DIAG_MISC_TEB_UTIL, ONLY : DIAG_MISC_TEB_ALLOC, DIAG_MISC_TEB_DEALLOC
 IMPLICIT NONE
 !
+!
+!*       0.   MODULE DATA: the containers of the TEB configuration, state
+!             and diagnostics. They are declared here, allocated lazily by
+!             TEB_HOST_ENSURE on the first call of TEB_INTERFACE (one set per
+!             thread), filled per call and passed down the call chain.
+!
+TYPE(TEB_OPTIONS_t),  SAVE :: TOP   ! options of TEB
+TYPE(TEB_PARAMS_t),   SAVE :: TP    ! parameters of TEB
+TYPE(TEB_t),          SAVE :: TSTATE     ! state of TEB
+TYPE(BEM_OPTIONS_t),  SAVE :: BOP   ! options of BEM
+TYPE(BEM_PARAMS_t),   SAVE :: BP    ! parameters of BEM
+TYPE(BEM_t),          SAVE :: BSTATE     ! state of BEM
+TYPE(TEB_PANEL_t),    SAVE :: TPN   ! solar panels
+TYPE(TEB_IRRIG_t),    SAVE :: TIR   ! irrigation
+TYPE(DIAG_MISC_TEB_t),SAVE :: DMT   ! diagnostics
+LOGICAL,              SAVE :: LTEB_HOST_ALLOC = .FALSE.
+!$OMP THREADPRIVATE(TOP,TP,T,BOP,BP,B,TPN,TIR,DMT,LTEB_HOST_ALLOC)
+!
 CONTAINS
+
 !
 !------------------------------------------------------------------------------
 !*      1.   FILL THE PARAMETER CONTAINERS FROM THE CONFIGURATION
 !------------------------------------------------------------------------------
-SUBROUTINE TEB_FILL_PARAMS (TOP, TP, BOP, BP, KSTART, KEND, &
+SUBROUTINE TEB_FILL_PARAMS (KSTART, KEND, &
                             teb_itype_bem_cool, teb_itype_bem_heat, teb_tcool_target, &
                             teb_theat_target, teb_frac_gz, teb_bem_inf, teb_bem_vent, &
                             teb_cap_sys_heat, teb_bem_cop, teb_itype_natvent, teb_lgarden, &
@@ -51,10 +78,6 @@ SUBROUTINE TEB_FILL_PARAMS (TOP, TP, BOP, BP, KSTART, KEND, &
 !
 !*       0.1  containers
 !             ----------
-TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP   ! options of TEB
-TYPE(TEB_PARAMS_t),  INTENT(INOUT) :: TP    ! parameters of TEB
-TYPE(BEM_OPTIONS_t), INTENT(INOUT) :: BOP   ! options of BEM
-TYPE(BEM_PARAMS_t),  INTENT(INOUT) :: BP    ! parameters of BEM
 !
 !*       0.2  configuration
 !             -------------
@@ -128,5 +151,163 @@ DO K = KSTART, KEND
 END DO
 !
 END SUBROUTINE TEB_FILL_PARAMS
+!
+!
+!------------------------------------------------------------------------------
+!*      2.   LAZY ALLOCATION OF THE CONTAINERS (first call, per thread)
+!------------------------------------------------------------------------------
+SUBROUTINE TEB_HOST_ENSURE (KNVEC, KROOF, KROAD, KWALL, KFLOOR)
+!
+INTEGER, INTENT(IN) :: KNVEC   ! number of grid points of the window
+INTEGER, INTENT(IN) :: KROOF   ! number of roof layers
+INTEGER, INTENT(IN) :: KROAD   ! number of road layers
+INTEGER, INTENT(IN) :: KWALL   ! number of wall layers
+INTEGER, INTENT(IN) :: KFLOOR  ! number of floor layers
+!------------------------------------------------------------------------------
+!
+IF (.NOT. LTEB_HOST_ALLOC) THEN
+   CALL ALLOC_TEB_STRUCT(KROOF, KROAD, KWALL, KFLOOR, TOP, TSTATE, BOP, BSTATE, TPN, TIR)
+   CALL ALLOC_TEB_PARAMS(TP, KROOF, KROAD, KWALL)
+   CALL ALLOC_BEM_PARAMS(BP, KFLOOR)
+   CALL DIAG_MISC_TEB_ALLOC(DMT, KNVEC)
+   LTEB_HOST_ALLOC = .TRUE.
+END IF
+!
+END SUBROUTINE TEB_HOST_ENSURE
+!
+!------------------------------------------------------------------------------
+!*      3.   FINAL RELEASE OF THE CONTAINERS (end of the run)
+!------------------------------------------------------------------------------
+SUBROUTINE TEB_HOST_FINAL
+!------------------------------------------------------------------------------
+!
+IF (LTEB_HOST_ALLOC) THEN
+   CALL DEALLOC_TEB_STRUCT(TOP, TSTATE, BOP, BSTATE, TPN, TIR)
+   CALL DEALLOC_TEB_PARAMS(TP)
+   CALL DEALLOC_BEM_PARAMS(BP)
+   CALL DIAG_MISC_TEB_DEALLOC(DMT)
+   LTEB_HOST_ALLOC = .FALSE.
+END IF
+!
+END SUBROUTINE TEB_HOST_FINAL
+!
+SUBROUTINE TEB_BIND_STATE (KSTART, KEND, teb_ti_bld, teb_twin2, teb_qi_bld, teb_cap_sys_rat, teb_m_sys_rat, teb_twin1, lshade_arg, teb_lshade, teb_shad_day, teb_natvent_night, teb_ws_roof, teb_troof, teb_troad, teb_twalla, teb_twallb, teb_wsnow_roof, teb_tsnow_roof, teb_rsnow_roof, teb_asnow_roof, teb_esnow_roof, teb_tssnow_roof, teb_wsnow_road, teb_tsnow_road, teb_rsnow_road, teb_asnow_road, teb_esnow_road, teb_tssnow_road)
+!
+INTEGER, INTENT(IN) :: KSTART, KEND
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_ti_bld
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_twin2
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_qi_bld
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_cap_sys_rat
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_m_sys_rat
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_twin1
+LOGICAL, DIMENSION(:), INTENT(INOUT) :: lshade_arg
+LOGICAL, INTENT(INOUT) :: teb_lshade
+LOGICAL, DIMENSION(:), INTENT(INOUT) :: teb_shad_day
+LOGICAL, DIMENSION(:), INTENT(INOUT) :: teb_natvent_night
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_ws_roof
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_troof
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_troad
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_twalla
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_twallb
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_wsnow_roof
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_tsnow_roof
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_rsnow_roof
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_asnow_roof
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_esnow_roof
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_tssnow_roof
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_wsnow_road
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_tsnow_road
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_rsnow_road
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_asnow_road
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_esnow_road
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_tssnow_road
+!
+    BSTATE%XTI_BLD(KSTART:KEND)                    = teb_ti_bld(KSTART:KEND)
+    BSTATE%XT_WIN2(KSTART:KEND)                    = teb_twin2(KSTART:KEND)
+    BSTATE%XQI_BLD(KSTART:KEND)                    = teb_qi_bld(KSTART:KEND)
+    BSTATE%XCAP_SYS_RAT(KSTART:KEND)               = teb_cap_sys_rat(KSTART:KEND)
+    BSTATE%XM_SYS_RAT(KSTART:KEND)                 = teb_m_sys_rat(KSTART:KEND)
+    BSTATE%XT_WIN1(KSTART:KEND)                    = teb_twin1(KSTART:KEND)
+    BSTATE%LSHADE(KSTART:KEND)                     = teb_lshade
+    BSTATE%LSHAD_DAY(KSTART:KEND)                  = teb_shad_day(KSTART:KEND)
+    BSTATE%LNATVENT_NIGHT(KSTART:KEND)             = teb_natvent_night(KSTART:KEND)
+    TSTATE%XWS_ROOF(KSTART:KEND)                   = teb_ws_roof(KSTART:KEND)
+    TSTATE%XT_ROOF(KSTART:KEND,:)                  = teb_troof(KSTART:KEND,:)
+    TSTATE%XT_ROAD(KSTART:KEND,:)                  = teb_troad(KSTART:KEND,:)
+    TSTATE%XT_WALL_A(KSTART:KEND,:)                = teb_twalla(KSTART:KEND,:)
+    TSTATE%XT_WALL_B(KSTART:KEND,:)                = teb_twallb(KSTART:KEND,:)
+    TSTATE%TSNOW_ROOF%WSNOW(KSTART:KEND,:)         = teb_wsnow_roof(KSTART:KEND,:)
+    TSTATE%TSNOW_ROOF%T(KSTART:KEND,:)             = teb_tsnow_roof(KSTART:KEND,:)
+    TSTATE%TSNOW_ROOF%RHO(KSTART:KEND,:)           = teb_rsnow_roof(KSTART:KEND,:)
+    TSTATE%TSNOW_ROOF%ALB(KSTART:KEND)             = teb_asnow_roof(KSTART:KEND)
+    TSTATE%TSNOW_ROOF%EMIS(KSTART:KEND)            = teb_esnow_roof(KSTART:KEND)
+    TSTATE%TSNOW_ROOF%TS(KSTART:KEND)              = teb_tssnow_roof(KSTART:KEND)
+    TSTATE%TSNOW_ROAD%WSNOW(KSTART:KEND,:)         = teb_wsnow_road(KSTART:KEND,:)
+    TSTATE%TSNOW_ROAD%T(KSTART:KEND,:)             = teb_tsnow_road(KSTART:KEND,:)
+    TSTATE%TSNOW_ROAD%RHO(KSTART:KEND,:)           = teb_rsnow_road(KSTART:KEND,:)
+    TSTATE%TSNOW_ROAD%ALB(KSTART:KEND)             = teb_asnow_road(KSTART:KEND)
+    TSTATE%TSNOW_ROAD%EMIS(KSTART:KEND)            = teb_esnow_road(KSTART:KEND)
+    TSTATE%TSNOW_ROAD%TS(KSTART:KEND)              = teb_tssnow_road(KSTART:KEND)
+!
+END SUBROUTINE TEB_BIND_STATE
+!
+SUBROUTINE TEB_UNBIND_STATE (KSTART, KEND, teb_ti_bld, teb_twin2, teb_qi_bld, teb_cap_sys_rat, teb_m_sys_rat, teb_twin1, lshade_arg, teb_lshade, teb_shad_day, teb_natvent_night, teb_ws_roof, teb_troof, teb_troad, teb_twalla, teb_twallb, teb_wsnow_roof, teb_tsnow_roof, teb_rsnow_roof, teb_asnow_roof, teb_esnow_roof, teb_tssnow_roof, teb_wsnow_road, teb_tsnow_road, teb_rsnow_road, teb_asnow_road, teb_esnow_road, teb_tssnow_road)
+!
+INTEGER, INTENT(IN) :: KSTART, KEND
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_ti_bld
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_twin2
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_qi_bld
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_cap_sys_rat
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_m_sys_rat
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_twin1
+LOGICAL, DIMENSION(:), INTENT(INOUT) :: lshade_arg
+LOGICAL, INTENT(INOUT) :: teb_lshade
+LOGICAL, DIMENSION(:), INTENT(INOUT) :: teb_shad_day
+LOGICAL, DIMENSION(:), INTENT(INOUT) :: teb_natvent_night
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_ws_roof
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_troof
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_troad
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_twalla
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_twallb
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_wsnow_roof
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_tsnow_roof
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_rsnow_roof
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_asnow_roof
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_esnow_roof
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_tssnow_roof
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_wsnow_road
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_tsnow_road
+REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_rsnow_road
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_asnow_road
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_esnow_road
+REAL, DIMENSION(:), INTENT(INOUT) :: teb_tssnow_road
+!
+    teb_ti_bld(KSTART:KEND)                        = BSTATE%XTI_BLD(KSTART:KEND)
+    teb_qi_bld(KSTART:KEND)                        = BSTATE%XQI_BLD(KSTART:KEND)
+    teb_twin1(KSTART:KEND)                         = BSTATE%XT_WIN1(KSTART:KEND)
+    teb_twin2(KSTART:KEND)                         = BSTATE%XT_WIN2(KSTART:KEND)
+    teb_cap_sys_rat(KSTART:KEND)                   = BSTATE%XCAP_SYS_RAT(KSTART:KEND)
+    teb_m_sys_rat(KSTART:KEND)                     = BSTATE%XM_SYS_RAT(KSTART:KEND)
+    teb_shad_day(KSTART:KEND)                      = BSTATE%LSHAD_DAY(KSTART:KEND)
+    teb_natvent_night(KSTART:KEND)                 = BSTATE%LNATVENT_NIGHT(KSTART:KEND)
+    teb_troof(KSTART:KEND,:)                       = TSTATE%XT_ROOF(KSTART:KEND,:)
+    teb_troad(KSTART:KEND,:)                       = TSTATE%XT_ROAD(KSTART:KEND,:)
+    teb_twalla(KSTART:KEND,:)                      = TSTATE%XT_WALL_A(KSTART:KEND,:)
+    teb_twallb(KSTART:KEND,:)                      = TSTATE%XT_WALL_B(KSTART:KEND,:)
+    teb_ws_roof(KSTART:KEND)                       = TSTATE%XWS_ROOF(KSTART:KEND)
+    teb_wsnow_roof(KSTART:KEND,:)                  = TSTATE%TSNOW_ROOF%WSNOW(KSTART:KEND,:)
+    teb_tsnow_roof(KSTART:KEND,:)                  = TSTATE%TSNOW_ROOF%T(KSTART:KEND,:)
+    teb_rsnow_roof(KSTART:KEND,:)                  = TSTATE%TSNOW_ROOF%RHO(KSTART:KEND,:)
+    teb_asnow_roof(KSTART:KEND)                    = TSTATE%TSNOW_ROOF%ALB(KSTART:KEND)
+    teb_esnow_roof(KSTART:KEND)                    = TSTATE%TSNOW_ROOF%EMIS(KSTART:KEND)
+    teb_tssnow_roof(KSTART:KEND)                   = TSTATE%TSNOW_ROOF%TS(KSTART:KEND)
+    teb_wsnow_road(KSTART:KEND,:)                  = TSTATE%TSNOW_ROAD%WSNOW(KSTART:KEND,:)
+    teb_tsnow_road(KSTART:KEND,:)                  = TSTATE%TSNOW_ROAD%T(KSTART:KEND,:)
+    teb_rsnow_road(KSTART:KEND,:)                  = TSTATE%TSNOW_ROAD%RHO(KSTART:KEND,:)
+    teb_asnow_road(KSTART:KEND)                    = TSTATE%TSNOW_ROAD%ALB(KSTART:KEND)
+    teb_esnow_road(KSTART:KEND)                    = TSTATE%TSNOW_ROAD%EMIS(KSTART:KEND)
+    teb_tssnow_road(KSTART:KEND)                   = TSTATE%TSNOW_ROAD%TS(KSTART:KEND)
+!
+END SUBROUTINE TEB_UNBIND_STATE
 !
 END MODULE TEB_HOST

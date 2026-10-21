@@ -66,7 +66,10 @@ USE MODD_FORC_ATM, ONLY: CSV         ,&! name of all scalar variables
                          XPET_B_COEF ,&
                          XPEQ_B_COEF
 
+USE TEB_LOG, ONLY : TEB_LOG_INIT, TEB_LOG_HEADER, TEB_LOG_STEP, TEB_LOG_FINAL, TEB_LOG_SELECTED
 IMPLICIT NONE
+!MV202610 empty lists: the driver writes every step (no filter)
+INTEGER, DIMENSION(0) :: ZLOG_BLOCK, ZLOG_POINT
 
 ! Program arguments
 INTEGER :: num_args
@@ -411,7 +414,6 @@ REAL, DIMENSION(:,:), ALLOCATABLE :: ZDIR   ! wind direction
 !    
 CHARACTER(LEN=100) :: output_dir
 ! the output is written to a single CSV file with ';' separators
-INTEGER, PARAMETER :: fu_out  = 13             ! unit of the output CSV file
 INTEGER, PARAMETER :: nout_max = 192           ! max number of output columns (array bound of col_name)
 INTEGER :: ncol                                ! columns registered by CSV_ADD in the current step
 CHARACTER(LEN=1),  PARAMETER :: out_sep = ';'  ! CSV field separator
@@ -421,10 +423,6 @@ CHARACTER(LEN=4096) :: hdr_line                ! header line, built by CSV_ADD (
 CHARACTER(LEN=4096) :: out_line                ! one data row of the CSV
 CHARACTER(LEN=32) :: time_buf                  ! timestamp buffer (ISO 8601)
 TYPE(DIAG_MISC_TEB_t) :: DMT   ! diagnostics container, owned by this driver
-TYPE(TEB_OPTIONS_t) :: TOP
-TYPE(TEB_PARAMS_t)  :: TP
-TYPE(BEM_OPTIONS_t) :: BOP
-TYPE(BEM_PARAMS_t)  :: BP
 REAL :: forc_wind                              ! forcing wind speed       (m/s)
 REAL :: forc_dir                               ! forcing wind direction   (deg from North)
 ! -----------------------------------------------------------                        
@@ -1121,9 +1119,9 @@ END IF
 ! hand). The header is written once, just before the first output row; the column
 ! names stay in col_name(1:ncol) and the bound of that array (nout_max) is checked
 ! by CSV_ADD. The set of columns and their order is unchanged.
-! Open the output CSV file (the header is written once, the file is replaced)
+! Open the output CSV file through the TEB writer (mechanism owned by TEB_LOG)
 output_csv = TRIM(output_dir)//'TEB_output.csv'
-OPEN(UNIT=fu_out, FILE = output_csv, STATUS = 'REPLACE', ACTION = 'WRITE', IOSTAT=rc)
+CALL TEB_LOG_INIT(output_csv, rc)
 IF (rc /= 0) THEN
    WRITE(*,*) 'ERROR: Cannot open output CSV file: ', TRIM(output_csv)
    WRITE(*,*) 'IOSTAT = ', rc
@@ -1143,29 +1141,6 @@ END IF
 !* and CALL_DRIVER; the fields it carries are read for the CSV output.
 CALL DIAG_MISC_TEB_ALLOC(DMT, nvec)
 !
-! Static parameters and options: filled once from the namelist
-!
-CALL TEB_OPTIONS_INIT(TOP)
-CALL BEM_OPTIONS_INIT(BOP)
-CALL ALLOC_TEB_PARAMS(TP, teb_nroof_layer, teb_nroad_layer, teb_nwall_layer)
-CALL ALLOC_BEM_PARAMS(BP, teb_nfloor_layer)
-BOP%CCOOL_COIL = teb_itype_bem_cool
-BOP%CHEAT_COIL = teb_itype_bem_heat
-BP%CNATVENT = teb_itype_natvent
-TOP%LGARDEN = teb_lgarden
-TOP%CROAD_DIR = teb_hroad_dir
-TOP%CWALL_OPT = teb_wall_opt
-TOP%CBEM = teb_itype_bem
-TOP%LGREENROOF = teb_lgreenroof
-TOP%CTYPE_GARDEN = teb_type_garden
-TOP%CTYPE_GREENROOF = teb_type_greenroof
-TOP%LSOLAR_PANEL = teb_lsolar_panel
-TOP%LCBS_SCHEME = teb_lcbs_scheme
-TOP%XTAU_HW_THRESH = teb_tau_hw_thresh
-TOP%XTAU_HW_WIDTH = teb_tau_hw_width
-TOP%XZ0_O_Z0H_GD = urb_z0_o_z0h_gdn
-TOP%XZ0_O_Z0H_GR = urb_z0_o_z0h_grf
-
 INB_ATM = forc_step / dt
 
 DO nstep= 1,nsteps - 1
@@ -1262,7 +1237,7 @@ DO nstep= 1,nsteps - 1
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 !MV202609 greenroof diagnostics
 !MV202609 greenroof-to-atm exchange diagnostics
-                          DMT, TOP, TP, BOP, BP)
+                          DMT, kteb_log_block = ZLOG_BLOCK, kteb_log_point = ZLOG_POINT)
 !MV202609 garden emulation (teb_type_garden = 'EXT')
 !* the external garden model: TEB has just used the garden state prescribed at
 !* the previous sub-step; the emulator now updates the state and the fluxes for
@@ -1442,10 +1417,10 @@ DO nstep= 1,nsteps - 1
     CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_DIR_SW', swdir_s(1))
     CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_SCA_SW', swdifd_s(1))
     IF (nstep == 1) THEN
-       WRITE(fu_out,'(A)') TRIM(hdr_line)
+       CALL TEB_LOG_HEADER(hdr_line)
        WRITE(*,*) '  Output columns: ', TRIM(hdr_line)
     END IF
-    WRITE(fu_out,'(A)') TRIM(out_line)
+    CALL TEB_LOG_STEP(out_line)
 END DO
 
 !MV202609 strict namelist date/time reading
@@ -1473,7 +1448,7 @@ DEALLOCATE(ZPS)
 DEALLOCATE(ZDIR)
 
 CALL OPEN_CLOSE_BIN_ASC_FORC('CLOSE ','ASCII ',1,'R', forcing_path2)
-CLOSE(fu_out)
+CALL TEB_LOG_FINAL()
 
 !
     WRITE(*,*) ' '
@@ -1485,8 +1460,6 @@ CLOSE(fu_out)
 ! --------------------------------------------------------------------------------------
 !
 !MV202609 release the diagnostics container
-CALL DEALLOC_BEM_PARAMS(BP)
-CALL DEALLOC_TEB_PARAMS(TP)
 CALL DIAG_MISC_TEB_DEALLOC(DMT)
 
 CONTAINS

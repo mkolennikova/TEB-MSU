@@ -17,46 +17,37 @@
 !* MODI_CALL_DRIVER interface file) also avoids a second copy of the list that
 !* would have to be kept in sync by hand.
 MODULE MODI_CALL_DRIVER
+USE MODD_TEB_n,           ONLY : TEB_t
+USE MODD_BEM_n,           ONLY : BEM_t
+USE MODD_TEB_PANEL_n,     ONLY : TEB_PANEL_t
+USE MODD_TEB_IRRIG_n,     ONLY : TEB_IRRIG_t
 IMPLICIT NONE
 CONTAINS
-SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, IMIN, ISEC, ZTIME, FR_URB, ZLON, ZLAT, ZZREF,      &
-				u, v, t, qv, ps, rho, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s,  &
-				NROOF_LAYER1, NROAD_LAYER1, NWALL_LAYER1, NFLOOR_LAYER1, ZBLD, ZGARDEN, ZCAN_HW_RATIO,        &
-				ZBLD_HEIGHT, ZHC_ROAD_S, ZHC_ROOF_S, ZHC_WALL_S, ZTC_ROAD_S, ZTC_ROOF_S, ZTC_WALL_S,          &
-				ZALB_ROAD, ZALB_ROOF, ZALB_WALL, ZEMIS_ROAD, ZEMIS_ROOF, ZEMIS_WALL, ZH_TRAFFIC, ZH_INDUSTRY, &
-				ZTI_BLD, ZT_ROOF, ZT_ROAD_NOW, ZT_ROAD, ZT_WALL_A, ZT_WALL_B, ZT_FLOOR, ZT_MASS, ZQI_BLD,     &
-				ZT_CANYON, ZQ_CANYON, ZWS_ROOF, ZWS_ROAD,&
-				ZWSNOW_ROOF, ZWSNOW_ROAD, ZTSNOW_ROOF, ZTSNOW_ROAD, ZRSNOW_ROOF, ZRSNOW_ROAD, ZTSSNOW_ROOF,   &
-				ZTSSNOW_ROAD, ZASNOW_ROOF, ZASNOW_ROAD, ZESNOW_ROOF, ZESNOW_ROAD, ZT_WIN1, ZT_WIN2, ZALB_WIN, &
-				CBEM, LBEM_AC, HNATVENT, CCOOL_COIL, CHEAT_COIL, ZGR, ZTCOOL_TARGET, ZTHEAT_TARGET, ZV_VENT,  &
-				ZINF, ZCOP_RAT, ZCAP_SYS_RAT, ZM_SYS_RAT, GSHAD_DAY, GNATVENT_NIGHT,                          &
-				LGREENROOF, ZFRAC_GR, ZZ0_GR_EXT, ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, ZH_GR_EXT,  &
-				ZLE_GR_EXT, ZEVAP_GR_EXT,        &
-				ZRUNOFF_GR_EXT, LGARDEN, ZZ0_GD_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD,   &
-				ZCD_GD, ZRUNOFF_GD_EXT, ITYPE_WIND, ZFAI, &
-                TYPE_GARDEN, TYPE_GREENROOF, &
-				LGREENROOF_EXT, HROAD_DIR, HWALL_OPT, ZROAD_DIR, ZRESIDENTIAL, ZDT_RES, ZDT_OFF, ZCAP_SYS_HEAT, &
-				LSOLAR_PANEL, ZFRAC_PANEL, LPAR_RD_IRRIG, ZRD_START_MONTH, ZRD_END_MONTH, ZRD_START_HOUR,        &
-				ZRD_END_HOUR, ZRD_24H_IRRIG, ZUTC_HOUR, LSHADE,                                     &
-!MV202609 z0 and zd to namelist
-				HZ0_TOWN, HZD_TOWN,                         &
-!MV202609 garden thermal roughness (z0h)
-                XZ0_O_Z0H_GD,                               &
-!MV202609 greenroof model type and thermal roughness
-                XZ0_O_Z0H_GR,                              &
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-!MV202609 CBS scheme of the road (revision: three-temperature construction)
-!MV202609 CBS scheme of the road
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-                          LCBS_SCHEME,                       &
-                          XTAU_HW_THRESH, XTAU_HW_WIDTH,                        &
-!MV202609 anthropogenic heat diagnostics
-!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-!MV202609 garden diagnostics
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-!MV202609 greenroof diagnostics
-!MV202609 greenroof-to-atm exchange diagnostics
-                          DMT, TOP, TP, BOP, BP)
+SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, IMIN, ISEC, ZTIME, &
+                 FR_URB, ZLON, ZLAT, ZZREF, u, v, t, qv, ps, prr_con, &
+                 prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, &
+                 swdifd_s, NROOF_LAYER1, NROAD_LAYER1, NWALL_LAYER1, &
+                 NFLOOR_LAYER1, ZBLD, ZGARDEN, ZCAN_HW_RATIO, ZBLD_HEIGHT, &
+                 ZHC_ROAD_S, ZHC_ROOF_S, ZHC_WALL_S, ZTC_ROAD_S, ZTC_ROOF_S, &
+                 ZTC_WALL_S, ZALB_ROAD, ZALB_ROOF, ZALB_WALL, ZEMIS_ROAD, &
+                 ZEMIS_ROOF, ZEMIS_WALL, ZH_TRAFFIC, ZH_INDUSTRY, &
+                 ZT_ROAD_NOW, ZT_ROAD, ZT_FLOOR, ZT_MASS, ZT_CANYON, &
+                 ZQ_CANYON, ZWS_ROAD, ZALB_WIN, CBEM, LBEM_AC, HNATVENT, &
+                 CCOOL_COIL, CHEAT_COIL, ZGR, ZTCOOL_TARGET, ZTHEAT_TARGET, &
+                 ZV_VENT, ZINF, ZCOP_RAT, ZCAP_SYS_RAT, GSHAD_DAY, &
+                 GNATVENT_NIGHT, LGREENROOF, ZFRAC_GR, ZZ0_GR_EXT, &
+                 ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, &
+                 ZH_GR_EXT, ZLE_GR_EXT, ZEVAP_GR_EXT, ZRUNOFF_GR_EXT, &
+                 LGARDEN, ZZ0_GD_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, &
+                 ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, ZLE_GD_EXT, &
+                 ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, ZRUNOFF_GD_EXT, ITYPE_WIND, &
+                 ZFAI, TYPE_GARDEN, LGREENROOF_EXT, HROAD_DIR, HWALL_OPT, &
+                 ZROAD_DIR, ZRESIDENTIAL, ZDT_RES, ZDT_OFF, ZCAP_SYS_HEAT, &
+                 LSOLAR_PANEL, ZFRAC_PANEL, LPAR_RD_IRRIG, ZRD_START_MONTH, &
+                 ZRD_END_MONTH, ZRD_START_HOUR, ZRD_END_HOUR, ZRD_24H_IRRIG, &
+                 ZUTC_HOUR, LSHADE, HZ0_TOWN, HZD_TOWN, XTAU_HW_THRESH, &
+                 XTAU_HW_WIDTH, DMT, TOP, TP, BOP, BP, TSTATE, BSTATE, TPN, &
+                 TIR)
 							
 ! ======================================================================
 ! 
@@ -189,7 +180,6 @@ REAL,DIMENSION(1)                 :: v                 !IN meridional wind speed
 REAL,DIMENSION(1)                 :: t            	   !IN temperature                            (  K  )
 REAL,DIMENSION(1)                 :: qv                !IN specific water vapor content           (kg/kg)
 REAL,DIMENSION(1)                 :: ps                !IN surface pressure                       ( Pa  )
-REAL,DIMENSION(1)                 :: rho               !IN air density                            ( kg/m3  )
 REAL,DIMENSION(1)                 :: prr_con           !IN precipitation rate of rain, convective       (kg/m2*s)
 REAL,DIMENSION(1)                 :: prs_con           !IN precipitation rate of snow, convective       (kg/m2*s)
 REAL,DIMENSION(1)                 :: prr_gsp           !IN precipitation rate of rain, grid-scale       (kg/m2*s)
@@ -233,9 +223,7 @@ CHARACTER(LEN=4)                  :: HWALL_OPT         !IN Wall option
 CHARACTER(LEN=16)                 :: HZ0_TOWN          !IN z0 of the urban surface (0.5 | 0.5m | 0.1H | H/3 | <name>)
 CHARACTER(LEN=16)                 :: HZD_TOWN          !IN displacement height    (same forms as HZ0_TOWN)
 !MV202609 garden thermal roughness (z0h)
-REAL                              :: XZ0_O_Z0H_GD      !IN garden z0/z0h ratio (-)         ( >= 1 )
 !MV202609 greenroof model type, thermal roughness and surface humidity
-REAL                              :: XZ0_O_Z0H_GR      !IN greenroof z0/z0h ratio (-)      ( >= 1 )
 REAL,DIMENSION(1)                 :: ZROAD_DIR         !IN road direction (° from North, clockwise)													   
 										
 ! Input parameters for BEM                                                                                                                                       ! ||   ||
@@ -277,7 +265,6 @@ REAL,DIMENSION(1)                 :: ZRUNOFF_GR_EXT    !IN greenroof surface run
 ! Input parameters for Garden from TERRA           
 LOGICAL                           :: LGARDEN           !IN Flag to use a garden scheme
 CHARACTER(LEN=9)                  :: TYPE_GARDEN       !IN garden model type ('PROXY_OLD','PROXY_NEW','EXT')
-CHARACTER(LEN=9)                  :: TYPE_GREENROOF    !IN greenroof model type ('PROXY_OLD','PROXY_NEW')
 REAL,DIMENSION(1)                 :: ZZ0_GD_EXT        !IN garden roughness length (external model)
 REAL,DIMENSION(1)                 :: ZALB_GD_EXT       !IN garden albedo (external model)
 REAL,DIMENSION(1)                 :: ZEMIS_GD_EXT      !IN garden emissivity (external model)
@@ -303,38 +290,17 @@ REAL, DIMENSION(1)                :: ZRD_END_HOUR      !IN end   hour  for water
 REAL, DIMENSION(1)                :: ZRD_24H_IRRIG     !IN 24h quantity of water used for road watering (liter/m2)               
 
 ! Input/Output prognostic variables
-REAL,DIMENSION(1)                 :: ZTI_BLD           !INOUT indoor air temperature
-REAL,DIMENSION(1,1:NROOF_LAYER1)  :: ZT_ROOF  	       !INOUT roof layers temperatures
 REAL,DIMENSION(1,1:NROAD_LAYER1)  :: ZT_ROAD_NOW       !INOUT road layers temperatures at previous time-step 
 REAL,DIMENSION(1,1:NROAD_LAYER1)  :: ZT_ROAD  	       !INOUT road layers temperatures          
-REAL,DIMENSION(1,1:NWALL_LAYER1)  :: ZT_WALL_A	       !INOUT wall layers temperatures (wall 'A') 
-REAL,DIMENSION(1,1:NWALL_LAYER1)  :: ZT_WALL_B	       !INOUT wall layers temperatures (wall 'B') 
 REAL,DIMENSION(1,1:NFLOOR_LAYER1) :: ZT_FLOOR 	       !INOUT Floor layers temperatures [K]
 REAL,DIMENSION(1,1:NFLOOR_LAYER1) :: ZT_MASS  	       !INOUT Internal mass layers temperatures [K]      
-REAL,DIMENSION(1)                 :: ZQI_BLD   		   !INOUT Indoor air specific humidity [kg kg-1]
 ! Input/Output semi-prognostic variables 
 REAL,DIMENSION(1)                 :: ZT_CANYON   	   !INOUT air canyon temperature 
 REAL,DIMENSION(1)                 :: ZQ_CANYON     	   !INOUT canyon air humidity ratio
 ! Input/Output prognostic variables
-REAL,DIMENSION(1)                 :: ZWS_ROOF          !INOUT roof water content (kg/m2)                   
 REAL,DIMENSION(1)                 :: ZWS_ROAD          !INOUT road water content (kg/m2)
-REAL,DIMENSION(1,1)               :: ZWSNOW_ROOF       !INOUT Initial Amount      of roof snow reservoir  
-REAL,DIMENSION(1,1)               :: ZWSNOW_ROAD       !INOUT Initial amount      of road snow reservoir
-REAL,DIMENSION(1,1)               :: ZTSNOW_ROOF       !INOUT layer temperature   of roof snow 
-REAL,DIMENSION(1,1)               :: ZTSNOW_ROAD       !INOUT layer temperature   of road snow          
-REAL,DIMENSION(1,1)               :: ZRSNOW_ROOF       !INOUT density             of roof snow  
-REAL,DIMENSION(1,1)               :: ZRSNOW_ROAD       !INOUT density             of road snow          
-REAL,DIMENSION(1)                 :: ZTSSNOW_ROOF      !INOUT surface temperature of roof snow           
-REAL,DIMENSION(1)                 :: ZTSSNOW_ROAD      !INOUT surface temperature of road snow
-REAL,DIMENSION(1)                 :: ZASNOW_ROOF       !INOUT roof snow albedo                            
-REAL,DIMENSION(1)                 :: ZASNOW_ROAD       !INOUT road snow albedo
-REAL,DIMENSION(1)                 :: ZESNOW_ROOF       !INOUT snow roof emissivity
-REAL,DIMENSION(1)                 :: ZESNOW_ROAD       !INOUT road snow emissivity                          
-REAL,DIMENSION(1)                 :: ZT_WIN1           !INOUT outdoor window temperature [K] 
-REAL,DIMENSION(1)                 :: ZT_WIN2           !INOUT Indoor window temperature [K] 
 REAL,DIMENSION(1)                 :: ZALB_WIN          !INOUT window albedo
 REAL,DIMENSION(1)                 :: ZCAP_SYS_RAT      !INOUT Rated capacity of the cooling system [W m-2(floor)]                                                   
-REAL,DIMENSION(1)                 :: ZM_SYS_RAT        !INOUT Rated HVAC mass flow rate [kg s-1 m-2(bld)] 
 LOGICAL,DIMENSION(1)              :: GSHAD_DAY         !INOUT has shading been necessary this day ?     
 LOGICAL,DIMENSION(1)              :: GNATVENT_NIGHT    !INOUT has natural ventilation been
 
@@ -357,7 +323,6 @@ REAL,DIMENSION(1)                 :: ZZ0U              !OUT Roughness length (m)
 !MV202609 greenroof diagnostics
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-LOGICAL                           :: LCBS_SCHEME      !IN flag to use the CBS scheme for the road
 REAL                              :: XTAU_HW_THRESH   !IN H/W giving tau = 0.5 (CBS scheme)
 REAL                              :: XTAU_HW_WIDTH    !IN width of the tanh relaxation (CBS scheme)
  
@@ -372,6 +337,10 @@ REAL               :: XTSTEP_SURF
 INTEGER            :: JLOOP             ! loop counter 
 TYPE(DATE_TIME)    :: TPTIME
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT   ! diagnostics container (owned by the driver)
+TYPE(TEB_t),         INTENT(INOUT) :: TSTATE
+TYPE(BEM_t),         INTENT(INOUT) :: BSTATE
+TYPE(TEB_PANEL_t),   INTENT(INOUT) :: TPN
+TYPE(TEB_IRRIG_t),   INTENT(INOUT) :: TIR
 
 ! Canyon geometry                                                                     
 REAL,DIMENSION(1)  :: ZZ0               ! Roughness length (m) for neutral stratification                                                           
@@ -915,8 +884,10 @@ IF (ntstep == 1) THEN
 	ZQ_CANYON      = qv                ! Outdoor specific humidity    [kg kg-1]
 	
 	! Input/Output prognostic variables
-	ZTI_BLD        = ZTCOOL_TARGET     ! indoor air temperature
-    ZQI_BLD        = 0.0068794074      ! Indoor air specific humidity [kg kg-1]
+	BSTATE%XTI_BLD(icell) = ZTCOOL_TARGET(1)     ! indoor air temperature
+	BSTATE%XTI_BLD = ZTCOOL_TARGET     ! indoor air temperature
+    BSTATE%XQI_BLD(icell) = 0.0068794074      ! Indoor air specific humidity [kg kg-1]
+    BSTATE%XQI_BLD = 0.0068794074      ! Indoor air specific humidity [kg kg-1]
 	DMT%XWIND_CANYON(1:1)      = 1.                ! Wind speed in canyon
 	ZTS_TOWN_S     = t
     DMT%XTSTOWN_S(1:1)       = t	
@@ -924,28 +895,44 @@ IF (ntstep == 1) THEN
 	
 	! Roof properties
 	ZD_ROOF_LAYERS = ZD_ROOF(1,4) + ZD_ROOF(1,3) + ZD_ROOF(1,2) + ZD_ROOF(1,1)
-	ZT_ROOF(:,1)   = t  ! roof layers temperatures
-	ZT_ROOF(:,2)   = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * (ZD_ROOF(1,4) + ZD_ROOF(1,3) + ZD_ROOF(1,2)) / ZD_ROOF_LAYERS)  ! roof layers temperatures
-	ZT_ROOF(:,3)   = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * (ZD_ROOF(1,4) + ZD_ROOF(1,3))  / ZD_ROOF_LAYERS)  ! roof layers temperatures
-	ZT_ROOF(:,4)   = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * ZD_ROOF(1,4)  / ZD_ROOF_LAYERS)  ! roof layers temperatures
-	ZT_ROOF(:,5)   = ZTCOOL_TARGET  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:icell,1) = t(1)  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:,1) = t  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:icell,2) = ZTCOOL_TARGET(1) - ((ZTCOOL_TARGET(1) - t(1)) * (ZD_ROOF(1,4) + ZD_ROOF(1,3) + ZD_ROOF(1,2)) / ZD_ROOF_LAYERS(1))  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:,2) = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * (ZD_ROOF(1,4) + ZD_ROOF(1,3) + ZD_ROOF(1,2)) / ZD_ROOF_LAYERS)  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:icell,3) = ZTCOOL_TARGET(1) - ((ZTCOOL_TARGET(1) - t(1)) * (ZD_ROOF(1,4) + ZD_ROOF(1,3))  / ZD_ROOF_LAYERS(1))  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:,3) = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * (ZD_ROOF(1,4) + ZD_ROOF(1,3))  / ZD_ROOF_LAYERS)  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:icell,4) = ZTCOOL_TARGET(1) - ((ZTCOOL_TARGET(1) - t(1)) * ZD_ROOF(1,4)  / ZD_ROOF_LAYERS(1))  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:,4) = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * ZD_ROOF(1,4)  / ZD_ROOF_LAYERS)  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:icell,5) = ZTCOOL_TARGET(1)  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:,5) = ZTCOOL_TARGET  ! roof layers temperatures
 	
 	! Road properties
-	ZT_ROAD  (:,1) = t  ! road layers temperatures
-	ZT_ROAD  (:,2) = t  ! road layers temperatures
-	ZT_ROAD  (:,3) = t  ! road layers temperatures
-	ZT_ROAD  (:,4) = t  ! road layers temperatures
-	ZT_ROAD  (:,5) = t  ! road layers temperatures
-	ZT_ROAD_NOW(:,:) = ZT_ROAD(:,:)
+	TSTATE%XT_ROAD(icell:icell,1) = t(1)  ! road layers temperatures
+	TSTATE%XT_ROAD(icell:,1) = t  ! road layers temperatures
+	TSTATE%XT_ROAD(icell:icell,2) = t(1)  ! road layers temperatures
+	TSTATE%XT_ROAD(icell:,2) = t  ! road layers temperatures
+	TSTATE%XT_ROAD(icell:icell,3) = t(1)  ! road layers temperatures
+	TSTATE%XT_ROAD(icell:,3) = t  ! road layers temperatures
+	TSTATE%XT_ROAD(icell:icell,4) = t(1)  ! road layers temperatures
+	TSTATE%XT_ROAD(icell:,4) = t  ! road layers temperatures
+	TSTATE%XT_ROAD(icell:icell,5) = t(1)  ! road layers temperatures
+	TSTATE%XT_ROAD(icell:,5) = t  ! road layers temperatures
+	ZT_ROAD_NOW(:,:) = TSTATE%XT_ROAD(icell:icell,:)
 	
 	! Wall properties
 	ZD_WALL_LAYERS = ZD_WALL(1,1) + ZD_WALL(1,2) + ZD_WALL(1,3) + ZD_WALL(1,4)
-	ZT_WALL_A(:,1) = t  ! wall layers temperatures
-	ZT_WALL_A(:,2) = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * (ZD_WALL(1,4) + ZD_WALL(1,3) + ZD_WALL(1,2)) / ZD_WALL_LAYERS)  ! wall layers temperatures
-	ZT_WALL_A(:,3) = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * (ZD_WALL(1,4) + ZD_WALL(1,3))  / ZD_WALL_LAYERS)  ! wall layers temperatures
-	ZT_WALL_A(:,4) = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * ZD_WALL(1,4)  / ZD_WALL_LAYERS)  ! wall layers temperatures
-	ZT_WALL_A(:,5) = ZTCOOL_TARGET  ! wall layers temperatures
-	ZT_WALL_B      = ZT_WALL_A      ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:icell,1) = t(1)  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:,1) = t  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:icell,2) = ZTCOOL_TARGET(1) - ((ZTCOOL_TARGET(1) - t(1)) * (ZD_WALL(1,4) + ZD_WALL(1,3) + ZD_WALL(1,2)) / ZD_WALL_LAYERS(1))  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:,2) = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * (ZD_WALL(1,4) + ZD_WALL(1,3) + ZD_WALL(1,2)) / ZD_WALL_LAYERS)  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:icell,3) = ZTCOOL_TARGET(1) - ((ZTCOOL_TARGET(1) - t(1)) * (ZD_WALL(1,4) + ZD_WALL(1,3))  / ZD_WALL_LAYERS(1))  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:,3) = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * (ZD_WALL(1,4) + ZD_WALL(1,3))  / ZD_WALL_LAYERS)  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:icell,4) = ZTCOOL_TARGET(1) - ((ZTCOOL_TARGET(1) - t(1)) * ZD_WALL(1,4)  / ZD_WALL_LAYERS(1))  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:,4) = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * ZD_WALL(1,4)  / ZD_WALL_LAYERS)  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:icell,5) = ZTCOOL_TARGET(1)  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:,5) = ZTCOOL_TARGET  ! wall layers temperatures
+	TSTATE%XT_WALL_B(icell:icell,:) = TSTATE%XT_WALL_A(icell:icell,:)      ! wall layers temperatures
+	TSTATE%XT_WALL_B = TSTATE%XT_WALL_A(icell:icell,:)      ! wall layers temperatures
 
 	! Floor properties
 	ZT_FLOOR (:,1) = 292.12         ! building floor temperature
@@ -962,36 +949,54 @@ IF (ntstep == 1) THEN
 	ZT_MASS  (:,5) = 291.84017      ! building mass temperature
 	
 	! Water content at first time-step
-	ZWS_ROOF       = 0.             ! roof water content (kg/m2) 
+	TSTATE%XWS_ROOF(icell) = 0.             ! roof water content (kg/m2) 
+	TSTATE%XWS_ROOF = 0.             ! roof water content (kg/m2) 
 	ZWS_ROAD       = 0.             ! road water content (kg/m2)
 	! -----------------------------------------------------------
 	! Default at first time-step : no snow
 	! ----------------------------------------------------------- 
-	ZWSNOW_ROOF    = 0.             ! Initial Amount of roof snow reservoir
-	ZWSNOW_ROAD    = 0.             ! Initial Amount of road snow reservoir
-	ZTSNOW_ROOF    = XUNDEF         ! layer temperature   of roof snow
-	ZTSNOW_ROAD    = XUNDEF         ! layer temperature   of road snow
-	ZRSNOW_ROOF    = XUNDEF         ! density             of roof snow
-	ZRSNOW_ROAD    = XUNDEF         ! density             of road snow
-	ZTSSNOW_ROOF   = XUNDEF         ! surface temperature of roof snow
-	ZTSSNOW_ROAD   = XUNDEF         ! surface temperature of road snow
-	ZASNOW_ROOF    = XUNDEF
-	ZASNOW_ROAD    = XUNDEF
-	ZESNOW_ROOF    = XUNDEF
-	ZESNOW_ROAD    = XUNDEF
+	TSTATE%TSNOW_ROOF%WSNOW(icell:icell,:) = 0.             ! Initial Amount of roof snow reservoir
+	TSTATE%TSNOW_ROOF%WSNOW = 0.             ! Initial Amount of roof snow reservoir
+	TSTATE%TSNOW_ROAD%WSNOW(icell:icell,:) = 0.             ! Initial Amount of road snow reservoir
+	TSTATE%TSNOW_ROAD%WSNOW = 0.             ! Initial Amount of road snow reservoir
+	TSTATE%TSNOW_ROOF%T(icell:icell,:) = XUNDEF         ! layer temperature   of roof snow
+	TSTATE%TSNOW_ROOF%T = XUNDEF         ! layer temperature   of roof snow
+	TSTATE%TSNOW_ROAD%T(icell:icell,:) = XUNDEF         ! layer temperature   of road snow
+	TSTATE%TSNOW_ROAD%T = XUNDEF         ! layer temperature   of road snow
+	TSTATE%TSNOW_ROOF%RHO(icell:icell,:) = XUNDEF         ! density             of roof snow
+	TSTATE%TSNOW_ROOF%RHO = XUNDEF         ! density             of roof snow
+	TSTATE%TSNOW_ROAD%RHO(icell:icell,:) = XUNDEF         ! density             of road snow
+	TSTATE%TSNOW_ROAD%RHO = XUNDEF         ! density             of road snow
+	TSTATE%TSNOW_ROOF%TS(icell) = XUNDEF         ! surface temperature of roof snow
+	TSTATE%TSNOW_ROOF%TS = XUNDEF         ! surface temperature of roof snow
+	TSTATE%TSNOW_ROAD%TS(icell) = XUNDEF         ! surface temperature of road snow
+	TSTATE%TSNOW_ROAD%TS = XUNDEF         ! surface temperature of road snow
+	TSTATE%TSNOW_ROOF%ALB(icell) = XUNDEF
+	TSTATE%TSNOW_ROOF%ALB = XUNDEF
+	TSTATE%TSNOW_ROAD%ALB(icell) = XUNDEF
+	TSTATE%TSNOW_ROAD%ALB = XUNDEF
+	TSTATE%TSNOW_ROOF%EMIS(icell) = XUNDEF
+	TSTATE%TSNOW_ROOF%EMIS = XUNDEF
+	TSTATE%TSNOW_ROAD%EMIS(icell) = XUNDEF
+	TSTATE%TSNOW_ROAD%EMIS = XUNDEF
 	! -----------------------------------------------------------
 	! Default at first time-step for BEM Model
 	! -----------------------------------------------------------
-	ZM_SYS_RAT     = 0.0067         ! Rated HVAC mass flow rate [kg s-1 m-2(bld)]	
-	ZT_WIN1        = t              ! External window temperature
-	ZT_WIN2        = ZTCOOL_TARGET  ! Internal window temperature
+	BSTATE%XM_SYS_RAT(icell) = 0.0067         ! Rated HVAC mass flow rate [kg s-1 m-2(bld)]	
+	BSTATE%XM_SYS_RAT = 0.0067         ! Rated HVAC mass flow rate [kg s-1 m-2(bld)]	
+	BSTATE%XT_WIN1(icell) = t(1)              ! External window temperature
+	BSTATE%XT_WIN1 = t              ! External window temperature
+	BSTATE%XT_WIN2(icell) = ZTCOOL_TARGET(1)  ! Internal window temperature
+	BSTATE%XT_WIN2 = ZTCOOL_TARGET  ! Internal window temperature
 	ZALB_WIN       = XUNDEF
 	ZNATVENT       = 0.           ! flag to describe surventilation system for i/o 
                                        ! 0 for NONE, 1 for MANU and 2 for AUTO
 	!LSHADE         = .FALSE.      ! Are shading devices being used ?
 	ZSHADE         = 0.           ! flag to activate shading devices -> REAL for i/o 0. or 1	
-    GSHAD_DAY      = .FALSE.      ! has shading been necessary this day ?
-    GNATVENT_NIGHT = .FALSE.      ! has natural ventilation been necessary/possible this night ?	
+    BSTATE%LSHAD_DAY(icell) = .FALSE.      ! has shading been necessary this day ?
+    BSTATE%LSHAD_DAY = .FALSE.      ! has shading been necessary this day ?
+    BSTATE%LNATVENT_NIGHT(icell) = .FALSE.      ! has natural ventilation been necessary/possible this night ?	
+    BSTATE%LNATVENT_NIGHT = .FALSE.      ! has natural ventilation been necessary/possible this night ?	
 	! For REAL Cooling System
 	IF (PFLOOR_HEIGHT(1) > ZBLD_HEIGHT(1)) THEN
       PFLOOR_HEIGHT = ZBLD_HEIGHT
@@ -1379,9 +1384,9 @@ BP%XF_MASS_WALL = ZF_MASS_WALL
 BP%XF_MASS_WIN = ZF_MASS_WIN
 TOP%CZ0H = HZ0H
 TOP%CCH_BEM = CCH_BEM
-TOP%NROOF_LAYER = SIZE(ZT_ROOF,2)
-TOP%NROAD_LAYER = SIZE(ZT_ROAD,2)
-TOP%NWALL_LAYER = SIZE(ZT_WALL_A,2)
+TOP%NROOF_LAYER = SIZE(TSTATE%XT_ROOF,2)
+TOP%NROAD_LAYER = SIZE(TSTATE%XT_ROAD,2)
+TOP%NWALL_LAYER = SIZE(TSTATE%XT_WALL_A,2)
 TOP%TTIME = TPTIME
 TOP%XTSTEP = XTSTEP_SURF
 TP%XROAD = ZROAD
@@ -1415,11 +1420,7 @@ BP%XTC_FLOOR(1,:) = ZTC_FLOOR(1,:)
 BP%XD_FLOOR(1,:)  = ZD_FLOOR(1,:)
 CALL TEB_GARDEN_STRUCT (icell, iblock, LGREENROOF_EXT, HIMPLICIT_WIND, LBEM_AC, XTSUN, ZT_CANYON, &
                  ZQ_CANYON, DMT%XWIND_CANYON(1:1), ZT_LOWCAN, ZQ_LOWCAN, &
-                 ZU_LOWCAN, ZZ_LOWCAN, ZTI_BLD, ZT_ROOF, ZT_ROAD, ZT_WALL_A, &
-                 ZT_WALL_B, ZWS_ROOF, ZWS_ROAD, HSNOW_ROOF, ZWSNOW_ROOF, &
-                 ZTSNOW_ROOF, ZRSNOW_ROOF, ZASNOW_ROOF, ZTSSNOW_ROOF, &
-                 ZESNOW_ROOF, HSNOW_ROAD, ZWSNOW_ROAD, ZTSNOW_ROAD, &
-                 ZRSNOW_ROAD, ZASNOW_ROAD, ZTSSNOW_ROAD, ZESNOW_ROAD, &
+                 ZU_LOWCAN, ZZ_LOWCAN, ZWS_ROAD, HSNOW_ROOF, HSNOW_ROAD, &
                  ZPEW_A_COEF, ZPEW_B_COEF, ZPEW_A_COEF_LOWCAN, &
                  ZPEW_B_COEF_LOWCAN, ZZ0_GD_EXT, XPS, XPA, ZEXNS, ZEXNA, XTA, &
                  ZQA_KGKG, XRHOA, XCO2, XLW, ZTDIR_SW, ZTSCA_SW, XSW_BANDS, &
@@ -1453,56 +1454,80 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGREENROOF_EXT, HIMPLICIT_WIND, LBEM_AC, 
                  ZNATVENT, IDAY, ZAUX_MAX, ZT_FLOOR, ZT_MASS, ZH_BLD_COOL, &
                  ZT_BLD_COOL, ZH_BLD_HEAT, ZLE_BLD_COOL, ZLE_BLD_HEAT, &
                  DMT%XH_WASTE(1:1), DMT%XLE_WASTE(1:1), DMT%XHVAC_COOL(1:1), &
-                 DMT%XHVAC_HEAT(1:1), ZT_WIN2, ZQI_BLD, ZCAP_SYS_RAT, ZT_ADP, &
-                 ZM_SYS_RAT, ZCAP_SYS, ZM_SYS, ZCOP, ZQ_SYS, ZT_SYS, &
-                 ZTR_SW_WIN, ZFAN_POWER, ZHC_FLOOR, ZTC_FLOOR, ZD_FLOOR, &
-                 ZT_WIN1, ZABS_SW_WIN, ZABS_LW_WIN, ZUGG_WIN, ZALB_WIN, &
+                 DMT%XHVAC_HEAT(1:1), ZT_ADP, ZCAP_SYS, ZM_SYS, ZCOP, ZQ_SYS, &
+                 ZT_SYS, ZTR_SW_WIN, ZFAN_POWER, ZHC_FLOOR, ZTC_FLOOR, &
+                 ZD_FLOOR, ZABS_SW_WIN, ZABS_LW_WIN, ZUGG_WIN, ZALB_WIN, &
                  ZABS_WIN, ZEMIT_LW_FAC, ZEMIT_LW_GRND, ZT_RAD_IND, &
-                 ZREF_SW_GRND, ZREF_SW_FAC, ZHU_BLD, ZTIME_BEG, LSHADE, &
-                 ZSHADE, GSHAD_DAY, GNATVENT_NIGHT, LCANOPY, ZTRAN_WIN, &
-                 LPAR_RD_IRRIG, ZRD_START_MONTH, ZRD_END_MONTH, &
-                 ZRD_START_HOUR, ZRD_END_HOUR, ZRD_24H_IRRIG, ZIRRIG_ROAD, &
-                 ZEMIS_PANEL, ZALB_PANEL, ZEFF_PANEL, ZFRAC_PANEL, &
-                 ZTHER_PROD_PANEL, ZPHOT_PROD_PANEL, ZPROD_PANEL, &
-                 ZTHER_PROD_BLD, ZPHOT_PROD_BLD, DMT%XSOLAR_PROD(1:1), &
-                 ZTHER_PRODC_DAY, ZH_PANEL, ZRN_PANEL, ZCUR_TCOOL_TARGET, &
-                 ZCUR_THEAT_TARGET, ZCUR_QIN, ZDN_RF, ZDN_RD, ZMELT_BLT, &
-                 ZSNOWD_RF, ZSNOWD_RD, ZLW_UP, ZZ0_GR_EXT, ZALB_GR_EXT, &
-                 ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, ZH_GR_EXT, &
-                 ZLE_GR_EXT, ZEVAP_GR_EXT, ZRUNOFF_GR_EXT, ZALB_GD_EXT, &
-                 ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, &
-                 ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, ZRUNOFF_GD_EXT, &
-                 DMT%XTCH_RD(1:1), DMT%XTCH_RF(1:1), DMT%XTCH_WL(1:1), &
-                 DMT%XTCH_TOP(1:1), DMT%XAC_TOP(1:1), ZILMO_ROAD_CAN, &
-                 ZILMO_ROOF_EXCH, ZILMO_TOP_EXCH, DMT%XCD_GARDEN_ATM(1:1), &
-                 DMT%XCH_GARDEN_ATM(1:1), DMT%XPCD_ROAD_CAN(1:1), &
-                 DMT%XPCDN_ROAD_CAN(1:1), DMT%XPRI_ROAD_CAN(1:1), &
-                 DMT%XZZ0H_ROAD_CAN(1:1), DMT%XPAC_ROAD_ATM(1:1), &
-                 DMT%XPCH_ROAD_ATM(1:1), DMT%XPCD_ROAD_ATM(1:1), &
-                 DMT%XPCDN_ROAD_ATM(1:1), DMT%XPRI_ROAD_ATM(1:1), &
-                 DMT%XZZ0H_ROAD_ATM(1:1), DMT%XPCDN_GARDEN_CAN(1:1), &
-                 DMT%XPRI_GARDEN_CAN(1:1), DMT%XZZ0H_GARDEN_CAN(1:1), &
-                 DMT%XPAC_GARDEN_ATM(1:1), DMT%XPCDN_GARDEN_ATM(1:1), &
-                 DMT%XPRI_GARDEN_ATM(1:1), DMT%XZZ0H_GARDEN_ATM(1:1), &
-                 DMT%XPH_ROAD_CAN(1:1), DMT%XPLE_ROAD_CAN(1:1), &
-                 DMT%XPH_ROAD_ATM(1:1), DMT%XPLE_ROAD_ATM(1:1), &
-                 DMT%XPT_CAN0(1:1), DMT%XPT_CAN1(1:1), DMT%XPPHI_CAN1(1:1), &
-                 ZAC_ROAD_ATM_WAT, DMT%XLE_ROAD_WAT(1:1), &
-                 DMT%XLE_ROAD_SNOW(1:1), DMT%XLE_ROOF_WAT(1:1), &
-                 DMT%XLE_ROOF_SNOW(1:1), XTAU_HW_THRESH, XTAU_HW_WIDTH, &
-                 DMT%XTS_GARDEN(1:1), DMT%XRN_GARDEN(1:1), &
-                 DMT%XH_GARDEN(1:1), DMT%XLE_GARDEN(1:1), &
-                 DMT%XEVAP_GARDEN(1:1), DMT%XQSAT_GARDEN(1:1), &
-                 DMT%XPHU_GARDEN(1:1), DMT%XH_GARDEN_CAN(1:1), &
-                 DMT%XH_GARDEN_ATM(1:1), DMT%XLE_GARDEN_CAN(1:1), &
-                 DMT%XLE_GARDEN_ATM(1:1), DMT%XTS_GREENROOF(1:1), &
-                 DMT%XRN_GREENROOF(1:1), DMT%XH_GREENROOF(1:1), &
-                 DMT%XLE_GREENROOF(1:1), DMT%XEVAP_GREENROOF(1:1), &
-                 DMT%XQSAT_GREENROOF(1:1), DMT%XPHU_GREENROOF(1:1), &
-                 DMT%XPAC_GREENROOF_ATM(1:1), DMT%XPCD_GREENROOF_ATM(1:1), &
-                 DMT%XPCDN_GREENROOF_ATM(1:1), DMT%XPCH_GREENROOF_ATM(1:1), &
-                 DMT%XPRI_GREENROOF_ATM(1:1), DMT%XZZ0H_GREENROOF_ATM(1:1), &
-                 DMT, TOP, TP, BOP, BP, ZZ0U)
+                 ZREF_SW_GRND, ZREF_SW_FAC, ZHU_BLD, ZTIME_BEG, ZSHADE, &
+                 LCANOPY, ZTRAN_WIN, LPAR_RD_IRRIG, ZRD_START_MONTH, &
+                 ZRD_END_MONTH, ZRD_START_HOUR, ZRD_END_HOUR, ZRD_24H_IRRIG, &
+                 ZIRRIG_ROAD, ZEMIS_PANEL, ZALB_PANEL, ZEFF_PANEL, &
+                 ZFRAC_PANEL, ZTHER_PROD_PANEL, ZPHOT_PROD_PANEL, &
+                 ZPROD_PANEL, ZTHER_PROD_BLD, ZPHOT_PROD_BLD, &
+                 DMT%XSOLAR_PROD(1:1), ZTHER_PRODC_DAY, ZH_PANEL, ZRN_PANEL, &
+                 ZCUR_TCOOL_TARGET, ZCUR_THEAT_TARGET, ZCUR_QIN, ZDN_RF, &
+                 ZDN_RD, ZMELT_BLT, ZSNOWD_RF, ZSNOWD_RD, ZLW_UP, ZZ0_GR_EXT, &
+                 ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, &
+                 ZH_GR_EXT, ZLE_GR_EXT, ZEVAP_GR_EXT, ZRUNOFF_GR_EXT, &
+                 ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, &
+                 ZH_GD_EXT, ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, &
+                 ZRUNOFF_GD_EXT, DMT%XTCH_RD(1:1), DMT%XTCH_RF(1:1), &
+                 DMT%XTCH_WL(1:1), DMT%XTCH_TOP(1:1), DMT%XAC_TOP(1:1), &
+                 ZILMO_ROAD_CAN, ZILMO_ROOF_EXCH, ZILMO_TOP_EXCH, &
+                 DMT%XCD_GARDEN_ATM(1:1), DMT%XCH_GARDEN_ATM(1:1), &
+                 DMT%XPCD_ROAD_CAN(1:1), DMT%XPCDN_ROAD_CAN(1:1), &
+                 DMT%XPRI_ROAD_CAN(1:1), DMT%XZZ0H_ROAD_CAN(1:1), &
+                 DMT%XPAC_ROAD_ATM(1:1), DMT%XPCH_ROAD_ATM(1:1), &
+                 DMT%XPCD_ROAD_ATM(1:1), DMT%XPCDN_ROAD_ATM(1:1), &
+                 DMT%XPRI_ROAD_ATM(1:1), DMT%XZZ0H_ROAD_ATM(1:1), &
+                 DMT%XPCDN_GARDEN_CAN(1:1), DMT%XPRI_GARDEN_CAN(1:1), &
+                 DMT%XZZ0H_GARDEN_CAN(1:1), DMT%XPAC_GARDEN_ATM(1:1), &
+                 DMT%XPCDN_GARDEN_ATM(1:1), DMT%XPRI_GARDEN_ATM(1:1), &
+                 DMT%XZZ0H_GARDEN_ATM(1:1), DMT%XPH_ROAD_CAN(1:1), &
+                 DMT%XPLE_ROAD_CAN(1:1), DMT%XPH_ROAD_ATM(1:1), &
+                 DMT%XPLE_ROAD_ATM(1:1), DMT%XPT_CAN0(1:1), &
+                 DMT%XPT_CAN1(1:1), DMT%XPPHI_CAN1(1:1), ZAC_ROAD_ATM_WAT, &
+                 DMT%XLE_ROAD_WAT(1:1), DMT%XLE_ROAD_SNOW(1:1), &
+                 DMT%XLE_ROOF_WAT(1:1), DMT%XLE_ROOF_SNOW(1:1), &
+                 XTAU_HW_THRESH, XTAU_HW_WIDTH, DMT%XTS_GARDEN(1:1), &
+                 DMT%XRN_GARDEN(1:1), DMT%XH_GARDEN(1:1), &
+                 DMT%XLE_GARDEN(1:1), DMT%XEVAP_GARDEN(1:1), &
+                 DMT%XQSAT_GARDEN(1:1), DMT%XPHU_GARDEN(1:1), &
+                 DMT%XH_GARDEN_CAN(1:1), DMT%XH_GARDEN_ATM(1:1), &
+                 DMT%XLE_GARDEN_CAN(1:1), DMT%XLE_GARDEN_ATM(1:1), &
+                 DMT%XTS_GREENROOF(1:1), DMT%XRN_GREENROOF(1:1), &
+                 DMT%XH_GREENROOF(1:1), DMT%XLE_GREENROOF(1:1), &
+                 DMT%XEVAP_GREENROOF(1:1), DMT%XQSAT_GREENROOF(1:1), &
+                 DMT%XPHU_GREENROOF(1:1), DMT%XPAC_GREENROOF_ATM(1:1), &
+                 DMT%XPCD_GREENROOF_ATM(1:1), DMT%XPCDN_GREENROOF_ATM(1:1), &
+                 DMT%XPCH_GREENROOF_ATM(1:1), DMT%XPRI_GREENROOF_ATM(1:1), &
+                 DMT%XZZ0H_GREENROOF_ATM(1:1), DMT, TOP, TP, BOP, BP, ZZ0U, &
+                 TSTATE, BSTATE, TPN, TIR)
+    BSTATE%XTI_BLD(icell)               = BSTATE%XTI_BLD(icell)
+    BSTATE%XQI_BLD(icell)               = BSTATE%XQI_BLD(icell)
+    BSTATE%XT_WIN1(icell)               = BSTATE%XT_WIN1(icell)
+    BSTATE%XT_WIN2(icell)               = BSTATE%XT_WIN2(icell)
+    BSTATE%XCAP_SYS_RAT(icell)          = BSTATE%XCAP_SYS_RAT(icell)
+    BSTATE%XM_SYS_RAT(icell)            = BSTATE%XM_SYS_RAT(icell)
+    BSTATE%LSHAD_DAY(icell)             = BSTATE%LSHAD_DAY(icell)
+    BSTATE%LNATVENT_NIGHT(icell)        = BSTATE%LNATVENT_NIGHT(icell)
+    TSTATE%XT_ROOF(icell,:)             = TSTATE%XT_ROOF(icell,:)
+    TSTATE%XT_ROAD(icell,:)             = TSTATE%XT_ROAD(icell,:)
+    TSTATE%XT_WALL_A(icell,:)           = TSTATE%XT_WALL_A(icell,:)
+    TSTATE%XT_WALL_B(icell,:)           = TSTATE%XT_WALL_B(icell,:)
+    TSTATE%XWS_ROOF(icell)              = TSTATE%XWS_ROOF(icell)
+    TSTATE%TSNOW_ROOF%WSNOW(icell,:)         = TSTATE%TSNOW_ROOF%WSNOW(icell,:)
+    TSTATE%TSNOW_ROOF%T(icell,:)         = TSTATE%TSNOW_ROOF%T(icell,:)
+    TSTATE%TSNOW_ROOF%RHO(icell,:)         = TSTATE%TSNOW_ROOF%RHO(icell,:)
+    TSTATE%TSNOW_ROOF%ALB(icell)           = TSTATE%TSNOW_ROOF%ALB(icell)
+    TSTATE%TSNOW_ROOF%EMIS(icell)           = TSTATE%TSNOW_ROOF%EMIS(icell)
+    TSTATE%TSNOW_ROOF%TS(icell)          = TSTATE%TSNOW_ROOF%TS(icell)
+    TSTATE%TSNOW_ROAD%WSNOW(icell,:)         = TSTATE%TSNOW_ROAD%WSNOW(icell,:)
+    TSTATE%TSNOW_ROAD%T(icell,:)         = TSTATE%TSNOW_ROAD%T(icell,:)
+    TSTATE%TSNOW_ROAD%RHO(icell,:)         = TSTATE%TSNOW_ROAD%RHO(icell,:)
+    TSTATE%TSNOW_ROAD%ALB(icell)           = TSTATE%TSNOW_ROAD%ALB(icell)
+    TSTATE%TSNOW_ROAD%EMIS(icell)           = TSTATE%TSNOW_ROAD%EMIS(icell)
+    TSTATE%TSNOW_ROAD%TS(icell)          = TSTATE%TSNOW_ROAD%TS(icell)
 !*****************************************************************************
 !*****************************************************************************
 !*****************************************************************************
@@ -1515,12 +1540,12 @@ END IF
 
 DMT%XQSTOWN_S(1:1)    = ZQA_KGKG * ZEXNS / ZEXNA + DMT%XLE_TOWN(1) / (XRHOA * XLVTT * DMT%XTCH_TOWN(1) * ZVMOD)
 
-DMT%XWSTOWN(1:1)      = (ZWS_ROOF * ZBLD + ZWS_ROAD * ZROAD) * 0.001
+DMT%XWSTOWN(1:1)      = (TSTATE%XWS_ROOF(icell) * ZBLD + ZWS_ROAD * ZROAD) * 0.001
 !DMT%XRUNOFF_TOWN(1:1)  = DMT%XRUNOFF_TOWN(1) * dt
 
-DMT%XTSSNOW_TOWN(1:1)  = (ZTSSNOW_ROOF * ZBLD * ZDN_RF + ZTSSNOW_ROAD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
-DMT%XWSNOW_TOWN(1:1)   = (ZWSNOW_ROOF(1,1) * ZBLD * ZDN_RF + ZWSNOW_ROAD(1,1) * ZROAD * ZDN_RD) / (ZBLD + ZROAD) * 0.001
-DMT%XRSNOW_TOWN(1:1)   = (ZRSNOW_ROOF(1,1) * ZBLD * ZDN_RF + ZRSNOW_ROAD(1,1) * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
+DMT%XTSSNOW_TOWN(1:1)  = (TSTATE%TSNOW_ROOF%TS(icell) * ZBLD * ZDN_RF + TSTATE%TSNOW_ROAD%TS(icell) * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
+DMT%XWSNOW_TOWN(1:1)   = (TSTATE%TSNOW_ROOF%WSNOW(icell,1) * ZBLD * ZDN_RF + TSTATE%TSNOW_ROAD%WSNOW(icell,1) * ZROAD * ZDN_RD) / (ZBLD + ZROAD) * 0.001
+DMT%XRSNOW_TOWN(1:1)   = (TSTATE%TSNOW_ROOF%RHO(icell,1) * ZBLD * ZDN_RF + TSTATE%TSNOW_ROAD%RHO(icell,1) * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
 DMT%XSHFL_SNOW(1:1)   = (ZHSNOW_ROOF * ZBLD * ZDN_RF + ZHSNOW_ROAD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
 DMT%XLHFL_SNOW(1:1)  = (ZLESNOW_ROOF * ZBLD * ZDN_RF + ZLESNOW_ROAD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
 DMT%XFRSNOW(1:1)      = (ZDN_RF * ZBLD + ZDN_RD * ZROAD) / (ZBLD + ZROAD)
@@ -1531,21 +1556,21 @@ DMT%XHSNOW_TOWN(1:1)   = (ZSNOWD_RF * ZBLD * ZDN_RF + ZSNOWD_RD * ZROAD * ZDN_RD
 !Town area-averaged albedo 
 !Albedo of Green garden and Green roofs is manualy added: 0.15. Fix later!
 ZALB_AVE_TWN = ZBLD * (1.- ZFRAC_GR) * (1-ZDN_RF) * ZALB_ROOF * (1.-ZFRAC_PANEL)                    &
-                  + ZBLD * (1.-ZFRAC_GR) * ZDN_RF * ZASNOW_ROOF * (1.-ZFRAC_PANEL)                  &
+                  + ZBLD * (1.-ZFRAC_GR) * ZDN_RF * TSTATE%TSNOW_ROOF%ALB(icell) * (1.-ZFRAC_PANEL)                  &
                   + ZBLD *     ZFRAC_GR               * ZALB_GR_EXT * (1.-ZFRAC_PANEL)                     &
                   + ZBLD * ZALB_PANEL *      ZFRAC_PANEL                                            &
                   + ZROAD * ( ZSVF_ROAD * (1-ZDN_RD) * ZALB_ROAD                                    &
-                  + ZSVF_ROAD * ZDN_RD * ZASNOW_ROAD)                                               &
+                  + ZSVF_ROAD * ZDN_RD * TSTATE%TSNOW_ROAD%ALB(icell))                                               &
                   + ZGARDEN *    ZSVF_GARDEN * 0.15                                                 &
                   + ZWALL_O_HOR *    ZSVF_WALL         * ZALB_WALL
 
 
 DMT%XALB_TH(1:1) = 1 - ZEMIS_TOWN
 !  Instantaneous diagnostics
-DMT%XTS_ROOF(1:1) = ZT_ROOF(1,1)
-DMT%XTS_ROAD(1:1) = ZT_ROAD(1,1)
-DMT%XTS_WALL_A(1:1) = ZT_WALL_A(1,1)
-DMT%XTS_WALL_B(1:1) = ZT_WALL_B(1,1)
+DMT%XTS_ROOF(1:1) = TSTATE%XT_ROOF(icell,1)
+DMT%XTS_ROAD(1:1) = TSTATE%XT_ROAD(icell,1)
+DMT%XTS_WALL_A(1:1) = TSTATE%XT_WALL_A(icell,1)
+DMT%XTS_WALL_B(1:1) = TSTATE%XT_WALL_B(icell,1)
 
 DMT%XH_ROOF_FR(1:1) = ZH_ROOF*ZBLD
 !MV202609 CBS scheme of the road
@@ -1606,16 +1631,16 @@ ENDIF
 DEALLOCATE(ZHC_WALL) 
 DEALLOCATE(ZTC_WALL) 
 DEALLOCATE(ZD_WALL)
-!DEALLOCATE(ZT_WALL_A) 
-!DEALLOCATE(ZT_WALL_B) 
+!DEALLOCATE(TSTATE%XT_WALL_A(icell:icell,:)) 
+!DEALLOCATE(TSTATE%XT_WALL_B(icell:icell,:)) 
 DEALLOCATE(ZHC_ROOF) 
 DEALLOCATE(ZTC_ROOF) 
 DEALLOCATE(ZD_ROOF)
-!DEALLOCATE(ZT_ROOF) 
+!DEALLOCATE(TSTATE%XT_ROOF(icell:icell,:)) 
 DEALLOCATE(ZHC_ROAD) 
 DEALLOCATE(ZTC_ROAD) 
 DEALLOCATE(ZD_ROAD) 
-!DEALLOCATE(ZT_ROAD) 
+!DEALLOCATE(TSTATE%XT_ROAD(icell:icell,:)) 
 DEALLOCATE(ZHC_FLOOR) 
 DEALLOCATE(ZTC_FLOOR) 
 DEALLOCATE(ZD_FLOOR)
