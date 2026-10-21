@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !   ##########################################################################
-    SUBROUTINE DEALLOC_TEB_STRUCT(TOP,T,BOP,B,TPN,TIR,DMT)
+    SUBROUTINE DEALLOC_TEB_STRUCT(TOP,T,BOP,B,TPN,TIR)
 !   ##########################################################################
 !
 !!****  *DEALLOC_TEB_STRUCT*
@@ -48,7 +48,6 @@ USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t, BEM_OPTIONS_INIT
 USE MODD_BEM_n, ONLY : BEM_t, BEM_INIT
 USE MODD_TEB_PANEL_n, ONLY : TEB_PANEL_t, TEB_PANEL_INIT
 USE MODD_TEB_IRRIG_n, ONLY : TEB_IRRIG_t, TEB_IRRIG_INIT
-USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t, DIAG_MISC_TEB_INIT
 !
 !
 IMPLICIT NONE
@@ -63,7 +62,6 @@ TYPE(BEM_OPTIONS_t),   INTENT(INOUT) :: BOP
 TYPE(BEM_t),           INTENT(INOUT) :: B
 TYPE(TEB_PANEL_t),     INTENT(INOUT) :: TPN
 TYPE(TEB_IRRIG_t),     INTENT(INOUT) :: TIR
-TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 !
 !
 !*      0.2    Declarations of local variables
@@ -299,117 +297,33 @@ DEALLOCATE(TIR%XRD_24H_IRRIG)     ! roads : total irrigation over 24 hours (kg/m
 !
 ! TEB diagnostics structure
 !
-DEALLOCATE(DMT%XZ0_TOWN)  ! town roughness length
-DEALLOCATE(DMT%XQF_BLD)   ! domestic heating
-DEALLOCATE(DMT%XFLX_BLD) ! heat flux from bld
-DEALLOCATE(DMT%XQF_TOWN)  ! total anthropogenic heat
-DEALLOCATE(DMT%XDQS_TOWN) ! storage inside building
+!MV202609 diagnostics moved into the container (Phase 4a)
+!* The fields carry the diagnostics listed in
+!* python_tests/diag_container/container_fields.csv (driver variable -> CSV column):
+!* they are declared, allocated and deallocated here so that the diagnostics can
+!* leave the argument lists of RUN_TEB_OFFLINE -> TEB_INTERFACE -> CALL_DRIVER in
+!* the following sub-phases of the refactor.
+
 !
-DEALLOCATE(DMT%XH_WALL_A)   ! wall sensible heat flux          (W/m2)
-DEALLOCATE(DMT%XH_WALL_B)   ! wall sensible heat flux          (W/m2)
-DEALLOCATE(DMT%XH_ROOF)     ! roof sensible heat flux          (W/m2)
-DEALLOCATE(DMT%XH_ROAD)     ! road sensible heat flux          (W/m2)
-DEALLOCATE(DMT%XH_STRLROOF) ! structural roof sens. heat flux  (W/m2)
-DEALLOCATE(DMT%XH_BLT)      ! built surf sensible heat flux    (W/m2)
-DEALLOCATE(DMT%XRN_WALL_A)  ! net radiation at wall            (W/m2)
-DEALLOCATE(DMT%XRN_WALL_B)  ! net radiation at wall            (W/m2)
-DEALLOCATE(DMT%XRN_ROOF)    ! net radiation at roof            (W/m2)
-DEALLOCATE(DMT%XRN_ROAD)    ! net radiation at road            (W/m2)
-DEALLOCATE(DMT%XRN_STRLROOF) !net radiation at structural roofs(W/m2)
-DEALLOCATE(DMT%XRN_BLT)     ! net radiation at built surf      (W/m2)
-DEALLOCATE(DMT%XGFLUX_WALL_A) !net wall conduction flux        (W/m2)
-DEALLOCATE(DMT%XGFLUX_WALL_B) !net wall conduction flux        (W/m2)
-DEALLOCATE(DMT%XGFLUX_ROOF) ! net roof conduction flux         (W/m2)                                         
-DEALLOCATE(DMT%XGFLUX_ROAD) ! net road conduction flux         (W/m2)
-DEALLOCATE(DMT%XGFLUX_STRLROOF) !net structural roof cond flux (W/m2)
-DEALLOCATE(DMT%XGFLUX_BLT)  ! net built surf conduction flux   (W/m2)
-DEALLOCATE(DMT%XLE_ROOF)    ! roof latent heat flux            (W/m2)
-DEALLOCATE(DMT%XLE_ROAD)    ! road latent heat flux            (W/m2)
-DEALLOCATE(DMT%XLE_STRLROOF) !structural roof latent heat flux (W/m2)
-DEALLOCATE(DMT%XLE_BLT)     ! built surf latent heat flux      (W/m2)
 !MV202609 CBS scheme of the road (snow-to-atmosphere branch diagnostics)
-DEALLOCATE(DMT%XPHSN_RD_CAN)   ! snow -> canyon air sensible heat (W/m2)
-DEALLOCATE(DMT%XPHSN_RD_ATM)   ! snow -> forcing level sensible heat (W/m2)
-DEALLOCATE(DMT%XPLESN_RD_CAN)  ! snow -> canyon air latent heat (W/m2)
-DEALLOCATE(DMT%XPLESN_RD_ATM)  ! snow -> forcing level latent heat (W/m2)
 !
-DEALLOCATE(DMT%XRUNOFF_TOWN)      ! aggregated water runoff for town      (kg/m2/s)
-DEALLOCATE(DMT%XIRRIG_GARDEN)     ! summer ground irrigation rate         (kg/m2/s)
-DEALLOCATE(DMT%XRUNOFF_ROAD)      ! water runoff for roads                (kg/m2/s)
-DEALLOCATE(DMT%XIRRIG_ROAD)       ! road man-made watering rate           (kg/m2/s)
-DEALLOCATE(DMT%XRUNOFF_ROOF)      ! aggregated water runoff for roofs     (kg/m2/s)
-DEALLOCATE(DMT%XRUNOFF_STRLROOF)  ! water runoff for structural roofs     (kg/m2/s)
-DEALLOCATE(DMT%XIRRIG_GREENROOF)  ! summer ground irrigation rate         (kg/m2/s)
 !
-DEALLOCATE(DMT%XABS_SW_ROOF)      ! absorbed shortwave radiation over roofs
-DEALLOCATE(DMT%XABS_SW_SNOW_ROOF) ! absorbed longwave radiation over roofs
-DEALLOCATE(DMT%XABS_LW_ROOF)      ! absorbed shortwave radiation over roofs
-DEALLOCATE(DMT%XABS_LW_SNOW_ROOF) ! absorbed longwave radiation over roofs
-DEALLOCATE(DMT%XABS_SW_ROAD)      ! absorbed shortwave radiation over roads
-DEALLOCATE(DMT%XABS_SW_SNOW_ROAD) ! absorbed longwave radiation over roads
-DEALLOCATE(DMT%XABS_LW_ROAD)      ! absorbed shortwave radiation over roads
-DEALLOCATE(DMT%XABS_LW_SNOW_ROAD) ! absorbed longwave radiation over roads
-DEALLOCATE(DMT%XABS_SW_WALL_A)    ! absorbed shortwave radiation over walls
-DEALLOCATE(DMT%XABS_SW_WALL_B)    ! absorbed shortwave radiation over walls
-DEALLOCATE(DMT%XABS_LW_WALL_A)    ! absorbed shortwave radiation over walls
-DEALLOCATE(DMT%XABS_LW_WALL_B)    ! absorbed shortwave radiation over walls
-DEALLOCATE(DMT%XABS_SW_GARDEN)    ! absorbed shortwave radiation over green areas
-DEALLOCATE(DMT%XABS_LW_GARDEN)    ! absorbed shortwave radiation over green areas
-DEALLOCATE(DMT%XABS_SW_GREENROOF) ! absorbed shortwave radiation over green roofs
-DEALLOCATE(DMT%XABS_LW_GREENROOF) ! absorbed shortwave radiation over green roofs
-DEALLOCATE(DMT%XG_GREENROOF_ROOF) ! Heat flux between green roof and structural roof
-DEALLOCATE(DMT%XABS_SW_PANEL)     ! absorbed shortwave radiation over solar panels
-DEALLOCATE(DMT%XABS_LW_PANEL)     ! absorbed longwave  radiation over solar panels
 !
-DEALLOCATE(DMT%XRN_PANEL)         ! net radiation           over solar panels (W/m2)
-DEALLOCATE(DMT%XH_PANEL)          ! sensible heat flux      over solar panels (W/m2)
-DEALLOCATE(DMT%XTHER_PROD_PANEL)  ! thermal      production of   solar panels (W/m2 thermal panel)
-DEALLOCATE(DMT%XPHOT_PROD_PANEL)  ! photovoltaic production of   solar panels (W/m2 photovoltaic panel)
-DEALLOCATE(DMT%XPROD_PANEL)       !              production of   solar panels (W/m2 panel)
-DEALLOCATE(DMT%XTHER_PROD_BLD)    ! thermal      production of   solar panels (W/m2 bld)
-DEALLOCATE(DMT%XPHOT_PROD_BLD)    ! photovoltaic production of   solar panels (W/m2 bld)
 
-DEALLOCATE(DMT%XH_BLD_COOL)       ! Sensible cooling energy demand  
                                                      ! of the building [W m-2(bld)]
-DEALLOCATE(DMT%XT_BLD_COOL)       ! Total cooling energy demand  
                                                      ! of the building [W m-2(bld)]
-DEALLOCATE(DMT%XH_BLD_HEAT)       ! Heating energy demand       
                                                      ! of the building [W m-2(bld)]
-DEALLOCATE(DMT%XLE_BLD_COOL)      ! Latent cooling energy demand 
                                                      ! of the building [W m-2(bld)]
-DEALLOCATE(DMT%XLE_BLD_HEAT)      ! Latent heating energy demand 
                                                      ! of the building [W m-2(bld)]
-DEALLOCATE(DMT%XH_WASTE)          ! Sensible waste heat from HVAC system
                                                      ! [W m-2(tot)]
-DEALLOCATE(DMT%XLE_WASTE)         ! Latent waste heat from HVAC system
                                                      ! [W m-2(tot)]
-DEALLOCATE(DMT%XHVAC_COOL)        ! Energy consumption of the cooling system
                                                      ! [W m-2(bld)]
-DEALLOCATE(DMT%XHVAC_HEAT)        ! Energy consumption of the heating system
                                                      ! [W m-2(bld)]
-DEALLOCATE(DMT%XCAP_SYS)          ! Actual capacity of the cooling system
                                                      ! [W m-2(bld)] 
-DEALLOCATE(DMT%XM_SYS)            ! Actual HVAC mass flow rate 
                                                      ! [kg s-1 m-2(bld)]
-DEALLOCATE(DMT%XCOP)              ! COP of the cooling system
-DEALLOCATE(DMT%XQ_SYS)            ! Supply air specific humidity [kg kg-1]
-DEALLOCATE(DMT%XT_SYS)            ! Supply air temperature [K]
-DEALLOCATE(DMT%XTR_SW_WIN)        ! Solar radiation transmitted throught
                                                      ! windows [W m-2(bld)]
-DEALLOCATE(DMT%XFAN_POWER)        ! HVAC fan power
-DEALLOCATE(DMT%XABS_SW_WIN)       ! window absorbed shortwave radiation [W m-2] 
-DEALLOCATE(DMT%XABS_LW_WIN)       ! absorbed infrared rad. [W m-2]
 
-DEALLOCATE(DMT%XEMIT_LW_FAC)      ! LW flux emitted by the facade (W/m2 facade)
-DEALLOCATE(DMT%XEMIT_LW_GRND)     ! LW flux emitted by the ground (W/m2 ground = road + garden)
-DEALLOCATE(DMT%XT_RAD_IND)        !Indoor mean radiant temperature [K]
-DEALLOCATE(DMT%XREF_SW_GRND)      ! total solar rad reflected by ground
-DEALLOCATE(DMT%XREF_SW_FAC)       ! total solar rad reflected by facade
-DEALLOCATE(DMT%XHU_BLD)           !Indoor relative humidity
 !
-DEALLOCATE(DMT%XTCOOL_TARGET)     ! current cooling setpoint of indoor air
-DEALLOCATE(DMT%XTHEAT_TARGET)     ! current heating setpoint of indoor air
-DEALLOCATE(DMT%XQIN)              ! current internal heat gains [W m-2(floor)]
 
 !-------------------------------------------------------------------------------
 !

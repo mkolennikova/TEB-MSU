@@ -1,6 +1,8 @@
 PROGRAM run_teb_offline
 
 USE sfc_teb,        ONLY : teb_interface
+USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
+USE MODI_DIAG_MISC_TEB_UTIL, ONLY : DIAG_MISC_TEB_ALLOC, DIAG_MISC_TEB_DEALLOC
 USE MODI_OL_READ_ATM
 USE MODI_OL_TIME_INTERP_ATM
 USE MODD_SURF_PAR, ONLY: XUNDEF, teb_snow_check
@@ -358,151 +360,32 @@ LOGICAL ,DIMENSION(nvec) :: teb_natvent_night           !INOUT has natural venti
 
 ! Output diagnostic variables
 ! For town
-REAL ,DIMENSION(nvec) :: teb_shfl  		                !OUT sensible heat flux over town
-REAL ,DIMENSION(nvec) :: teb_lhfl   	                !OUT latent heat flux over town   
-REAL ,DIMENSION(nvec) :: teb_qvfl   	                !OUT evaporation (kg/m2/s)    
-REAL ,DIMENSION(nvec) :: teb_gflux                      !OUT Flux through the ground for town  
-REAL ,DIMENSION(nvec) :: teb_dqs_town                   !OUT Storage inside town materials  
-REAL ,DIMENSION(nvec) :: teb_tch_town                   !OUT Heat exchange coefficient  
-REAL ,DIMENSION(nvec) :: teb_tstown_s_now               !OUT town surface temperature from flux calculation at previous time-step 
-REAL ,DIMENSION(nvec) :: teb_tstown_s                   !OUT town surface temperature from flux calculation
-REAL ,DIMENSION(nvec) :: teb_qstown_s                   !OUT town surface specific humidity from flux calculation (kg/kg)
-REAL ,DIMENSION(nvec) :: teb_wstown_now                 !OUT town water content (m H2O) at previous time-step    
-REAL ,DIMENSION(nvec) :: teb_wstown                     !OUT town water content (m H2O)
-REAL ,DIMENSION(nvec) :: teb_runoff_town                !OUT runoff for town
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-REAL ,DIMENSION(nvec) :: teb_runoff_road                !OUT water runoff of the road (kg/m2/s)
-REAL ,DIMENSION(nvec) :: teb_runoff_roof                !OUT water runoff of the roof (kg/m2/s)
 !MV202609 garden diagnostics
-REAL ,DIMENSION(nvec) :: teb_ts_garden                  !OUT garden surface temperature (K)
-REAL ,DIMENSION(nvec) :: teb_rn_garden                  !OUT net radiation over the garden (W/m2 garden)
-REAL ,DIMENSION(nvec) :: teb_h_garden                   !OUT sensible heat flux over the garden (W/m2 garden)
-REAL ,DIMENSION(nvec) :: teb_le_garden                  !OUT latent heat flux over the garden (W/m2 garden)
-REAL ,DIMENSION(nvec) :: teb_evap_garden                !OUT total evaporation over the garden (kg/m2/s)
-REAL ,DIMENSION(nvec) :: teb_qsat_garden                !OUT garden saturation specific humidity (kg/kg)
-REAL ,DIMENSION(nvec) :: teb_phu_garden                 !OUT garden aggregated relative humidity (-)
-REAL ,DIMENSION(nvec) :: teb_pac_garden                 !OUT garden aerodynamic conductance (m/s)
 !MV202609 greenroof diagnostics
-REAL ,DIMENSION(nvec) :: teb_ts_greenroof               !OUT greenroof surface temperature (K)
-REAL ,DIMENSION(nvec) :: teb_rn_greenroof               !OUT net radiation over the greenroof (W/m2 greenroof)
-REAL ,DIMENSION(nvec) :: teb_h_greenroof                !OUT sensible heat flux over the greenroof (W/m2 greenroof)
-REAL ,DIMENSION(nvec) :: teb_le_greenroof               !OUT latent heat flux over the greenroof (W/m2 greenroof)
-REAL ,DIMENSION(nvec) :: teb_evap_greenroof             !OUT total evaporation over the greenroof (kg/m2/s)
-REAL ,DIMENSION(nvec) :: teb_qsat_greenroof             !OUT greenroof saturation specific humidity (kg/kg)
-REAL ,DIMENSION(nvec) :: teb_phu_greenroof              !OUT greenroof aggregated relative humidity (-)
-REAL ,DIMENSION(nvec) :: teb_pac_greenroof              !OUT green roof conductance (m/s)
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
-REAL ,DIMENSION(nvec) :: teb_pac_greenroof_atm            !OUT greenroof aerodynamical conductance (atm.)
-REAL ,DIMENSION(nvec) :: teb_pcd_greenroof_atm            !OUT greenroof drag coefficient (atm.)
-REAL ,DIMENSION(nvec) :: teb_pcdn_greenroof_atm           !OUT greenroof neutral drag coefficient (atm.)
-REAL ,DIMENSION(nvec) :: teb_pch_greenroof_atm            !OUT greenroof drag coefficient for heat (atm.)
-REAL ,DIMENSION(nvec) :: teb_pri_greenroof_atm            !OUT greenroof Richardson number (atm.)
-REAL ,DIMENSION(nvec) :: teb_zz0h_greenroof_atm           !OUT greenroof roughness length for heat (atm.)
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-REAL ,DIMENSION(nvec) :: teb_h_garden_can               !OUT garden sensible heat flux, garden -> canyon air (W/m2 garden)
-REAL ,DIMENSION(nvec) :: teb_h_garden_atm               !OUT garden sensible heat flux, garden -> forcing level (W/m2 garden)
-REAL ,DIMENSION(nvec) :: teb_le_garden_can              !OUT garden latent  heat flux, garden -> canyon air (W/m2 garden)
-REAL ,DIMENSION(nvec) :: teb_le_garden_atm              !OUT garden latent  heat flux, garden -> forcing level (W/m2 garden)
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 REAL                  :: ZRO_ROAD_ACC                   ! runoff of the road accumulated over the model sub-steps (kg/m2/s)
 REAL                  :: ZRO_ROOF_ACC                   ! runoff of the roof accumulated over the model sub-steps (kg/m2/s)
-REAL ,DIMENSION(nvec) :: teb_alb_so                     !OUT town solar albedo  
-REAL ,DIMENSION(nvec) :: teb_alb_th                     !OUT town thermal albedo
-REAL ,DIMENSION(nvec) :: teb_wind_top                   !OUT Wind speed at canyon top (m/s)
-REAL ,DIMENSION(nvec) :: teb_ucanyon                    !OUT u-wind component of wind inside the canyon    
-REAL ,DIMENSION(nvec) :: teb_vcanyon                    !OUT v-wind component of wind inside the canyon   
-REAL ,DIMENSION(nvec) :: teb_wind_canyon                !OUT Wind speed in canyon   
-REAL ,DIMENSION(nvec) :: teb_rn_town                    !OUT Net radiation over town    
 
 ! For individual surfaces
-REAL ,DIMENSION(nvec) :: teb_tsroof                     !OUT roof surface temperature   [K] 
-REAL ,DIMENSION(nvec) :: teb_tsroad                     !OUT road surface temperature   [K] 
-REAL ,DIMENSION(nvec) :: teb_tswalla                    !OUT wall 'A' surface temperature [K] 
-REAL ,DIMENSION(nvec) :: teb_tswallb                    !OUT wall 'B' surface temperature [K]  
-REAL ,DIMENSION(nvec) :: teb_shfl_rf                    !OUT Sensible heat flux over roof
-REAL ,DIMENSION(nvec) :: teb_shfl_rd                    !OUT Sensible heat flux over road
-REAL ,DIMENSION(nvec) :: teb_shfl_wl                    !OUT Sensible heat flux over wall
-REAL ,DIMENSION(nvec) :: teb_tch_rd                     !OUT road transfer coefficient for heat
-REAL ,DIMENSION(nvec) :: teb_tch_rf                     !OUT roof transfer coefficient for heat
-REAL ,DIMENSION(nvec) :: teb_tch_wl                     !OUT wall transfer coefficient for heat
-REAL ,DIMENSION(nvec) :: teb_tch_top                    !OUT between canyon top and atm. transfer coefficient for hea
-REAL ,DIMENSION(nvec) :: teb_ac_rf                      !OUT Roof aerodynamical conductance
-REAL ,DIMENSION(nvec) :: teb_ac_rd                      !OUT Road aerodynamical conductance
-REAL ,DIMENSION(nvec) :: teb_ac_wl                      !OUT Wall aerodynamical conductance
-REAL ,DIMENSION(nvec) :: teb_ac_top                     !OUT Canyon-atm. aerodynamical conductance
 
 ! Snow variables
-REAL ,DIMENSION(nvec) :: teb_tssnow_town_now            !OUT town snow surface temperature (K) at previous time-step
-REAL ,DIMENSION(nvec) :: teb_tssnow_town                !OUT town snow surface temperature (K)
-REAL ,DIMENSION(nvec) :: teb_wsnow_town_now             !OUT town snow (& liq. water) content (m H2O) at previous time-step
-REAL ,DIMENSION(nvec) :: teb_wsnow_town                 !OUT town snow (& liq. water) content (m H2O)
-REAL ,DIMENSION(nvec) :: teb_rsnow_town_now             !OUT town snow layers density (kg/m3) at previous time-step
-REAL ,DIMENSION(nvec) :: teb_rsnow_town                 !OUT town snow layers density (kg/m3)
-REAL ,DIMENSION(nvec) :: teb_shfl_snow                  !OUT sensible heat flux over snow
-REAL ,DIMENSION(nvec) :: teb_lhfl_snow                  !OUT latent heat flux over snow	
-REAL ,DIMENSION(nvec) :: teb_frsnow                     !OUT snow fraction over town
-REAL ,DIMENSION(nvec) :: teb_snow_melt                  !OUT Snow melt for built & impervious part (kg/m2)
-REAL ,DIMENSION(nvec) :: teb_hsnow_town_now             !OUT town snow depth at previous time-step
-REAL ,DIMENSION(nvec) :: teb_hsnow_town                 !OUT town snow depth
 
 ! BEM variables
-REAL ,DIMENSION(nvec) :: teb_hwaste                     !OUT Sensible waste heat from HVAC system [W m-2(tot)]
 !MV202609 anthropogenic heat diagnostics
-REAL ,DIMENSION(nvec) :: teb_lewaste                    !OUT Latent waste heat of the buildings [W m-2(tot)] 
-REAL ,DIMENSION(nvec) :: teb_hvac_cool                  !OUT Energy consumption of the cooling system [W m-2(bld)]  
-REAL ,DIMENSION(nvec) :: teb_hvac_heat                  !OUT Energy consumption of the heating system [W m-2(bld)]  
 
 !Variables for garden (COSMO)
-REAL ,DIMENSION(nvec) :: teb_sobs                       !OUT Shortwave radiation absorbed by garden
-REAL ,DIMENSION(nvec) :: teb_thbs                       !OUT Longwave radiation absorbed by garden
 REAL ,DIMENSION(nvec) :: teb_tch_gd = XUNDEF                     !OUT garden transfer coefficient for heat
 REAL ,DIMENSION(nvec) :: teb_tcm_gd = XUNDEF                     !OUT garden  surf. exchange coefficient
 
 !Other variables
-REAL ,DIMENSION(nvec) :: teb_ustar_town
-REAL ,DIMENSION(nvec) :: teb_cd_garden_atm
-REAL ,DIMENSION(nvec) :: teb_ch_garden_atm
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
-REAL ,DIMENSION(nvec) :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
-REAL ,DIMENSION(nvec) :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
-REAL ,DIMENSION(nvec) :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
-REAL ,DIMENSION(nvec) :: ZZ0H_ROAD_CAN    ! road   roughness length for heat (canyon)
-REAL ,DIMENSION(nvec) :: PAC_ROAD_ATM     ! road   aerodynamical conductance (atm.)
-REAL ,DIMENSION(nvec) :: PCH_ROAD_ATM     ! road   drag coefficient for heat (atm.)
-REAL ,DIMENSION(nvec) :: PCD_ROAD_ATM     ! road   drag coefficient (atm.)
-REAL ,DIMENSION(nvec) :: PCDN_ROAD_ATM    ! road   neutral drag coefficient (atm.)
-REAL ,DIMENSION(nvec) :: PRI_ROAD_ATM     ! road   Richardson number (atm.)
-REAL ,DIMENSION(nvec) :: ZZ0H_ROAD_ATM    ! road   roughness length for heat (atm.)
-REAL ,DIMENSION(nvec) :: PCDN_GARDEN_CAN  ! garden neutral drag coefficient (canyon)
-REAL ,DIMENSION(nvec) :: PRI_GARDEN_CAN   ! garden Richardson number (canyon)
-REAL ,DIMENSION(nvec) :: ZZ0H_GARDEN_CAN  ! garden roughness length for heat (canyon)
-REAL ,DIMENSION(nvec) :: PAC_GARDEN_ATM   ! garden aerodynamical conductance (atm.)
-REAL ,DIMENSION(nvec) :: PCDN_GARDEN_ATM  ! garden neutral drag coefficient (atm.)
-REAL ,DIMENSION(nvec) :: PRI_GARDEN_ATM   ! garden Richardson number (atm.)
-REAL ,DIMENSION(nvec) :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (atm.)
-REAL ,DIMENSION(nvec) :: PH_ROAD_CAN      ! road sensible heat flux, road -> canyon air [W m-2]
-REAL ,DIMENSION(nvec) :: PLE_ROAD_CAN     ! road latent heat flux, road -> canyon air [W m-2]
-REAL ,DIMENSION(nvec) :: PH_ROAD_ATM      ! road sensible heat flux, road -> forcing level [W m-2]
-REAL ,DIMENSION(nvec) :: PLE_ROAD_ATM      ! road latent heat flux, road -> forcing level [W m-2]
 !MV202609 CBS scheme of the road (revision: three-temperature construction)
-REAL ,DIMENSION(nvec) :: PT_CAN0           ! canyon air temperature without tau [K]
-REAL ,DIMENSION(nvec) :: PT_CAN1           ! free layer (second canopy) air temperature [K]
-REAL ,DIMENSION(nvec) :: PPHI_CAN1         ! free layer air temperature / theta* ratio of the MOST profile [-]
 !MV202609 CBS scheme of the road
-REAL ,DIMENSION(nvec) :: PH_ROAD          ! road sensible heat flux, CBS scheme [W m-2]
-REAL ,DIMENSION(nvec) :: PLE_ROAD         ! road latent heat flux, CBS scheme [W m-2]
 !MV202609 CBS scheme of the road (revision: puddle diagnostics)
-REAL ,DIMENSION(nvec) :: PAC_ROAD_WAT     ! road water conductance (canyon, water-limited)
-REAL ,DIMENSION(nvec) :: PAC_ROAD_ATM_WAT ! road water conductance (forcing level, water-limited)
-REAL ,DIMENSION(nvec) :: PDN_RD           ! road snow fraction (-)
-REAL ,DIMENSION(nvec) :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
-REAL ,DIMENSION(nvec) :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-REAL ,DIMENSION(nvec) :: PDN_RF           ! roof snow fraction (-)
-REAL ,DIMENSION(nvec) :: LE_ROOF_WAT      ! roof latent heat flux of the snow-free roof (W/m2 roof)
-REAL ,DIMENSION(nvec) :: LE_ROOF_SNOW     ! roof latent heat flux of the snow-covered roof (W/m2 roof)
-REAL ,DIMENSION(nvec) :: ahf_traffic_now                !OUT Anthropogenic heat flux by traffic (current value)
-REAL ,DIMENSION(nvec) :: teb_solar_prod                 !OUT Averaged Energy production of solar panel on roofs (W/m2 bld  )
 	
 
 ! Atmospheric Forcing variables                                                       
@@ -525,15 +408,15 @@ REAL, DIMENSION(:,:), ALLOCATABLE :: ZDIR   ! wind direction
 CHARACTER(LEN=100) :: output_dir
 ! the output is written to a single CSV file with ';' separators
 INTEGER, PARAMETER :: fu_out  = 13             ! unit of the output CSV file
-INTEGER, PARAMETER :: nout_max = 192           ! max number of output columns (array bound of out_names)
-INTEGER :: nout                                ! actual number of output columns
-INTEGER :: jout                                ! column loop counter
-INTEGER :: lout                                ! length of the current output line
+INTEGER, PARAMETER :: nout_max = 192           ! max number of output columns (array bound of col_name)
+INTEGER :: ncol                                ! columns registered by CSV_ADD in the current step
 CHARACTER(LEN=1),  PARAMETER :: out_sep = ';'  ! CSV field separator
-CHARACTER(LEN=24), DIMENSION(nout_max) :: out_names  ! column headers (1:nout)
+CHARACTER(LEN=24), DIMENSION(nout_max) :: col_name  ! column names, filled by CSV_ADD (1:ncol)
 CHARACTER(LEN=100) :: output_csv               ! full path of the output CSV file
-CHARACTER(LEN=4096) :: out_line                ! one CSV line (header or data row)
+CHARACTER(LEN=4096) :: hdr_line                ! header line, built by CSV_ADD (written once)
+CHARACTER(LEN=4096) :: out_line                ! one data row of the CSV
 CHARACTER(LEN=32) :: time_buf                  ! timestamp buffer (ISO 8601)
+TYPE(DIAG_MISC_TEB_t) :: DMT   ! diagnostics container, owned by this driver
 REAL :: forc_wind                              ! forcing wind speed       (m/s)
 REAL :: forc_dir                               ! forcing wind direction   (deg from North)
 ! -----------------------------------------------------------                        
@@ -1217,220 +1100,19 @@ END IF
 ! -----------------------------------------------------------
 !
 
-! Set the list of the output columns.
-! The number of columns depends on the activated model options:
-!   HVAC_COOL/HVAC_HEAT - only with the Building Energy Model (teb_itype_bem='BEM')
-!   SOLAR_PROD          - only with the solar panels module
-! The atmospheric forcing used at the current step is appended at the end
-! (columns Forc_*).
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-! The exchange coefficients between the road/garden surfaces and the air of the
-! canyon (*_ROAD_CAN, *_GARDEN_CAN) or of the forcing level (*_ROAD_ATM,
-! *_GARDEN_ATM) are appended after WIND_TOP (see URBAN_DRAG section 8.3):
-! PCD/PCDN = drag coefficients, PRI = Richardson number, ZZ0H = roughness length
-! for heat, PAC/PCH = conductance and heat transfer coefficient.
-! The garden canyon/atmosphere coefficients are computed only with the external
-! garden model (teb_type_garden = 'EXT'); with the internal garden
-! PCH_GARDEN_CAN is set to 0 in TEB_GARDEN and the *_GARDEN_ATM stay XUNDEF.
-! The diagnostic turbulent heat fluxes of the road with the canyon air
-! (H_ROAD_CAN, LE_ROAD_CAN) and directly with the air of the forcing level
-! (H_ROAD_ATM, LE_ROAD_ATM) are appended at the very end: they are derived from
-! the road surface temperature of the energy-budget solve (ROAD_LAYER_E_BUDGET)
-! and from the road/canyon and road/atmosphere conductances, and are diagnostics
-! only.
-! The coefficients of the canyon exchange already available in the driver
-! (teb_ac_rd, teb_tch_rd, teb_tcm_gd, teb_tch_gd, teb_cd_garden_atm,
-! teb_ch_garden_atm) complete the set with PAC_ROAD_CAN, PCH_ROAD_CAN,
-! PCD_GARDEN_CAN, PCH_GARDEN_CAN, PCD_GARDEN_ATM and PCH_GARDEN_ATM.
-! anthropogenic heat diagnostics appended after LE_ROAD: AHF_TRAFFIC = sensible
-! anthropogenic heat flux due to traffic at the current time-step and H_WASTE =
-! sensible waste heat of the buildings (HVAC systems and infiltration/
-! ventilation), both in W m-2(ground). They are already included in H_TOWN with
-! their full weight (the CBS scheme weights the road exchange only), so
-! H_TOWN - AHF_TRAFFIC - H_WASTE is the flux of the urban surfaces alone.
-nout = 0
-nout = nout + 1; out_names(nout) = 'T_ROOF1'
-nout = nout + 1; out_names(nout) = 'T_CANYON'
-nout = nout + 1; out_names(nout) = 'T_ROAD1'
-nout = nout + 1; out_names(nout) = 'T_WALLA1'
-nout = nout + 1; out_names(nout) = 'T_WALLB1'
-nout = nout + 1; out_names(nout) = 'TI_BLD'
-nout = nout + 1; out_names(nout) = 'Q_CANYON'
-nout = nout + 1; out_names(nout) = 'P_CANYON'
-nout = nout + 1; out_names(nout) = 'U_CANYON'
-nout = nout + 1; out_names(nout) = 'H_TOWN'
-nout = nout + 1; out_names(nout) = 'LE_TOWN'
-nout = nout + 1; out_names(nout) = 'RN_TOWN'
-IF (teb_itype_bem == 'BEM') THEN
-   nout = nout + 1; out_names(nout) = 'HVAC_COOL'
-   nout = nout + 1; out_names(nout) = 'HVAC_HEAT'
-END IF
-IF (teb_lsolar_panel) THEN
-   nout = nout + 1; out_names(nout) = 'SOLAR_PROD'
-END IF
-nout = nout + 1; out_names(nout) = 'WIND_TOP'
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-nout = nout + 1; out_names(nout) = 'PCD_ROAD_CAN'
-nout = nout + 1; out_names(nout) = 'PCDN_ROAD_CAN'
-nout = nout + 1; out_names(nout) = 'PRI_ROAD_CAN'
-nout = nout + 1; out_names(nout) = 'ZZ0H_ROAD_CAN'
-nout = nout + 1; out_names(nout) = 'PAC_ROAD_ATM'
-nout = nout + 1; out_names(nout) = 'PCH_ROAD_ATM'
-nout = nout + 1; out_names(nout) = 'PCD_ROAD_ATM'
-nout = nout + 1; out_names(nout) = 'PCDN_ROAD_ATM'
-nout = nout + 1; out_names(nout) = 'PRI_ROAD_ATM'
-nout = nout + 1; out_names(nout) = 'ZZ0H_ROAD_ATM'
-nout = nout + 1; out_names(nout) = 'PCDN_GARDEN_CAN'
-nout = nout + 1; out_names(nout) = 'PRI_GARDEN_CAN'
-nout = nout + 1; out_names(nout) = 'ZZ0H_GARDEN_CAN'
-nout = nout + 1; out_names(nout) = 'PAC_GARDEN_ATM'
-nout = nout + 1; out_names(nout) = 'PCDN_GARDEN_ATM'
-nout = nout + 1; out_names(nout) = 'PRI_GARDEN_ATM'
-nout = nout + 1; out_names(nout) = 'ZZ0H_GARDEN_ATM'
-nout = nout + 1; out_names(nout) = 'PAC_ROAD_CAN'
-nout = nout + 1; out_names(nout) = 'PCH_ROAD_CAN'
-nout = nout + 1; out_names(nout) = 'PCD_GARDEN_CAN'
-nout = nout + 1; out_names(nout) = 'PCH_GARDEN_CAN'
-nout = nout + 1; out_names(nout) = 'PCD_GARDEN_ATM'
-nout = nout + 1; out_names(nout) = 'PCH_GARDEN_ATM'
-nout = nout + 1; out_names(nout) = 'H_ROAD_CAN'
-nout = nout + 1; out_names(nout) = 'LE_ROAD_CAN'
-nout = nout + 1; out_names(nout) = 'H_ROAD_ATM'
-nout = nout + 1; out_names(nout) = 'LE_ROAD_ATM'
-!MV202609 CBS scheme of the road
-nout = nout + 1; out_names(nout) = 'H_ROAD'
-nout = nout + 1; out_names(nout) = 'LE_ROAD'
-!MV202609 CBS scheme of the road (revision: puddle diagnostics)
-nout = nout + 1; out_names(nout) = 'PAC_ROAD_WAT'
-nout = nout + 1; out_names(nout) = 'PAC_ROAD_ATM_WAT'
-nout = nout + 1; out_names(nout) = 'PDN_RD'
-nout = nout + 1; out_names(nout) = 'LE_ROAD_WAT'
-nout = nout + 1; out_names(nout) = 'LE_ROAD_SNOW'
-nout = nout + 1; out_names(nout) = 'WS_ROAD'
-!MV202609 anthropogenic heat diagnostics (traffic and building waste heat)
-nout = nout + 1; out_names(nout) = 'AHF_TRAFFIC'
-nout = nout + 1; out_names(nout) = 'H_WASTE'
-nout = nout + 1; out_names(nout) = 'LE_WASTE'
-nout = nout + 1; out_names(nout) = 'GFLUX_TOWN'
-!MV202609 CBS scheme of the road (revision: three-temperature construction)
-nout = nout + 1; out_names(nout) = 'T_CAN0'
-nout = nout + 1; out_names(nout) = 'T_CAN1'
-nout = nout + 1; out_names(nout) = 'PHI_CAN1'
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-nout = nout + 1; out_names(nout) = 'WSNOW_RD'
-nout = nout + 1; out_names(nout) = 'TSNOW_RD'
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-nout = nout + 1; out_names(nout) = 'PDN_RF'
-nout = nout + 1; out_names(nout) = 'LE_ROOF_WAT'
-nout = nout + 1; out_names(nout) = 'LE_ROOF_SNOW'
-nout = nout + 1; out_names(nout) = 'WS_ROOF'
-nout = nout + 1; out_names(nout) = 'WSNOW_RF'
-!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-nout = nout + 1; out_names(nout) = 'RUNOFF_ROAD'
-nout = nout + 1; out_names(nout) = 'RUNOFF_ROOF'
-!MV202609 garden diagnostics (per m2 of garden)
-nout = nout + 1; out_names(nout) = 'TS_GARDEN'
-nout = nout + 1; out_names(nout) = 'RN_GARDEN'
-nout = nout + 1; out_names(nout) = 'H_GARDEN'
-nout = nout + 1; out_names(nout) = 'LE_GARDEN'
-nout = nout + 1; out_names(nout) = 'EVAP_GARDEN'
-nout = nout + 1; out_names(nout) = 'QSAT_GARDEN'
-nout = nout + 1; out_names(nout) = 'PHU_GARDEN'
-nout = nout + 1; out_names(nout) = 'PAC_GARDEN'
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-nout = nout + 1; out_names(nout) = 'H_GARDEN_CAN'
-nout = nout + 1; out_names(nout) = 'H_GARDEN_ATM'
-nout = nout + 1; out_names(nout) = 'LE_GARDEN_CAN'
-nout = nout + 1; out_names(nout) = 'LE_GARDEN_ATM'
-!MV202609 greenroof diagnostics (per m2 of greenroof)
-nout = nout + 1; out_names(nout) = 'TS_GREENROOF'
-nout = nout + 1; out_names(nout) = 'RN_GREENROOF'
-nout = nout + 1; out_names(nout) = 'H_GREENROOF'
-nout = nout + 1; out_names(nout) = 'LE_GREENROOF'
-nout = nout + 1; out_names(nout) = 'EVAP_GREENROOF'
-nout = nout + 1; out_names(nout) = 'QSAT_GREENROOF'
-nout = nout + 1; out_names(nout) = 'PHU_GREENROOF'
-nout = nout + 1; out_names(nout) = 'PAC_GREENROOF'
-!MV202609 greenroof-to-atm exchange diagnostics
-nout = nout + 1; out_names(nout) = 'PAC_GREENROOF_ATM'
-nout = nout + 1; out_names(nout) = 'PCD_GREENROOF_ATM'
-nout = nout + 1; out_names(nout) = 'PCDN_GREENROOF_ATM'
-nout = nout + 1; out_names(nout) = 'PCH_GREENROOF_ATM'
-nout = nout + 1; out_names(nout) = 'PRI_GREENROOF_ATM'
-nout = nout + 1; out_names(nout) = 'ZZ0H_GREENROOF_ATM'
-!MV202609 garden emulation (teb_type_garden = 'EXT')
-!* State, forcing and coefficients of the external garden model emulated by
-!* PCD_GARDEN: EMU_TAU = weight of the canyon path, EMU_CD_EFF/EMU_CH_EFF =
-!* effective coefficients (covariance term of the tau averaging removed),
-!* EMU_CH_NAIVE = tau-averaged (naive) coefficient, EMU_V/EMU_T/EMU_Q = the one
-!* complete set (wind, air) given to the model, EMU_CA_CAN/EMU_CA_EFF = the two
-!* path conductances and their tau-average, EMU_TS/H/LE/EVAP = the state and the
-!* fluxes returned by the model (they are prescribed to TEB at the next
-!* sub-step, which is why TS_GARDEN of the next output line is EMU_TS of this one).
-!* These columns are written only with an external garden.
-IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
-   nout = nout + 1; out_names(nout) = 'EMU_TAU'
-   nout = nout + 1; out_names(nout) = 'EMU_CD_EFF'
-   nout = nout + 1; out_names(nout) = 'EMU_CH_EFF'
-   nout = nout + 1; out_names(nout) = 'EMU_CH_NAIVE'
-   nout = nout + 1; out_names(nout) = 'EMU_V'
-   nout = nout + 1; out_names(nout) = 'EMU_T'
-   nout = nout + 1; out_names(nout) = 'EMU_Q'
-   nout = nout + 1; out_names(nout) = 'EMU_CA_CAN'
-   nout = nout + 1; out_names(nout) = 'EMU_CA_EFF'
-   nout = nout + 1; out_names(nout) = 'EMU_TS'
-   nout = nout + 1; out_names(nout) = 'EMU_H'
-   nout = nout + 1; out_names(nout) = 'EMU_LE'
-   nout = nout + 1; out_names(nout) = 'EMU_EVAP'
-END IF
-!MV202609 greenroof emulation (teb_type_greenroof = 'EXT'/'EXT_NEU')
-!* coefficients, forcing and state of the emulated external greenroof (see
-!* PCD_GREENROOF): a single exchange path, so no tau aggregation and no
-!* covariance correction (CH_eff = PCH)
-IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') THEN
-   nout = nout + 1; out_names(nout) = 'EMU_GR_CD'
-   nout = nout + 1; out_names(nout) = 'EMU_GR_CH'
-   nout = nout + 1; out_names(nout) = 'EMU_GR_CA'
-   nout = nout + 1; out_names(nout) = 'EMU_GR_V'
-   nout = nout + 1; out_names(nout) = 'EMU_GR_T'
-   nout = nout + 1; out_names(nout) = 'EMU_GR_Q'
-   nout = nout + 1; out_names(nout) = 'EMU_GR_PSW'
-   nout = nout + 1; out_names(nout) = 'EMU_GR_PLW'
-   nout = nout + 1; out_names(nout) = 'EMU_GR_TS'
-   nout = nout + 1; out_names(nout) = 'EMU_GR_RN'
-   nout = nout + 1; out_names(nout) = 'EMU_GR_H'
-   nout = nout + 1; out_names(nout) = 'EMU_GR_LE'
-   nout = nout + 1; out_names(nout) = 'EMU_GR_EVAP'
-END IF
-!MV202609 solar position diagnostics
-!* the zenith/azimuth angles of the sun that the physics of the current step uses
-!* (computed by SUNPOS in CALL_DRIVER at every model sub-step, so the values
-!* written here are those of the LAST sub-step of the forcing interval, i.e. the
-!* position of the sun at the timestamp of the output line).
-!* SOLAR_ZENITH - zenith angle (deg from the vertical, > 90 at night),
-!* SOLAR_ELEV   - elevation above the horizon (deg, = 90 - SOLAR_ZENITH, negative
-!*                at night) - the column to compare with an analytical or
-!*                external (e.g. pysolar) solar position,
-!* SOLAR_AZIM   - azimuth (deg, measured clockwise from the north, 0-360).
-nout = nout + 1; out_names(nout) = 'SOLAR_ZENITH'
-nout = nout + 1; out_names(nout) = 'SOLAR_ELEV'
-nout = nout + 1; out_names(nout) = 'SOLAR_AZIM'
-! atmospheric forcing used by the model at the current time-step
-nout = nout + 1; out_names(nout) = 'Forc_TA'
-nout = nout + 1; out_names(nout) = 'Forc_QA'
-nout = nout + 1; out_names(nout) = 'Forc_QV'
-nout = nout + 1; out_names(nout) = 'Forc_U'
-nout = nout + 1; out_names(nout) = 'Forc_V'
-nout = nout + 1; out_names(nout) = 'Forc_WIND'
-nout = nout + 1; out_names(nout) = 'Forc_DIR'
-nout = nout + 1; out_names(nout) = 'Forc_PS'
-nout = nout + 1; out_names(nout) = 'Forc_RHOA'
-nout = nout + 1; out_names(nout) = 'Forc_RAIN'
-nout = nout + 1; out_names(nout) = 'Forc_SNOW'
-nout = nout + 1; out_names(nout) = 'Forc_LW'
-nout = nout + 1; out_names(nout) = 'Forc_DIR_SW'
-nout = nout + 1; out_names(nout) = 'Forc_SCA_SW'
-
+! -----------------------------------------------------------
+! Output columns: table-driven registration
+! -----------------------------------------------------------
+! Every column is registered by ONE call in the output loop below:
+!
+!     CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_TOWN', DMT%XH_TOWN(1))
+!
+! which appends the name to the header line and the value to the row, so the two
+! cannot drift apart (the earlier code kept two parallel lists, one of the names
+! and one of the CALL CSV_APPEND values, that had to be kept in the same order by
+! hand). The header is written once, just before the first output row; the column
+! names stay in col_name(1:ncol) and the bound of that array (nout_max) is checked
+! by CSV_ADD. The set of columns and their order is unchanged.
 ! Open the output CSV file (the header is written once, the file is replaced)
 output_csv = TRIM(output_dir)//'TEB_output.csv'
 OPEN(UNIT=fu_out, FILE = output_csv, STATUS = 'REPLACE', ACTION = 'WRITE', IOSTAT=rc)
@@ -1442,31 +1124,17 @@ END IF
 
 ! The column names are stored in a fixed size array: stop explicitly instead of
 ! overwriting memory when the list of columns grows beyond nout_max
-IF (nout > nout_max) THEN
-   WRITE(*,*) 'ERROR RUN_TEB_OFFLINE: too many output columns: ', nout, &
-              ' > nout_max = ', nout_max
-   WRITE(*,*) 'Increase nout_max in RUN_TEB_OFFLINE.'
-   STOP 1
-END IF
 
-! Build and write the header line: time;name1;name2;...
-! (the line is filled in place: an assignment of a concatenation longer than
-!  out_line would be silently truncated, so the position is tracked explicitly)
-out_line = 'time'
-lout = LEN_TRIM(out_line)
-DO jout = 1, nout
-   out_line(lout+1:lout+1) = out_sep
-   out_line(lout+2:) = TRIM(out_names(jout))
-   lout = lout + 1 + LEN_TRIM(out_names(jout))
-END DO
-WRITE(*,*) '  Output file: ', TRIM(output_csv)
-WRITE(*,*) '  Output columns: ', TRIM(out_line)
-WRITE(fu_out,'(A)') TRIM(out_line)
 
 ! -----------------------------------------------------------
 ! Temporal loops
 ! -----------------------------------------------------------
 !
+!MV202609 the diagnostics container is owned by the driver (Phase 4b):
+!* it is allocated once for the whole run and threaded through TEB_INTERFACE
+!* and CALL_DRIVER; the fields it carries are read for the CSV output.
+CALL DIAG_MISC_TEB_ALLOC(DMT, nvec)
+
 INB_ATM = forc_step / dt
 
 DO nstep= 1,nsteps - 1
@@ -1528,31 +1196,23 @@ DO nstep= 1,nsteps - 1
 				urb_alb_rf_so, urb_alb_wl_so, urb_alb_rd_th, urb_alb_rf_th, urb_alb_wl_th,          &
 				ahf_traffic, ahf_industry, teb_ti_bld, teb_troof, teb_troad_now, teb_troad,         &
 				teb_twalla, teb_twallb, teb_tfloor, teb_tmass, teb_qi_bld, teb_tcanyon,             &
-				teb_qcanyon, teb_ucanyon, teb_vcanyon, teb_sobs, teb_thbs, teb_ws_roof,             &
+				teb_qcanyon, teb_ws_roof,             &
 				teb_ws_road, teb_wsnow_roof, teb_wsnow_road, teb_tsnow_roof, teb_tsnow_road,        &
 				teb_rsnow_roof, teb_rsnow_road, teb_tssnow_roof, teb_tssnow_road, teb_asnow_roof,   &
 				teb_asnow_road, teb_esnow_roof, teb_esnow_road, teb_twin1, teb_twin2, teb_albwin,   &
-				teb_tsroof, teb_tswalla, teb_tswallb, teb_shfl, teb_lhfl, teb_tstown_s_now,         &
-				teb_tstown_s, teb_qstown_s, teb_wstown_now, teb_wstown, teb_runoff_town,            &
-				teb_tssnow_town_now, teb_tssnow_town, teb_wsnow_town_now, teb_wsnow_town,           &
-				teb_rsnow_town_now, teb_rsnow_town, teb_tch_town, teb_qvfl, teb_shfl_snow,          &
-				teb_lhfl_snow, teb_frsnow, teb_snow_melt, teb_hsnow_town_now, teb_hsnow_town,       &
-				teb_alb_so, teb_alb_th, teb_itype_bem, teb_lbem_ac, teb_itype_natvent,              &
+				teb_itype_bem, teb_lbem_ac, teb_itype_natvent,              &
 				teb_itype_bem_cool, teb_itype_bem_heat, teb_frac_gz, teb_tcool_target,              &
 				teb_theat_target, teb_bem_vent, teb_bem_inf, teb_bem_cop, teb_cap_sys_rat,          &
-				teb_m_sys_rat, teb_shad_day, teb_natvent_night, teb_hwaste, teb_hvac_cool,          &
-				teb_hvac_heat, teb_lgreenroof,  teb_frac_gr, teb_z0_gr, teb_alb_gr, teb_emis_gr, teb_ts_gr, teb_qs_gr,    &
+				teb_m_sys_rat, teb_shad_day, teb_natvent_night, &
+				teb_lgreenroof,  teb_frac_gr, teb_z0_gr, teb_alb_gr, teb_emis_gr, teb_ts_gr, teb_qs_gr,    &
 				teb_shfl_gr, teb_lhfl_gr, teb_qvfl_gr, teb_runoff_gr, teb_lgarden, teb_z0_gd,       &
 				teb_alb_gd, teb_emis_gd, teb_ts_gd, teb_qs_gd, teb_shfl_gd, teb_lhfl_gd,            &
 				teb_qvfl_gd, teb_tch_gd, teb_tcm_gd, teb_runoff_gd, teb_itype_wind, teb_fai,        &
-				teb_dqs_town, teb_gflux, teb_shfl_rf, teb_shfl_rd, teb_shfl_wl, teb_ac_rf,          &
-				teb_ac_rd, teb_ac_wl, teb_ac_top, teb_tch_rf, teb_tch_rd, teb_tch_wl, teb_tch_top,  &
-				teb_wind_top, teb_ustar_town, teb_cd_garden_atm, teb_ch_garden_atm, ahf_traffic_now,          &
-				teb_rn_town, teb_wind_canyon, teb_tsroad, teb_type_garden, teb_type_greenroof, teb_lgreenroof_ext,      &
+				teb_type_garden, teb_type_greenroof, teb_lgreenroof_ext,      &
 				teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
 				teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
-				teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade,                          &
+				teb_rd_irrig_sum, teb_utc_hour, teb_lshade,                          &
 !MV202609 z0 and zd to namelist
 				urb_z0_town, urb_zd_town,                         &
 !MV202609 garden thermal roughness (z0h)
@@ -1560,37 +1220,18 @@ DO nstep= 1,nsteps - 1
 !MV202609 greenroof model type and thermal roughness
                 urb_z0_o_z0h_grf,       &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
-                          PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
-                          PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
-                          PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
-                          ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
 !MV202609 CBS scheme of the road (revision: three-temperature construction)
-                          PT_CAN0, PT_CAN1, PPHI_CAN1,                        &
 !MV202609 CBS scheme of the road
-                          PH_ROAD, PLE_ROAD, PAC_ROAD_WAT, PAC_ROAD_ATM_WAT, PDN_RD, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-                          PDN_RF, LE_ROOF_WAT, LE_ROOF_SNOW, &
                           teb_lcbs_scheme,                   &
                           teb_tau_hw_thresh, teb_tau_hw_width,                  &
 !MV202609 anthropogenic heat diagnostics
-                          teb_lewaste,                        &
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-                          teb_runoff_road, teb_runoff_roof, &
 !MV202609 garden diagnostics
-                          teb_ts_garden, teb_rn_garden, teb_h_garden, teb_le_garden,       &
-                          teb_evap_garden, teb_qsat_garden, teb_phu_garden,               &
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-                          teb_h_garden_can, teb_h_garden_atm,                             &
-                          teb_le_garden_can, teb_le_garden_atm,                           &
-                          teb_pac_garden,                                                 &
 !MV202609 greenroof diagnostics
-                          teb_ts_greenroof, teb_rn_greenroof, teb_h_greenroof, teb_le_greenroof, &
-                          teb_evap_greenroof, teb_qsat_greenroof, teb_phu_greenroof,     &
-                          teb_pac_greenroof, &
 !MV202609 greenroof-to-atm exchange diagnostics
-                          teb_pac_greenroof_atm, teb_pcd_greenroof_atm, teb_pcdn_greenroof_atm, &
-                          teb_pch_greenroof_atm, teb_pri_greenroof_atm, teb_zz0h_greenroof_atm)
+                          DMT)
 !MV202609 garden emulation (teb_type_garden = 'EXT')
 !* the external garden model: TEB has just used the garden state prescribed at
 !* the previous sub-step; the emulator now updates the state and the fluxes for
@@ -1605,8 +1246,8 @@ DO nstep= 1,nsteps - 1
 !* radiation (the greenroof is on the roof: no shadowing, no re-reflection)
    IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') CALL PCD_GREENROOF
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-   ZRO_ROAD_ACC = ZRO_ROAD_ACC + teb_runoff_road(1)
-   ZRO_ROOF_ACC = ZRO_ROOF_ACC + teb_runoff_roof(1)
+   ZRO_ROAD_ACC = ZRO_ROAD_ACC + DMT%XRUNOFF_ROAD(1)
+   ZRO_ROOF_ACC = ZRO_ROOF_ACC + DMT%XRUNOFF_ROOF(1)
 						
     END DO
 	   !
@@ -1619,169 +1260,160 @@ DO nstep= 1,nsteps - 1
          INT(teb_hour_seconds(1)/3600.),                                              &
          INT(MOD(teb_hour_seconds(1), 3600.)/60.),                                    &
          INT(MOD(teb_hour_seconds(1), 60.))
+    ncol = 0
+    hdr_line = 'time'
     out_line = TRIM(time_buf)
-    CALL CSV_APPEND(out_line, teb_tsroof(1))
-    CALL CSV_APPEND(out_line, teb_tcanyon(1))
-    CALL CSV_APPEND(out_line, teb_tsroad(1))
-    CALL CSV_APPEND(out_line, teb_tswalla(1))
-    CALL CSV_APPEND(out_line, teb_tswallb(1))
-    CALL CSV_APPEND(out_line, teb_ti_bld(1))
-    CALL CSV_APPEND(out_line, teb_qcanyon(1))
-    CALL CSV_APPEND(out_line, XPS(1))
-    CALL CSV_APPEND(out_line, teb_wind_canyon(1))
-    CALL CSV_APPEND(out_line, teb_shfl(1))
-    CALL CSV_APPEND(out_line, teb_lhfl(1))
-    CALL CSV_APPEND(out_line, teb_rn_town(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'T_ROOF1', DMT%XTS_ROOF(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'T_CANYON', teb_tcanyon(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'T_ROAD1', DMT%XTS_ROAD(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'T_WALLA1', DMT%XTS_WALL_A(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'T_WALLB1', DMT%XTS_WALL_B(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'TI_BLD', teb_ti_bld(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Q_CANYON', teb_qcanyon(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'P_CANYON', XPS(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'U_CANYON', DMT%XWIND_CANYON(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_TOWN', DMT%XH_TOWN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'LE_TOWN', DMT%XLE_TOWN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'RN_TOWN', DMT%XRN_TOWN(1))
     IF (teb_itype_bem == 'BEM') THEN
-       CALL CSV_APPEND(out_line, teb_hvac_cool(1))
-       CALL CSV_APPEND(out_line, teb_hvac_heat(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'HVAC_COOL', DMT%XHVAC_COOL(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'HVAC_HEAT', DMT%XHVAC_HEAT(1))
     END IF
     IF (teb_lsolar_panel) THEN
-       CALL CSV_APPEND(out_line, teb_solar_prod(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'SOLAR_PROD', DMT%XSOLAR_PROD(1))
     END IF
-    CALL CSV_APPEND(out_line, teb_wind_top(1))
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-CALL CSV_APPEND(out_line, PCD_ROAD_CAN(1))
-CALL CSV_APPEND(out_line, PCDN_ROAD_CAN(1))
-CALL CSV_APPEND(out_line, PRI_ROAD_CAN(1))
-CALL CSV_APPEND(out_line, ZZ0H_ROAD_CAN(1))
-CALL CSV_APPEND(out_line, PAC_ROAD_ATM(1))
-CALL CSV_APPEND(out_line, PCH_ROAD_ATM(1))
-CALL CSV_APPEND(out_line, PCD_ROAD_ATM(1))
-CALL CSV_APPEND(out_line, PCDN_ROAD_ATM(1))
-CALL CSV_APPEND(out_line, PRI_ROAD_ATM(1))
-CALL CSV_APPEND(out_line, ZZ0H_ROAD_ATM(1))
-CALL CSV_APPEND(out_line, PCDN_GARDEN_CAN(1))
-CALL CSV_APPEND(out_line, PRI_GARDEN_CAN(1))
-CALL CSV_APPEND(out_line, ZZ0H_GARDEN_CAN(1))
-CALL CSV_APPEND(out_line, PAC_GARDEN_ATM(1))
-CALL CSV_APPEND(out_line, PCDN_GARDEN_ATM(1))
-CALL CSV_APPEND(out_line, PRI_GARDEN_ATM(1))
-CALL CSV_APPEND(out_line, ZZ0H_GARDEN_ATM(1))
-CALL CSV_APPEND(out_line, teb_ac_rd(1))
-CALL CSV_APPEND(out_line, teb_tch_rd(1))
-CALL CSV_APPEND(out_line, teb_tcm_gd(1))
-CALL CSV_APPEND(out_line, teb_tch_gd(1))
-CALL CSV_APPEND(out_line, teb_cd_garden_atm(1))
-CALL CSV_APPEND(out_line, teb_ch_garden_atm(1))
-CALL CSV_APPEND(out_line, PH_ROAD_CAN(1))
-CALL CSV_APPEND(out_line, PLE_ROAD_CAN(1))
-CALL CSV_APPEND(out_line, PH_ROAD_ATM(1))
-CALL CSV_APPEND(out_line, PLE_ROAD_ATM(1))
-!MV202609 CBS scheme of the road
-CALL CSV_APPEND(out_line, PH_ROAD(1))
-CALL CSV_APPEND(out_line, PLE_ROAD(1))
-!MV202609 CBS scheme of the road (revision: puddle diagnostics)
-CALL CSV_APPEND(out_line, PAC_ROAD_WAT(1))
-CALL CSV_APPEND(out_line, PAC_ROAD_ATM_WAT(1))
-CALL CSV_APPEND(out_line, PDN_RD(1))
-CALL CSV_APPEND(out_line, LE_ROAD_WAT(1))
-CALL CSV_APPEND(out_line, LE_ROAD_SNOW(1))
-CALL CSV_APPEND(out_line, teb_ws_road(1))
-!MV202609 anthropogenic heat diagnostics (traffic and building waste heat)
-CALL CSV_APPEND(out_line, ahf_traffic_now(1))
-CALL CSV_APPEND(out_line, teb_hwaste(1))
-CALL CSV_APPEND(out_line, teb_lewaste(1))
-CALL CSV_APPEND(out_line, teb_gflux(1))
-!MV202609 CBS scheme of the road (revision: three-temperature construction)
-CALL CSV_APPEND(out_line, PT_CAN0(1))
-CALL CSV_APPEND(out_line, PT_CAN1(1))
-CALL CSV_APPEND(out_line, PPHI_CAN1(1))
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-CALL CSV_APPEND(out_line, teb_wsnow_road(1,1))
-CALL CSV_APPEND(out_line, teb_tsnow_road(1,1))
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-CALL CSV_APPEND(out_line, PDN_RF(1))
-CALL CSV_APPEND(out_line, LE_ROOF_WAT(1))
-CALL CSV_APPEND(out_line, LE_ROOF_SNOW(1))
-CALL CSV_APPEND(out_line, teb_ws_roof(1))
-CALL CSV_APPEND(out_line, teb_wsnow_roof(1,1))
-!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-CALL CSV_APPEND(out_line, ZRO_ROAD_ACC / INB_ATM)
-CALL CSV_APPEND(out_line, ZRO_ROOF_ACC / INB_ATM)
-!MV202609 garden diagnostics (per m2 of garden)
-CALL CSV_APPEND(out_line, teb_ts_garden(1))
-CALL CSV_APPEND(out_line, teb_rn_garden(1))
-CALL CSV_APPEND(out_line, teb_h_garden(1))
-CALL CSV_APPEND(out_line, teb_le_garden(1))
-CALL CSV_APPEND(out_line, teb_evap_garden(1))
-CALL CSV_APPEND(out_line, teb_qsat_garden(1))
-CALL CSV_APPEND(out_line, teb_phu_garden(1))
-CALL CSV_APPEND(out_line, teb_pac_garden(1))
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-CALL CSV_APPEND(out_line, teb_h_garden_can(1))
-CALL CSV_APPEND(out_line, teb_h_garden_atm(1))
-CALL CSV_APPEND(out_line, teb_le_garden_can(1))
-CALL CSV_APPEND(out_line, teb_le_garden_atm(1))
-!MV202609 greenroof diagnostics (per m2 of greenroof)
-CALL CSV_APPEND(out_line, teb_ts_greenroof(1))
-CALL CSV_APPEND(out_line, teb_rn_greenroof(1))
-CALL CSV_APPEND(out_line, teb_h_greenroof(1))
-CALL CSV_APPEND(out_line, teb_le_greenroof(1))
-CALL CSV_APPEND(out_line, teb_evap_greenroof(1))
-CALL CSV_APPEND(out_line, teb_qsat_greenroof(1))
-CALL CSV_APPEND(out_line, teb_phu_greenroof(1))
-CALL CSV_APPEND(out_line, teb_pac_greenroof(1))
-!MV202609 greenroof-to-atm exchange diagnostics
-CALL CSV_APPEND(out_line, teb_pac_greenroof_atm(1))
-CALL CSV_APPEND(out_line, teb_pcd_greenroof_atm(1))
-CALL CSV_APPEND(out_line, teb_pcdn_greenroof_atm(1))
-CALL CSV_APPEND(out_line, teb_pch_greenroof_atm(1))
-CALL CSV_APPEND(out_line, teb_pri_greenroof_atm(1))
-CALL CSV_APPEND(out_line, teb_zz0h_greenroof_atm(1))
-!MV202609 garden emulation (teb_type_garden = 'EXT')
-IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
-   CALL CSV_APPEND(out_line, emu_tau(1))
-   CALL CSV_APPEND(out_line, emu_cd_eff(1))
-   CALL CSV_APPEND(out_line, emu_ch_eff(1))
-   CALL CSV_APPEND(out_line, emu_ch_naive(1))
-   CALL CSV_APPEND(out_line, emu_v_star(1))
-   CALL CSV_APPEND(out_line, emu_t_star(1))
-   CALL CSV_APPEND(out_line, emu_q_star(1))
-   CALL CSV_APPEND(out_line, emu_ca_can(1))
-   CALL CSV_APPEND(out_line, emu_ca_eff(1))
-   CALL CSV_APPEND(out_line, emu_ts(1))
-   CALL CSV_APPEND(out_line, emu_h(1))
-   CALL CSV_APPEND(out_line, emu_le(1))
-   CALL CSV_APPEND(out_line, emu_evap(1))
-END IF
-!MV202609 greenroof emulation (teb_type_greenroof = 'EXT'/'EXT_NEU')
-IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') THEN
-   CALL CSV_APPEND(out_line, emu_gr_cd(1))
-   CALL CSV_APPEND(out_line, emu_gr_ch(1))
-   CALL CSV_APPEND(out_line, emu_gr_ca(1))
-   CALL CSV_APPEND(out_line, emu_gr_v(1))
-   CALL CSV_APPEND(out_line, emu_gr_t(1))
-   CALL CSV_APPEND(out_line, emu_gr_q(1))
-   CALL CSV_APPEND(out_line, emu_gr_psw(1))
-   CALL CSV_APPEND(out_line, emu_gr_plw(1))
-   CALL CSV_APPEND(out_line, emu_gr_ts(1))
-   CALL CSV_APPEND(out_line, emu_gr_rn(1))
-   CALL CSV_APPEND(out_line, emu_gr_h(1))
-   CALL CSV_APPEND(out_line, emu_gr_le(1))
-   CALL CSV_APPEND(out_line, emu_gr_evap(1))
-END IF
-!MV202609 solar position diagnostics (degrees; last sub-step of the interval)
-CALL CSV_APPEND(out_line, XZENITH(1) * 180. / XPI)
-CALL CSV_APPEND(out_line, 90. - XZENITH(1) * 180. / XPI)
-CALL CSV_APPEND(out_line, MOD(XAZIM(1) * 180. / XPI + 360., 360.))
-    ! --- atmospheric forcing used by the model at the current time-step
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'WIND_TOP', DMT%XWIND_TOP(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'USTAR_TOWN', DMT%XUSTAR_TOWN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCD_ROAD_CAN', DMT%XPCD_ROAD_CAN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCDN_ROAD_CAN', DMT%XPCDN_ROAD_CAN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PRI_ROAD_CAN', DMT%XPRI_ROAD_CAN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'ZZ0H_ROAD_CAN', DMT%XZZ0H_ROAD_CAN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PAC_ROAD_ATM', DMT%XPAC_ROAD_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCH_ROAD_ATM', DMT%XPCH_ROAD_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCD_ROAD_ATM', DMT%XPCD_ROAD_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCDN_ROAD_ATM', DMT%XPCDN_ROAD_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PRI_ROAD_ATM', DMT%XPRI_ROAD_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'ZZ0H_ROAD_ATM', DMT%XZZ0H_ROAD_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCDN_GARDEN_CAN', DMT%XPCDN_GARDEN_CAN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PRI_GARDEN_CAN', DMT%XPRI_GARDEN_CAN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'ZZ0H_GARDEN_CAN', DMT%XZZ0H_GARDEN_CAN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PAC_GARDEN_ATM', DMT%XPAC_GARDEN_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCDN_GARDEN_ATM', DMT%XPCDN_GARDEN_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PRI_GARDEN_ATM', DMT%XPRI_GARDEN_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'ZZ0H_GARDEN_ATM', DMT%XZZ0H_GARDEN_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PAC_ROAD_CAN', DMT%XAC_RD(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCH_ROAD_CAN', DMT%XTCH_RD(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCD_GARDEN_CAN', teb_tcm_gd(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCH_GARDEN_CAN', teb_tch_gd(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCD_GARDEN_ATM', DMT%XCD_GARDEN_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCH_GARDEN_ATM', DMT%XCH_GARDEN_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_ROAD_CAN', DMT%XPH_ROAD_CAN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'LE_ROAD_CAN', DMT%XPLE_ROAD_CAN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_ROAD_ATM', DMT%XPH_ROAD_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'LE_ROAD_ATM', DMT%XPLE_ROAD_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_ROAD', DMT%XPH_ROAD(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'LE_ROAD', DMT%XPLE_ROAD(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PAC_ROAD_WAT', DMT%XPAC_ROAD_WAT(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PAC_ROAD_ATM_WAT', DMT%XPAC_ROAD_ATM_WAT(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PDN_RD', DMT%XPDN_RD(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'LE_ROAD_WAT', DMT%XLE_ROAD_WAT(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'LE_ROAD_SNOW', DMT%XLE_ROAD_SNOW(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'WS_ROAD', teb_ws_road(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'AHF_TRAFFIC', DMT%XAHF_TRAFFIC_NOW(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_WASTE', DMT%XH_WASTE(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'LE_WASTE', DMT%XLE_WASTE(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'GFLUX_TOWN', DMT%XGFLUX_TOWN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'T_CAN0', DMT%XPT_CAN0(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'T_CAN1', DMT%XPT_CAN1(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PHI_CAN1', DMT%XPPHI_CAN1(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'WSNOW_RD', teb_wsnow_road(1,1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'TSNOW_RD', teb_tsnow_road(1,1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PDN_RF', DMT%XPDN_RF(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'LE_ROOF_WAT', DMT%XLE_ROOF_WAT(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'LE_ROOF_SNOW', DMT%XLE_ROOF_SNOW(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'WS_ROOF', teb_ws_roof(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'WSNOW_RF', teb_wsnow_roof(1,1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'RUNOFF_ROAD', ZRO_ROAD_ACC / INB_ATM)
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'RUNOFF_ROOF', ZRO_ROOF_ACC / INB_ATM)
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'TS_GARDEN', DMT%XTS_GARDEN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'RN_GARDEN', DMT%XRN_GARDEN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_GARDEN', DMT%XH_GARDEN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'LE_GARDEN', DMT%XLE_GARDEN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EVAP_GARDEN', DMT%XEVAP_GARDEN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'QSAT_GARDEN', DMT%XQSAT_GARDEN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PHU_GARDEN', DMT%XPHU_GARDEN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PAC_GARDEN', DMT%XPAC_GARDEN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_GARDEN_CAN', DMT%XH_GARDEN_CAN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_GARDEN_ATM', DMT%XH_GARDEN_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'LE_GARDEN_CAN', DMT%XLE_GARDEN_CAN(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'LE_GARDEN_ATM', DMT%XLE_GARDEN_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'TS_GREENROOF', DMT%XTS_GREENROOF(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'RN_GREENROOF', DMT%XRN_GREENROOF(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_GREENROOF', DMT%XH_GREENROOF(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'LE_GREENROOF', DMT%XLE_GREENROOF(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EVAP_GREENROOF', DMT%XEVAP_GREENROOF(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'QSAT_GREENROOF', DMT%XQSAT_GREENROOF(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PHU_GREENROOF', DMT%XPHU_GREENROOF(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PAC_GREENROOF', DMT%XPAC_GREENROOF(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PAC_GREENROOF_ATM', DMT%XPAC_GREENROOF_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCD_GREENROOF_ATM', DMT%XPCD_GREENROOF_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCDN_GREENROOF_ATM', DMT%XPCDN_GREENROOF_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PCH_GREENROOF_ATM', DMT%XPCH_GREENROOF_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'PRI_GREENROOF_ATM', DMT%XPRI_GREENROOF_ATM(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'ZZ0H_GREENROOF_ATM', DMT%XZZ0H_GREENROOF_ATM(1))
+    IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_TAU', emu_tau(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_CD_EFF', emu_cd_eff(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_CH_EFF', emu_ch_eff(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_CH_NAIVE', emu_ch_naive(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_V', emu_v_star(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_T', emu_t_star(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_Q', emu_q_star(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_CA_CAN', emu_ca_can(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_CA_EFF', emu_ca_eff(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_TS', emu_ts(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_H', emu_h(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_LE', emu_le(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_EVAP', emu_evap(1))
+    END IF
+    IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') THEN
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_GR_CD', emu_gr_cd(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_GR_CH', emu_gr_ch(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_GR_CA', emu_gr_ca(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_GR_V', emu_gr_v(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_GR_T', emu_gr_t(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_GR_Q', emu_gr_q(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_GR_PSW', emu_gr_psw(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_GR_PLW', emu_gr_plw(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_GR_TS', emu_gr_ts(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_GR_RN', emu_gr_rn(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_GR_H', emu_gr_h(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_GR_LE', emu_gr_le(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'EMU_GR_EVAP', emu_gr_evap(1))
+    END IF
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'SOLAR_ZENITH', XZENITH(1) * 180. / XPI)
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'SOLAR_ELEV', 90. - XZENITH(1) * 180. / XPI)
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'SOLAR_AZIM', MOD(XAZIM(1) * 180. / XPI + 360., 360.))
     forc_wind = SQRT(u(1)**2 + v(1)**2)
     forc_dir  = MOD(ATAN2(u(1), v(1))*180./XPI + 360., 360.)
-    CALL CSV_APPEND(out_line, t(1))
-    CALL CSV_APPEND(out_line, qv(1)*rho(1))
-    CALL CSV_APPEND(out_line, qv(1))
-    CALL CSV_APPEND(out_line, u(1))
-    CALL CSV_APPEND(out_line, v(1))
-    CALL CSV_APPEND(out_line, forc_wind)
-    CALL CSV_APPEND(out_line, forc_dir)
-    CALL CSV_APPEND(out_line, ps(1))
-    CALL CSV_APPEND(out_line, rho(1))
-    CALL CSV_APPEND(out_line, prr_con(1))
-    CALL CSV_APPEND(out_line, prs_con(1))
-    CALL CSV_APPEND(out_line, lwd_s(1))
-    CALL CSV_APPEND(out_line, swdir_s(1))
-    CALL CSV_APPEND(out_line, swdifd_s(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_TA', t(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_QA', qv(1)*rho(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_QV', qv(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_U', u(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_V', v(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_WIND', forc_wind)
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_DIR', forc_dir)
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_PS', ps(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_RHOA', rho(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_RAIN', prr_con(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_SNOW', prs_con(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_LW', lwd_s(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_DIR_SW', swdir_s(1))
+    CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'Forc_SCA_SW', swdifd_s(1))
+    IF (nstep == 1) THEN
+       WRITE(fu_out,'(A)') TRIM(hdr_line)
+       WRITE(*,*) '  Output columns: ', TRIM(hdr_line)
+    END IF
     WRITE(fu_out,'(A)') TRIM(out_line)
 END DO
 
@@ -1821,6 +1453,9 @@ CLOSE(fu_out)
 !
 ! --------------------------------------------------------------------------------------
 !
+!MV202609 release the diagnostics container
+CALL DIAG_MISC_TEB_DEALLOC(DMT)
+
 CONTAINS
 
 !MV202609 strict namelist date/time reading
@@ -2389,7 +2024,7 @@ END SUBROUTINE PRINT_USAGE
 !!   heat and the moisture (thermal roughness z0h = z0/urb_z0_o_z0h_gdn), while
 !!   the momentum coefficient keeps z0:
 !!     Ca_h_C = PCH_C*max(V_C,Vmin), PCH_C = kappa**2/(ln((H/2)/z0)*ln((H/2)/z0h)),
-!!                                   V_C   = ZU_CANYON (teb_wind_canyon)
+!!                                   V_C   = ZU_CANYON (DMT%XWIND_CANYON(1))
 !!     Ca_h_A = PCH_A*max(V_A,Vmin), PCH_A = kappa**2/(ln(z_ref/z0)*ln(z_ref/z0h)),
 !!                                   V_A   = |V_forcing|, z_ref = hlev_teb
 !!     Ca_eff = tau*Ca_h_C + (1-tau)*Ca_h_A
@@ -2440,7 +2075,7 @@ SUBROUTINE PCD_GARDEN
         emu_pcd_can(JI) = GARDEN_PCD_NEUTRAL(urb_h_bld(JI)/2., teb_z0_gd(JI))
         emu_pch_can(JI) = GARDEN_PCH_NEUTRAL(urb_h_bld(JI)/2., teb_z0_gd(JI), urb_z0_o_z0h_gdn)
         emu_v_can(JI)   = 0.
-        IF (emu_pcd_can(JI) > 0.) emu_v_can(JI) = MAX(teb_wind_canyon(JI), XVMIN_GD)
+        IF (emu_pcd_can(JI) > 0.) emu_v_can(JI) = MAX(DMT%XWIND_CANYON(1), XVMIN_GD)
         !* atmosphere path: reference air of the forcing level
         emu_pcd_atm(JI) = GARDEN_PCD_NEUTRAL(hlev_teb(JI), teb_z0_gd(JI))
         emu_pch_atm(JI) = GARDEN_PCH_NEUTRAL(hlev_teb(JI), teb_z0_gd(JI), urb_z0_o_z0h_gdn)
@@ -2467,9 +2102,9 @@ SUBROUTINE PCD_GARDEN
         !* radiation received by the garden, from the fluxes absorbed by TEB
         emu_psw(JI) = 0.
         emu_plw(JI) = 0.
-        IF (1.-teb_alb_gd(JI) > 1.E-6) emu_psw(JI) = teb_sobs(JI)/(1.-teb_alb_gd(JI))
+        IF (1.-teb_alb_gd(JI) > 1.E-6) emu_psw(JI) = DMT%XSOBS(1)/(1.-teb_alb_gd(JI))
         IF (teb_emis_gd(JI) > 1.E-6) THEN
-            emu_plw(JI) = teb_thbs(JI)/teb_emis_gd(JI) + XSTEFAN*teb_ts_gd(JI)**4
+            emu_plw(JI) = DMT%XTHBS(1)/teb_emis_gd(JI) + XSTEFAN*teb_ts_gd(JI)**4
         END IF
     END DO
     !* THE EXTERNAL MODEL: the surface balance at the set prepared above
@@ -2575,6 +2210,39 @@ END SUBROUTINE PCD_GREENROOF
 !> Append one real value to a CSV line: 'line = line//sep//value'
 !! List-directed output is used, so that the CSV file contains exactly the same digits
 !! as the previous per-variable txt files (bit-identical values).
+SUBROUTINE CSV_ADD(header, line, ncol, names, name, value)
+    !MV202609 table-driven CSV: register a column and append its value
+    !* One call defines a column completely - the name goes to the header line, the
+    !* value goes to the data row - so the two cannot drift apart (the earlier code
+    !* kept two parallel lists, the names and the CALL CSV_APPEND sequence, that had
+    !* to be kept in the same order by hand). The header line is written once, just
+    !* before the first data row, from the same calls.
+    CHARACTER(LEN=*), INTENT(INOUT) :: header  ! header line being built
+    CHARACTER(LEN=*), INTENT(INOUT) :: line    ! data row being built
+    INTEGER, INTENT(INOUT) :: ncol             ! number of columns registered so far
+    CHARACTER(LEN=*), DIMENSION(:), INTENT(INOUT) :: names  ! column names (1:ncol)
+    CHARACTER(LEN=*), INTENT(IN) :: name       ! name of this column
+    REAL, INTENT(IN) :: value                  ! value of this column
+    INTEGER :: l
+    ncol = ncol + 1
+    IF (ncol > SIZE(names)) THEN
+       WRITE(*,*) 'ERROR RUN_TEB_OFFLINE: too many output columns: ', ncol, &
+                  ' > nout_max = ', SIZE(names)
+       WRITE(*,*) 'Increase nout_max in RUN_TEB_OFFLINE.'
+       STOP 1
+    END IF
+    names(ncol) = name
+    l = LEN_TRIM(header)
+    IF (l + 1 + LEN_TRIM(name) > LEN(header)) THEN
+       WRITE(*,*) 'ERROR: header line is too long, increase the size of hdr_line'
+       STOP 1
+    END IF
+    header(l+1:l+1) = out_sep
+    header(l+2:) = TRIM(name)
+    CALL CSV_APPEND(line, value)
+END SUBROUTINE CSV_ADD
+
+
 SUBROUTINE CSV_APPEND(line, value)
     CHARACTER(LEN=*), INTENT(INOUT) :: line
     REAL, INTENT(IN) :: value

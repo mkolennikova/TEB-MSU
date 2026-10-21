@@ -7,30 +7,37 @@
 ! The CeCILL-C licence is compatible with L-GPL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ======================================================================, 
+!MV202609 explicit interface of the host-model adapter
+!* CALL_DRIVER is the entry point of the physics (the offline driver goes through
+!* RUN_TEB_OFFLINE -> teb_interface -> CALL_DRIVER). Wrapping the implementation in
+!* a module gives every call site a COMPILE-TIME CHECKED interface: while it was an
+!* external procedure the compiler could not see the argument list, so a wrong
+!* order, type or rank of one of the ~265 arguments was silently accepted (see
+!* docs/TEB_MSU_coupling_checklist.md). Wrapping (instead of an mkmf-style
+!* MODI_CALL_DRIVER interface file) also avoids a second copy of the list that
+!* would have to be kept in sync by hand.
+MODULE MODI_CALL_DRIVER
+IMPLICIT NONE
+CONTAINS
 SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, IMIN, ISEC, ZTIME, FR_URB, ZLON, ZLAT, ZZREF,      &
 				u, v, t, qv, ps, rho, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s,  &
 				NROOF_LAYER1, NROAD_LAYER1, NWALL_LAYER1, NFLOOR_LAYER1, ZBLD, ZGARDEN, ZCAN_HW_RATIO,        &
 				ZBLD_HEIGHT, ZHC_ROAD_S, ZHC_ROOF_S, ZHC_WALL_S, ZTC_ROAD_S, ZTC_ROOF_S, ZTC_WALL_S,          &
 				ZALB_ROAD, ZALB_ROOF, ZALB_WALL, ZEMIS_ROAD, ZEMIS_ROOF, ZEMIS_WALL, ZH_TRAFFIC, ZH_INDUSTRY, &
 				ZTI_BLD, ZT_ROOF, ZT_ROAD_NOW, ZT_ROAD, ZT_WALL_A, ZT_WALL_B, ZT_FLOOR, ZT_MASS, ZQI_BLD,     &
-				ZT_CANYON, ZQ_CANYON, XU_CANYON, XV_CANYON, ZABS_SW_GARDEN, ZABS_LW_GARDEN, ZWS_ROOF, ZWS_ROAD,&
+				ZT_CANYON, ZQ_CANYON, ZWS_ROOF, ZWS_ROAD,&
 				ZWSNOW_ROOF, ZWSNOW_ROAD, ZTSNOW_ROOF, ZTSNOW_ROAD, ZRSNOW_ROOF, ZRSNOW_ROAD, ZTSSNOW_ROOF,   &
 				ZTSSNOW_ROAD, ZASNOW_ROOF, ZASNOW_ROAD, ZESNOW_ROOF, ZESNOW_ROAD, ZT_WIN1, ZT_WIN2, ZALB_WIN, &
-				ZTS_ROOF, ZTS_WALL_A, ZTS_WALL_B, ZH_TOWN, ZLE_TOWN, ZTS_TOWN_S_NOW, ZTS_TOWN, ZQS_TOWN_S,    &
-				ZWS_TOWN_NOW, ZWS_TOWN, ZRUNOFF_TOWN, ZTSSNOW_TOWN_NOW, ZTSSNOW_TOWN, ZWSNOW_TOWN_NOW,        &
-				ZWSNOW_TOWN, ZRSNOW_TOWN_NOW, ZRSNOW_TOWN, ZCH_TOWN, ZEVAP_TOWN, ZHSNOW_TOWN, ZLESNOW_TOWN,   &
-				ZDN_TOWN, ZMELT_BLT_SUM, ZSNOWD_TOWN_NOW, ZSNOWD_TOWN, ZSO_ALB_TOWN, ZTH_ALB_TOWN,            &
 				CBEM, LBEM_AC, HNATVENT, CCOOL_COIL, CHEAT_COIL, ZGR, ZTCOOL_TARGET, ZTHEAT_TARGET, ZV_VENT,  &
 				ZINF, ZCOP_RAT, ZCAP_SYS_RAT, ZM_SYS_RAT, GSHAD_DAY, GNATVENT_NIGHT,                          &
-				ZH_WASTE, ZHVAC_COOL, ZHVAC_HEAT, LGREENROOF, ZFRAC_GR, ZZ0_GR_EXT, ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, ZH_GR_EXT,  &
+				LGREENROOF, ZFRAC_GR, ZZ0_GR_EXT, ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, ZH_GR_EXT,  &
 				ZLE_GR_EXT, ZEVAP_GR_EXT,        &
 				ZRUNOFF_GR_EXT, LGARDEN, ZZ0_GD_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD,   &
-				ZCD_GD, ZRUNOFF_GD_EXT, ITYPE_WIND, ZFAI, ZDQS_TOWN, ZGFLUX_TOWN, ZH_ROOF_FR, ZH_ROAD_FR,         &
-				ZH_WALL_FR, ZAC_ROOF, ZAC_ROAD, ZAC_WALL, ZAC_TOP, ZCH_RF, ZCH_RD, ZCH_WL, ZCH_TOP, ZU_TOP,   &
-                ZUSTAR_TOWN, ZCD_GARDEN_ATM, ZCH_GARDEN_ATM, ZH_TRAFFIC_NOW, ZRN_TOWN, ZU_CANYON, ZTS_ROAD, TYPE_GARDEN, TYPE_GREENROOF, &
+				ZCD_GD, ZRUNOFF_GD_EXT, ITYPE_WIND, ZFAI, &
+                TYPE_GARDEN, TYPE_GREENROOF, &
 				LGREENROOF_EXT, HROAD_DIR, HWALL_OPT, ZROAD_DIR, ZRESIDENTIAL, ZDT_RES, ZDT_OFF, ZCAP_SYS_HEAT, &
 				LSOLAR_PANEL, ZFRAC_PANEL, LPAR_RD_IRRIG, ZRD_START_MONTH, ZRD_END_MONTH, ZRD_START_HOUR,        &
-				ZRD_END_HOUR, ZRD_24H_IRRIG, ZPROD_BLD, ZUTC_HOUR, LSHADE,                                     &
+				ZRD_END_HOUR, ZRD_24H_IRRIG, ZUTC_HOUR, LSHADE,                                     &
 !MV202609 z0 and zd to namelist
 				HZ0_TOWN, HZD_TOWN,                         &
 !MV202609 garden thermal roughness (z0h)
@@ -38,35 +45,18 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 !MV202609 greenroof model type and thermal roughness
                 XZ0_O_Z0H_GR,                              &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
-                          PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
-                          PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
-                          PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
-                          ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
 !MV202609 CBS scheme of the road (revision: three-temperature construction)
-                          PT_CAN0, PT_CAN1, PPHI_CAN1,                        &
 !MV202609 CBS scheme of the road
-                          PH_ROAD, PLE_ROAD, PAC_ROAD_WAT, PAC_ROAD_ATM_WAT, PDN_RD, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-                          PDN_RF, LE_ROOF_WAT, LE_ROOF_SNOW, &
                           LCBS_SCHEME,                       &
                           XTAU_HW_THRESH, XTAU_HW_WIDTH,                        &
 !MV202609 anthropogenic heat diagnostics
-                          ZLE_WASTE,                        &
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-                          RUNOFF_ROAD, RUNOFF_ROOF, &
 !MV202609 garden diagnostics
-                          PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
-                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, &
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
-                          PAC_GARDEN,                                                   &
 !MV202609 greenroof diagnostics
-                          PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
-                          PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, PAC_GREENROOF, &
 !MV202609 greenroof-to-atm exchange diagnostics
-                          PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
-                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM)
+                          DMT)
 							
 ! ======================================================================
 ! 
@@ -106,6 +96,7 @@ USE MODD_CSTS,     ONLY : XCPD, XSTEFAN, XPI, XDAY, XKARMAN,   &
                           XLVTT, XLSTT, XLMTT, XRV, XRD, XG, XP00
 USE MODD_SURF_ATM, ONLY: XCISMIN, XVMODMIN, LALDTHRES, XRIMAX
 USE MODD_SURF_PAR, ONLY: XUNDEF
+USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 USE MODD_TYPE_DATE_SURF
 USE MODE_THERMOS
 USE MODD_REPROD_OPER, ONLY : CQSAT
@@ -257,7 +248,7 @@ REAL                              :: ZDT_OFF           !IN target temperature ch
 REAL, DIMENSION(1)                :: ZCAP_SYS_HEAT     !IN Capacity of the heating system [W m-2(bld)]
 
 ! Wind calculation
-INTEGER,DIMENSION(1)              :: ITYPE_WIND        !IN TEB option for camyon wond calculation:
+INTEGER                              :: ITYPE_WIND        !IN TEB option for camyon wond calculation:
 													   ! 0 - default; 1 - Wang scheme
 REAL,DIMENSION(1,1:8)             :: ZFAI              !IN Frontal area index 
 
@@ -340,126 +331,27 @@ LOGICAL,DIMENSION(1)              :: GSHAD_DAY         !INOUT has shading been n
 LOGICAL,DIMENSION(1)              :: GNATVENT_NIGHT    !INOUT has natural ventilation been
 
 ! Output diagnostic variables
-REAL,DIMENSION(1)                 :: ZTS_ROOF          !OUT roof surface temperature   [K]                                       
-REAL,DIMENSION(1)                 :: ZTS_WALL_A        !OUT wall 'A' surface temperature [K]               
-REAL,DIMENSION(1)                 :: ZTS_WALL_B        !OUT wall 'B' surface temperature [K]                   
-REAL,DIMENSION(1)                 :: ZH_TOWN           !OUT sensible heat flux over town             
-REAL,DIMENSION(1)                 :: ZLE_TOWN          !OUT latent heat flux over town     
-REAL,DIMENSION(1)                 :: ZTS_TOWN_S_NOW    !OUT town surface temperature from flux calculation at previous time-step          
 REAL,DIMENSION(1)                 :: ZTS_TOWN_S        !OUT town surface temperature from flux calculation  
-REAL,DIMENSION(1)                 :: ZQS_TOWN_S        !OUT town surface specific humidity from flux calculation (kg/kg)                
-REAL,DIMENSION(1)                 :: ZWS_TOWN_NOW      !OUT town water content (m H2O) at previous time-step     
-REAL,DIMENSION(1)                 :: ZWS_TOWN          !OUT town water content (m H2O)
-REAL,DIMENSION(1)                 :: ZRUNOFF_TOWN      !OUT runoff for town
-REAL,DIMENSION(1)                 :: ZTSSNOW_TOWN_NOW  !OUT town snow surface temperature (K) at previous time-step
-REAL,DIMENSION(1)                 :: ZTSSNOW_TOWN      !OUT town snow surface temperature (K)
-REAL,DIMENSION(1)                 :: ZWSNOW_TOWN_NOW   !OUT town snow (& liq. water) content (m H2O) at previous time-step
-REAL,DIMENSION(1)                 :: ZWSNOW_TOWN       !OUT town snow (& liq. water) content (m H2O)
-REAL,DIMENSION(1)                 :: ZRSNOW_TOWN_NOW   !OUT town snow layers density (kg/m3) at previous time-step   
-REAL,DIMENSION(1)                 :: ZRSNOW_TOWN       !OUT town snow layers density (kg/m3)
-REAL,DIMENSION(1)                 :: ZCH_TOWN          !OUT Heat exchange coefficient  
-REAL,DIMENSION(1)                 :: ZEVAP_TOWN        !OUT evaporation (kg/m2/s)                     
-REAL,DIMENSION(1)                 :: ZHSNOW_TOWN       !OUT sensible heat flux over snow
-REAL,DIMENSION(1)                 :: ZLESNOW_TOWN      !OUT latent heat flux over snow
-REAL,DIMENSION(1)                 :: ZDN_TOWN          !OUT snow fraction over town
-REAL,DIMENSION(1)                 :: ZMELT_BLT_SUM     !OUT Snow melt for built & impervious part (kg/m2)
-REAL,DIMENSION(1)                 :: ZSNOWD_TOWN_NOW   !OUT town snow depth at previous time-step
-REAL,DIMENSION(1)                 :: ZSNOWD_TOWN       !OUT town snow depth
-REAL,DIMENSION(1)                 :: ZSO_ALB_TOWN      !OUT town solar albedo  
-REAL,DIMENSION(1)                 :: ZTH_ALB_TOWN      !OUT town thermal albedo
-REAL,DIMENSION(1)                 :: XU_CANYON         !OUT u-wind component of wind inside the canyon                            
-REAL,DIMENSION(1)                 :: XV_CANYON         !OUT v-wind component of wind inside the canyon
 REAL,DIMENSION(1)                 :: ZABS_SW_GRND      !OUT Shortwave radiation absorbed by ground
 REAL,DIMENSION(1)                 :: ZABS_LW_GRND      !OUT Longwave radiation absorbed by ground
-REAL,DIMENSION(1)                 :: ZH_WASTE          !OUT Sensible waste heat from HVAC system [W m-2(tot)]
-REAL,DIMENSION(1)                 :: ZHVAC_COOL        !OUT Energy consumption of the cooling system [W m-2(bld)]                               
-REAL,DIMENSION(1)                 :: ZHVAC_HEAT        !OUT Energy consumption of the heating system [W m-2(bld)]
-REAL,DIMENSION(1)                 :: ZCH_RD            !OUT road transfer coefficient for heat
-REAL,DIMENSION(1)                 :: ZCH_RF            !OUT roof transfer coefficient for heat
-REAL,DIMENSION(1)                 :: ZCH_WL            !OUT wall transfer coefficient for heat
-REAL,DIMENSION(1)                 :: ZCH_TOP           !OUT between canyon top and atm. transfer coefficient for heat
 REAL,DIMENSION(1)                 :: ZILMO_ROAD_CAN        !OUT 1/length of Monin-Obukov
 REAL,DIMENSION(1)                 :: ZILMO_ROOF_EXCH        !OUT 1/length of Monin-Obukov
 REAL,DIMENSION(1)                 :: ZILMO_TOP_EXCH         !OUT 1/length of Monin-Obukov
 REAL,DIMENSION(1)                 :: ZILMO_TOP_FLUX         ! 1/length of Monin-Obukov (from fluxes)
 REAL,DIMENSION(1)                 :: ZLMO_TOP          !OUT 1/length of Monin-Obukov 
 REAL,DIMENSION(1)                 :: ZZ0U              !OUT Roughness length (m)
-REAL,DIMENSION(1)                 :: ZCD_GARDEN_ATM         !OUT 
-REAL,DIMENSION(1)                 :: ZCH_GARDEN_ATM         !OUT 
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
-REAL,DIMENSION(1)                 :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
-REAL,DIMENSION(1)                 :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
-REAL,DIMENSION(1)                 :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
-REAL,DIMENSION(1)                 :: ZZ0H_ROAD_CAN    ! road   roughness length for heat (canyon)
-REAL,DIMENSION(1)                 :: PAC_ROAD_ATM     ! road   aerodynamical conductance (atm.)
-REAL,DIMENSION(1)                 :: PCH_ROAD_ATM     ! road   drag coefficient for heat (atm.)
-REAL,DIMENSION(1)                 :: PCD_ROAD_ATM     ! road   drag coefficient (atm.)
-REAL,DIMENSION(1)                 :: PCDN_ROAD_ATM    ! road   neutral drag coefficient (atm.)
-REAL,DIMENSION(1)                 :: PRI_ROAD_ATM     ! road   Richardson number (atm.)
-REAL,DIMENSION(1)                 :: ZZ0H_ROAD_ATM    ! road   roughness length for heat (atm.)
-REAL,DIMENSION(1)                 :: PCDN_GARDEN_CAN  ! garden neutral drag coefficient (canyon)
-REAL,DIMENSION(1)                 :: PRI_GARDEN_CAN   ! garden Richardson number (canyon)
-REAL,DIMENSION(1)                 :: ZZ0H_GARDEN_CAN  ! garden roughness length for heat (canyon)
-REAL,DIMENSION(1)                 :: PAC_GARDEN_ATM   ! garden aerodynamical conductance (atm.)
-REAL,DIMENSION(1)                 :: PCDN_GARDEN_ATM  ! garden neutral drag coefficient (atm.)
-REAL,DIMENSION(1)                 :: PRI_GARDEN_ATM   ! garden Richardson number (atm.)
-REAL,DIMENSION(1)                 :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (atm.)
-REAL,DIMENSION(1)                 :: PH_ROAD_CAN      !OUT road sensible heat flux, road -> canyon air [W m-2]
-REAL,DIMENSION(1)                 :: PLE_ROAD_CAN     !OUT road latent heat flux, road -> canyon air [W m-2]
-REAL,DIMENSION(1)                 :: PH_ROAD_ATM      !OUT road sensible heat flux, road -> forcing level [W m-2]
-REAL,DIMENSION(1)                 :: PLE_ROAD_ATM     !OUT road latent heat flux, road -> forcing level [W m-2]
 !MV202609 CBS scheme of the road (revision: three-temperature construction)
-REAL,DIMENSION(1)                 :: PT_CAN0          !OUT canyon air temperature without tau [K]
-REAL,DIMENSION(1)                 :: PT_CAN1          !OUT free layer (second canopy) air temperature [K]
-REAL,DIMENSION(1)                 :: PPHI_CAN1        !OUT free layer air temperature / theta* ratio of the MOST profile [-]
 !MV202609 CBS scheme of the road
-REAL,DIMENSION(1)                 :: PH_ROAD          !OUT road sensible heat flux, CBS scheme [W m-2]
-REAL,DIMENSION(1)                 :: PLE_ROAD         !OUT road latent heat flux, CBS scheme [W m-2]
 !MV202609 CBS scheme of the road (revision: puddle diagnostics)
-REAL,DIMENSION(1)                 :: PAC_ROAD_WAT     !OUT road water conductance (canyon, water-limited)
-REAL,DIMENSION(1)                 :: PAC_ROAD_ATM_WAT !OUT road water conductance (forcing level, water-limited)
-REAL,DIMENSION(1)                 :: PDN_RD           !OUT road snow fraction (-)
-REAL,DIMENSION(1)                 :: LE_ROAD_WAT      !OUT road latent heat flux of the snow-free road (W/m2 road)
-REAL,DIMENSION(1)                 :: LE_ROAD_SNOW     !OUT road latent heat flux of the snow-covered road (W/m2 road)
 !MV202609 garden diagnostics
-REAL,DIMENSION(1)                 :: PTSRAD_GARDEN    !OUT garden surface temperature (K)
-REAL,DIMENSION(1)                 :: PRN_GARDEN       !OUT net radiation over the garden (W/m2 garden)
-REAL,DIMENSION(1)                 :: PH_GARDEN        !OUT sensible heat flux over the garden (W/m2 garden)
-REAL,DIMENSION(1)                 :: PLE_GARDEN       !OUT latent heat flux over the garden (W/m2 garden)
-REAL,DIMENSION(1)                 :: PEVAP_GARDEN     !OUT total evaporation over the garden (kg/m2/s)
-REAL,DIMENSION(1)                 :: PQSAT_GARDEN     !OUT garden saturation specific humidity (kg/kg)
-REAL,DIMENSION(1)                 :: PHU_GARDEN       !OUT garden aggregated relative humidity (-)
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-REAL,DIMENSION(1)                 :: PH_GARDEN_CAN    !OUT garden sensible heat flux, garden -> canyon air (W/m2 garden)
-REAL,DIMENSION(1)                 :: PH_GARDEN_ATM    !OUT garden sensible heat flux, garden -> forcing level (W/m2 garden)
-REAL,DIMENSION(1)                 :: PLE_GARDEN_CAN   !OUT garden latent  heat flux, garden -> canyon air (W/m2 garden)
-REAL,DIMENSION(1)                 :: PLE_GARDEN_ATM   !OUT garden latent  heat flux, garden -> forcing level (W/m2 garden)
-REAL,DIMENSION(1)                 :: PAC_GARDEN       !OUT garden aerodynamic conductance (m/s)
 !MV202609 greenroof diagnostics
-REAL,DIMENSION(1)                 :: PTSRAD_GREENROOF !OUT greenroof surface temperature (K)
-REAL,DIMENSION(1)                 :: PRN_GREENROOF    !OUT net radiation over the greenroof (W/m2 greenroof)
-REAL,DIMENSION(1)                 :: PH_GREENROOF     !OUT sensible heat flux over the greenroof (W/m2 greenroof)
-REAL,DIMENSION(1)                 :: PLE_GREENROOF    !OUT latent heat flux over the greenroof (W/m2 greenroof)
-REAL,DIMENSION(1)                 :: PEVAP_GREENROOF  !OUT total evaporation over the greenroof (kg/m2/s)
-REAL,DIMENSION(1)                 :: PQSAT_GREENROOF  !OUT greenroof saturation specific humidity (kg/kg)
-REAL,DIMENSION(1)                 :: PHU_GREENROOF    !OUT greenroof aggregated relative humidity (-)
-REAL,DIMENSION(1)                 :: PAC_GREENROOF    !OUT green roofs aerodynamical conductance (m/s)
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
-REAL,DIMENSION(1)                 :: PAC_GREENROOF_ATM !OUT greenroof aerodynamical conductance (atm.)
-REAL,DIMENSION(1)                 :: PCD_GREENROOF_ATM !OUT greenroof drag coefficient (atm.)
-REAL,DIMENSION(1)                 :: PCDN_GREENROOF_ATM!OUT greenroof neutral drag coefficient (atm.)
-REAL,DIMENSION(1)                 :: PCH_GREENROOF_ATM !OUT greenroof drag coefficient for heat (atm.)
-REAL,DIMENSION(1)                 :: PRI_GREENROOF_ATM !OUT greenroof Richardson number (atm.)
-REAL,DIMENSION(1)                 :: ZZ0H_GREENROOF_ATM!OUT greenroof roughness length for heat (atm.)
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-REAL,DIMENSION(1)                 :: PDN_RF           !OUT roof snow fraction (-)
-REAL,DIMENSION(1)                 :: LE_ROOF_WAT      !OUT roof latent heat flux of the snow-free roof (W/m2 roof)
-REAL,DIMENSION(1)                 :: LE_ROOF_SNOW     !OUT roof latent heat flux of the snow-covered roof (W/m2 roof)
 LOGICAL                           :: LCBS_SCHEME      !IN flag to use the CBS scheme for the road
 REAL                              :: XTAU_HW_THRESH   !IN H/W giving tau = 0.5 (CBS scheme)
 REAL                              :: XTAU_HW_WIDTH    !IN width of the tanh relaxation (CBS scheme)
-REAL,DIMENSION(1)                 :: ZH_TRAFFIC_NOW    !OUT heat fluxes due to traffic at current time-step      
-REAL,DIMENSION(1)                 :: ZPROD_BLD         !OUT Averaged Energy production of solar panel on roofs (W/m2 bld  )   
  
 ! ---------------------------------------------------------------
 ! TEB Declarations
@@ -471,6 +363,7 @@ REAL               :: ZTIME_BEG         ! Time at beginning of time step
 REAL               :: XTSTEP_SURF       
 INTEGER            :: JLOOP             ! loop counter 
 TYPE(DATE_TIME)    :: TPTIME
+TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT   ! diagnostics container (owned by the driver)
 
 ! Canyon geometry                                                                     
 REAL,DIMENSION(1)  :: ZZ0               ! Roughness length (m) for neutral stratification                                                           
@@ -509,7 +402,6 @@ REAL,DIMENSION(1)  :: ZD_WALL_LAYERS         ! Thickness            of 1-4 wall 
 REAL,DIMENSION(1)  :: ZD_ROOF_LAYERS         ! Thickness            of 1-4 roof layers                                                        
 
 ! Wind calculation
-REAL,DIMENSION(1)  :: ZU_TOP           ! Wind speed at canyon top (m/s)
 REAL,DIMENSION(1)  :: ZDIR             ! Wind direction (degrees)
 REAL               :: XPII
 REAL,DIMENSION(1:9):: ZU_CANYON_WANG   ! hor. wind in canyon due to Wang
@@ -517,8 +409,6 @@ REAL,DIMENSION(1:9):: ZU_CANYON_WANG   ! hor. wind in canyon due to Wang
 REAL,DIMENSION(1)  :: ZVMOD_TS         ! Wind speed at forcing level limited with wind_threshold (m/s)
 ! Urban variables    
 REAL,DIMENSION(1)  :: ZQA_KGKG          ! air humidity at forcing level (kg/kg)                                                                 
-REAL,DIMENSION(1)  :: ZU_CANYON         ! hor. wind in canyon                                          
-REAL,DIMENSION(1)  :: ZTS_ROAD          ! road surface temperature   [K]                                                                    
 REAL,DIMENSION(1)  :: ZZ_LOWCAN         ! altitude of air layer above road             
 REAL,DIMENSION(1)  :: ZT_LOWCAN         ! temperature of air above road                
 REAL,DIMENSION(1)  :: ZU_LOWCAN         ! wind above road                              
@@ -532,61 +422,24 @@ REAL,DIMENSION(1)  :: ZPEW_B_COEF_LOWCAN!
 REAL,DIMENSION(1)  :: ZVMOD             ! Module of wind speed at the top of the canyon
 REAL,DIMENSION(1)  :: ZCD               ! drag coefficient                             
 REAL,DIMENSION(1)  :: ZCDN              ! neutral drag coefficient    
-REAL,DIMENSION(1)  :: ZAC_ROOF          ! roof aerodynamical conductance        
-REAL,DIMENSION(1)  :: ZAC_ROAD          ! road aerodynamical conductance                         
-REAL,DIMENSION(1)  :: ZAC_WALL          ! wall aerodynamical conductance   
-REAL,DIMENSION(1)  :: ZAC_TOP           ! aerodynamical conductance between canyon top and atm.     
 REAL,DIMENSION(1)  :: ZAC_ROAD_WAT      ! road aerodynamical conductance (for water)
 !MV202609 CBS scheme of the road (revision: puddle diagnostics)
 REAL,DIMENSION(1)  :: ZAC_ROAD_ATM_WAT  ! road aerodynamical conductance (for water, forcing level)
-REAL,DIMENSION(1)  :: ZLE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
-REAL,DIMENSION(1)  :: ZLE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-REAL,DIMENSION(1)  :: ZLE_ROOF_WAT      ! roof latent heat flux of the snow-free roof (W/m2 roof)
-REAL,DIMENSION(1)  :: ZLE_ROOF_SNOW     ! roof latent heat flux of the snow-covered roof (W/m2 roof)   
 REAL,DIMENSION(1)  :: ZAC_GARDEN        ! garden aerodynamical conductance             
 REAL,DIMENSION(1)  :: ZAC_GARDEN_WAT    ! garden aerodynamical conductance for vapor   
 !MV202609 garden diagnostics
-REAL,DIMENSION(1)  :: ZPTSRAD_GARDEN    ! garden surface temperature (K)
-REAL,DIMENSION(1)  :: ZPRN_GARDEN       ! net radiation over the garden (W/m2 garden)
-REAL,DIMENSION(1)  :: ZPH_GARDEN        ! sensible heat flux over the garden (W/m2 garden)
-REAL,DIMENSION(1)  :: ZPLE_GARDEN       ! latent heat flux over the garden (W/m2 garden)
-REAL,DIMENSION(1)  :: ZPEVAP_GARDEN     ! total evaporation over the garden (kg/m2/s)
-REAL,DIMENSION(1)  :: ZPQSAT_GARDEN     ! garden saturation specific humidity (kg/kg)
-REAL,DIMENSION(1)  :: ZPHU_GARDEN       ! garden aggregated relative humidity (-)
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-REAL,DIMENSION(1)  :: ZPH_GARDEN_CAN    ! garden sensible heat flux, garden -> canyon air (W/m2 garden)
-REAL,DIMENSION(1)  :: ZPH_GARDEN_ATM    ! garden sensible heat flux, garden -> forcing level (W/m2 garden)
-REAL,DIMENSION(1)  :: ZPLE_GARDEN_CAN   ! garden latent  heat flux, garden -> canyon air (W/m2 garden)
-REAL,DIMENSION(1)  :: ZPLE_GARDEN_ATM   ! garden latent  heat flux, garden -> forcing level (W/m2 garden)
 !MV202609 greenroof diagnostics
-REAL,DIMENSION(1)  :: ZPTSRAD_GREENROOF ! greenroof surface temperature (K)
-REAL,DIMENSION(1)  :: ZPRN_GREENROOF    ! net radiation over the greenroof (W/m2 greenroof)
-REAL,DIMENSION(1)  :: ZPH_GREENROOF     ! sensible heat flux over the greenroof (W/m2 greenroof)
-REAL,DIMENSION(1)  :: ZPLE_GREENROOF    ! latent heat flux over the greenroof (W/m2 greenroof)
-REAL,DIMENSION(1)  :: ZPEVAP_GREENROOF  ! total evaporation over the greenroof (kg/m2/s)
-REAL,DIMENSION(1)  :: ZPQSAT_GREENROOF  ! greenroof saturation specific humidity (kg/kg)
-REAL,DIMENSION(1)  :: ZPHU_GREENROOF    ! greenroof aggregated relative humidity (-)
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
-REAL,DIMENSION(1)  :: ZPAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
-REAL,DIMENSION(1)  :: ZPCD_GREENROOF_ATM = XUNDEF ! greenroof drag coefficient (atm.)
-REAL,DIMENSION(1)  :: ZPCDN_GREENROOF_ATM! greenroof neutral drag coefficient (atm.)
-REAL,DIMENSION(1)  :: ZPCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
-REAL,DIMENSION(1)  :: ZPRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
-REAL,DIMENSION(1)  :: ZZZ0H_GREENROOF_ATM! greenroof roughness length for heat (atm.)
 REAL,DIMENSION(1)  :: ZAC_GREENROOF     ! green roofs aerodynamical conductance        
 REAL,DIMENSION(1)  :: ZAC_GREENROOF_WAT ! green roofs aerodynamical conductance for vapor                                    
 REAL,DIMENSION(1)  :: ZUW_ROOF          ! Momentum flux for roofs                      
 REAL,DIMENSION(1)  :: ZDUWDU_GRND       ! d(u'w')/du for ground                        
 REAL,DIMENSION(1)  :: ZDUWDU_ROOF       ! d(u'w')/du for roof                          
-REAL,DIMENSION(1)  :: ZUSTAR_TOWN       ! Fraction velocity for town                   
 REAL,DIMENSION(1)  :: ZRESA_TOWN        ! Aerodynamical resistance                     
 REAL,DIMENSION(1)  :: ZRI_TOWN          ! Richardson number                            
-REAL,DIMENSION(1)  :: ZRUNOFF_ROOF      ! runoff for roof                              
-REAL,DIMENSION(1)  :: ZRUNOFF_ROAD      ! runoff for road
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-REAL,DIMENSION(1)                 :: RUNOFF_ROAD      !OUT water runoff of the road (kg/m2/s)
-REAL,DIMENSION(1)                 :: RUNOFF_ROOF      !OUT water runoff of the roof (kg/m2/s)                                                                                    
 REAL,DIMENSION(1)  :: ZGSNOW_ROAD = 0.0 ! road snow conduction                         
 
 ! Urban fluxes variables                                                              
@@ -594,7 +447,6 @@ REAL,DIMENSION(1)  :: ZTOTS_O_HORS      ! total canyon+roof surf over horizontal
 REAL,DIMENSION(1)  :: ZUW_GRND          ! friction flux over ground                    
 REAL,DIMENSION(1)  :: ZRN_ROOF          ! net radiation over roof                      
 REAL,DIMENSION(1)  :: ZH_ROOF           ! sensible heat flux over roof    
-REAL,DIMENSION(1)  :: ZH_ROOF_FR        ! sensible heat flux over roof (fraction)    
 REAL,DIMENSION(1)  :: DELTA_TROOF       ! temperature difference between roof and air in sensible heat flux 
 REAL,DIMENSION(1)  :: DELTA_TROAD       ! temperature difference between road and air in sensible heat flux
 REAL,DIMENSION(1)  :: DELTA_TWALL       ! temperature difference between wall and air in sensible heat flux               
@@ -602,13 +454,11 @@ REAL,DIMENSION(1)  :: ZLE_ROOF          ! latent heat flux over roof
 REAL,DIMENSION(1)  :: ZGFLUX_ROOF       ! flux through the roof                        
 REAL,DIMENSION(1)  :: ZRN_ROAD          ! net radiation over road                      
 REAL,DIMENSION(1)  :: ZH_ROAD           ! sensible heat flux over road 
-REAL,DIMENSION(1)  :: ZH_ROAD_FR        ! sensible heat flux over road (fraction)                
 REAL,DIMENSION(1)  :: ZLE_ROAD          ! latent heat flux over road                   
 REAL,DIMENSION(1)  :: ZGFLUX_ROAD       ! flux through the road                        
 REAL,DIMENSION(1)  :: ZRN_WALL_A        ! net radiation over wall                      
 REAL,DIMENSION(1)  :: ZRN_WALL_B        ! net radiation over wall                      
 REAL,DIMENSION(1)  :: ZH_WALL_A = 0.0   ! sensible heat flux over wall 
-REAL,DIMENSION(1)  :: ZH_WALL_FR        ! sensible heat flux over wall (fraction)                
 REAL,DIMENSION(1)  :: ZH_WALL_B = 0.0   ! sensible heat flux over wall                 
 REAL,DIMENSION(1)  :: ZLE_WALL_A        ! latent heat flux over wall                   
 REAL,DIMENSION(1)  :: ZLE_WALL_B        ! latent heat flux over wall                   
@@ -624,7 +474,6 @@ REAL,DIMENSION(1)  :: ZH_BLT            ! sensible heat flux over built covers
 REAL,DIMENSION(1)  :: ZLE_BLT           ! latent heat flux over built covers         
 REAL,DIMENSION(1)  :: ZGFLUX_BLT        ! flux through the built covers              
 REAL,DIMENSION(1)  :: ZFLX_BLD          ! heat flx from bld to its structure         
-REAL,DIMENSION(1)  :: ZDQS_TOWN         ! storage inside town materials              
 REAL,DIMENSION(1)  :: ZQF_TOWN          ! total anthropogenic heat                   
 REAL,DIMENSION(1)  :: ZMELT_ROOF = 0.0  ! snow melting on roof                       
 REAL,DIMENSION(1)  :: ZMELT_ROAD  = 0.0 ! snow melting on road                       
@@ -649,8 +498,6 @@ REAL,DIMENSION(1)  :: ZRN_GRND          ! net radiation over ground
 REAL,DIMENSION(1)  :: ZH_GRND           ! sensible heat flux over ground              
 REAL,DIMENSION(1)  :: ZLE_GRND          ! latent heat flux over ground                
 REAL,DIMENSION(1)  :: ZGFLUX_GRND       ! flux through the ground                     
-REAL,DIMENSION(1)  :: ZRN_TOWN          ! net radiation over town                     
-REAL,DIMENSION(1)  :: ZGFLUX_TOWN       ! flux through the ground for town            
 REAL,DIMENSION(1)  :: ZH_TRAFFIC_NOW_CAN! heat fluxes due to traffic at current time-step to the canyon
 
 ! Radiative variables                                                                
@@ -659,13 +506,11 @@ REAL,DIMENSION(1)  :: ZABS_SW_ROOF      ! Shortwave radiation absorbed by roofs
 REAL,DIMENSION(1)  :: ZABS_SW_ROAD      ! Shortwave radiation absorbed by roads       
 REAL,DIMENSION(1)  :: ZABS_SW_WALL_A    ! Shortwave radiation absorbed by wall A      
 REAL,DIMENSION(1)  :: ZABS_SW_WALL_B    ! Shortwave radiation absorbed by wall B      
-REAL,DIMENSION(1)  :: ZABS_SW_GARDEN    ! Shortwave radiation absorbed by gardens     
 REAL,DIMENSION(1)  :: ZABS_SW_GREENROOF ! Shortwave radiation absorbed by greenroofs  
 REAL,DIMENSION(1)  :: ZABS_LW_ROOF      ! Longwave  radiation absorbed by roofs       
 REAL,DIMENSION(1)  :: ZABS_LW_ROAD      ! Longwave  radiation absorbed by roads       
 REAL,DIMENSION(1)  :: ZABS_LW_WALL_A    ! Longwave  radiation absorbed by wall A      
 REAL,DIMENSION(1)  :: ZABS_LW_WALL_B    ! Longwave  radiation absorbed by wall B      
-REAL,DIMENSION(1)  :: ZABS_LW_GARDEN    ! Longwave  radiation absorbed by gardens     
 REAL,DIMENSION(1)  :: ZABS_LW_GREENROOF ! Longwave  radiation absorbed by greenroofs  
 REAL,DIMENSION(1)  :: ZABS_SW_SNOW_ROOF ! Shortwave radiation absorbed by roof snow   
 REAL,DIMENSION(1)  :: ZABS_SW_SNOW_ROAD ! Shortwave radiation absorbed by road snow   
@@ -680,7 +525,6 @@ REAL,DIMENSION(1)  :: ZSW_UP_SO         ! outgoing solar radiation
 REAL,DIMENSION(1)  :: ZLW_UP            ! outgoing longwave radiation                      
 REAL,DIMENSION(1,1):: ZTDIR_SW          ! total direct SW                         
 REAL,DIMENSION(1,1):: ZTSCA_SW          ! total diffuse SW                        
-REAL,DIMENSION(1)  :: ZTS_TOWN          ! town surface temperature                    
 REAL,DIMENSION(1)  :: ZEMIS_TOWN        ! town equivalent emissivity
 REAL,DIMENSION(1)  :: ZCOEF             ! work array                              
 REAL,DIMENSION(1)  :: ZF1_o_B           ! Coefficient for sky model
@@ -709,9 +553,8 @@ REAL, DIMENSION(1) :: ZLE_BLD_COOL       ! Latent cooling energy demand of the b
 REAL, DIMENSION(1) :: ZLE_BLD_HEAT       ! Latent heating energy demand of the building [W m-2(bld)]                                             
 !MV202609 anthropogenic heat diagnostics
 !* latent waste heat of the buildings, per horizontal surface area (as the
-!* sensible one ZH_WASTE): it is added to the wall/roof latent fluxes and to the
+!* sensible one DMT%XH_WASTE(1)): it is added to the wall/roof latent fluxes and to the
 !* canyon humidity by URBAN_FLUXES/AVG_URBAN_FLUXES
-REAL, DIMENSION(1), INTENT(OUT) :: ZLE_WASTE                               
 REAL, DIMENSION(1) :: ZF_WASTE_CAN       ! fraction of waste heat released into the canyon                                                           
 REAL, DIMENSION(1) :: ZQIN               ! Internal heat gains [W m-2(floor)]         
 REAL, DIMENSION(1) :: ZQIN_FRAD          ! Radiant fraction of internal heat gains    
@@ -1066,10 +909,10 @@ IF (ntstep == 1) THEN
 	! Input/Output prognostic variables
 	ZTI_BLD        = ZTCOOL_TARGET     ! indoor air temperature
     ZQI_BLD        = 0.0068794074      ! Indoor air specific humidity [kg kg-1]
-	ZU_CANYON      = 1.                ! Wind speed in canyon
+	DMT%XWIND_CANYON(1:1)      = 1.                ! Wind speed in canyon
 	ZTS_TOWN_S     = t
-    ZTS_TOWN       = t	
-	ZQS_TOWN_S     = qv
+    DMT%XTSTOWN_S(1:1)       = t	
+	DMT%XQSTOWN_S(1:1)     = qv
 	
 	! Roof properties
 	ZD_ROOF_LAYERS = ZD_ROOF(1,4) + ZD_ROOF(1,3) + ZD_ROOF(1,2) + ZD_ROOF(1,1)
@@ -1149,7 +992,7 @@ IF (ntstep == 1) THEN
     ZCAP_SYS_RAT        = ZCAP_SYS_RAT * ZN_FLOOR   ! Rated capacity of the cooling system [W m-2(bld)]
 
 	! For (Wang, 2012) Wind Calculation
-	ZUSTAR_TOWN         = 0.2 
+	DMT%XUSTAR_TOWN(1:1)         = 0.2 
 	
 	IF (icell .EQ. 1 .AND. iblock .EQ. 1) THEN
 		!-------------------------------------------------------------------
@@ -1212,7 +1055,7 @@ IF (ntstep == 1) THEN
 		PRINT*, '    ZRD_END_HOUR    = ', ZRD_END_HOUR(1)
 		PRINT*, '    ZRD_24H_IRRIG   = ', ZRD_24H_IRRIG(1)
 		PRINT*, '  Wind:'
-		PRINT*, '    ITYPE_WIND    = ', ITYPE_WIND(1)
+		PRINT*, '    ITYPE_WIND    = ', ITYPE_WIND
 		PRINT*, '    ZFAI          = ', ZFAI(1,:)
 !MV202609 z0 and zd to namelist
 		PRINT*, '  Aerodynamics of the urban surface:'
@@ -1362,13 +1205,13 @@ CALL WINDOW_DATA_STRUCT(1, ZSHGC, PU_WIN, ZALB_WIN, ZABS_WIN, ZUGG_WIN, ZTRAN_WI
 ! -----------------------------------------------------------
 ! Define Forcing variables
 ! -----------------------------------------------------------
-ZTS_ROOF    = 0.
-ZTS_ROAD    = 0.
-ZTS_WALL_A  = 0.
-ZTS_WALL_B  = 0.
+DMT%XTS_ROOF(1:1)    = 0.
+DMT%XTS_ROAD(1:1)    = 0.
+DMT%XTS_WALL_A(1:1)  = 0.
+DMT%XTS_WALL_B(1:1)  = 0.
 XTA(:)      = t
 XPS(:)      = ps
-!XRHOA (:)   = XPS (:) / XRD /  ZTS_TOWN (:) / ( 1.+((XRV/XRD)-1.)*ZQS_TOWN_S (:) )
+!XRHOA (:)   = XPS (:) / XRD /  DMT%XTSTOWN_S(1) (:) / ( 1.+((XRV/XRD)-1.)*DMT%XQSTOWN_S(1) (:) )
 XRHOA(:)    = XPS(:) / ( XTA(:)*XRD * ( 1.+((XRV/XRD)-1.)*qv(:) ) + XZREF(:)*XG )
 ZQA_KGKG(:) = qv
 XSNOW(:)    = prs_con + prs_gsp + prg_gsp
@@ -1380,13 +1223,13 @@ XV(:)       = v
 XLW(:)      = lwd_s
 XDIR_SW(:,1)  =  swdir_s            
 XSCA_SW(:,1)  =  swdifd_s
-ZTS_TOWN_S_NOW   = ZTS_TOWN
+DMT%XTSTOWN_S_NOW(1:1)   = DMT%XTSTOWN_S(1:1)
 ZT_ROAD_NOW(:,:) = ZT_ROAD(:,:)
-ZWS_TOWN_NOW     = ZWS_TOWN
-ZTSSNOW_TOWN_NOW = ZTSSNOW_TOWN
-ZWSNOW_TOWN_NOW  = ZWSNOW_TOWN
-ZRSNOW_TOWN_NOW  = ZRSNOW_TOWN
-ZSNOWD_TOWN_NOW  = ZSNOWD_TOWN
+DMT%XWSTOWN_NOW(1:1)     = DMT%XWSTOWN(1:1)
+DMT%XTSSNOW_TOWN_NOW(1:1) = DMT%XTSSNOW_TOWN(1:1)
+DMT%XWSNOW_TOWN_NOW(1:1)  = DMT%XWSNOW_TOWN(1:1)
+DMT%XRSNOW_TOWN_NOW(1:1)  = DMT%XRSNOW_TOWN(1:1)
+DMT%XHSNOW_TOWN_NOW(1:1)  = DMT%XHSNOW_TOWN(1:1)
 
 ! Check No value data
 !---------------------
@@ -1447,25 +1290,25 @@ ZTSCA_SW(:,1) = XSCA_SW(:,1) * (1. - ZF1_o_B)
 ZVMOD = SQRT(XU**2+XV**2)
 ! Wind speed at the top of the canyon (roof level), from the logarithmic
 ! profile referenced to the displacement height ZZDU
-ZU_TOP = ZVMOD * LOG( (        ZBLD_HEIGHT - ZZDU) / ZZ0U)   &
+DMT%XWIND_TOP(1:1) = ZVMOD * LOG( (        ZBLD_HEIGHT - ZZDU) / ZZ0U)   &
 	/ LOG( (ZZREF + ZBLD_HEIGHT - ZZDU) / ZZ0U)
-IF (ITYPE_WIND(1) == 0) THEN
+IF (ITYPE_WIND == 0) THEN
 	ZWAKE = 1. + (2./XPI-1.) * 2. * (ZCAN_HW_RATIO-0.5)
 	ZWAKE = MAX(MIN(ZWAKE,1.),2./XPI)
-	ZU_CANYON = ZWAKE * EXP(-ZCAN_HW_RATIO/4.) * ZU_TOP
-ELSEIF (ITYPE_WIND(1) == 1) THEN
-	CALL WIND_CALCULATION_WANG(icell, iblock, ZBLD_HEIGHT, ZUSTAR_TOWN, ZU_TOP, XU, XV, ZFAI, ZU_CANYON_WANG)  
-	ZU_CANYON = ZU_CANYON_WANG(5)
+	DMT%XWIND_CANYON(1:1) = ZWAKE * EXP(-ZCAN_HW_RATIO/4.) * DMT%XWIND_TOP(1)
+ELSEIF (ITYPE_WIND == 1) THEN
+	CALL WIND_CALCULATION_WANG(icell, iblock, ZBLD_HEIGHT, DMT%XUSTAR_TOWN(1:1), DMT%XWIND_TOP(1:1), XU, XV, ZFAI, ZU_CANYON_WANG)  
+	DMT%XWIND_CANYON(1:1) = ZU_CANYON_WANG(5)
 ENDIF
 
 ! Calculate Wind Direction from U and V components
 ! Forcing for TERRA to use Garden
 XPII = 2.*ASIN(1.)
 ZDIR = MOD(180. + 180. / XPII * atan2(XU,XV),360.) 
-XU_CANYON = -ZU_CANYON*SIN(ZDIR*XPII/180)
-XV_CANYON = -ZU_CANYON*COS(ZDIR*XPII/180)	
+DMT%XUCANYON(1:1) = -DMT%XWIND_CANYON(1)*SIN(ZDIR*XPII/180)
+DMT%XVCANYON(1:1) = -DMT%XWIND_CANYON(1)*COS(ZDIR*XPII/180)	
 
-ZU_LOWCAN = ZU_CANYON 
+ZU_LOWCAN = DMT%XWIND_CANYON(1:1) 
 ZT_LOWCAN = ZT_CANYON 
 ZQ_LOWCAN = ZQ_CANYON 
 
@@ -1477,8 +1320,8 @@ ZPEW_B_COEF_LOWCAN = ZU_LOWCAN
 ! -----------------------------------------------------------
 ! Calculation of Daily Cycle of AHF TRAFFIC
 ! -----------------------------------------------------------	
-CALL H_TRAFFIC_NOW(icell, iblock, ZH_TRAFFIC, IHOUR, IMIN, ISEC, ZUTC_HOUR, ZH_TRAFFIC_NOW) 
-ZH_TRAFFIC_NOW_CAN = ZH_TRAFFIC_NOW
+CALL H_TRAFFIC_NOW(icell, iblock, ZH_TRAFFIC, IHOUR, IMIN, ISEC, ZUTC_HOUR, DMT%XAHF_TRAFFIC_NOW(1:1)) 
+ZH_TRAFFIC_NOW_CAN = DMT%XAHF_TRAFFIC_NOW(1:1)
 IF (FR_URB(1) >= 0.25) THEN
 	ZH_TRAFFIC_NOW_CAN = ZH_TRAFFIC_NOW_CAN / FR_URB
 ELSE
@@ -1495,7 +1338,7 @@ ENDIF
 
 CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, TYPE_GREENROOF, LGREENROOF, LGREENROOF_EXT, LSOLAR_PANEL,                &
                      HZ0H, HIMPLICIT_WIND, HROAD_DIR, HWALL_OPT, TPTIME,      &
-                     LBEM_AC, XTSUN, ZT_CANYON, ZQ_CANYON, ZU_CANYON,                  &
+                     LBEM_AC, XTSUN, ZT_CANYON, ZQ_CANYON, DMT%XWIND_CANYON(1:1),                  &
                      ZT_LOWCAN, ZQ_LOWCAN, ZU_LOWCAN, ZZ_LOWCAN,              &
                      ZTI_BLD,                                                 &
                      ZT_ROOF, ZT_ROAD, ZT_WALL_A, ZT_WALL_B,                  &
@@ -1528,9 +1371,9 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, TYPE_GREENROOF, LGR
                      ZSVF_GARDEN,                                             &
                      ZHC_WALL,ZTC_WALL,ZD_WALL,                               &
                      ZRN_ROOF, ZH_ROOF, ZLE_ROOF, ZLEW_ROOF, ZGFLUX_ROOF,     &
-                     ZRUNOFF_ROOF,                                            &
+                     DMT%XRUNOFF_ROOF(1:1),                                            &
                      ZRN_ROAD, ZH_ROAD, ZLE_ROAD, ZLEW_ROAD, ZGFLUX_ROAD,     &
-                     ZRUNOFF_ROAD,                                            &
+                     DMT%XRUNOFF_ROAD(1:1),                                            &
                      ZRN_WALL_A, ZH_WALL_A, ZLE_WALL_A, ZGFLUX_WALL_A,        &
                      ZRN_WALL_B, ZH_WALL_B, ZLE_WALL_B, ZGFLUX_WALL_B,        &
                      ZRN_STRLROOF,ZH_STRLROOF,ZLE_STRLROOF, ZGFLUX_STRLROOF,  &
@@ -1541,13 +1384,13 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, TYPE_GREENROOF, LGR
                      ZRNSNOW_ROAD, ZHSNOW_ROAD, ZLESNOW_ROAD, ZGSNOW_ROAD,    &
                      ZMELT_ROAD,                                              &
                      ZRN_GRND, ZH_GRND, ZLE_GRND, ZGFLUX_GRND,                &
-                     ZRN_TOWN, ZH_TOWN, ZLE_TOWN, ZGFLUX_TOWN, ZEVAP_TOWN,    &
-                     ZRUNOFF_TOWN, ZSFCO2,                                    &
+                     DMT%XRN_TOWN(1:1), DMT%XH_TOWN(1:1), DMT%XLE_TOWN(1:1), DMT%XGFLUX_TOWN(1:1), DMT%XQVFL(1:1),    &
+                     DMT%XRUNOFF_TOWN(1:1), ZSFCO2,                                    &
                      ZUW_GRND, ZUW_ROOF, ZDUWDU_GRND, ZDUWDU_ROOF,            & 
-                     ZUSTAR_TOWN, ZCD, ZCDN, ZCH_TOWN, ZRI_TOWN,              &
-                     ZTS_TOWN, ZEMIS_TOWN, ZDIR_ALB_TOWN, ZSCA_ALB_TOWN,      &
-                     ZSO_ALB_TOWN, ZSW_UP_SO, ZRESA_TOWN, ZDQS_TOWN, ZQF_TOWN, ZQF_BLD,  &
-                     ZFLX_BLD, ZAC_ROOF, ZAC_ROAD, ZAC_WALL, ZAC_GARDEN, ZAC_GREENROOF,           &
+                     DMT%XUSTAR_TOWN(1:1), ZCD, ZCDN, DMT%XTCH_TOWN(1:1), ZRI_TOWN,              &
+                     DMT%XTSTOWN_S(1:1), ZEMIS_TOWN, ZDIR_ALB_TOWN, ZSCA_ALB_TOWN,      &
+                     DMT%XALB_SO(1:1), ZSW_UP_SO, ZRESA_TOWN, DMT%XDQS_TOWN(1:1), ZQF_TOWN, ZQF_BLD,  &
+                     ZFLX_BLD, DMT%XAC_RF(1:1), DMT%XAC_RD(1:1), DMT%XAC_WL(1:1), ZAC_GARDEN, ZAC_GREENROOF,           &
                      ZAC_ROAD_WAT, ZAC_GARDEN_WAT, ZAC_GREENROOF_WAT,         &
                      ZABS_SW_ROOF,ZABS_LW_ROOF,                               &
                      ZABS_SW_SNOW_ROOF,ZABS_LW_SNOW_ROOF,                     &
@@ -1556,14 +1399,14 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, TYPE_GREENROOF, LGR
                      ZABS_SW_WALL_A,ZABS_LW_WALL_A,                           &
                      ZABS_SW_WALL_B,ZABS_LW_WALL_B,                           &
                      ZABS_SW_PANEL,ZABS_LW_PANEL,                             &
-                     ZABS_SW_GARDEN,ZABS_LW_GARDEN,                           &
+                     DMT%XSOBS(1:1),DMT%XTHBS(1:1),                           &
                      ZABS_SW_GREENROOF,ZABS_LW_GREENROOF,                     &
                      ZG_GREENROOF_ROOF,    &
                      CCOOL_COIL, ZF_WATER_COND, CHEAT_COIL,  &
                      HNATVENT, ZNATVENT, IDAY, ZAUX_MAX, ZT_FLOOR,            &
                      ZT_MASS, ZH_BLD_COOL, ZT_BLD_COOL, ZH_BLD_HEAT,          &
-                     ZLE_BLD_COOL, ZLE_BLD_HEAT, ZH_WASTE, ZLE_WASTE,         &
-                     ZF_WASTE_CAN, ZHVAC_COOL, ZHVAC_HEAT, ZQIN, ZQIN_FRAD,   &
+                     ZLE_BLD_COOL, ZLE_BLD_HEAT, DMT%XH_WASTE(1:1), DMT%XLE_WASTE(1:1),         &
+                     ZF_WASTE_CAN, DMT%XHVAC_COOL(1:1), DMT%XHVAC_HEAT(1:1), ZQIN, ZQIN_FRAD,   &
                      ZQIN_FLAT, ZGR, ZEFF_HEAT, ZINF,                         &
                      ZTCOOL_TARGET, ZTHEAT_TARGET, ZHR_TARGET, ZT_WIN2,       &
                      ZQI_BLD, ZV_VENT, ZCAP_SYS_HEAT, ZCAP_SYS_RAT, ZT_ADP,   &
@@ -1586,28 +1429,28 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, TYPE_GREENROOF, LGR
                      ZEMIS_PANEL, ZALB_PANEL, ZEFF_PANEL, ZFRAC_PANEL,        &
                      ZRESIDENTIAL,                                            &
                      ZTHER_PROD_PANEL, ZPHOT_PROD_PANEL, ZPROD_PANEL,         &
-                     ZTHER_PROD_BLD  , ZPHOT_PROD_BLD  , ZPROD_BLD  ,         &
+                     ZTHER_PROD_BLD  , ZPHOT_PROD_BLD  , DMT%XSOLAR_PROD(1:1)  ,         &
                      ZTHER_PRODC_DAY, ZH_PANEL, ZRN_PANEL,                    &
                      ZDT_RES, ZDT_OFF,                                        &
                      ZCUR_TCOOL_TARGET, ZCUR_THEAT_TARGET, ZCUR_QIN ,         &
 					 ZDN_RF, ZDN_RD, ZMELT_BLT, ZSNOWD_RF, ZSNOWD_RD, ZLW_UP, &
 					 ZZ0_GR_EXT, ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, ZH_GR_EXT, ZLE_GR_EXT, ZEVAP_GR_EXT,   &
 					 ZRUNOFF_GR_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, &
-					 ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, ZRUNOFF_GD_EXT, ZCH_RD,    &
-					 ZCH_RF, ZCH_WL, ZCH_TOP, ZAC_TOP, ZILMO_ROAD_CAN, ZILMO_ROOF_EXCH,&
-                     ZILMO_TOP_EXCH, ZCD_GARDEN_ATM, ZCH_GARDEN_ATM, ZZDU			 ,                         &
+					 ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, ZRUNOFF_GD_EXT, DMT%XTCH_RD(1:1),    &
+					 DMT%XTCH_RF(1:1), DMT%XTCH_WL(1:1), DMT%XTCH_TOP(1:1), DMT%XAC_TOP(1:1), ZILMO_ROAD_CAN, ZILMO_ROOF_EXCH,&
+                     ZILMO_TOP_EXCH, DMT%XCD_GARDEN_ATM(1:1), DMT%XCH_GARDEN_ATM(1:1), ZZDU			 ,                         &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
-                          PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
-                          PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
-                          PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
-                          ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
+                          DMT%XPCD_ROAD_CAN(1:1), DMT%XPCDN_ROAD_CAN(1:1), DMT%XPRI_ROAD_CAN(1:1), DMT%XZZ0H_ROAD_CAN(1:1), &
+                          DMT%XPAC_ROAD_ATM(1:1), DMT%XPCH_ROAD_ATM(1:1), DMT%XPCD_ROAD_ATM(1:1), DMT%XPCDN_ROAD_ATM(1:1), &
+                          DMT%XPRI_ROAD_ATM(1:1), DMT%XZZ0H_ROAD_ATM(1:1), DMT%XPCDN_GARDEN_CAN(1:1), DMT%XPRI_GARDEN_CAN(1:1), &
+                          DMT%XZZ0H_GARDEN_CAN(1:1), DMT%XPAC_GARDEN_ATM(1:1), DMT%XPCDN_GARDEN_ATM(1:1), DMT%XPRI_GARDEN_ATM(1:1), DMT%XZZ0H_GARDEN_ATM(1:1), &
+                          DMT%XPH_ROAD_CAN(1:1), DMT%XPLE_ROAD_CAN(1:1), DMT%XPH_ROAD_ATM(1:1), DMT%XPLE_ROAD_ATM(1:1), &
 !MV202609 CBS scheme of the road (revision: three-temperature construction)
-                          PT_CAN0, PT_CAN1, PPHI_CAN1, &
+                          DMT%XPT_CAN0(1:1), DMT%XPT_CAN1(1:1), DMT%XPPHI_CAN1(1:1), &
 !MV202609 CBS scheme of the road (revision: puddle diagnostics)
-                          ZAC_ROAD_ATM_WAT, ZLE_ROAD_WAT, ZLE_ROAD_SNOW, &
+                          ZAC_ROAD_ATM_WAT, DMT%XLE_ROAD_WAT(1:1), DMT%XLE_ROAD_SNOW(1:1), &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-                          ZLE_ROOF_WAT, ZLE_ROOF_SNOW, &
+                          DMT%XLE_ROOF_WAT(1:1), DMT%XLE_ROOF_SNOW(1:1), &
 !MV202609 CBS scheme of the road
                           LCBS_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
 !MV202609 garden thermal roughness (z0h)
@@ -1615,16 +1458,16 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, TYPE_GREENROOF, LGR
 !MV202609 greenroof model type and thermal roughness
                           XZ0_O_Z0H_GR, &
 !MV202609 garden diagnostics
-                     ZPTSRAD_GARDEN, ZPRN_GARDEN, ZPH_GARDEN, ZPLE_GARDEN,       &
-                     ZPEVAP_GARDEN, ZPQSAT_GARDEN, ZPHU_GARDEN, &
+                     DMT%XTS_GARDEN(1:1), DMT%XRN_GARDEN(1:1), DMT%XH_GARDEN(1:1), DMT%XLE_GARDEN(1:1),       &
+                     DMT%XEVAP_GARDEN(1:1), DMT%XQSAT_GARDEN(1:1), DMT%XPHU_GARDEN(1:1), &
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-                     ZPH_GARDEN_CAN, ZPH_GARDEN_ATM, ZPLE_GARDEN_CAN, ZPLE_GARDEN_ATM, &
+                     DMT%XH_GARDEN_CAN(1:1), DMT%XH_GARDEN_ATM(1:1), DMT%XLE_GARDEN_CAN(1:1), DMT%XLE_GARDEN_ATM(1:1), &
 !MV202609 greenroof diagnostics
-                      ZPTSRAD_GREENROOF, ZPRN_GREENROOF, ZPH_GREENROOF, ZPLE_GREENROOF, &
-                      ZPEVAP_GREENROOF, ZPQSAT_GREENROOF, ZPHU_GREENROOF, &
+                      DMT%XTS_GREENROOF(1:1), DMT%XRN_GREENROOF(1:1), DMT%XH_GREENROOF(1:1), DMT%XLE_GREENROOF(1:1), &
+                      DMT%XEVAP_GREENROOF(1:1), DMT%XQSAT_GREENROOF(1:1), DMT%XPHU_GREENROOF(1:1), &
 !MV202609 greenroof-to-atm exchange diagnostics
-                      ZPAC_GREENROOF_ATM, ZPCD_GREENROOF_ATM, ZPCDN_GREENROOF_ATM, ZPCH_GREENROOF_ATM, &
-                      ZPRI_GREENROOF_ATM, ZZZ0H_GREENROOF_ATM)
+                      DMT%XPAC_GREENROOF_ATM(1:1), DMT%XPCD_GREENROOF_ATM(1:1), DMT%XPCDN_GREENROOF_ATM(1:1), DMT%XPCH_GREENROOF_ATM(1:1), &
+                      DMT%XPRI_GREENROOF_ATM(1:1), DMT%XZZ0H_GREENROOF_ATM(1:1), DMT)
 !*****************************************************************************
 !*****************************************************************************
 !*****************************************************************************
@@ -1632,22 +1475,22 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, TYPE_GREENROOF, LGR
 !
 
 IF (ntstep == 1) THEN
-	ZTS_TOWN_S_NOW = ZTS_TOWN
+	DMT%XTSTOWN_S_NOW(1:1) = DMT%XTSTOWN_S(1:1)
 END IF
 
-ZQS_TOWN_S    = ZQA_KGKG * ZEXNS / ZEXNA + ZLE_TOWN / (XRHOA * XLVTT * ZCH_TOWN * ZVMOD)
+DMT%XQSTOWN_S(1:1)    = ZQA_KGKG * ZEXNS / ZEXNA + DMT%XLE_TOWN(1) / (XRHOA * XLVTT * DMT%XTCH_TOWN(1) * ZVMOD)
 
-ZWS_TOWN      = (ZWS_ROOF * ZBLD + ZWS_ROAD * ZROAD) * 0.001
-!ZRUNOFF_TOWN  = ZRUNOFF_TOWN * dt
+DMT%XWSTOWN(1:1)      = (ZWS_ROOF * ZBLD + ZWS_ROAD * ZROAD) * 0.001
+!DMT%XRUNOFF_TOWN(1:1)  = DMT%XRUNOFF_TOWN(1) * dt
 
-ZTSSNOW_TOWN  = (ZTSSNOW_ROOF * ZBLD * ZDN_RF + ZTSSNOW_ROAD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
-ZWSNOW_TOWN   = (ZWSNOW_ROOF(1,1) * ZBLD * ZDN_RF + ZWSNOW_ROAD(1,1) * ZROAD * ZDN_RD) / (ZBLD + ZROAD) * 0.001
-ZRSNOW_TOWN   = (ZRSNOW_ROOF(1,1) * ZBLD * ZDN_RF + ZRSNOW_ROAD(1,1) * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
-ZHSNOW_TOWN   = (ZHSNOW_ROOF * ZBLD * ZDN_RF + ZHSNOW_ROAD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
-ZLESNOW_TOWN  = (ZLESNOW_ROOF * ZBLD * ZDN_RF + ZLESNOW_ROAD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
-ZDN_TOWN      = (ZDN_RF * ZBLD + ZDN_RD * ZROAD) / (ZBLD + ZROAD)
-ZMELT_BLT_SUM = ZMELT_BLT * dt
-ZSNOWD_TOWN   = (ZSNOWD_RF * ZBLD * ZDN_RF + ZSNOWD_RD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
+DMT%XTSSNOW_TOWN(1:1)  = (ZTSSNOW_ROOF * ZBLD * ZDN_RF + ZTSSNOW_ROAD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
+DMT%XWSNOW_TOWN(1:1)   = (ZWSNOW_ROOF(1,1) * ZBLD * ZDN_RF + ZWSNOW_ROAD(1,1) * ZROAD * ZDN_RD) / (ZBLD + ZROAD) * 0.001
+DMT%XRSNOW_TOWN(1:1)   = (ZRSNOW_ROOF(1,1) * ZBLD * ZDN_RF + ZRSNOW_ROAD(1,1) * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
+DMT%XSHFL_SNOW(1:1)   = (ZHSNOW_ROOF * ZBLD * ZDN_RF + ZHSNOW_ROAD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
+DMT%XLHFL_SNOW(1:1)  = (ZLESNOW_ROOF * ZBLD * ZDN_RF + ZLESNOW_ROAD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
+DMT%XFRSNOW(1:1)      = (ZDN_RF * ZBLD + ZDN_RD * ZROAD) / (ZBLD + ZROAD)
+DMT%XSNOW_MELT(1:1) = ZMELT_BLT * dt
+DMT%XHSNOW_TOWN(1:1)   = (ZSNOWD_RF * ZBLD * ZDN_RF + ZSNOWD_RD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
 
 
 !Town area-averaged albedo 
@@ -1662,90 +1505,60 @@ ZALB_AVE_TWN = ZBLD * (1.- ZFRAC_GR) * (1-ZDN_RF) * ZALB_ROOF * (1.-ZFRAC_PANEL)
                   + ZWALL_O_HOR *    ZSVF_WALL         * ZALB_WALL
 
 
-ZTH_ALB_TOWN = 1 - ZEMIS_TOWN
+DMT%XALB_TH(1:1) = 1 - ZEMIS_TOWN
 !  Instantaneous diagnostics
-ZTS_ROOF = ZT_ROOF(1,1)
-ZTS_ROAD = ZT_ROAD(1,1)
-ZTS_WALL_A = ZT_WALL_A(1,1)
-ZTS_WALL_B = ZT_WALL_B(1,1)
+DMT%XTS_ROOF(1:1) = ZT_ROOF(1,1)
+DMT%XTS_ROAD(1:1) = ZT_ROAD(1,1)
+DMT%XTS_WALL_A(1:1) = ZT_WALL_A(1,1)
+DMT%XTS_WALL_B(1:1) = ZT_WALL_B(1,1)
 
-ZH_ROOF_FR = ZH_ROOF*ZBLD
+DMT%XH_ROOF_FR(1:1) = ZH_ROOF*ZBLD
 !MV202609 CBS scheme of the road
 !* road fluxes (per m2 of road) as computed by the road energy budget, i.e. the
 !* tau-aggregated fluxes when the CBS scheme is activated (see TEB_GARDEN/TEB)
-PH_ROAD = ZH_ROAD
-PLE_ROAD = ZLE_ROAD
+DMT%XPH_ROAD(1:1) = ZH_ROAD
+DMT%XPLE_ROAD(1:1) = ZLE_ROAD
 !MV202609 CBS scheme of the road (revision: puddle diagnostics)
 !* road water diagnostics: effective (water-limited) conductances of both branches,
 !* snow fraction and liquid/snow components of the road latent heat flux
-PAC_ROAD_WAT     = ZAC_ROAD_WAT
-PAC_ROAD_ATM_WAT = ZAC_ROAD_ATM_WAT
-PDN_RD           = ZDN_RD
-LE_ROAD_WAT      = ZLE_ROAD_WAT
-LE_ROAD_SNOW     = ZLE_ROAD_SNOW
+DMT%XPAC_ROAD_WAT(1:1)     = ZAC_ROAD_WAT
+DMT%XPAC_ROAD_ATM_WAT(1:1) = ZAC_ROAD_ATM_WAT
+DMT%XPDN_RD(1:1)           = ZDN_RD
 !MV202609 garden diagnostics
 !* per-m2-of-garden surface diagnostics (net radiation, fluxes, surface
 !* temperature, conductance and saturation humidity)
-PTSRAD_GARDEN    = ZPTSRAD_GARDEN
-PRN_GARDEN       = ZPRN_GARDEN
-PH_GARDEN        = ZPH_GARDEN
-PLE_GARDEN       = ZPLE_GARDEN
-PEVAP_GARDEN     = ZPEVAP_GARDEN
-PQSAT_GARDEN     = ZPQSAT_GARDEN
-PHU_GARDEN       = ZPHU_GARDEN
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-PH_GARDEN_CAN    = ZPH_GARDEN_CAN
-PH_GARDEN_ATM    = ZPH_GARDEN_ATM
-PLE_GARDEN_CAN   = ZPLE_GARDEN_CAN
-PLE_GARDEN_ATM   = ZPLE_GARDEN_ATM
-PAC_GARDEN       = ZAC_GARDEN
+DMT%XPAC_GARDEN(1:1)       = ZAC_GARDEN
 !MV202609 greenroof diagnostics
-PTSRAD_GREENROOF = ZPTSRAD_GREENROOF
-PRN_GREENROOF    = ZPRN_GREENROOF
-PH_GREENROOF     = ZPH_GREENROOF
-PLE_GREENROOF    = ZPLE_GREENROOF
-PEVAP_GREENROOF  = ZPEVAP_GREENROOF
-PQSAT_GREENROOF  = ZPQSAT_GREENROOF
-PHU_GREENROOF    = ZPHU_GREENROOF
-PAC_GREENROOF    = ZAC_GREENROOF
+DMT%XPAC_GREENROOF(1:1)    = ZAC_GREENROOF
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
-PAC_GREENROOF_ATM = ZPAC_GREENROOF_ATM
-PCD_GREENROOF_ATM = ZPCD_GREENROOF_ATM
-PCDN_GREENROOF_ATM= ZPCDN_GREENROOF_ATM
-PCH_GREENROOF_ATM = ZPCH_GREENROOF_ATM
-PRI_GREENROOF_ATM = ZPRI_GREENROOF_ATM
-ZZ0H_GREENROOF_ATM= ZZZ0H_GREENROOF_ATM
 !
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 !* roof water diagnostics: snow fraction and liquid/snow components of the roof
 !* latent heat flux (tile-mean, as computed by TEB for the roof reservoir drain)
-PDN_RF           = ZDN_RF
-LE_ROOF_WAT      = ZLE_ROOF_WAT
-LE_ROOF_SNOW     = ZLE_ROOF_SNOW
+DMT%XPDN_RF(1:1)           = ZDN_RF
 !
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 !* water runoff of the road and of the roof reservoirs (per m2 of road / roof),
 !* needed to close the water budget of the two reservoirs on every hour (the
 !* runoff is the (only) term that leaves the reservoir without evaporating)
-RUNOFF_ROAD      = ZRUNOFF_ROAD
-RUNOFF_ROOF      = ZRUNOFF_ROOF
 !
-ZH_ROAD_FR = ZH_ROAD*ZROAD
-ZH_WALL_FR = ZH_WALL_A*ZWALL_O_HOR
+DMT%XH_ROAD_FR(1:1) = ZH_ROAD*ZROAD
+DMT%XH_WALL_FR(1:1) = ZH_WALL_A*ZWALL_O_HOR
 
-DELTA_TROOF = ZTS_ROOF/ZEXNS - XTA/ZEXNA
-DELTA_TROAD = ZTS_ROAD - ZT_CANYON
-DELTA_TWALL = ZTS_WALL_A - ZT_CANYON
+DELTA_TROOF = DMT%XTS_ROOF(1)/ZEXNS - XTA/ZEXNA
+DELTA_TROAD = DMT%XTS_ROAD(1) - ZT_CANYON
+DELTA_TWALL = DMT%XTS_WALL_A(1) - ZT_CANYON
 
 ! Calculate Shortwave and Longwave Surface Balance
 ! Forcing for TERRA to use Garden
-ZABS_SW_GRND = ZROAD /(ZROAD + ZGARDEN) * ZABS_SW_ROAD + ZGARDEN /(ZROAD + ZGARDEN) * ZABS_SW_GARDEN
-ZABS_LW_GRND = ZROAD /(ZROAD + ZGARDEN) * ZABS_LW_ROAD + ZGARDEN /(ZROAD + ZGARDEN) * ZABS_LW_GARDEN
+ZABS_SW_GRND = ZROAD /(ZROAD + ZGARDEN) * ZABS_SW_ROAD + ZGARDEN /(ZROAD + ZGARDEN) * DMT%XSOBS(1)
+ZABS_LW_GRND = ZROAD /(ZROAD + ZGARDEN) * ZABS_LW_ROAD + ZGARDEN /(ZROAD + ZGARDEN) * DMT%XTHBS(1)
 
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* 1/L of the town computed from the fluxes (not exported; distinct from ZILMO_TOP_EXCH
 !* which receives the 1/L from TEB, empty under MASC95)
-ZILMO_TOP_FLUX = -(ZUSTAR_TOWN**3 * XTA) / (XKARMAN * XG * ZH_TOWN / (XCPD * XRHOA))
+ZILMO_TOP_FLUX = -(DMT%XUSTAR_TOWN(1)**3 * XTA) / (XKARMAN * XG * DMT%XH_TOWN(1) / (XCPD * XRHOA))
 
 IF (ZILMO_TOP_FLUX(1) < 0.) THEN
 	ZILMO_TOP_FLUX = MIN(-ZBLD_HEIGHT / 150., ZILMO_TOP_FLUX)
@@ -2078,3 +1891,5 @@ END FUNCTION URB_Z0_MACDONALD
 ! --------------------------------------------------------------------------------------
 !
 END SUBROUTINE CALL_DRIVER
+
+END MODULE MODI_CALL_DRIVER

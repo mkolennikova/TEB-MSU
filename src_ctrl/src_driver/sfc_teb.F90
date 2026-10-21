@@ -48,7 +48,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				teb_qvfl_gd, teb_tch_gd, teb_tcm_gd, teb_runoff_gd, teb_itype_wind, teb_fai,        &
 				teb_dqs_town, teb_gflux, teb_shfl_rf, teb_shfl_rd, teb_shfl_wl, teb_ac_rf,          &
 				teb_ac_rd, teb_ac_wl, teb_ac_top, teb_tch_rf, teb_tch_rd, teb_tch_wl, teb_tch_top,  &
-				teb_wind_top, teb_ilmo_road, teb_ilmo_roof, teb_ilmo_top, ahf_traffic_now,          &
+				teb_wind_top, teb_ustar_town, teb_cd_terra, teb_ch_terra, ahf_traffic_now,          &
 				teb_rn_town, teb_wind_canyon, teb_tsroad, teb_lgarden_ext, teb_lgreenroof_ext,      &
 				teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
@@ -276,9 +276,9 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 	REAL ,DIMENSION(nvec) :: teb_tch_wl
 	REAL ,DIMENSION(nvec) :: teb_tch_top
 	REAL ,DIMENSION(nvec) :: teb_wind_top
-	REAL ,DIMENSION(nvec) :: teb_ilmo_road
-	REAL ,DIMENSION(nvec) :: teb_ilmo_roof
-	REAL ,DIMENSION(nvec) :: teb_ilmo_top
+	REAL ,DIMENSION(nvec) :: teb_ustar_town   !OUT friction velocity over the town [m/s]
+	REAL ,DIMENSION(nvec) :: teb_cd_terra     !OUT surface drag coefficient [-]
+	REAL ,DIMENSION(nvec) :: teb_ch_terra     !OUT surface heat transfer coefficient [-]
 	REAL ,DIMENSION(nvec) :: teb_rn_town
 	REAL ,DIMENSION(nvec) :: teb_wind_canyon
 	REAL ,DIMENSION(nvec) :: teb_tsroad
@@ -318,7 +318,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 				teb_qvfl_gd(i), teb_tch_gd(i), teb_tcm_gd(i), teb_runoff_gd(i), teb_itype_wind, teb_fai(i,:),           &
 				teb_dqs_town(i), teb_gflux(i), teb_shfl_rf(i), teb_shfl_rd(i), teb_shfl_wl(i), teb_ac_rf(i),            &
 				teb_ac_rd(i), teb_ac_wl(i), teb_ac_top(i), teb_tch_rf(i), teb_tch_rd(i), teb_tch_wl(i), teb_tch_top(i), &
-				teb_wind_top(i), teb_ilmo_road(i), teb_ilmo_roof(i), teb_ilmo_top(i), ahf_traffic_now(i),               &
+				teb_wind_top(i), teb_ustar_town(i), teb_cd_terra(i), teb_ch_terra(i), ahf_traffic_now(i),               &
 				teb_rn_town(i), teb_wind_canyon(i), teb_tsroad(i), teb_lgarden_ext, teb_lgreenroof_ext, teb_hroad_dir,  &
 				teb_wall_opt, teb_road_dir(i), teb_zresidential(i), teb_dt_res(i), teb_dt_off(i), teb_cap_sys_heat(i),  &
 				teb_lsolar_panel, teb_fr_panel(i), teb_lroad_irrig, teb_rd_irrig_start_m(i), teb_rd_irrig_end_m(i),     &

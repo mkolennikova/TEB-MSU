@@ -290,9 +290,9 @@ REAL ,DIMENSION(nvec) :: teb_tch_gd                     !OUT garden transfer coe
 REAL ,DIMENSION(nvec) :: teb_tcm_gd                     !OUT garden  surf. exchange coefficient
 
 !Other variables
-REAL ,DIMENSION(nvec) :: teb_ilmo_road
-REAL ,DIMENSION(nvec) :: teb_ilmo_roof
-REAL ,DIMENSION(nvec) :: teb_ilmo_top
+REAL ,DIMENSION(nvec) :: teb_ustar_town   !OUT friction velocity over the town [m/s]
+REAL ,DIMENSION(nvec) :: teb_cd_terra     !OUT surface drag coefficient [-]
+REAL ,DIMENSION(nvec) :: teb_ch_terra     !OUT surface heat transfer coefficient [-]
 REAL ,DIMENSION(nvec) :: ahf_traffic_now                !OUT Anthropogenic heat flux by traffic (current value)
 REAL ,DIMENSION(nvec) :: teb_solar_prod                 !OUT Averaged Energy production of solar panel on roofs (W/m2 bld  )
 	
@@ -825,6 +825,8 @@ nout = nout + 1; out_names(nout) = 'RN_TOWN'
 nout = nout + 1; out_names(nout) = 'HVAC_COOL'
 nout = nout + 1; out_names(nout) = 'HVAC_HEAT'
 nout = nout + 1; out_names(nout) = 'WIND_TOP'
+!MV202609 town friction velocity diagnostic
+nout = nout + 1; out_names(nout) = 'USTAR_TOWN'
 nout = nout + 1; out_names(nout) = 'SOLAR_PROD'
 nout = nout + 1; out_names(nout) = 'AHF_TRAFFIC'
 nout = nout + 1; out_names(nout) = 'GFLUX_TOWN'
@@ -991,7 +993,7 @@ DO ntstep = 1, nsteps - 1
 				teb_qvfl_gd, teb_tch_gd, teb_tcm_gd, teb_runoff_gd, teb_itype_wind, teb_fai,        &
 				teb_dqs_town, teb_gflux, teb_shfl_rf, teb_shfl_rd, teb_shfl_wl, teb_ac_rf,          &
 				teb_ac_rd, teb_ac_wl, teb_ac_top, teb_tch_rf, teb_tch_rd, teb_tch_wl, teb_tch_top,  &
-				teb_wind_top, teb_ilmo_road, teb_ilmo_roof, teb_ilmo_top, ahf_traffic_now,          &
+				teb_wind_top, teb_ustar_town, teb_cd_terra, teb_ch_terra, ahf_traffic_now,          &
 				teb_rn_town, teb_wind_canyon, teb_tsroad, teb_lgarden_ext, teb_lgreenroof_ext,      &
 				teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
@@ -1030,6 +1032,8 @@ DO ntstep = 1, nsteps - 1
     CALL CSV_APPEND(out_line, teb_hvac_cool(1))
     CALL CSV_APPEND(out_line, teb_hvac_heat(1))
     CALL CSV_APPEND(out_line, teb_wind_top(1))
+!MV202609 town friction velocity diagnostic
+    CALL CSV_APPEND(out_line, teb_ustar_town(1))
     CALL CSV_APPEND(out_line, teb_solar_prod(1))
     CALL CSV_APPEND(out_line, ahf_traffic_now(1))
     CALL CSV_APPEND(out_line, teb_gflux(1))

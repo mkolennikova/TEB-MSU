@@ -455,6 +455,7 @@ The driver therefore
 | `LE_TOWN` | W/m² | Latent heat flux from urban canyon |
 | `RN_TOWN` | W/m² | Net radiation of urban canyon effective surface |
 | `WIND_TOP` | m/s | Wind speed at the canyon top |
+| `USTAR_TOWN` | m/s | Friction velocity of the urban surface (`PUSTAR_TWN` of `URBAN_FLUXES`, from the bulk town drag coefficient `PCD`); always defined in the offline driver, which runs with `LCANOPY = .FALSE.` |
 | `HVAC_COOL` | W/m²(building) | Cooling energy consumption |
 | `HVAC_HEAT` | W/m²(building) | Heating energy consumption |
 | `SOLAR_PROD` | W/m²(building) | Average solar panel energy production |

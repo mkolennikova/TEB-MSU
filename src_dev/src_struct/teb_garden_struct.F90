@@ -130,7 +130,7 @@
                           PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, &
 !MV202609 greenroof-to-atm exchange diagnostics
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
-                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM)
+                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, DMT)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN_STRUCT*  
@@ -695,7 +695,7 @@ TYPE(BEM_OPTIONS_t) :: BOP
 TYPE(BEM_t) :: B
 TYPE(TEB_PANEL_t) :: TPN
 TYPE(TEB_IRRIG_t) :: TIR
-TYPE(DIAG_MISC_TEB_t) :: DMT
+TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT   ! diagnostics container (owned by the driver)
 !
 !-------------------------------------------------------------------------------
 !
@@ -885,8 +885,29 @@ PCUR_QIN          = XUNDEF! Internal heat gains        at current time (W/m2 flo
 !
 !* Allocate all the local structure variables
 !
+!
+!MV202609 the diagnostics container (Phase 4b)
+!* The fields below replace the OUT dummy arguments of this routine that the
+!* offline driver uses as diagnostics: they are initialised exactly like those
+!* dummies, so that a field read before it is written behaves as before (the
+!* container is owned by the driver and is no longer allocated here).
+DMT%XLE_ROAD_SNOW                  = XUNDEF
+DMT%XLE_ROAD_WAT                   = XUNDEF
+DMT%XLE_ROOF_SNOW                  = XUNDEF
+DMT%XLE_ROOF_WAT                   = XUNDEF
+DMT%XEVAP_GARDEN                   = XUNDEF
+DMT%XH_GARDEN                      = XUNDEF
+DMT%XH_GARDEN_ATM                  = XUNDEF
+DMT%XH_GARDEN_CAN                  = XUNDEF
+DMT%XLE_GARDEN                     = XUNDEF
+DMT%XLE_GARDEN_ATM                 = XUNDEF
+DMT%XLE_GARDEN_CAN                 = XUNDEF
+DMT%XPHU_GARDEN                    = XUNDEF
+DMT%XQSAT_GARDEN                   = XUNDEF
+DMT%XRN_GARDEN                     = XUNDEF
+DMT%XTS_GARDEN                     = XUNDEF
 CALL ALLOC_TEB_STRUCT(SIZE(PT_ROOF,2),SIZE(PT_ROAD,2),SIZE(PT_WALL_A,2),SIZE(PT_FLOOR,2), &
-                      TOP,T,BOP,B,TPN,TIR,DMT) 
+                      TOP,T,BOP,B,TPN,TIR) 
 !
 ! This is of course not optimized here, because at each time step, the structures are allocated, set and deallocated at the end.
 !  This is done so only to show that the structures can be independant from the rest of the code above (here the driver.F90 program).
@@ -1409,7 +1430,7 @@ DMT%XPLESN_RD_ATM(:) = PLESN_RD_ATM(:)
 !
 !-------------------------------------------------------------------------------
 !
-CALL DEALLOC_TEB_STRUCT(TOP,T,BOP,B,TPN,TIR,DMT) 
+CALL DEALLOC_TEB_STRUCT(TOP,T,BOP,B,TPN,TIR) 
 !
 !-------------------------------------------------------------------------------
 !

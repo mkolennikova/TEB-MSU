@@ -134,7 +134,7 @@ INTERFACE
                           PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, &
 !MV202609 greenroof-to-atm exchange diagnostics
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
-                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM)
+                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, DMT)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN_STRUCT*  
@@ -175,6 +175,7 @@ INTERFACE
 !               ------------
 !
 USE MODD_TYPE_DATE_SURF
+USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 !
 IMPLICIT NONE
 !
@@ -502,6 +503,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GREENROOF_ATM! greenroof neutral drag 
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GREENROOF_ATM! greenroof roughness length for heat (atm.)
+TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT   ! diagnostics container (owned by the driver)
 !MV202609 CBS scheme of the road
 LOGICAL,              INTENT(IN)  :: OCBS_SCHEME      ! flag to use the CBS scheme for the road
 REAL,                 INTENT(IN)  :: XTAU_HW_THRESH   ! H/W giving tau = 0.5 (CBS scheme)
