@@ -6,9 +6,12 @@ SUBROUTINE WINDOW_E_BUDGET(B, PEMIS_WIN, PLW_W_TO_WIN, PLW_R_TO_WIN, PLW_G_TO_WI
                            PABS_SW_WIN, PLW_RAD, PAC_WL, PRADHT_IN, PTS_FL, PRHOA, &
                            PDN_RD, PT_CANYON, PTS_WL, PTS_RD, PTSN_RD, PTS_GD,     &
                            PRAD_WIN_FL, PRAD_WIN_MA, PCONV_WIN_BLD, PEMIT_LW_WIN,  &
-                           PABS_LW_WIN, PLOAD_IN_WIN)
+                           PABS_LW_WIN, PLOAD_IN_WIN, BP)
 USE MODD_BEM_n, ONLY : BEM_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 TYPE(BEM_t), INTENT(INOUT) :: B
 REAL, DIMENSION(:), INTENT(IN)    :: PEMIS_WIN    ! window emissivity
 REAL, DIMENSION(:), INTENT(IN)    :: PLW_W_TO_WIN ! Radiative heat trasfer coeff window-wall outdoor

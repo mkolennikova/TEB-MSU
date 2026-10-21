@@ -7,7 +7,7 @@ SUBROUTINE WINDOW_E_BUDGET(B, PEMIS_WIN, PLW_W_TO_WIN, PLW_R_TO_WIN, PLW_G_TO_WI
                            PABS_SW_WIN, PLW_RAD, PAC_WL, PRADHT_IN, PTS_FL, PRHOA, &
                            PDN_RD, PT_CANYON, PTS_WL, PTS_RD, PTSN_RD, PTS_GD,     &
                            PRAD_WIN_FL, PRAD_WIN_MA, PCONV_WIN_BLD, PEMIT_LW_WIN,  &
-                           PABS_LW_WIN, PLOAD_IN_WIN)
+                           PABS_LW_WIN, PLOAD_IN_WIN, BP)
 !###################################################################################################################################
 !
 !!****  *WINDOW_E_BUDGET*  
@@ -64,7 +64,10 @@ USE MODE_CONV_DOE
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 !
 !*      0.1    declarations of arguments
 !
@@ -123,15 +126,15 @@ ENDDO
 ZT_SKY(:) = (PLW_RAD(:)/XSTEFAN)**0.25
 !  
 ZA12(:) = ZCHTC_IN_WIN(:)   &
-         + PRADHT_IN(:) * B%XF_WIN_MASS (:)  &
-         + PRADHT_IN(:) * B%XF_WIN_FLOOR(:) &
+         + PRADHT_IN(:) * BP%XF_WIN_MASS (:)  &
+         + PRADHT_IN(:) * BP%XF_WIN_FLOOR(:) &
          + B%XUGG_WIN(:)
 !
 ZB1(:)  = ZCHTC_IN_WIN   (:) * B%XTI_BLD (:)             &
-         + PRADHT_IN     (:) * B%XF_WIN_MASS(:) * B%XT_MASS(:,1)             &
-         + B%XF_WIN_WALL (:) * PRAD_WL_WIN(:) &
-         + B%XF_WIN_FLOOR(:) * PRAD_RF_WIN(:) &
-         + PRADHT_IN     (:) * B%XF_WIN_FLOOR(:)* PTS_FL(:) &
+         + PRADHT_IN     (:) * BP%XF_WIN_MASS(:) * B%XT_MASS(:,1)             &
+         + BP%XF_WIN_WALL (:) * PRAD_WL_WIN(:) &
+         + BP%XF_WIN_FLOOR(:) * PRAD_RF_WIN(:) &
+         + PRADHT_IN     (:) * BP%XF_WIN_FLOOR(:)* PTS_FL(:) &
          + PLOAD_IN_WIN(:) + PABS_SW_WIN(:) /2.
 !
 ZA21(:) = - PAC_WL       (:) * PRHOA(:)*XCPD   &

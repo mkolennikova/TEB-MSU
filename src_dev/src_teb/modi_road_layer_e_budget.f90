@@ -7,10 +7,13 @@ INTERFACE
                                    PTS_WALL_A, PTS_WALL_B, PTSNOW_ROAD, PTS_GARDEN,       &
                                    PLW_WA_TO_R, PLW_WB_TO_R, PLW_S_TO_R, PLW_WIN_TO_R,    &
                                    PEMIT_LW_ROAD, PDQS_ROAD, PABS_LW_ROAD, PHFREE_ROAD,   &
-                                   PLEFREE_ROAD, PIMB_ROAD, PRR )
+                                   PLEFREE_ROAD, PIMB_ROAD, PRR , TP)
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+
 TYPE(TEB_t), INTENT(INOUT) :: T
 TYPE(BEM_t), INTENT(INOUT) :: B
 REAL,               INTENT(IN)    :: PTSTEP       ! time step

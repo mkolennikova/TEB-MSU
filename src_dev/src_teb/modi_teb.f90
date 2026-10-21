@@ -37,14 +37,19 @@ INTERFACE
 !MV202609 CBS scheme of the road
                           PTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-                          LE_ROOF_WAT, LE_ROOF_SNOW)
+                          LE_ROOF_WAT, LE_ROOF_SNOW, TP, BP)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
 USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_TEB_IRRIG_n, ONLY : TEB_IRRIG_t
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 
 
 INTEGER                           :: icell

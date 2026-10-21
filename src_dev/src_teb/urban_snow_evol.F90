@@ -11,7 +11,7 @@
                                PGSN_RD, PMELT_RD, PLW_WA_TO_NR , PLW_WB_TO_NR, PLW_S_TO_NR, &
                                PLW_WIN_TO_NR, PDQS_SN_RF, PDQS_SN_RD, PSNOWD_RF, PSNOWD_RD,  &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                               PTAU, PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM )  
+                               PTAU, PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TP )  
 !   ##########################################################################
 !
 !!****  *URBAN_SNOW_EVOL*  
@@ -74,7 +74,9 @@ USE MODD_SURF_PAR, ONLY : XUNDEF
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
 !
 !*      0.1    declarations of arguments
 !
@@ -219,7 +221,7 @@ IF ( GSN_RF ) THEN
 !* Estimates implicit coupling between snow and roof
 ! (strictly equal to an implicit formulation for 100% snow coverage)
 !
-  CALL ROOF_IMPL_COEF(T, PTSTEP, ZTS_COEFA, ZTS_COEFB)
+  CALL ROOF_IMPL_COEF(T, PTSTEP, ZTS_COEFA, ZTS_COEFB, TP)
 !
 !* call to snow mantel scheme
 !

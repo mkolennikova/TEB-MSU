@@ -12,10 +12,15 @@ INTERFACE
                              PLW_S_TO_NR, PLW_S_TO_G, PLW_S_TO_WIN,              &
                              PLW_WIN_TO_WA, PLW_WIN_TO_WB, PLW_WIN_TO_R,         &
                              PLW_WIN_TO_NR, PLW_WIN_TO_G,                        &
-                             PLW_NR_TO_WA, PLW_NR_TO_WB, PLW_NR_TO_WIN           )
+                             PLW_NR_TO_WA, PLW_NR_TO_WB, PLW_NR_TO_WIN           , TP, BP)
 USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_TEB_n, ONLY : TEB_t
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 TYPE(BEM_t), INTENT(INOUT) :: B
 TYPE(TEB_t), INTENT(INOUT) :: T
 REAL, DIMENSION(:), INTENT(IN)  :: PLW_RAD  ! incoming LW radiation

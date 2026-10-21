@@ -57,7 +57,7 @@
 !!    Original    05/2009
 !!                04/2012 add B%XTRAN_WIN
 !!    modified    08/2012 TOP%CCH_BEM/ ROUGH_WALL and ROUGH_ROOF for buildind conv coef.
-!!    modified    10/2012 add B%XF_WIN_WIN as arg
+!!    modified    10/2012 add BP%XF_WIN_WIN as arg
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -450,21 +450,21 @@ END DO
 !*      1.1    surfaces relative fractions
 !              ---------------------------
 !
-DO JJ=1,SIZE(T%XROAD)
-  IF (T%XROAD(JJ) .GT. 0.) THEN
-    ZTOTS_O_HORS(JJ) = 1. + T%XWALL_O_HOR(JJ)
-    ZRF_FRAC  (JJ) = T%XBLD       (JJ) / ZTOTS_O_HORS(JJ)
-    ZWL_FRAC  (JJ) = T%XWALL_O_HOR(JJ) / ZTOTS_O_HORS(JJ)
-    ZRD_FRAC  (JJ) = T%XROAD      (JJ) / ZTOTS_O_HORS(JJ)
-    ZGD_FRAC  (JJ) = T%XGARDEN    (JJ) / ZTOTS_O_HORS(JJ)
+DO JJ=1,SIZE(TP%XROAD)
+  IF (TP%XROAD(JJ) .GT. 0.) THEN
+    ZTOTS_O_HORS(JJ) = 1. + TP%XWALL_O_HOR(JJ)
+    ZRF_FRAC  (JJ) = TP%XBLD       (JJ) / ZTOTS_O_HORS(JJ)
+    ZWL_FRAC  (JJ) = TP%XWALL_O_HOR(JJ) / ZTOTS_O_HORS(JJ)
+    ZRD_FRAC  (JJ) = TP%XROAD      (JJ) / ZTOTS_O_HORS(JJ)
+    ZGD_FRAC  (JJ) = TP%XGARDEN    (JJ) / ZTOTS_O_HORS(JJ)
     ZWL_O_RD  (JJ) = ZWL_FRAC     (JJ) / ZRD_FRAC(JJ)
     ZWL_O_GRND(JJ) = ZWL_FRAC     (JJ) / (ZRD_FRAC(JJ)+ZGD_FRAC(JJ))
-  ELSEIF (T%XBLD(JJ) .EQ. 0. .AND. T%XROAD(JJ) .EQ. 0.) THEN
-    ZTOTS_O_HORS(JJ) = 1. + T%XWALL_O_HOR(JJ)
+  ELSEIF (TP%XBLD(JJ) .EQ. 0. .AND. TP%XROAD(JJ) .EQ. 0.) THEN
+    ZTOTS_O_HORS(JJ) = 1. + TP%XWALL_O_HOR(JJ)
     ZRF_FRAC  (JJ) = 0.
-    ZWL_FRAC  (JJ) = T%XWALL_O_HOR(JJ) / ZTOTS_O_HORS(JJ)
+    ZWL_FRAC  (JJ) = TP%XWALL_O_HOR(JJ) / ZTOTS_O_HORS(JJ)
     ZRD_FRAC  (JJ) = 0.
-    ZGD_FRAC  (JJ) = T%XGARDEN    (JJ) / ZTOTS_O_HORS(JJ)
+    ZGD_FRAC  (JJ) = TP%XGARDEN    (JJ) / ZTOTS_O_HORS(JJ)
     ZWL_O_RD  (JJ) = 0.
     ZWL_O_GRND(JJ) = ZWL_FRAC     (JJ) / ZGD_FRAC(JJ)
   ENDIF
@@ -612,7 +612,7 @@ END IF
 !
  CALL URBAN_SOLAR_ABS(TOP, T, B, DMT, ZDIR_SW, ZSCA_SW, PZENITH, PAZIM,  &
                       TPN%XFRAC_PANEL, TPN%XALB_PANEL, PALB_GD,     &
-                      T%XSVF_GARDEN, PALB_GR, PDN_RF, ZDF_RF,       &
+                      TP%XSVF_GARDEN, PALB_GR, PDN_RF, ZDF_RF,       &
                       PDN_RD, ZDF_RD, ZREC_SW_RD, ZREC_SW_SN_RD,    &
                       ZREC_SW_WL_A, ZREC_SW_WL_B, ZREC_SW_GD,       &
                       ZREC_SW_RF, PDIR_ALB_TWN, PSCA_ALB_TWN,       &
@@ -682,15 +682,15 @@ IF (TOP%LSOLAR_PANEL) THEN
   !* LW radiation coming upwards from roofs
   !
   ZEMIT_LW_RF =  ZREC_LW_RF   &
-     - (        T%XGREENROOF(:)  *             DMT%XABS_LW_GREENROOF(:)  &
-          + (1.-T%XGREENROOF(:)) * ZDF_RF(:) * DMT%XABS_LW_ROOF(:)       &
-          + (1.-T%XGREENROOF(:)) * PDN_RF(:) * DMT%XABS_LW_SNOW_ROOF(:) )
+     - (        TP%XGREENROOF(:)  *             DMT%XABS_LW_GREENROOF(:)  &
+          + (1.-TP%XGREENROOF(:)) * ZDF_RF(:) * DMT%XABS_LW_ROOF(:)       &
+          + (1.-TP%XGREENROOF(:)) * PDN_RF(:) * DMT%XABS_LW_SNOW_ROOF(:) )
 
   !
   ! note that, for the time being, one considers that the solar panel 
   ! intercept radiation both above roof and greenroofs (if any)
-  CALL SOLAR_PANEL(TPN, DMT, PTSTEP, PTSUN, T%XRESIDENTIAL, ZEMIT_LW_RF, ZEMIT_LWDN_PANEL, &
-                   PLW_RAD, PTA, B%XN_FLOOR, PPROD_BLD   )
+  CALL SOLAR_PANEL(TPN, DMT, PTSTEP, PTSUN, TP%XRESIDENTIAL, ZEMIT_LW_RF, ZEMIT_LWDN_PANEL, &
+                   PLW_RAD, PTA, BP%XN_FLOOR, PPROD_BLD   )
 ELSE
   PPROD_BLD        = XUNDEF  
 END IF
@@ -712,14 +712,14 @@ END IF
                        PRN_GRND, PH_GRND, PLE_GRND, PGFLX_GRND, PRN_TWN, PH_TWN, PLE_TWN, &
                        PGFLX_TWN, PEVAP_TWN, ZEMIT_LW_RD,ZEMIT_LW_GD, PEMIT_LW_GRND, PEMIS_GD, PLW_UP )
 !
-PSFCO2(:) = T%XGARDEN(:) * ZSFCO2_GD(:) + T%XBLD(:) * T%XGREENROOF(:) * ZSFCO2_GR(:) ! no CO2 flux from built and road yet.
+PSFCO2(:) = TP%XGARDEN(:) * ZSFCO2_GD(:) + TP%XBLD(:) * TP%XGREENROOF(:) * ZSFCO2_GR(:) ! no CO2 flux from built and road yet.
 !
 !-------------------------------------------------------------------------------
 !
 !*     12.     Momentum flux for ground built surfaces
 !              ---------------------------------------
 !
-PUW_GRND (:)     = (T%XROAD(:)*ZUW_RD(:) + T%XGARDEN(:)*ZUW_GD(:)) / (T%XROAD(:)+T%XGARDEN(:))
+PUW_GRND (:)     = (TP%XROAD(:)*ZUW_RD(:) + TP%XGARDEN(:)*ZUW_GD(:)) / (TP%XROAD(:)+TP%XGARDEN(:))
 !
 PDUWDU_GRND (:)  = 0.
 !

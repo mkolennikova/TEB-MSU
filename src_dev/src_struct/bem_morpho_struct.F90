@@ -48,6 +48,7 @@ SUBROUTINE BEM_MORPHO_STRUCT(PBLD, PWALL_O_HOR, PBLD_HEIGHT, PFLOOR_HEIGHT,     
 USE MODI_BEM_MORPHO
 !
 USE MODD_BEM_n, ONLY : BEM_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t, BEM_PARAMS_INIT
 USE MODD_TEB_n, ONLY : TEB_t
 !
 IMPLICIT NONE
@@ -84,90 +85,89 @@ REAL, DIMENSION(:),   INTENT(INOUT)::PF_WASTE_CAN !fraction of waste heat releas
 !*      0.2    Declarations of local variables 
 !
 TYPE(BEM_t) :: B
-TYPE(TEB_t) :: T
+TYPE(BEM_PARAMS_t) :: BP
 !
 !------------------------------------------------------------------------------
-ALLOCATE(B%XFLOOR_HEIGHT(1))
-ALLOCATE(B%XGR          (1))
-ALLOCATE(B%XF_WASTE_CAN (1))
-ALLOCATE(B%XN_FLOOR     (1))
-ALLOCATE(T%XWALL_O_BLD  (1))
-ALLOCATE(B%XGLAZ_O_BLD  (1))
-ALLOCATE(B%XMASS_O_BLD  (1))
-ALLOCATE(B%XFLOOR_HW_RATIO  (1))
-ALLOCATE(B%XF_FLOOR_MASS(1))
-ALLOCATE(B%XF_FLOOR_WALL(1))
-ALLOCATE(B%XF_FLOOR_WIN (1))
-ALLOCATE(B%XF_FLOOR_ROOF(1))
-ALLOCATE(B%XF_WALL_FLOOR(1))
-ALLOCATE(B%XF_WALL_MASS (1))
-ALLOCATE(B%XF_WALL_WIN  (1))
-ALLOCATE(B%XF_WIN_FLOOR (1))
-ALLOCATE(B%XF_WIN_MASS  (1))
-ALLOCATE(B%XF_WIN_WALL  (1))
-ALLOCATE(B%XF_WIN_WIN   (1))
-ALLOCATE(B%XF_MASS_FLOOR(1))
-ALLOCATE(B%XF_MASS_WALL (1))
-ALLOCATE(B%XF_MASS_WIN  (1))
+CALL BEM_PARAMS_INIT(BP)
+ALLOCATE(BP%XFLOOR_HEIGHT(1))
+ALLOCATE(BP%XGR          (1))
+ALLOCATE(BP%XF_WASTE_CAN (1))
+ALLOCATE(BP%XN_FLOOR     (1))
+ALLOCATE(BP%XGLAZ_O_BLD  (1))
+ALLOCATE(BP%XMASS_O_BLD  (1))
+ALLOCATE(BP%XFLOOR_HW_RATIO  (1))
+ALLOCATE(BP%XF_FLOOR_MASS(1))
+ALLOCATE(BP%XF_FLOOR_WALL(1))
+ALLOCATE(BP%XF_FLOOR_WIN (1))
+ALLOCATE(BP%XF_FLOOR_ROOF(1))
+ALLOCATE(BP%XF_WALL_FLOOR(1))
+ALLOCATE(BP%XF_WALL_MASS (1))
+ALLOCATE(BP%XF_WALL_WIN  (1))
+ALLOCATE(BP%XF_WIN_FLOOR (1))
+ALLOCATE(BP%XF_WIN_MASS  (1))
+ALLOCATE(BP%XF_WIN_WALL  (1))
+ALLOCATE(BP%XF_WIN_WIN   (1))
+ALLOCATE(BP%XF_MASS_FLOOR(1))
+ALLOCATE(BP%XF_MASS_WALL (1))
+ALLOCATE(BP%XF_MASS_WIN  (1))
 !------------------------------------------------------------------------------
 !
 ! put input variables in structures
 !
-B%XFLOOR_HEIGHT = PFLOOR_HEIGHT ! Building Floor height
-B%XGR           = PGR           ! Glazing ratio
-B%XF_WASTE_CAN  = PF_WASTE_CAN  !fraction of waste heat released into the canyon
+BP%XFLOOR_HEIGHT = PFLOOR_HEIGHT ! Building Floor height
+BP%XGR           = PGR           ! Glazing ratio
+BP%XF_WASTE_CAN  = PF_WASTE_CAN  !fraction of waste heat released into the canyon
 !
 !------------------------------------------------------------------------------
 !
-CALL BEM_MORPHO(PBLD, PWALL_O_HOR, PBLD_HEIGHT, PWALL_O_BLD, B)
+CALL BEM_MORPHO(PBLD, PWALL_O_HOR, PBLD_HEIGHT, PWALL_O_BLD, B, BP)
 !
 !------------------------------------------------------------------------------
 !
 ! put computed variables in structures
 !
- PN_FLOOR        = B%XN_FLOOR ! number of floor levels
- PGLAZ_O_BLD     = B%XGLAZ_O_BLD ! glazing surface per ground building surface [m2(glazing)/m2(bld)]
- PMASS_O_BLD     = B%XMASS_O_BLD ! thermal mass surface per ground building surface [m2(mass)/m2(bld)]
- PFLOOR_HW_RATIO = B%XFLOOR_HW_RATIO !Height to width ratio of the floor levels
- PF_FLOOR_MASS   = B%XF_FLOOR_MASS !view factor from floor to mass (how much floor seen by mass)
- PF_FLOOR_WALL   = B%XF_FLOOR_WALL
- PF_FLOOR_WIN    = B%XF_FLOOR_WIN
- PF_FLOOR_ROOF   = B%XF_FLOOR_ROOF
- PF_WALL_FLOOR   = B%XF_WALL_FLOOR
- PF_WALL_MASS    = B%XF_WALL_MASS
- PF_WALL_WIN     = B%XF_WALL_WIN
- PF_WIN_FLOOR    = B%XF_WIN_FLOOR
- PF_WIN_MASS     = B%XF_WIN_MASS
- PF_WIN_WALL     = B%XF_WIN_WALL
- PF_WIN_WIN      = B%XF_WIN_WIN
- PF_MASS_FLOOR   = B%XF_MASS_FLOOR
- PF_MASS_WALL    = B%XF_MASS_WALL
- PF_MASS_WIN     = B%XF_MASS_WIN
- PF_WASTE_CAN    = B%XF_WASTE_CAN !fraction of waste heat released into the canyon
+ PN_FLOOR        = BP%XN_FLOOR ! number of floor levels
+ PGLAZ_O_BLD     = BP%XGLAZ_O_BLD ! glazing surface per ground building surface [m2(glazing)/m2(bld)]
+ PMASS_O_BLD     = BP%XMASS_O_BLD ! thermal mass surface per ground building surface [m2(mass)/m2(bld)]
+ PFLOOR_HW_RATIO = BP%XFLOOR_HW_RATIO !Height to width ratio of the floor levels
+ PF_FLOOR_MASS   = BP%XF_FLOOR_MASS !view factor from floor to mass (how much floor seen by mass)
+ PF_FLOOR_WALL   = BP%XF_FLOOR_WALL
+ PF_FLOOR_WIN    = BP%XF_FLOOR_WIN
+ PF_FLOOR_ROOF   = BP%XF_FLOOR_ROOF
+ PF_WALL_FLOOR   = BP%XF_WALL_FLOOR
+ PF_WALL_MASS    = BP%XF_WALL_MASS
+ PF_WALL_WIN     = BP%XF_WALL_WIN
+ PF_WIN_FLOOR    = BP%XF_WIN_FLOOR
+ PF_WIN_MASS     = BP%XF_WIN_MASS
+ PF_WIN_WALL     = BP%XF_WIN_WALL
+ PF_WIN_WIN      = BP%XF_WIN_WIN
+ PF_MASS_FLOOR   = BP%XF_MASS_FLOOR
+ PF_MASS_WALL    = BP%XF_MASS_WALL
+ PF_MASS_WIN     = BP%XF_MASS_WIN
+ PF_WASTE_CAN    = BP%XF_WASTE_CAN !fraction of waste heat released into the canyon
 !
 !------------------------------------------------------------------------------
-DEALLOCATE(B%XFLOOR_HEIGHT)
-DEALLOCATE(B%XGR          )
-DEALLOCATE(B%XF_WASTE_CAN )
-DEALLOCATE(B%XN_FLOOR     )
-DEALLOCATE(T%XWALL_O_BLD  )
-DEALLOCATE(B%XGLAZ_O_BLD  )
-DEALLOCATE(B%XMASS_O_BLD  )
-DEALLOCATE(B%XFLOOR_HW_RATIO  )
-DEALLOCATE(B%XF_FLOOR_MASS)
-DEALLOCATE(B%XF_FLOOR_WALL)
-DEALLOCATE(B%XF_FLOOR_WIN )
-DEALLOCATE(B%XF_FLOOR_ROOF)
-DEALLOCATE(B%XF_WALL_FLOOR)
-DEALLOCATE(B%XF_WALL_MASS )
-DEALLOCATE(B%XF_WALL_WIN  )
-DEALLOCATE(B%XF_WIN_FLOOR )
-DEALLOCATE(B%XF_WIN_MASS  )
-DEALLOCATE(B%XF_WIN_WALL  )
-DEALLOCATE(B%XF_WIN_WIN   )
-DEALLOCATE(B%XF_MASS_FLOOR)
-DEALLOCATE(B%XF_MASS_WALL )
-DEALLOCATE(B%XF_MASS_WIN  )
+DEALLOCATE(BP%XFLOOR_HEIGHT)
+DEALLOCATE(BP%XGR          )
+DEALLOCATE(BP%XF_WASTE_CAN )
+DEALLOCATE(BP%XN_FLOOR     )
+DEALLOCATE(BP%XGLAZ_O_BLD  )
+DEALLOCATE(BP%XMASS_O_BLD  )
+DEALLOCATE(BP%XFLOOR_HW_RATIO  )
+DEALLOCATE(BP%XF_FLOOR_MASS)
+DEALLOCATE(BP%XF_FLOOR_WALL)
+DEALLOCATE(BP%XF_FLOOR_WIN )
+DEALLOCATE(BP%XF_FLOOR_ROOF)
+DEALLOCATE(BP%XF_WALL_FLOOR)
+DEALLOCATE(BP%XF_WALL_MASS )
+DEALLOCATE(BP%XF_WALL_WIN  )
+DEALLOCATE(BP%XF_WIN_FLOOR )
+DEALLOCATE(BP%XF_WIN_MASS  )
+DEALLOCATE(BP%XF_WIN_WALL  )
+DEALLOCATE(BP%XF_WIN_WIN   )
+DEALLOCATE(BP%XF_MASS_FLOOR)
+DEALLOCATE(BP%XF_MASS_WALL )
+DEALLOCATE(BP%XF_MASS_WIN  )
 !------------------------------------------------------------------------------
 !
 END SUBROUTINE BEM_MORPHO_STRUCT

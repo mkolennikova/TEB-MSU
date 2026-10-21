@@ -10,7 +10,7 @@
                                    PLW_WIN_TO_W, PLW_S_TO_W, PFLX_BLD_WL, PDQS_WL,           &
                                    PABS_LW_WL, PEMIT_LW_WL, PH_WL, PIMB_WL, PRADHT_IN,       &
                                    PRAD_RF_WL, PRAD_WL_WIN, PRAD_WL_FL, PRAD_WL_MA,          &
-                                   PCONV_WL_BLD, PLOAD_IN_WL ) 
+                                   PCONV_WL_BLD, PLOAD_IN_WL , TP, BP) 
 !   ##########################################################################
 !
 !!****  *ROAD_WALL_LAYER_E_BUDGET*  
@@ -111,7 +111,12 @@ USE MODE_CONV_DOE
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 !
 !*      0.1    declarations of arguments
 !
@@ -210,7 +215,7 @@ PRAD_WL_MA = XUNDEF
 PCONV_WL_BLD = XUNDEF
 
 !
- CALL LAYER_E_BUDGET_GET_COEF( PT_WL, PTSTEP, ZIMPL, T%XHC_WALL, T%XTC_WALL, T%XD_WALL, &
+ CALL LAYER_E_BUDGET_GET_COEF( PT_WL, PTSTEP, ZIMPL, TP%XHC_WALL, TP%XTC_WALL, TP%XD_WALL, &
                               ZA, ZB, ZC, ZY )
 !
 IWL_LAYER = SIZE(PT_WL,2)
@@ -236,7 +241,7 @@ DO JJ=1,SIZE(PDN_RD)
   !              -----------------------------------
   !
   IF (TOP%CBEM .EQ. "DEF") THEN
-    ZMTC_O_D_WL_IN(JJ) = 2. * T%XTC_WALL(JJ,IWL_LAYER) / T%XD_WALL (JJ,IWL_LAYER)
+    ZMTC_O_D_WL_IN(JJ) = 2. * TP%XTC_WALL(JJ,IWL_LAYER) / TP%XD_WALL (JJ,IWL_LAYER)
     ZMTC_O_D_WL_IN(JJ) = 1./(  1./ZMTC_O_D_WL_IN(JJ)  + 1./(XCPD*PRHOA(JJ)*PAC_BLD(JJ)))
   ENDIF
 ENDDO  
@@ -299,23 +304,23 @@ DO JJ=1,SIZE(PT_WL,1)
     !
   ELSEIF (TOP%CBEM=="BEM") THEN
     !
-    ZF_WL_WL (JJ) = 1. - B%XF_WALL_MASS(JJ) - B%XF_WALL_WIN(JJ) - 2.*B%XF_WALL_FLOOR(JJ) 
+    ZF_WL_WL (JJ) = 1. - BP%XF_WALL_MASS(JJ) - BP%XF_WALL_WIN(JJ) - 2.*BP%XF_WALL_FLOOR(JJ) 
     !
      ZB(JJ,IWL_LAYER) = ZB(JJ,IWL_LAYER) + ZIMPL *               &
                         (ZCHTC_IN_WL(JJ) * 4./3. + PRADHT_IN(JJ) *           &
-                      (  B%XF_WALL_MASS(JJ) +     B%XF_WALL_WIN  (JJ) &
-                          + ZF_WL_WL(JJ) + 2 * B%XF_WALL_FLOOR(JJ)))
+                      (  BP%XF_WALL_MASS(JJ) +     BP%XF_WALL_WIN  (JJ) &
+                          + ZF_WL_WL(JJ) + 2 * BP%XF_WALL_FLOOR(JJ)))
     !
     ZTI_RF(JJ) = PRAD_RF_WL(JJ) / PRADHT_IN(JJ) + PT_WL(JJ,IWL_LAYER)
     !
     ZY(JJ,IWL_LAYER) = ZY(JJ,IWL_LAYER) +  &
         ZCHTC_IN_WL(JJ) * (B%XTI_BLD(JJ) - 1./3. * PT_WL(JJ, IWL_LAYER) * (4 * ZEXPL -1)) + &
         PRADHT_IN(JJ) * ( &
-           B%XF_WALL_MASS (JJ) * (B%XT_MASS(JJ,1) - ZEXPL * PT_WL(JJ,IWL_LAYER)) + &
-           B%XF_WALL_WIN  (JJ) * (B%XT_WIN2 (JJ)  - ZEXPL * PT_WL(JJ,IWL_LAYER)) + &
-           B%XF_WALL_FLOOR(JJ) * (PTS_FL(JJ)      - ZEXPL * PT_WL(JJ,IWL_LAYER)) + &
+           BP%XF_WALL_MASS (JJ) * (B%XT_MASS(JJ,1) - ZEXPL * PT_WL(JJ,IWL_LAYER)) + &
+           BP%XF_WALL_WIN  (JJ) * (B%XT_WIN2 (JJ)  - ZEXPL * PT_WL(JJ,IWL_LAYER)) + &
+           BP%XF_WALL_FLOOR(JJ) * (PTS_FL(JJ)      - ZEXPL * PT_WL(JJ,IWL_LAYER)) + &
            ZF_WL_WL (JJ) * (PTI_WL_B(JJ)          - ZEXPL * PT_WL(JJ,IWL_LAYER)) + &
-           B%XF_WALL_FLOOR(JJ) * (ZTI_RF(JJ)      - ZEXPL * PT_WL(JJ,IWL_LAYER)) )+ &
+           BP%XF_WALL_FLOOR(JJ) * (ZTI_RF(JJ)      - ZEXPL * PT_WL(JJ,IWL_LAYER)) )+ &
            PLOAD_IN_WL(JJ)
     !
   ENDIF
@@ -327,7 +332,7 @@ END DO
 !*      5.    heat conduction calculation
 !             ---------------------------
 !
- CALL LAYER_E_BUDGET( PT_WL, PTSTEP, ZIMPL, T%XHC_WALL, T%XTC_WALL, T%XD_WALL, &
+ CALL LAYER_E_BUDGET( PT_WL, PTSTEP, ZIMPL, TP%XHC_WALL, TP%XTC_WALL, TP%XD_WALL, &
                      ZA, ZB, ZC, ZY, PDQS_WL )
 !
 !-------------------------------------------------------------------------------
@@ -351,7 +356,7 @@ ENDIF
 !
 !* emitted lw flux
 PEMIT_LW_WL(:) = XSTEFAN * PT_WL(:,1)**4 + &
-                   (1 - T%XEMIS_WALL(:))/T%XEMIS_WALL(:) * PABS_LW_WL(:)
+                   (1 - TP%XEMIS_WALL(:))/TP%XEMIS_WALL(:) * PABS_LW_WL(:)
 !
 !* sensible heat flux to outdoor
 PH_WL(:) = ZRHO_ACF_W(:) * XCPD/PEXNS(:) *  &
@@ -380,10 +385,10 @@ IF (TOP%CBEM=='BEM') THEN
     !
     !
     PFLX_BLD_WL  (:) = -PCONV_WL_BLD(:) &
-       + B%XF_WALL_FLOOR(:) * PRAD_RF_WL(:)                             &
-       + PRADHT_IN(:) *(B%XF_WALL_MASS (:) * (B%XT_MASS(:,1) - ZTI_WL(:)) &
-                      + B%XF_WALL_WIN  (:) * (B%XT_WIN2 (:)  - ZTI_WL(:)) &
-                      + B%XF_WALL_FLOOR(:) * (PTS_FL(:)      - ZTI_WL(:)) )
+       + BP%XF_WALL_FLOOR(:) * PRAD_RF_WL(:)                             &
+       + PRADHT_IN(:) *(BP%XF_WALL_MASS (:) * (B%XT_MASS(:,1) - ZTI_WL(:)) &
+                      + BP%XF_WALL_WIN  (:) * (B%XT_WIN2 (:)  - ZTI_WL(:)) &
+                      + BP%XF_WALL_FLOOR(:) * (PTS_FL(:)      - ZTI_WL(:)) )
 !
 !* wall energy residual imbalance for verification
 !  -----------------------------------------------

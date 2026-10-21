@@ -27,13 +27,18 @@ INTERFACE
                                 PT_CAN0, PT_CAN1, PPHI_CAN1,                 &
                                 PQ_CAN0, PQ_CAN1,                             &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                                PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM)
+                                PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TP, BP)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_TEB_PANEL_n, ONLY : TEB_PANEL_t
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 INTEGER                           :: icell
 INTEGER                           :: iblock 
 TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP

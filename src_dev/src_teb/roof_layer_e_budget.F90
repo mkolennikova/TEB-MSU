@@ -10,7 +10,7 @@
                                    PHFREE_ROOF, PLEFREE_ROOF, PIMB_ROOF,               &
                                    PG_GREENROOF_ROOF, PRADHT_IN, PTS_FLOOR, PTI_WALL,  &
                                    PRAD_ROOF_WALL, PRAD_ROOF_WIN, PRAD_ROOF_FLOOR,     &
-                                   PRAD_ROOF_MASS, PCONV_ROOF_BLD, PRR, PLOAD_IN_ROOF )
+                                   PRAD_ROOF_MASS, PCONV_ROOF_BLD, PRR, PLOAD_IN_ROOF , TP, BP)
 !   ##########################################################################
 !
 !!****  *ROOF_LAYER_E_BUDGET*  
@@ -104,7 +104,12 @@ USE MODE_CONV_DOE
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 !
 !*      0.1    declarations of arguments
 !
@@ -203,7 +208,7 @@ DO JJ=1,SIZE(ZCHTC_IN_ROOF)
    ZCHTC_IN_ROOF(JJ) = MAX(1., ZCHTC_IN_ROOF(JJ))
 ENDDO
 !
- CALL LAYER_E_BUDGET_GET_COEF(T%XT_ROOF, PTSTEP, ZIMPL, T%XHC_ROOF, T%XTC_ROOF, T%XD_ROOF, &
+ CALL LAYER_E_BUDGET_GET_COEF(T%XT_ROOF, PTSTEP, ZIMPL, TP%XHC_ROOF, TP%XTC_ROOF, TP%XD_ROOF, &
                               ZA, ZB, ZC, ZY )
 !
 !
@@ -221,7 +226,7 @@ DO JJ=1,SIZE(PDN_ROOF)
   ZRHO_ACF_ROOF_WAT(JJ) = PRHOA(JJ) * PAC_ROOF_WAT(JJ)
   !
   IF (TOP%CBEM .EQ. 'DEF') THEN
-    ZMTC_O_D_ROOF_IN(JJ) = 2. * T%XTC_ROOF(JJ,IROOF_LAYER) / T%XD_ROOF (JJ,IROOF_LAYER)
+    ZMTC_O_D_ROOF_IN(JJ) = 2. * TP%XTC_ROOF(JJ,IROOF_LAYER) / TP%XD_ROOF (JJ,IROOF_LAYER)
     ZMTC_O_D_ROOF_IN(JJ) = 1./(  1./ZMTC_O_D_ROOF_IN(JJ) + 1./(XCPD*PRHOA(JJ)*PAC_BLD(JJ)) ) 
   ENDIF
   !
@@ -237,21 +242,21 @@ ZDQSAT_ROOF(:) = DQSAT(ZTS_ROOF(:),PPS(:),PQSAT_ROOF(:))
 ! 
 DO JJ=1,SIZE(T%XT_ROOF,1)
   !
-  ZB(JJ,1) = ZB(JJ,1) + ZDF_ROOF(JJ) * (1.-T%XGREENROOF(JJ)) * (                           &
+  ZB(JJ,1) = ZB(JJ,1) + ZDF_ROOF(JJ) * (1.-TP%XGREENROOF(JJ)) * (                           &
                         ZIMPL * ( XCPD/PEXNS(JJ) * ZRHO_ACF_ROOF(JJ)                       &
                         + XLVTT * ZRHO_ACF_ROOF_WAT(JJ) * PDELT_ROOF(JJ) * ZDQSAT_ROOF(JJ) &
-                        + XSTEFAN * T%XEMIS_ROOF(JJ) * 4.*ZTS_ROOF(JJ)**3                  &
+                        + XSTEFAN * TP%XEMIS_ROOF(JJ) * 4.*ZTS_ROOF(JJ)**3                  &
                         + PRR(JJ) * XCL )) !! heating/cooling of rain 
   !
-  ZY(JJ,1) = ZY(JJ,1) + (1.-T%XGREENROOF(JJ))                                                            &
+  ZY(JJ,1) = ZY(JJ,1) + (1.-TP%XGREENROOF(JJ))                                                            &
                       * (PDN_ROOF(JJ)*PGSNOW_ROOF(JJ) + ZDF_ROOF(JJ) * ( PABS_SW_ROOF(JJ)                &
                         + XCPD * ZRHO_ACF_ROOF(JJ) * ( PTA(JJ)/PEXNA(JJ) - ZEXPL*ZTS_ROOF(JJ)/PEXNS(JJ)) &
-                        + T%XEMIS_ROOF(JJ)*PLW_RAD(JJ)                                                   &                 
+                        + TP%XEMIS_ROOF(JJ)*PLW_RAD(JJ)                                                   &                 
                         + XLVTT * ZRHO_ACF_ROOF_WAT(JJ) * PDELT_ROOF(JJ)                                 &
                           * ( PQA(JJ) - PQSAT_ROOF(JJ) + ZIMPL * ZDQSAT_ROOF(JJ) * ZTS_ROOF(JJ) )        &
-                        + XSTEFAN * T%XEMIS_ROOF(JJ) * ZTS_ROOF(JJ)**4 * ( 3.*ZIMPL-ZEXPL )              &
+                        + XSTEFAN * TP%XEMIS_ROOF(JJ) * ZTS_ROOF(JJ)**4 * ( 3.*ZIMPL-ZEXPL )              &
                         + PRR(JJ) * XCL * (PTA(JJ) - ZEXPL * ZTS_ROOF(JJ)) ) ) & !! heating/cooling of rain
-                        + T%XGREENROOF(JJ)*PG_GREENROOF_ROOF(JJ)
+                        + TP%XGREENROOF(JJ)*PG_GREENROOF_ROOF(JJ)
   !
   IF (TOP%CBEM=="DEF") THEN
     !
@@ -265,16 +270,16 @@ DO JJ=1,SIZE(T%XT_ROOF,1)
     !
     ZB(JJ, IROOF_LAYER) = ZB(JJ,IROOF_LAYER) + ZIMPL * &
                          (ZCHTC_IN_ROOF(JJ) * 4./3. + PRADHT_IN(JJ) * &
-                         (B%XF_FLOOR_MASS(JJ) + B%XF_FLOOR_WIN(JJ) + &
-                          B%XF_FLOOR_WALL(JJ) + B%XF_FLOOR_ROOF(JJ) ))
+                         (BP%XF_FLOOR_MASS(JJ) + BP%XF_FLOOR_WIN(JJ) + &
+                          BP%XF_FLOOR_WALL(JJ) + BP%XF_FLOOR_ROOF(JJ) ))
 
     ZY(JJ,IROOF_LAYER) = ZY(JJ,IROOF_LAYER) + &
        ZCHTC_IN_ROOF(JJ) * (B%XTI_BLD(JJ) - 1./3. *  T%XT_ROOF(JJ, IROOF_LAYER)*(4*ZEXPL - 1.)) + &
        PRADHT_IN(JJ) * ( &
-          B%XF_FLOOR_MASS (JJ) * (B%XT_MASS(JJ,1) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER)) + &
-          B%XF_FLOOR_WIN  (JJ) * (B%XT_WIN2  (JJ) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER)) + &
-          B%XF_FLOOR_WALL (JJ) * (PTI_WALL   (JJ) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER)) + &
-          B%XF_FLOOR_ROOF (JJ) * (PTS_FLOOR  (JJ) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER))) + &
+          BP%XF_FLOOR_MASS (JJ) * (B%XT_MASS(JJ,1) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER)) + &
+          BP%XF_FLOOR_WIN  (JJ) * (B%XT_WIN2  (JJ) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER)) + &
+          BP%XF_FLOOR_WALL (JJ) * (PTI_WALL   (JJ) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER)) + &
+          BP%XF_FLOOR_ROOF (JJ) * (PTS_FLOOR  (JJ) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER))) + &
           PLOAD_IN_ROOF(JJ)
     !
   ENDIF
@@ -282,7 +287,7 @@ DO JJ=1,SIZE(T%XT_ROOF,1)
 ENDDO
 !
 !
- CALL LAYER_E_BUDGET( T%XT_ROOF, PTSTEP, ZIMPL, T%XHC_ROOF, T%XTC_ROOF, T%XD_ROOF, &
+ CALL LAYER_E_BUDGET( T%XT_ROOF, PTSTEP, ZIMPL, TP%XHC_ROOF, TP%XTC_ROOF, TP%XD_ROOF, &
                      ZA, ZB, ZC, ZY, PDQS_ROOF )
 !
 !-------------------------------------------------------------------------------
@@ -314,7 +319,7 @@ DO JJ=1,SIZE(T%XT_ROOF,1)
                    4.*ZIMPL*ZTS_ROOF(JJ)**3 * (T%XT_ROOF(JJ,1) - ZTS_ROOF(JJ)) )**0.25
   !
   !* absorbed LW
-  PABS_LW_ROOF(JJ) = T%XEMIS_ROOF(JJ) * (PLW_RAD(JJ) - XSTEFAN * ZTRAD_ROOF(JJ)** 4)
+  PABS_LW_ROOF(JJ) = TP%XEMIS_ROOF(JJ) * (PLW_RAD(JJ) - XSTEFAN * ZTRAD_ROOF(JJ)** 4)
 
   !
   !*      9.     Sensible heat flux between snow free roof and air

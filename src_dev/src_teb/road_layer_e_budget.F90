@@ -9,7 +9,7 @@
                                    PTS_WALL_A, PTS_WALL_B, PTSNOW_ROAD, PTS_GARDEN,       &
                                    PLW_WA_TO_R, PLW_WB_TO_R, PLW_S_TO_R, PLW_WIN_TO_R,    &
                                    PEMIT_LW_ROAD, PDQS_ROAD, PABS_LW_ROAD, PHFREE_ROAD,   &
-                                   PLEFREE_ROAD, PIMB_ROAD, PRR )
+                                   PLEFREE_ROAD, PIMB_ROAD, PRR , TP)
 !   ##########################################################################
 !
 !!****  *ROAD_LAYER_E_BUDGET*  
@@ -105,7 +105,10 @@ USE MODI_LAYER_E_BUDGET_GET_COEF
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+
 !
 !*      0.1    declarations of arguments
 !
@@ -182,7 +185,7 @@ REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('ROAD_LAYER_E_BUDGET',0,ZHOOK_HANDLE)
 !
- CALL LAYER_E_BUDGET_GET_COEF( T%XT_ROAD, PTSTEP, ZIMPL, T%XHC_ROAD, T%XTC_ROAD, T%XD_ROAD, &
+ CALL LAYER_E_BUDGET_GET_COEF( T%XT_ROAD, PTSTEP, ZIMPL, TP%XHC_ROAD, TP%XTC_ROAD, TP%XD_ROAD, &
                               ZA, ZB, ZC, ZY )
 !
 !*      1.     Layer thermal properties
@@ -250,7 +253,7 @@ DO JJ=1,SIZE(T%XT_ROAD,1)
 ENDDO
 !
 !
- CALL LAYER_E_BUDGET( T%XT_ROAD, PTSTEP, ZIMPL, T%XHC_ROAD, T%XTC_ROAD, T%XD_ROAD, &
+ CALL LAYER_E_BUDGET( T%XT_ROAD, PTSTEP, ZIMPL, TP%XHC_ROAD, TP%XTC_ROAD, TP%XD_ROAD, &
                      ZA, ZB, ZC, ZY, PDQS_ROAD )
 !
 !-------------------------------------------------------------------------------
@@ -272,7 +275,7 @@ DO JJ=1,SIZE(T%XT_ROAD,1)
   !*     9.    Road emitted LW radiation on snow-free surfaces
   !            -----------------------------------------------
   PEMIT_LW_ROAD(JJ) = XSTEFAN * T%XT_ROAD(JJ,1)**4 + &
-                      (1 - T%XEMIS_ROAD(JJ))/T%XEMIS_ROAD(JJ) * PABS_LW_ROAD(JJ)
+                      (1 - TP%XEMIS_ROAD(JJ))/TP%XEMIS_ROAD(JJ) * PABS_LW_ROAD(JJ)
   !
   !*      10.     road and wall sensible heat flux
   !              --------------------------------

@@ -51,8 +51,10 @@ OWNER = 'run_teb_offline.F90'
 TYPES = [
     ('TEB_OPTIONS_t', 'src_struct/modd_teb_optionn.F90', 'TOP'),
     ('TEB_t', 'src_struct/modd_tebn.F90', 'T'),
+    ('TEB_PARAMS_t', 'src_struct/modd_teb_paramsn.F90', 'TP'),
     ('BEM_OPTIONS_t', 'src_struct/modd_bem_optionn.F90', 'BOP'),
     ('BEM_t', 'src_struct/modd_bemn.F90', 'B'),
+    ('BEM_PARAMS_t', 'src_struct/modd_bem_paramsn.F90', 'BP'),
     ('TEB_PANEL_t', 'src_struct/modd_teb_paneln.F90', 'TPN'),
     ('TEB_IRRIG_t', 'src_struct/modd_teb_irrign.F90', 'TIR'),
 ]
@@ -71,6 +73,15 @@ CATEGORY = {
         'reserved': {'CBLD_ATYPE', 'CTREE', 'LHYDRO'},
     },
     'TEB_t': {
+        'state': {
+            'XWS_ROOF', 'XWS_ROAD', 'XT_ROOF', 'XT_ROAD', 'XT_WALL_A', 'XT_WALL_B',
+            'XT_CANYON', 'XQ_CANYON',
+            'TSNOW_ROOF', 'TSNOW_ROAD',
+        },
+        'reserved': {'TSNOW_GARDEN'},
+        'link': {'P'},
+    },
+    'TEB_PARAMS_t': {
         'param': {
             'XROAD_DIR', 'XGARDEN', 'XGREENROOF', 'XBLD', 'XROAD', 'XCAN_HW_RATIO',
             'XBLD_HEIGHT', 'XWALL_O_HOR', 'XROAD_O_GRND', 'XGARDEN_O_GRND',
@@ -82,36 +93,35 @@ CATEGORY = {
             'XRESIDENTIAL', 'XDT_RES', 'XDT_OFF',
         },
         'flux': {'XH_TRAFFIC', 'XLE_TRAFFIC', 'XH_INDUSTRY', 'XLE_INDUSTRY'},
-        'state': {
-            'XWS_ROOF', 'XWS_ROAD', 'XT_ROOF', 'XT_ROAD', 'XT_WALL_A', 'XT_WALL_B',
-            'XT_CANYON', 'XQ_CANYON',
-            'TSNOW_ROOF', 'TSNOW_ROAD',
-        },
-        'reserved': {'TSNOW_GARDEN'},
     },
     'BEM_OPTIONS_t': {
         'param': {'NFLOOR_LAYER', 'CCOOL_COIL', 'CHEAT_COIL', 'LAUTOSIZE'},
     },
     'BEM_t': {
-        'param': {
-            'CNATVENT',
-            'XABS_WIN', 'XALB_WIN', 'XCAP_SYS_HEAT', 'XCAP_SYS_RAT', 'XCOP_RAT',
-            'XD_FLOOR', 'XEFF_HEAT',
-            'XF_FLOOR_MASS', 'XF_FLOOR_ROOF', 'XF_FLOOR_WALL', 'XF_FLOOR_WIN',
-            'XF_MASS_FLOOR', 'XF_MASS_WALL', 'XF_MASS_WIN',
-            'XF_WALL_FLOOR', 'XF_WALL_MASS', 'XF_WALL_WIN',
-            'XF_WASTE_CAN', 'XF_WATER_COND',
-            'XF_WIN_FLOOR', 'XF_WIN_MASS', 'XF_WIN_WALL', 'XF_WIN_WIN',
-            'XFLOOR_HEIGHT', 'XFLOOR_HW_RATIO', 'XGLAZ_O_BLD', 'XGR', 'XHC_FLOOR',
-            'XHR_TARGET', 'XINF', 'XM_SYS_RAT', 'XMASS_O_BLD', 'XN_FLOOR',
-            'XQIN_FLAT', 'XQIN_FRAD', 'XSHGC', 'XSHGC_SH', 'XTC_FLOOR',
-            'XTCOOL_TARGET', 'XTHEAT_TARGET', 'XTRAN_WIN', 'XU_WIN', 'XUGG_WIN', 'XV_VENT',
-        },
         'state': {
-            'XTI_BLD', 'XT_FLOOR', 'XT_MASS', 'XQIN', 'XQI_BLD', 'XT_WIN1', 'XT_WIN2',
-            'XSHADE', 'LSHADE', 'XNATVENT', 'LSHAD_DAY', 'LNATVENT_NIGHT',
+            'XTI_BLD', 'XT_FLOOR', 'XT_MASS', 'XQI_BLD', 'XT_WIN1', 'XT_WIN2',
+            'LSHADE', 'LSHAD_DAY', 'LNATVENT_NIGHT',
         },
-        'work': {'XAUX_MAX', 'XT_ADP'},
+        'work': {
+            'XAUX_MAX', 'XT_ADP', 'XCAP_SYS_RAT', 'XM_SYS_RAT',
+            'XALB_WIN', 'XABS_WIN', 'XTRAN_WIN', 'XUGG_WIN',
+        },
+        'reserved': {'XSHADE', 'XNATVENT'},
+        'link': {'P'},
+    },
+    'BEM_PARAMS_t': {
+        'param': {
+            'XHC_FLOOR', 'XTC_FLOOR', 'XD_FLOOR',
+            'XTCOOL_TARGET', 'XTHEAT_TARGET', 'XF_WASTE_CAN', 'XEFF_HEAT',
+            'XQIN', 'XQIN_FRAD', 'XSHGC', 'XSHGC_SH', 'XU_WIN', 'XGR',
+            'XFLOOR_HEIGHT', 'XINF', 'XF_WATER_COND', 'XQIN_FLAT', 'XHR_TARGET',
+            'XV_VENT', 'XCAP_SYS_HEAT', 'XCOP_RAT', 'CNATVENT',
+            'XN_FLOOR', 'XGLAZ_O_BLD', 'XMASS_O_BLD', 'XFLOOR_HW_RATIO',
+            'XF_FLOOR_MASS', 'XF_FLOOR_WALL', 'XF_FLOOR_WIN', 'XF_FLOOR_ROOF',
+            'XF_WALL_FLOOR', 'XF_WALL_MASS', 'XF_WALL_WIN',
+            'XF_WIN_FLOOR', 'XF_WIN_MASS', 'XF_WIN_WALL', 'XF_WIN_WIN',
+            'XF_MASS_FLOOR', 'XF_MASS_WALL', 'XF_MASS_WIN',
+        },
     },
     'TEB_PANEL_t': {
         'param': {'XEMIS_PANEL', 'XALB_PANEL', 'XEFF_PANEL', 'XFRAC_PANEL'},
@@ -180,6 +190,7 @@ LEGEND = {
     'state': 'prognostic state carried across sub-steps',
     'work': 'clock and per-step workspace',
     'reserved': 'unused in TEB-MSU, kept as a SURFEX feature placeholder',
+    'link': 'pointer to another container (not a data field)',
     'dead': 'not referenced outside the type and its bookkeeping',
     'UNCLASSIFIED': 'MUST BE EMPTY: add the field to CATEGORY',
 }

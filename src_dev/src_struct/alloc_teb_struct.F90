@@ -4,7 +4,7 @@
 !SFX_LIC for details. version 1.
 !   ##########################################################################
     SUBROUTINE ALLOC_TEB_STRUCT(KROOF_LAYER,KROAD_LAYER,KWALL_LAYER,KFLOOR_LAYER,&
-                               TOP,T,BOP,B,TPN,TIR                           )
+                               TOP,TP,T,BOP,BP,B,TPN,TIR                           )
 !   ##########################################################################
 !
 !!****  *ALLOC_TEB_STRUCT*
@@ -45,8 +45,10 @@
 !
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t, TEB_OPTIONS_INIT
 USE MODD_TEB_n, ONLY : TEB_t, TEB_INIT
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t, TEB_PARAMS_INIT
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t, BEM_OPTIONS_INIT
 USE MODD_BEM_n, ONLY : BEM_t, BEM_INIT
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t, BEM_PARAMS_INIT
 USE MODD_TEB_PANEL_n, ONLY : TEB_PANEL_t, TEB_PANEL_INIT
 USE MODD_TEB_IRRIG_n, ONLY : TEB_IRRIG_t, TEB_IRRIG_INIT
 !
@@ -63,8 +65,10 @@ INTEGER, INTENT(IN) :: KROAD_LAYER   ! number of road layers
 INTEGER, INTENT(IN) :: KWALL_LAYER   ! number of wall layers
 INTEGER, INTENT(IN) :: KFLOOR_LAYER  ! number of floor layers
 TYPE(TEB_OPTIONS_t),   INTENT(INOUT) :: TOP
+TYPE(TEB_PARAMS_t),    INTENT(INOUT) :: TP
 TYPE(TEB_t),           INTENT(INOUT) :: T
 TYPE(BEM_OPTIONS_t),   INTENT(INOUT) :: BOP
+TYPE(BEM_PARAMS_t),    INTENT(INOUT) :: BP
 TYPE(BEM_t),           INTENT(INOUT) :: B
 TYPE(TEB_PANEL_t),     INTENT(INOUT) :: TPN
 TYPE(TEB_IRRIG_t),     INTENT(INOUT) :: TIR
@@ -89,16 +93,21 @@ CALL BEM_OPTIONS_INIT(BOP)
 !
 ! Floor parameters
 !
-ALLOCATE(B%XHC_FLOOR(1,KFLOOR_LAYER)) ! floor layers heat capacity        (J/K/m3)
-ALLOCATE(B%XTC_FLOOR(1,KFLOOR_LAYER)) ! floor layers thermal conductivity (W/K/m)
-ALLOCATE(B%XD_FLOOR (1,KFLOOR_LAYER)) ! depth of floor layers             (m)
+!
+! Static parameters of the building (component P): allocated and initialised
+! before the indoor state
+!
+CALL BEM_PARAMS_INIT(BP)
+ALLOCATE(BP%XHC_FLOOR(1,KFLOOR_LAYER)) ! floor layers heat capacity        (J/K/m3)
+ALLOCATE(BP%XTC_FLOOR(1,KFLOOR_LAYER)) ! floor layers thermal conductivity (W/K/m)
+ALLOCATE(BP%XD_FLOOR (1,KFLOOR_LAYER)) ! depth of floor layers             (m)
 !
 ! HVAC parameters
 !
-ALLOCATE(B%XTCOOL_TARGET(1)) ! cooling setpoint of indoor air
-ALLOCATE(B%XTHEAT_TARGET(1)) ! heating setpoint of indoor air
-ALLOCATE(B%XF_WASTE_CAN (1)) ! fraction of waste heat released into the canyon
-ALLOCATE(B%XEFF_HEAT    (1)) ! efficiency of the heating system
+ALLOCATE(BP%XTCOOL_TARGET(1)) ! cooling setpoint of indoor air
+ALLOCATE(BP%XTHEAT_TARGET(1)) ! heating setpoint of indoor air
+ALLOCATE(BP%XF_WASTE_CAN (1)) ! fraction of waste heat released into the canyon
+ALLOCATE(BP%XEFF_HEAT    (1)) ! efficiency of the heating system
 !
 ! Indoor parameters
 !
@@ -106,26 +115,26 @@ ALLOCATE(B%XTI_BLD(1))                    ! building interior temperature    (K)
 ALLOCATE(B%XT_FLOOR (1,KFLOOR_LAYER)) ! floor layer temperatures         (K)
 ALLOCATE(B%XT_MASS  (1,KFLOOR_LAYER)) ! Air cooled building internal th. mass temperature (K)
 !
-ALLOCATE(B%XQIN(1))           ! internal heat gains [W m-2(floor)]
-ALLOCATE(B%XQIN_FRAD(1))      ! radiant fraction of internal heat gains
-ALLOCATE(B%XSHGC(1))          ! solar heat gain coef. of windows
-ALLOCATE(B%XSHGC_SH(1))       ! solar heat gain coef. of windows + shading
-ALLOCATE(B%XU_WIN(1))         ! window U-factor [K m W-2]
+ALLOCATE(BP%XQIN(1))           ! internal heat gains [W m-2(floor)]
+ALLOCATE(BP%XQIN_FRAD(1))      ! radiant fraction of internal heat gains
+ALLOCATE(BP%XSHGC(1))          ! solar heat gain coef. of windows
+ALLOCATE(BP%XSHGC_SH(1))       ! solar heat gain coef. of windows + shading
+ALLOCATE(BP%XU_WIN(1))         ! window U-factor [K m W-2]
 ALLOCATE(B%XTRAN_WIN(1))      ! window transmittance (-)
-ALLOCATE(B%XGR(1))            ! glazing ratio
-ALLOCATE(B%XFLOOR_HEIGHT(1))  ! building floor height [m]
-ALLOCATE(B%XINF(1))           ! infiltration/ventilation flow rate [AC/H]
+ALLOCATE(BP%XGR(1))            ! glazing ratio
+ALLOCATE(BP%XFLOOR_HEIGHT(1))  ! building floor height [m]
+ALLOCATE(BP%XINF(1))           ! infiltration/ventilation flow rate [AC/H]
 !
 ! New parameters
 !
-ALLOCATE(B%XF_WATER_COND(1)) ! fraction of evaporation for condensers (cooling system)
+ALLOCATE(BP%XF_WATER_COND(1)) ! fraction of evaporation for condensers (cooling system)
 ALLOCATE(B%XAUX_MAX(1))      ! Auxiliar variable for autosize calcs
-ALLOCATE(B%XQIN_FLAT(1))     ! Latent franction of internal heat gains
-ALLOCATE(B%XHR_TARGET(1))    ! Relative humidity setpoint
+ALLOCATE(BP%XQIN_FLAT(1))     ! Latent franction of internal heat gains
+ALLOCATE(BP%XHR_TARGET(1))    ! Relative humidity setpoint
 ALLOCATE(B%XT_WIN2(1))       ! Indoor window temperature [K]
 ALLOCATE(B%XQI_BLD(1))       ! Indoor air specific humidity [kg kg-1]
-ALLOCATE(B%XV_VENT(1))       ! Ventilation flow rate [AC/H]
-ALLOCATE(B%XCAP_SYS_HEAT(1)) ! Capacity of the heating system 
+ALLOCATE(BP%XV_VENT(1))       ! Ventilation flow rate [AC/H]
+ALLOCATE(BP%XCAP_SYS_HEAT(1)) ! Capacity of the heating system 
                              ! [W m-2(bld)]
 ALLOCATE(B%XCAP_SYS_RAT(1))  ! Rated capacity of the cooling system
                              ! [W m-2(bld)]
@@ -133,105 +142,110 @@ ALLOCATE(B%XT_ADP(1))        ! Apparatus dewpoint temperature of the
                              ! cooling coil [K]
 ALLOCATE(B%XM_SYS_RAT(1))    ! Rated HVAC mass flow rate 
                              ! [kg s-1 m-2(bld)]
-ALLOCATE(B%XCOP_RAT(1))      ! Rated COP of the cooling system
+ALLOCATE(BP%XCOP_RAT(1))      ! Rated COP of the cooling system
 ALLOCATE(B%XT_WIN1(1))       ! outdoor window temperature [K]
 ALLOCATE(B%XALB_WIN(1))      ! window albedo
 ALLOCATE(B%XABS_WIN(1))      ! window absortance
 ALLOCATE(B%XUGG_WIN(1))      ! Window glass-to-glass U-factor [K m W-2]
 ALLOCATE(B%LSHADE(1))        ! flag to activate shading devices -> LOGICAL in the code
 ALLOCATE(B%XSHADE(1))        ! flag to activate shading devices -> REAL for i/o 0. or 1.
-ALLOCATE(B%CNATVENT(1))      ! flag to activate natural ventilation 'NONE', 'MANU', 'AUTO'
+ALLOCATE(BP%CNATVENT(1))      ! flag to activate natural ventilation 'NONE', 'MANU', 'AUTO'
 ALLOCATE(B%XNATVENT(1))      ! flag to describe surventilation system for i/o 
                              ! 0 for NONE, 1 for MANU and 2 for AUTO
 ALLOCATE(B%LSHAD_DAY(1))     !Has shading been necessary this day ?
 ALLOCATE(B%LNATVENT_NIGHT(1))!Has nocturnal surventilation been necessary and possible this night ?
   !
   !indoor relative surfaces and view factors
-ALLOCATE(B%XN_FLOOR(1))        ! Number of floors     
-ALLOCATE(B%XGLAZ_O_BLD(1))     ! Window area [m2_win/m2_bld]
-ALLOCATE(B%XMASS_O_BLD(1))     ! Mass area [m2_mass/m2_bld]
-ALLOCATE(B%XFLOOR_HW_RATIO(1)) ! H/W ratio of 1 floor level
-ALLOCATE(B%XF_FLOOR_MASS(1))   ! View factor floor-mass
-ALLOCATE(B%XF_FLOOR_WALL(1))   ! View factor floor-wall
-ALLOCATE(B%XF_FLOOR_WIN(1))    ! View factor floor-window
-ALLOCATE(B%XF_FLOOR_ROOF(1))   ! View factor floor-roof
-ALLOCATE(B%XF_WALL_FLOOR(1))   ! View factor wall-floor
-ALLOCATE(B%XF_WALL_MASS(1))    ! View factor wall-mass
-ALLOCATE(B%XF_WALL_WIN(1))     ! View factor wall-win
-ALLOCATE(B%XF_WIN_FLOOR(1))    ! View factor win-floor
-ALLOCATE(B%XF_WIN_MASS(1))     ! View factor win-mass
-ALLOCATE(B%XF_WIN_WALL(1))     ! View factor win-wall
-ALLOCATE(B%XF_WIN_WIN(1))      ! indoor View factor win-win
-ALLOCATE(B%XF_MASS_FLOOR(1))   ! View factor mass-floor
-ALLOCATE(B%XF_MASS_WALL(1))    ! View factor mass-wall
-ALLOCATE(B%XF_MASS_WIN(1))     ! View factor mass-window
+ALLOCATE(BP%XN_FLOOR(1))        ! Number of floors     
+ALLOCATE(BP%XGLAZ_O_BLD(1))     ! Window area [m2_win/m2_bld]
+ALLOCATE(BP%XMASS_O_BLD(1))     ! Mass area [m2_mass/m2_bld]
+ALLOCATE(BP%XFLOOR_HW_RATIO(1)) ! H/W ratio of 1 floor level
+ALLOCATE(BP%XF_FLOOR_MASS(1))   ! View factor floor-mass
+ALLOCATE(BP%XF_FLOOR_WALL(1))   ! View factor floor-wall
+ALLOCATE(BP%XF_FLOOR_WIN(1))    ! View factor floor-window
+ALLOCATE(BP%XF_FLOOR_ROOF(1))   ! View factor floor-roof
+ALLOCATE(BP%XF_WALL_FLOOR(1))   ! View factor wall-floor
+ALLOCATE(BP%XF_WALL_MASS(1))    ! View factor wall-mass
+ALLOCATE(BP%XF_WALL_WIN(1))     ! View factor wall-win
+ALLOCATE(BP%XF_WIN_FLOOR(1))    ! View factor win-floor
+ALLOCATE(BP%XF_WIN_MASS(1))     ! View factor win-mass
+ALLOCATE(BP%XF_WIN_WALL(1))     ! View factor win-wall
+ALLOCATE(BP%XF_WIN_WIN(1))      ! indoor View factor win-win
+ALLOCATE(BP%XF_MASS_FLOOR(1))   ! View factor mass-floor
+ALLOCATE(BP%XF_MASS_WALL(1))    ! View factor mass-wall
+ALLOCATE(BP%XF_MASS_WIN(1))     ! View factor mass-window
 !
 !-------------------------------------------------------------------------------
 !
 ! TEB structure
 !
+! Static parameters of the surface (component P): allocated and initialised first,
+! because the model state of the TEB structure does not depend on them.
+!
+CALL TEB_PARAMS_INIT(TP)
+!
 ! Geometric Parameters:
 !
-ALLOCATE(T%XROAD_DIR(1))     ! Road direction (deg from North, clockwise)
-ALLOCATE(T%XGARDEN(1))       ! fraction of veg in the streets   (-)
-ALLOCATE(T%XGREENROOF(1))    ! fraction of greenroofs on roofs  (-)
-ALLOCATE(T%XBLD(1))          ! fraction of buildings            (-)
-ALLOCATE(T%XROAD(1))         ! fraction of roads                (-)
-ALLOCATE(T%XCAN_HW_RATIO(1)) ! canyon    h/W                    (-)
-ALLOCATE(T%XBLD_HEIGHT(1))   ! buildings height 'h'             (m)
-ALLOCATE(T%XWALL_O_HOR(1))   ! wall surf. / hor. surf.          (-)
-ALLOCATE(T%XROAD_O_GRND(1))  ! road surf. / (road + garden surf.) (-)
-ALLOCATE(T%XGARDEN_O_GRND(1))! gard. surf. / (road + garden surf.)(-)
-ALLOCATE(T%XWALL_O_GRND(1))  ! wall surf. / (road + garden surf.) (-)
-ALLOCATE(T%XWALL_O_BLD(1))   ! wall surf. / bld surf. (-)
-ALLOCATE(T%XZ0_TOWN(1))      ! roughness length for momentum    (m)
+ALLOCATE(TP%XROAD_DIR(1))     ! Road direction (deg from North, clockwise)
+ALLOCATE(TP%XGARDEN(1))       ! fraction of veg in the streets   (-)
+ALLOCATE(TP%XGREENROOF(1))    ! fraction of greenroofs on roofs  (-)
+ALLOCATE(TP%XBLD(1))          ! fraction of buildings            (-)
+ALLOCATE(TP%XROAD(1))         ! fraction of roads                (-)
+ALLOCATE(TP%XCAN_HW_RATIO(1)) ! canyon    h/W                    (-)
+ALLOCATE(TP%XBLD_HEIGHT(1))   ! buildings height 'h'             (m)
+ALLOCATE(TP%XWALL_O_HOR(1))   ! wall surf. / hor. surf.          (-)
+ALLOCATE(TP%XROAD_O_GRND(1))  ! road surf. / (road + garden surf.) (-)
+ALLOCATE(TP%XGARDEN_O_GRND(1))! gard. surf. / (road + garden surf.)(-)
+ALLOCATE(TP%XWALL_O_GRND(1))  ! wall surf. / (road + garden surf.) (-)
+ALLOCATE(TP%XWALL_O_BLD(1))   ! wall surf. / bld surf. (-)
+ALLOCATE(TP%XZ0_TOWN(1))      ! roughness length for momentum    (m)
 !MV202609 z0 and zd to namelist
-ALLOCATE(T%XZD_TOWN(1))      ! displacement height of the town  (m)
-ALLOCATE(T%XSVF_ROAD(1))     ! road sky view factor             (-)
-ALLOCATE(T%XSVF_GARDEN(1))   ! green area sky view factor       (-)
-ALLOCATE(T%XSVF_WALL(1))     ! wall sky view factor             (-)
+ALLOCATE(TP%XZD_TOWN(1))      ! displacement height of the town  (m)
+ALLOCATE(TP%XSVF_ROAD(1))     ! road sky view factor             (-)
+ALLOCATE(TP%XSVF_GARDEN(1))   ! green area sky view factor       (-)
+ALLOCATE(TP%XSVF_WALL(1))     ! wall sky view factor             (-)
 !
 ! Roof parameters
 !
-ALLOCATE(T%XALB_ROOF(1))     ! roof albedo                      (-)
-ALLOCATE(T%XEMIS_ROOF(1))    ! roof emissivity                  (-)
-ALLOCATE(T%XHC_ROOF(1,KROOF_LAYER))      ! roof layers heat capacity        (J/K/m3)
-ALLOCATE(T%XTC_ROOF(1,KROOF_LAYER))      ! roof layers thermal conductivity (W/K/m)
-ALLOCATE(T%XD_ROOF(1,KROOF_LAYER))       ! depth of roof layers             (m)
-ALLOCATE(T%XROUGH_ROOF(1))   ! roof roughness coef
+ALLOCATE(TP%XALB_ROOF(1))     ! roof albedo                      (-)
+ALLOCATE(TP%XEMIS_ROOF(1))    ! roof emissivity                  (-)
+ALLOCATE(TP%XHC_ROOF(1,KROOF_LAYER))      ! roof layers heat capacity        (J/K/m3)
+ALLOCATE(TP%XTC_ROOF(1,KROOF_LAYER))      ! roof layers thermal conductivity (W/K/m)
+ALLOCATE(TP%XD_ROOF(1,KROOF_LAYER))       ! depth of roof layers             (m)
+ALLOCATE(TP%XROUGH_ROOF(1))   ! roof roughness coef
 !
 !
 ! Road parameters
 !
-ALLOCATE(T%XALB_ROAD(1))     ! road albedo                      (-)
-ALLOCATE(T%XEMIS_ROAD(1))    ! road emissivity                  (-)
-ALLOCATE(T%XHC_ROAD(1,KROAD_LAYER))      ! road layers heat capacity        (J/K/m3)
-ALLOCATE(T%XTC_ROAD(1,KROAD_LAYER))      ! road layers thermal conductivity (W/K/m)
-ALLOCATE(T%XD_ROAD(1,KROAD_LAYER))       ! depth of road layers             (m)
+ALLOCATE(TP%XALB_ROAD(1))     ! road albedo                      (-)
+ALLOCATE(TP%XEMIS_ROAD(1))    ! road emissivity                  (-)
+ALLOCATE(TP%XHC_ROAD(1,KROAD_LAYER))      ! road layers heat capacity        (J/K/m3)
+ALLOCATE(TP%XTC_ROAD(1,KROAD_LAYER))      ! road layers thermal conductivity (W/K/m)
+ALLOCATE(TP%XD_ROAD(1,KROAD_LAYER))       ! depth of road layers             (m)
 !
 ! Wall parameters
 !
-ALLOCATE(T%XALB_WALL(1))     ! wall albedo                      (-)
-ALLOCATE(T%XEMIS_WALL(1))    ! wall emissivity                  (-)
-ALLOCATE(T%XHC_WALL(1,KWALL_LAYER))      ! wall layers heat capacity        (J/K/m3)
-ALLOCATE(T%XTC_WALL(1,KWALL_LAYER))      ! wall layers thermal conductivity (W/K/m)
-ALLOCATE(T%XD_WALL(1,KWALL_LAYER))       ! depth of wall layers             (m)
-ALLOCATE(T%XROUGH_WALL(1))   ! wall roughness coef
+ALLOCATE(TP%XALB_WALL(1))     ! wall albedo                      (-)
+ALLOCATE(TP%XEMIS_WALL(1))    ! wall emissivity                  (-)
+ALLOCATE(TP%XHC_WALL(1,KWALL_LAYER))      ! wall layers heat capacity        (J/K/m3)
+ALLOCATE(TP%XTC_WALL(1,KWALL_LAYER))      ! wall layers thermal conductivity (W/K/m)
+ALLOCATE(TP%XD_WALL(1,KWALL_LAYER))       ! depth of wall layers             (m)
+ALLOCATE(TP%XROUGH_WALL(1))   ! wall roughness coef
 !
 ! Building's use type
 !
-ALLOCATE(T%XRESIDENTIAL(1))  ! fraction of Residential use      (-)
+ALLOCATE(TP%XRESIDENTIAL(1))  ! fraction of Residential use      (-)
   
 !
 ! anthropogenic fluxes
 !
-ALLOCATE(T%XH_TRAFFIC(1))    ! anthropogenic sensible
+ALLOCATE(TP%XH_TRAFFIC(1))    ! anthropogenic sensible
 !                                                  ! heat fluxes due to traffic       (W/m2)
-ALLOCATE(T%XLE_TRAFFIC(1))   ! anthropogenic latent
+ALLOCATE(TP%XLE_TRAFFIC(1))   ! anthropogenic latent
 !                                                  ! heat fluxes due to traffic       (W/m2)
-ALLOCATE(T%XH_INDUSTRY(1))   ! anthropogenic sensible                   
+ALLOCATE(TP%XH_INDUSTRY(1))   ! anthropogenic sensible                   
 !                                                  ! heat fluxes due to factories     (W/m2)
-ALLOCATE(T%XLE_INDUSTRY(1))  ! anthropogenic latent
+ALLOCATE(TP%XLE_INDUSTRY(1))  ! anthropogenic latent
 !                                                  ! heat fluxes due to factories     (W/m2)
 !
 ! Prognostic variables:

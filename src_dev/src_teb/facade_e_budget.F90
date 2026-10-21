@@ -12,7 +12,7 @@ SUBROUTINE FACADE_E_BUDGET(TOP, T, B, DMT, PTSTEP, PDN_RD, PRHOA, PAC_WL, PAC_BL
                            PFLX_BLD_WL_B, PDQS_WL_B, PEMIT_LW_FAC, PIMB_WL,         &
                            PRADHT_IN, PRAD_RF_WL, PRAD_RF_WIN, PRAD_WL_FL,          &
                            PRAD_WL_MA, PRAD_WIN_FL, PRAD_WIN_MA, PCONV_WL_BLD,      &
-                           PCONV_WIN_BLD, PAC_WIN,  PLOAD_IN_WL, PLOAD_IN_WIN )
+                           PCONV_WIN_BLD, PAC_WIN,  PLOAD_IN_WL, PLOAD_IN_WIN , BP, TP)
 !
 !   ##########################################################################
 !
@@ -70,7 +70,12 @@ USE MODI_WINDOW_E_BUDGET
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 !
 !*      0.1    declarations of arguments
 !
@@ -193,7 +198,7 @@ ZTI_WL_B(:) = T%XT_WALL_B(:,IWL)
                           PLW_S_TO_WA, PFLX_BLD_WL_A, PDQS_WL_A, DMT%XABS_LW_WALL_A, &
                           ZEMIT_LW_WL_A, DMT%XH_WALL_A, ZIMB_WL, PRADHT_IN, PRAD_RF_WL, &
                           ZRAD_WL_A_WIN, ZRAD_WL_FL, ZRAD_WL_MA, ZCONV_WL_BLD,        &
-                          PLOAD_IN_WL)
+                          PLOAD_IN_WL, TP, BP)
 !
 PIMB_WL      = 0.5 * ZIMB_WL
 PRAD_WL_FL   = 0.5 * ZRAD_WL_FL
@@ -212,7 +217,7 @@ IF (TOP%CWALL_OPT/='UNIF') THEN
                           PLW_S_TO_WB, PFLX_BLD_WL_B, PDQS_WL_B, DMT%XABS_LW_WALL_B,   &
                           ZEMIT_LW_WL_B, DMT%XH_WALL_B, ZIMB_WL, PRADHT_IN, PRAD_RF_WL,&
                           ZRAD_WL_A_WIN, ZRAD_WL_FL, ZRAD_WL_MA, ZCONV_WL_BLD,        & 
-                          PLOAD_IN_WL                                                )
+                          PLOAD_IN_WL                                                , TP, BP)
 ELSE
   T%XT_WALL_B    = T%XT_WALL_A
   DMT%XH_WALL_B        = DMT%XH_WALL_A
@@ -248,14 +253,14 @@ IF (TOP%CBEM == 'BEM') THEN
                         PLW_S_TO_WIN, PRAD_RF_WIN, ZRAD_WL_WIN, DMT%XABS_SW_WIN, PLW_RAD, PAC_WIN, &
                         PRADHT_IN, PTS_FL, PRHOA, PDN_RD,  PT_CANYON, ZTS_WL, PTS_RD, PTSN_RD, &
                         PTS_GD, PRAD_WIN_FL, PRAD_WIN_MA, PCONV_WIN_BLD, ZEMIT_LW_WIN,          &
-                        DMT%XABS_LW_WIN, PLOAD_IN_WIN                                   )
+                        DMT%XABS_LW_WIN, PLOAD_IN_WIN                                   , BP)
 ENDIF
 
 !*        wall, and win emitted LW radiation on snow-free surfaces
 !         ----------------------------------------------------------------
 !
 !
-PEMIT_LW_FAC (:) = 0.5*(ZEMIT_LW_WL_A(:)+ZEMIT_LW_WL_B(:)) * (1-B%XGR(:)) +  ZEMIT_LW_WIN(:) * B%XGR(:)
+PEMIT_LW_FAC (:) = 0.5*(ZEMIT_LW_WL_A(:)+ZEMIT_LW_WL_B(:)) * (1-BP%XGR(:)) +  ZEMIT_LW_WIN(:) * BP%XGR(:)
 !
 !-------------------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('FACADE_E_BUDGET',1,ZHOOK_HANDLE)

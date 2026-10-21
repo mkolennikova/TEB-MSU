@@ -5,7 +5,7 @@
 !   ##########################################################################
     SUBROUTINE FLOOR_LAYER_E_BUDGET(B, PTSTEP, PFLX_BLD_FL, PDQS_FL, PIMB_FL, PRADHT_IN,  &
                                     PRAD_WL_FL, PRAD_RF_FL, PRAD_WIN_FL, PLOAD_FL,        &
-                                    PRAD_FL_MA, PCONV_FL_BLD                  )
+                                    PRAD_FL_MA, PCONV_FL_BLD                  , BP)
 !   ##########################################################################
 !
 !!****  *FLOOR_LAYER_E_BUDGET*  
@@ -83,7 +83,10 @@ USE MODE_CONV_DOE
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 !
 !*      0.1    declarations of arguments
 !
@@ -133,22 +136,22 @@ ENDDO
 
 
 !
- CALL LAYER_E_BUDGET_GET_COEF( B%XT_FLOOR, PTSTEP, ZIMPL, B%XHC_FLOOR, B%XTC_FLOOR, B%XD_FLOOR, &
+ CALL LAYER_E_BUDGET_GET_COEF( B%XT_FLOOR, PTSTEP, ZIMPL, BP%XHC_FLOOR, BP%XTC_FLOOR, BP%XD_FLOOR, &
                               ZA, ZB, ZC, ZY )
 !
 ZTS_FL(:) = B%XT_FLOOR(:,1) 
 
-ZB(:,1) = ZB(:,1) + ZIMPL * (ZCHTC_IN_FL(:)*4./3. + PRADHT_IN(:) * B%XF_FLOOR_MASS(:))
+ZB(:,1) = ZB(:,1) + ZIMPL * (ZCHTC_IN_FL(:)*4./3. + PRADHT_IN(:) * BP%XF_FLOOR_MASS(:))
 
 
 ZY(:,1) = ZY(:,1)  &
    + ZCHTC_IN_FL(:) * (B%XTI_BLD(:) - 1./3. * B%XT_FLOOR(:, 1) * (4* ZEXPL -1))  &
-   + B%XF_FLOOR_WIN  (:) * PRAD_WIN_FL(:) + B%XF_FLOOR_WALL (:) * PRAD_WL_FL(:)  &
-   + B%XF_FLOOR_ROOF (:) * PRAD_RF_FL(:)                   &
-   + PRADHT_IN(:) * B%XF_FLOOR_MASS (:) * (B%XT_MASS(:,1) - ZEXPL * B%XT_FLOOR(:,1))  &
+   + BP%XF_FLOOR_WIN  (:) * PRAD_WIN_FL(:) + BP%XF_FLOOR_WALL (:) * PRAD_WL_FL(:)  &
+   + BP%XF_FLOOR_ROOF (:) * PRAD_RF_FL(:)                   &
+   + PRADHT_IN(:) * BP%XF_FLOOR_MASS (:) * (B%XT_MASS(:,1) - ZEXPL * B%XT_FLOOR(:,1))  &
    + PLOAD_FL(:)
 !
- CALL LAYER_E_BUDGET( B%XT_FLOOR, PTSTEP, ZIMPL, B%XHC_FLOOR, B%XTC_FLOOR, B%XD_FLOOR, &
+ CALL LAYER_E_BUDGET( B%XT_FLOOR, PTSTEP, ZIMPL, BP%XHC_FLOOR, BP%XTC_FLOOR, BP%XD_FLOOR, &
                      ZA, ZB, ZC, ZY, PDQS_FL )
 !
 !*      floor surface temperature used in the implicit formulation
@@ -163,9 +166,9 @@ PCONV_FL_BLD(:) = ZCHTC_IN_FL(:) * (ZTS_FL_CONV(:) - B%XTI_BLD (:))
 !
 !*     Flux between floor and indoor surfaces and air
 !       ------------------------------------------------
-PFLX_BLD_FL(:) = - PCONV_FL_BLD(:) + B%XF_FLOOR_WIN  (:) * PRAD_WIN_FL(:)  &
-       + B%XF_FLOOR_WALL (:) * PRAD_WL_FL(:) + B%XF_FLOOR_ROOF (:) * PRAD_RF_FL(:) &
-       + PRADHT_IN(:) * B%XF_FLOOR_MASS(:) * (B%XT_MASS(:,1)  - ZTS_FL(:)) &
+PFLX_BLD_FL(:) = - PCONV_FL_BLD(:) + BP%XF_FLOOR_WIN  (:) * PRAD_WIN_FL(:)  &
+       + BP%XF_FLOOR_WALL (:) * PRAD_WL_FL(:) + BP%XF_FLOOR_ROOF (:) * PRAD_RF_FL(:) &
+       + PRADHT_IN(:) * BP%XF_FLOOR_MASS(:) * (B%XT_MASS(:,1)  - ZTS_FL(:)) &
        + PLOAD_FL(:)
 !
 !*     Floor residual energy imbalance for verification

@@ -5,12 +5,17 @@ INTERFACE
                        PQ_CAN, PU_CAN, PHU_BLD, PT_RAD_IND, PFLX_BLD_FL, PFLX_BLD_MA,&
                        PRADHT_IN, PRAD_RF_MA, PRAD_RF_FL, PRAD_WL_MA, PRAD_WL_FL,&
                        PRAD_WIN_MA, PRAD_WIN_FL, PCONV_RF_BLD, PCONV_WL_BLD,     &
-                       PCONV_WIN_BLD, PLOAD_IN_FL, PLOAD_IN_MA                )
+                       PCONV_WIN_BLD, PLOAD_IN_FL, PLOAD_IN_MA                , TP, BP)
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 INTEGER                           :: icell
 INTEGER                           :: iblock
 TYPE(BEM_OPTIONS_t), INTENT(INOUT) :: BOP

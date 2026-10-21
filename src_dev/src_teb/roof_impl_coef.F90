@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !   ###############################################
-SUBROUTINE ROOF_IMPL_COEF(T, PTSTEP, PTDEEP_A, PTDEEP_B)
+SUBROUTINE ROOF_IMPL_COEF(T, PTSTEP, PTDEEP_A, PTDEEP_B, TP)
 !   ###############################################
 !
 !!
@@ -55,7 +55,10 @@ USE PARKIND1  ,ONLY : JPRB
 !
 USE MODI_LAYER_E_BUDGET_GET_COEF
 !
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+
 !
 !
 !*      0.1    Declarations of arguments
@@ -100,7 +103,7 @@ IF (LHOOK) CALL DR_HOOK('ROOF_IMPL_COEF',0,ZHOOK_HANDLE)
 !
 ILAYER = SIZE(T%XT_ROOF,2)
 !
- CALL LAYER_E_BUDGET_GET_COEF(T%XT_ROOF, PTSTEP, ZIMPL, T%XHC_ROOF, T%XTC_ROOF, T%XD_ROOF, &
+ CALL LAYER_E_BUDGET_GET_COEF(T%XT_ROOF, PTSTEP, ZIMPL, TP%XHC_ROOF, TP%XTC_ROOF, TP%XD_ROOF, &
                               ZA, ZB, ZC, ZY )
 !
 !-------------------------------------------------------------------------------

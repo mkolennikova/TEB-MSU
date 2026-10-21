@@ -140,7 +140,7 @@
 !!    G. Pigeon sept. 2012: use of TARP/DOE coef for indoor convection
 !!                          use of both T%XT_WALL_A and T%XT_WALL_B for calculations
 !!                          the internal mass depth is 1/2 of the floor depth
-!!                          add the option of no atmospheric heat releases by HVAC system (B%XF_WATER_COND < 0)
+!!                          add the option of no atmospheric heat releases by HVAC system (BP%XF_WATER_COND < 0)
 !!    G. Pigeon oct. 2012:  use indoor air density + new solar heat gain distribution
 !!    V. Masson May  2013   implicitation of internal building temperature evolution
 !-------------------------------------------------------------------------------
@@ -302,7 +302,7 @@ END WHERE
 !
 ! *Int.gains schedule
 !
-ZQIN = DMT%XQIN * B%XN_FLOOR
+ZQIN = DMT%XQIN * BP%XN_FLOOR
 WHERE (PSUNTIME(:) > 0. .AND. PSUNTIME(:) < 25200.) ! night between 0000 and 0700
   ZQIN(:) = ZQIN(:) * ZF_NIGHT(:)
 ELSEWHERE
@@ -310,15 +310,15 @@ ELSEWHERE
 END WHERE
 
 ! *Change of units AC/H -> [m3 s-1 m-2(bld)]
-ZV_VENT(:) = B%XV_VENT(:) * T%XBLD_HEIGHT(:) / 3600.
-ZINF   (:) = B%XINF   (:) * T%XBLD_HEIGHT(:) / 3600.  
+ZV_VENT(:) = BP%XV_VENT(:) * TP%XBLD_HEIGHT(:) / 3600.
+ZINF   (:) = BP%XINF   (:) * TP%XBLD_HEIGHT(:) / 3600.  
 !
 !*      2.   heat balance for building floor and mass
 !            ----------------------------------------
 !
 !*      2.1 total load on the internal mass or floor
-ZLOAD_FL(:) = (ZQIN(:) * B%XQIN_FRAD(:) * (1.-B%XQIN_FLAT(:)) + DMT%XTR_SW_WIN(:)) / (B%XMASS_O_BLD(:)+1.)
-WHERE (B%XN_FLOOR(:) > 1.)
+ZLOAD_FL(:) = (ZQIN(:) * BP%XQIN_FRAD(:) * (1.-BP%XQIN_FLAT(:)) + DMT%XTR_SW_WIN(:)) / (BP%XMASS_O_BLD(:)+1.)
+WHERE (BP%XN_FLOOR(:) > 1.)
    ZLOAD_MA(:) = ZLOAD_FL(:)
 ELSEWHERE
    ZLOAD_MA(:) = 0.
@@ -373,10 +373,10 @@ ENDDO
 DO JJ=1,SIZE(PT_CAN)
   ! *first guess of indoor temperature
 
-  ZTI_BLD(JJ) = B%XTI_BLD(JJ) + PTSTEP/(ZRHOI(JJ) * XCPD * T%XBLD_HEIGHT(JJ))    & 
-          * (  T%XWALL_O_BLD(JJ) * PCONV_WL_BLD(JJ) + B%XGLAZ_O_BLD (JJ) * PCONV_WIN_BLD(JJ)  &
-             + B%XMASS_O_BLD(JJ) * ZCONV_MA_BLD(JJ) + PCONV_RF_BLD(JJ) + ZCONV_FL_BLD(JJ)   &
-             + ZQIN(JJ) * (1 - B%XQIN_FRAD(JJ))  * (1 - B%XQIN_FLAT(JJ)) )
+  ZTI_BLD(JJ) = B%XTI_BLD(JJ) + PTSTEP/(ZRHOI(JJ) * XCPD * TP%XBLD_HEIGHT(JJ))    & 
+          * (  TP%XWALL_O_BLD(JJ) * PCONV_WL_BLD(JJ) + BP%XGLAZ_O_BLD (JJ) * PCONV_WIN_BLD(JJ)  &
+             + BP%XMASS_O_BLD(JJ) * ZCONV_MA_BLD(JJ) + PCONV_RF_BLD(JJ) + ZCONV_FL_BLD(JJ)   &
+             + ZQIN(JJ) * (1 - BP%XQIN_FRAD(JJ))  * (1 - BP%XQIN_FLAT(JJ)) )
   !
   !################################################################################
   ! *is natural surventilation active at the current time step ?
@@ -384,29 +384,29 @@ DO JJ=1,SIZE(PT_CAN)
   !
   !    *no surventilation possible
 
-  IF (B%CNATVENT(JJ)=='NONE') THEN
+  IF (BP%CNATVENT(JJ)=='NONE') THEN
     !
     GNAT_VENT(JJ) = .FALSE.
     !
   !    *automatic management of surventilation
-  ELSEIF (B%CNATVENT(JJ)=='AUTO' .OR. B%CNATVENT(JJ)=='MECH') THEN
+  ELSEIF (BP%CNATVENT(JJ)=='AUTO' .OR. BP%CNATVENT(JJ)=='MECH') THEN
     !
     IF (MOD(PSUNTIME(JJ), 3600.) .LT. PTSTEP) THEN
       !
       IF ( B%XTI_BLD(JJ).GT. PT_CAN(JJ) + 1 ) THEN ! condition to enable the
-        IF (B%CNATVENT(JJ)=='AUTO') THEN
+        IF (BP%CNATVENT(JJ)=='AUTO') THEN
         ! natural surventilation rate calculation (window opening)
-          CALL GET_NAT_VENT(B%XTI_BLD(JJ), PT_CAN(JJ), PU_CAN(JJ), B%XGR(JJ), &
-                            B%XFLOOR_HW_RATIO(JJ), T%XBLD_HEIGHT(JJ), ZNAT_VENT(JJ))
-        ELSE IF (B%CNATVENT(JJ)=='MECH') THEN
+          CALL GET_NAT_VENT(B%XTI_BLD(JJ), PT_CAN(JJ), PU_CAN(JJ), BP%XGR(JJ), &
+                            BP%XFLOOR_HW_RATIO(JJ), TP%XBLD_HEIGHT(JJ), ZNAT_VENT(JJ))
+        ELSE IF (BP%CNATVENT(JJ)=='MECH') THEN
         ! mechanical surventilation rate calculation : 5 volumes/hour
-          ZNAT_VENT(JJ) =  5.0*T%XBLD_HEIGHT(JJ)/3600.
+          ZNAT_VENT(JJ) =  5.0*TP%XBLD_HEIGHT(JJ)/3600.
         END IF
         !
         ZTI_BLD_OPEN  (JJ) = ZTI_BLD(JJ) &
-                + ZNAT_VENT(JJ)            * PTSTEP/T%XBLD_HEIGHT(JJ) * (PT_CAN(JJ) - B%XTI_BLD(JJ)) 
+                + ZNAT_VENT(JJ)            * PTSTEP/TP%XBLD_HEIGHT(JJ) * (PT_CAN(JJ) - B%XTI_BLD(JJ)) 
         ZTI_BLD_CLOSED(JJ) = ZTI_BLD(JJ) &
-                + (ZINF(JJ) + ZV_VENT(JJ)) * PTSTEP/T%XBLD_HEIGHT(JJ) * (PT_CAN(JJ) - B%XTI_BLD(JJ)) 
+                + (ZINF(JJ) + ZV_VENT(JJ)) * PTSTEP/TP%XBLD_HEIGHT(JJ) * (PT_CAN(JJ) - B%XTI_BLD(JJ)) 
         !
         GNAT_VENT(JJ) = (ZTI_BLD_OPEN(JJ) <= DMT%XTCOOL_TARGET (JJ) .AND. &            
                          ZTI_BLD_OPEN(JJ) <  ZTI_BLD_CLOSED(JJ) .AND. &
@@ -421,7 +421,7 @@ DO JJ=1,SIZE(PT_CAN)
     ENDIF
     !
   !    *manual management of surventilation
-  ELSEIF (B%CNATVENT(JJ)=='MANU') THEN
+  ELSEIF (BP%CNATVENT(JJ)=='MANU') THEN
     !
     B%LNATVENT_NIGHT(JJ) = B%LNATVENT_NIGHT(JJ) .AND. &
                          .NOT. ( PSUNTIME(JJ) > 5.*3600 .AND. PSUNTIME(JJ) < 18.*3600 )
@@ -446,8 +446,8 @@ DO JJ=1,SIZE(PT_CAN)
   ! *If natural surventilation ACTIVE
   IF (GNAT_VENT(JJ)) THEN
      ! 
-     CALL GET_NAT_VENT(B%XTI_BLD(JJ), PT_CAN(JJ), PU_CAN(JJ), B%XGR(JJ), &
-                       B%XFLOOR_HW_RATIO(JJ), T%XBLD_HEIGHT(JJ), ZNAT_VENT(JJ)     )
+     CALL GET_NAT_VENT(B%XTI_BLD(JJ), PT_CAN(JJ), PU_CAN(JJ), BP%XGR(JJ), &
+                       BP%XFLOOR_HW_RATIO(JJ), TP%XBLD_HEIGHT(JJ), ZNAT_VENT(JJ)     )
      !
      ZV_VENT     (JJ) = 0.
      ZINF        (JJ) = 0.
@@ -479,34 +479,34 @@ DO JJ=1,SIZE(PT_CAN)
     ! * Building energy demand for heating and cooling
     ! ------------------------------------------------
     !
-    DMT%XH_BLD_COOL(JJ) = T%XWALL_O_BLD(JJ)/2. * (ZAC_IN_WL_A_COOL(JJ) * (T%XT_WALL_A(JJ,IWL) - DMT%XTCOOL_TARGET(JJ))  &
+    DMT%XH_BLD_COOL(JJ) = TP%XWALL_O_BLD(JJ)/2. * (ZAC_IN_WL_A_COOL(JJ) * (T%XT_WALL_A(JJ,IWL) - DMT%XTCOOL_TARGET(JJ))  &
                                             + ZAC_IN_WL_B_COOL(JJ) * (T%XT_WALL_B(JJ,IWL) - DMT%XTCOOL_TARGET(JJ))) &
-                         + B%XGLAZ_O_BLD(JJ) * ZAC_IN_WIN_COOL(JJ) * (B%XT_WIN2(JJ)       - DMT%XTCOOL_TARGET(JJ))  &    
-                          + ZAC_IN_MA_COOL (JJ)* B%XMASS_O_BLD(JJ) * (B%XT_MASS(JJ,1)     - DMT%XTCOOL_TARGET(JJ))  &
+                         + BP%XGLAZ_O_BLD(JJ) * ZAC_IN_WIN_COOL(JJ) * (B%XT_WIN2(JJ)       - DMT%XTCOOL_TARGET(JJ))  &    
+                          + ZAC_IN_MA_COOL (JJ)* BP%XMASS_O_BLD(JJ) * (B%XT_MASS(JJ,1)     - DMT%XTCOOL_TARGET(JJ))  &
                                               + ZAC_IN_RF_COOL(JJ) * (T%XT_ROOF(JJ,IRF)   - DMT%XTCOOL_TARGET(JJ))  &
                                               + ZAC_IN_FL_COOL(JJ) * (B%XT_FLOOR(JJ,1)    - DMT%XTCOOL_TARGET(JJ))  &
-                                 + ZQIN(JJ) * (1 - B%XQIN_FRAD(JJ)) * (1 - B%XQIN_FLAT(JJ))                   &
+                                 + ZQIN(JJ) * (1 - BP%XQIN_FRAD(JJ)) * (1 - BP%XQIN_FLAT(JJ))                   &
                               + (ZINF(JJ) + ZV_VENT(JJ)) * ZRHOI(JJ) * XCPD * (PT_CAN(JJ) - DMT%XTCOOL_TARGET(JJ))
     !
-    DMT%XH_BLD_HEAT(JJ) = - ( T%XWALL_O_BLD(JJ)/2. * (ZAC_IN_WL_A_HEAT(JJ) * (T%XT_WALL_A(JJ,IWL) - DMT%XTHEAT_TARGET(JJ))  &
+    DMT%XH_BLD_HEAT(JJ) = - ( TP%XWALL_O_BLD(JJ)/2. * (ZAC_IN_WL_A_HEAT(JJ) * (T%XT_WALL_A(JJ,IWL) - DMT%XTHEAT_TARGET(JJ))  &
                                                 + ZAC_IN_WL_B_HEAT(JJ) * (T%XT_WALL_B(JJ,IWL) - DMT%XTHEAT_TARGET(JJ))) &
-                             + B%XGLAZ_O_BLD(JJ) * ZAC_IN_WIN_HEAT(JJ) * (B%XT_WIN2(JJ)       - DMT%XTHEAT_TARGET(JJ))  &    
-                              +  ZAC_IN_MA_HEAT(JJ)* B%XMASS_O_BLD(JJ) * (B%XT_MASS(JJ,1)     - DMT%XTHEAT_TARGET(JJ))  &
+                             + BP%XGLAZ_O_BLD(JJ) * ZAC_IN_WIN_HEAT(JJ) * (B%XT_WIN2(JJ)       - DMT%XTHEAT_TARGET(JJ))  &    
+                              +  ZAC_IN_MA_HEAT(JJ)* BP%XMASS_O_BLD(JJ) * (B%XT_MASS(JJ,1)     - DMT%XTHEAT_TARGET(JJ))  &
                                                   + ZAC_IN_RF_HEAT(JJ) * (T%XT_ROOF(JJ,IRF)   - DMT%XTHEAT_TARGET(JJ))  &
                                                   + ZAC_IN_FL_HEAT(JJ) * (B%XT_FLOOR(JJ,1)    - DMT%XTHEAT_TARGET(JJ))  &
-                                   + ZQIN(JJ) * (1 - B%XQIN_FRAD(JJ))* (1 - B%XQIN_FLAT(JJ))                      &
+                                   + ZQIN(JJ) * (1 - BP%XQIN_FRAD(JJ))* (1 - BP%XQIN_FLAT(JJ))                      &
                                   + (ZINF(JJ) + ZV_VENT(JJ)) * ZRHOI(JJ) * XCPD * (PT_CAN(JJ) - DMT%XTHEAT_TARGET(JJ)))
     !
-    ZQCOOL_TRGT(JJ) = 0.62198 * B%XHR_TARGET(JJ) * PSAT(DMT%XTCOOL_TARGET(JJ)) / &
-                      (PPS(JJ)- B%XHR_TARGET(JJ) * PSAT(DMT%XTCOOL_TARGET(JJ)))    
+    ZQCOOL_TRGT(JJ) = 0.62198 * BP%XHR_TARGET(JJ) * PSAT(DMT%XTCOOL_TARGET(JJ)) / &
+                      (PPS(JJ)- BP%XHR_TARGET(JJ) * PSAT(DMT%XTCOOL_TARGET(JJ)))    
     !
-    DMT%XLE_BLD_COOL(JJ) = ZQIN(JJ) * B%XQIN_FLAT(JJ)                                           &
+    DMT%XLE_BLD_COOL(JJ) = ZQIN(JJ) * BP%XQIN_FLAT(JJ)                                           &
                + (ZINF(JJ) + ZV_VENT(JJ)) * ZRHOI(JJ) * XLVTT * (PQ_CAN(JJ) - ZQCOOL_TRGT(JJ)) 
     !
-    ZQHEAT_TRGT(JJ) = 0.62198 * B%XHR_TARGET(JJ) * PSAT(DMT%XTHEAT_TARGET(JJ)) / &
-                      (PPS(JJ)- B%XHR_TARGET(JJ) * PSAT(DMT%XTHEAT_TARGET(JJ)))    
+    ZQHEAT_TRGT(JJ) = 0.62198 * BP%XHR_TARGET(JJ) * PSAT(DMT%XTHEAT_TARGET(JJ)) / &
+                      (PPS(JJ)- BP%XHR_TARGET(JJ) * PSAT(DMT%XTHEAT_TARGET(JJ)))    
     !
-    DMT%XLE_BLD_HEAT(JJ) = ZQIN(JJ) * B%XQIN_FLAT(JJ)                                           &
+    DMT%XLE_BLD_HEAT(JJ) = ZQIN(JJ) * BP%XQIN_FLAT(JJ)                                           &
               + (ZINF(JJ) + ZV_VENT(JJ)) * ZRHOI(JJ) * XLVTT * (PQ_CAN(JJ) - ZQHEAT_TRGT(JJ))       
     !
     ! * Autosize calculations
@@ -545,7 +545,7 @@ DO JJ=1,SIZE(PT_CAN)
     ! ...................
     !
     DMT%XM_SYS  (JJ) = B%XM_SYS_RAT  (JJ)
-    DMT%XCOP    (JJ) = B%XCOP_RAT    (JJ)
+    DMT%XCOP    (JJ) = BP%XCOP_RAT    (JJ)
     DMT%XCAP_SYS(JJ) = B%XCAP_SYS_RAT(JJ)
     !
     ! * Mixing conditions
@@ -568,8 +568,8 @@ DO JJ=1,SIZE(PT_CAN)
         !desactivation of LE_BLD_COOL impact on HVAC_COOL calculation
         !following too much impact in VURCA simulation (23/01/2012)
         !this would be the case for a vaporization system !
-        !DMT%XHVAC_COOL (JJ) = DMT%XT_BLD_COOL(JJ) / B%XCOP_RAT(JJ)
-        DMT%XHVAC_COOL (JJ) = DMT%XH_BLD_COOL(JJ) / B%XCOP_RAT(JJ)
+        !DMT%XHVAC_COOL (JJ) = DMT%XT_BLD_COOL(JJ) / BP%XCOP_RAT(JJ)
+        DMT%XHVAC_COOL (JJ) = DMT%XH_BLD_COOL(JJ) / BP%XCOP_RAT(JJ)
         IF (DMT%XHVAC_COOL(JJ) < 0.0) DMT%XHVAC_COOL(JJ) = 0.0
           !
           DMT%XT_SYS(JJ) = ZT_MIX(JJ) - DMT%XH_BLD_COOL (JJ)  /DMT%XM_SYS(JJ) / XCPD
@@ -578,15 +578,15 @@ DO JJ=1,SIZE(PT_CAN)
           !(23/01/2012)
           DMT%XQ_SYS(JJ) = ZQ_MIX(JJ)
           !
-          DMT%XH_WASTE(JJ)  = DMT%XHVAC_COOL(JJ) * (1.+B%XCOP_RAT(JJ)) * (1. - B%XF_WATER_COND(JJ))
-          DMT%XLE_WASTE(JJ) = DMT%XHVAC_COOL(JJ) * (1.+B%XCOP_RAT(JJ)) * B%XF_WATER_COND(JJ)
+          DMT%XH_WASTE(JJ)  = DMT%XHVAC_COOL(JJ) * (1.+BP%XCOP_RAT(JJ)) * (1. - BP%XF_WATER_COND(JJ))
+          DMT%XLE_WASTE(JJ) = DMT%XHVAC_COOL(JJ) * (1.+BP%XCOP_RAT(JJ)) * BP%XF_WATER_COND(JJ)
           !
         ! *real system
         ELSEIF (BOP%CCOOL_COIL=='DXCOIL') THEN
           !
           CALL DX_AIR_COOLING_COIL_CV(PT_CAN(JJ), PQ_CAN(JJ), PPS(JJ),  ZRHOI(JJ), ZT_MIX(JJ), &
-                                      ZQ_MIX(JJ), B%XCOP_RAT(JJ), B%XCAP_SYS_RAT(JJ),          &
-                                      B%XT_ADP(JJ), B%XF_WATER_COND(JJ), DMT%XM_SYS(JJ),      &
+                                      ZQ_MIX(JJ), BP%XCOP_RAT(JJ), B%XCAP_SYS_RAT(JJ),          &
+                                      B%XT_ADP(JJ), BP%XF_WATER_COND(JJ), DMT%XM_SYS(JJ),      &
                                       DMT%XH_BLD_COOL(JJ), DMT%XH_WASTE(JJ), DMT%XLE_WASTE(JJ), &
                                       DMT%XCOP(JJ), DMT%XCAP_SYS(JJ), DMT%XT_SYS(JJ), & 
                                       DMT%XQ_SYS(JJ), DMT%XHVAC_COOL(JJ), DMT%XT_BLD_COOL(JJ) )
@@ -594,7 +594,7 @@ DO JJ=1,SIZE(PT_CAN)
         ENDIF !end type of cooling system
 
         !!! case of system without atmospheric releases. I-e releases in soil/water F_WATER_COND < 0 
-        IF (B%XF_WATER_COND(JJ) < 0) THEN
+        IF (BP%XF_WATER_COND(JJ) < 0) THEN
           DMT%XH_WASTE(JJ) = 0. 
           DMT%XLE_WASTE(JJ) = 0. 
         ENDIF
@@ -615,13 +615,13 @@ DO JJ=1,SIZE(PT_CAN)
         !
         ! *specific computation for real heating system
         IF  (BOP%CHEAT_COIL .EQ. 'FINCAP') THEN
-          IF (DMT%XH_BLD_HEAT(JJ) > B%XCAP_SYS_HEAT(JJ)) DMT%XH_BLD_HEAT(JJ) =  B%XCAP_SYS_HEAT(JJ)
+          IF (DMT%XH_BLD_HEAT(JJ) > BP%XCAP_SYS_HEAT(JJ)) DMT%XH_BLD_HEAT(JJ) =  BP%XCAP_SYS_HEAT(JJ)
         END IF
         !
         DMT%XT_SYS(JJ) = ZT_MIX(JJ) + DMT%XH_BLD_HEAT(JJ) / DMT%XM_SYS(JJ) / XCPD
         DMT%XQ_SYS(JJ) = ZQ_MIX(JJ)
         !
-        DMT%XHVAC_HEAT  (JJ) = DMT%XH_BLD_HEAT(JJ) / B%XEFF_HEAT(JJ)
+        DMT%XHVAC_HEAT  (JJ) = DMT%XH_BLD_HEAT(JJ) / BP%XEFF_HEAT(JJ)
         DMT%XH_WASTE    (JJ) = DMT%XHVAC_HEAT(JJ) - DMT%XH_BLD_HEAT(JJ)  
         DMT%XLE_WASTE   (JJ) = 0.0
         DMT%XH_BLD_COOL (JJ) = 0.0
@@ -664,13 +664,13 @@ ENDDO
 ! EVOLUTION OF THE INTERNAL TEMPERATURE AND HUMIDITY
 !###################################################
 !
-ZTI_BLD(:) = ( ZTI_BLD(:) + PTSTEP/T%XBLD_HEIGHT(:) *                   & 
+ZTI_BLD(:) = ( ZTI_BLD(:) + PTSTEP/TP%XBLD_HEIGHT(:) *                   & 
             ((ZINF(:) + ZNAT_VENT(:)) * PT_CAN(:) + DMT%XM_SYS(:) / ZRHOI(:) * (DMT%XT_SYS(:) ) )) &
-          / (1. + PTSTEP/T%XBLD_HEIGHT(:)*(ZINF(:) + ZNAT_VENT(:) + DMT%XM_SYS(:) / ZRHOI(:))  )
-ZQI_BLD(:) = ( B%XQI_BLD(:) +  PTSTEP/T%XBLD_HEIGHT(:) *                    & 
-             (ZQIN(:) * B%XQIN_FLAT(:) / (ZRHOI(:) * XLVTT) + (ZINF(:) + ZNAT_VENT(:)) * (PQ_CAN(:))   &
+          / (1. + PTSTEP/TP%XBLD_HEIGHT(:)*(ZINF(:) + ZNAT_VENT(:) + DMT%XM_SYS(:) / ZRHOI(:))  )
+ZQI_BLD(:) = ( B%XQI_BLD(:) +  PTSTEP/TP%XBLD_HEIGHT(:) *                    & 
+             (ZQIN(:) * BP%XQIN_FLAT(:) / (ZRHOI(:) * XLVTT) + (ZINF(:) + ZNAT_VENT(:)) * (PQ_CAN(:))   &
               + DMT%XM_SYS(:) / ZRHOI(:)     * (DMT%XQ_SYS(:) ) ))&
-          / (1. + PTSTEP/T%XBLD_HEIGHT(:)* (ZINF(:) + ZNAT_VENT(:) + DMT%XM_SYS(:) / ZRHOI(:))  )
+          / (1. + PTSTEP/TP%XBLD_HEIGHT(:)* (ZINF(:) + ZNAT_VENT(:) + DMT%XM_SYS(:) / ZRHOI(:))  )
 !
 ! Update variables
 B%XTI_BLD(:) = ZTI_BLD(:)

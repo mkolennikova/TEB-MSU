@@ -181,6 +181,8 @@ USE MODD_TEB_PANEL_n, ONLY : TEB_PANEL_t
 USE MODD_TEB_IRRIG_n, ONLY : TEB_IRRIG_t
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 !
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 USE MODI_ALLOC_TEB_STRUCT
 USE MODI_DEALLOC_TEB_STRUCT
 USE MODI_TEB_GARDEN
@@ -691,8 +693,10 @@ REAL, DIMENSION(:)  , INTENT(OUT)     :: PLW_UP            ! upwards longwave ra
 !
 TYPE(TEB_OPTIONS_t) :: TOP
 TYPE(TEB_t) :: T
+TYPE(TEB_PARAMS_t) :: TP
 TYPE(BEM_OPTIONS_t) :: BOP
 TYPE(BEM_t) :: B
+TYPE(BEM_PARAMS_t) :: BP
 TYPE(TEB_PANEL_t) :: TPN
 TYPE(TEB_IRRIG_t) :: TIR
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT   ! diagnostics container (owned by the driver)
@@ -907,7 +911,7 @@ DMT%XQSAT_GARDEN                   = XUNDEF
 DMT%XRN_GARDEN                     = XUNDEF
 DMT%XTS_GARDEN                     = XUNDEF
 CALL ALLOC_TEB_STRUCT(SIZE(PT_ROOF,2),SIZE(PT_ROAD,2),SIZE(PT_WALL_A,2),SIZE(PT_FLOOR,2), &
-                      TOP,T,BOP,B,TPN,TIR) 
+                      TOP,TP,T,BOP,BP,B,TPN,TIR) 
 !
 ! This is of course not optimized here, because at each time step, the structures are allocated, set and deallocated at the end.
 !  This is done so only to show that the structures can be independant from the rest of the code above (here the driver.F90 program).
@@ -929,16 +933,16 @@ BOP%LAUTOSIZE    = .FALSE.
 !
 ! Floor parameters
 !
-B%XHC_FLOOR(1,:) = PHC_FLOOR(1,:)    ! floor layers heat capacity        (J/K/m3)
-B%XTC_FLOOR(1,:) = PTC_FLOOR(1,:)    ! floor layers thermal conductivity (W/K/m)
-B%XD_FLOOR (1,:) = PD_FLOOR (1,:)    ! depth of floor layers             (m)
+BP%XHC_FLOOR(1,:) = PHC_FLOOR(1,:)    ! floor layers heat capacity        (J/K/m3)
+BP%XTC_FLOOR(1,:) = PTC_FLOOR(1,:)    ! floor layers thermal conductivity (W/K/m)
+BP%XD_FLOOR (1,:) = PD_FLOOR (1,:)    ! depth of floor layers             (m)
 !
 ! HVAC parameters
 !
-B%XTCOOL_TARGET = PTCOOL_TARGET ! cooling setpoint of indoor air
-B%XTHEAT_TARGET = PTHEAT_TARGET ! heating setpoint of indoor air
-B%XF_WASTE_CAN = PF_WASTE_CAN   ! fraction of waste heat released into the canyon
-B%XEFF_HEAT = PEFF_HEAT         ! efficiency of the heating system
+BP%XTCOOL_TARGET = PTCOOL_TARGET ! cooling setpoint of indoor air
+BP%XTHEAT_TARGET = PTHEAT_TARGET ! heating setpoint of indoor air
+BP%XF_WASTE_CAN = PF_WASTE_CAN   ! fraction of waste heat released into the canyon
+BP%XEFF_HEAT = PEFF_HEAT         ! efficiency of the heating system
 !
 ! Indoor parameters
 !
@@ -946,24 +950,24 @@ B%XTI_BLD = PTI_BLD                 ! building interior temperature    (K)
 B%XT_FLOOR(1,:) = PT_FLOOR(1,:)     ! floor layer temperatures         (K)
 B%XT_MASS (1,:) = PT_MASS (1,:)     ! Air cooled building internal th. mass temperature (K)
 !
-B%XQIN = PQIN                   ! internal heat gains [W m-2(floor)]
-B%XQIN_FRAD = PQIN_FRAD         ! radiant fraction of internal heat gains
-B%XSHGC = PSHGC                 ! solar heat gain coef. of windows
-B%XSHGC_SH = PSHGC_SH           ! solar heat gain coef. of windows + shading
+BP%XQIN = PQIN                   ! internal heat gains [W m-2(floor)]
+BP%XQIN_FRAD = PQIN_FRAD         ! radiant fraction of internal heat gains
+BP%XSHGC = PSHGC                 ! solar heat gain coef. of windows
+BP%XSHGC_SH = PSHGC_SH           ! solar heat gain coef. of windows + shading
 B%XTRAN_WIN = PTRAN_WIN         ! window transmittance (-)
-B%XGR = PGR                     ! glazing ratio
-B%XINF = PINF                   ! infiltration/ventilation flow rate [AC/H]
+BP%XGR = PGR                     ! glazing ratio
+BP%XINF = PINF                   ! infiltration/ventilation flow rate [AC/H]
 !
 ! New parameters
 !
-B%XF_WATER_COND = PF_WATER_COND   ! fraction of evaporation for condensers (cooling system)
+BP%XF_WATER_COND = PF_WATER_COND   ! fraction of evaporation for condensers (cooling system)
 B%XAUX_MAX = PAUX_MAX             ! Auxiliar variable for autosize calcs
-B%XQIN_FLAT = PQIN_FLAT           ! Latent franction of internal heat gains
-B%XHR_TARGET = PHR_TARGET         ! Relative humidity setpoint
+BP%XQIN_FLAT = PQIN_FLAT           ! Latent franction of internal heat gains
+BP%XHR_TARGET = PHR_TARGET         ! Relative humidity setpoint
 B%XT_WIN2 = PT_WIN2               ! Indoor window temperature [K]
 B%XQI_BLD = PQI_BLD               ! Indoor air specific humidity [kg kg-1]
-B%XV_VENT = PV_VENT               ! Ventilation flow rate [AC/H]
-B%XCAP_SYS_HEAT = PCAP_SYS_HEAT   ! Capacity of the heating system 
+BP%XV_VENT = PV_VENT               ! Ventilation flow rate [AC/H]
+BP%XCAP_SYS_HEAT = PCAP_SYS_HEAT   ! Capacity of the heating system 
                                   ! [W m-2(bld)]
 B%XCAP_SYS_RAT = PCAP_SYS_RAT     ! Rated capacity of the cooling system
                                   ! [W m-2(bld)]
@@ -971,37 +975,37 @@ B%XT_ADP = PT_ADP                 ! Apparatus dewpoint temperature of the
                                   ! cooling coil [K]
 B%XM_SYS_RAT = PM_SYS_RAT         ! Rated HVAC mass flow rate 
                                   ! [kg s-1 m-2(bld)]
-B%XCOP_RAT = PCOP_RAT             ! Rated COP of the cooling system
+BP%XCOP_RAT = PCOP_RAT             ! Rated COP of the cooling system
 B%XT_WIN1 = PT_WIN1               ! outdoor window temperature [K]
 B%XABS_WIN = PABS_WIN             ! window absortance
 B%XUGG_WIN = PUGG_WIN             ! Window glass-to-glass U-factor [K m W-2]
 B%LSHADE = OSHADE                 ! flag to activate shading devices -> LOGICAL in the code
 B%XSHADE = PSHADE                 ! flag to activate shading devices -> REAL for i/o 0. or 1.
-B%CNATVENT = HNATVENT             ! flag to activate natural ventilation 'NONE', 'MANU', 'AUTO'
+BP%CNATVENT = HNATVENT             ! flag to activate natural ventilation 'NONE', 'MANU', 'AUTO'
 B%XNATVENT = PNATVENT             ! flag to describe surventilation system for i/o 
                                   ! 0 for NONE, 1 for MANU and 2 for AUTO
 B%LSHAD_DAY = OSHAD_DAY           !Has shading been necessary this day ?
 B%LNATVENT_NIGHT = ONATVENT_NIGHT !Has nocturnal surventilation been necessary and possible this night ?
   !
   !indoor relative surfaces and view factors
-B%XN_FLOOR        = PN_FLOOR               ! Number of floors     
-B%XGLAZ_O_BLD     = PGLAZ_O_BLD         ! Window area [m2_win/m2_bld]
-B%XMASS_O_BLD     = PMASS_O_BLD         ! Mass area [m2_mass/m2_bld]
-B%XFLOOR_HW_RATIO = PFLOOR_HW_RATIO ! H/W ratio of 1 floor level
-B%XF_FLOOR_MASS   = PF_FLOOR_MASS     ! View factor floor-mass
-B%XF_FLOOR_WALL   = PF_FLOOR_WALL     ! View factor floor-wall
-B%XF_FLOOR_WIN    = PF_FLOOR_WIN       ! View factor floor-window
-B%XF_FLOOR_ROOF   = PF_FLOOR_ROOF     ! View factor floor-roof
-B%XF_WALL_FLOOR   = PF_WALL_FLOOR     ! View factor wall-floor
-B%XF_WALL_MASS    = PF_WALL_MASS      ! View factor wall-mass
-B%XF_WALL_WIN     = PF_WALL_WIN         ! View factor wall-win
-B%XF_WIN_FLOOR    = PF_WIN_FLOOR       ! View factor win-floor
-B%XF_WIN_MASS     = PF_WIN_MASS         ! View factor win-mass
-B%XF_WIN_WALL     = PF_WIN_WALL         ! View factor win-wall
-B%XF_WIN_WIN      = PF_WIN_WIN           ! indoor View factor win-win
-B%XF_MASS_FLOOR   = PF_MASS_FLOOR     ! View factor mass-floor
-B%XF_MASS_WALL    = PF_MASS_WALL       ! View factor mass-wall
-B%XF_MASS_WIN     = PF_MASS_WIN         ! View factor mass-window
+BP%XN_FLOOR        = PN_FLOOR               ! Number of floors     
+BP%XGLAZ_O_BLD     = PGLAZ_O_BLD         ! Window area [m2_win/m2_bld]
+BP%XMASS_O_BLD     = PMASS_O_BLD         ! Mass area [m2_mass/m2_bld]
+BP%XFLOOR_HW_RATIO = PFLOOR_HW_RATIO ! H/W ratio of 1 floor level
+BP%XF_FLOOR_MASS   = PF_FLOOR_MASS     ! View factor floor-mass
+BP%XF_FLOOR_WALL   = PF_FLOOR_WALL     ! View factor floor-wall
+BP%XF_FLOOR_WIN    = PF_FLOOR_WIN       ! View factor floor-window
+BP%XF_FLOOR_ROOF   = PF_FLOOR_ROOF     ! View factor floor-roof
+BP%XF_WALL_FLOOR   = PF_WALL_FLOOR     ! View factor wall-floor
+BP%XF_WALL_MASS    = PF_WALL_MASS      ! View factor wall-mass
+BP%XF_WALL_WIN     = PF_WALL_WIN         ! View factor wall-win
+BP%XF_WIN_FLOOR    = PF_WIN_FLOOR       ! View factor win-floor
+BP%XF_WIN_MASS     = PF_WIN_MASS         ! View factor win-mass
+BP%XF_WIN_WALL     = PF_WIN_WALL         ! View factor win-wall
+BP%XF_WIN_WIN      = PF_WIN_WIN           ! indoor View factor win-win
+BP%XF_MASS_FLOOR   = PF_MASS_FLOOR     ! View factor mass-floor
+BP%XF_MASS_WALL    = PF_MASS_WALL       ! View factor mass-wall
+BP%XF_MASS_WIN     = PF_MASS_WIN         ! View factor mass-window
 
 !-------------------------------------------------------------------------------
 !
@@ -1063,68 +1067,68 @@ TOP%XTSTEP = PTSTEP       ! time step for TEB
 !
 ! Geometric Parameters:
 !
-T%XROAD_DIR      = PROAD_DIR      ! Road direction (deg from North, clockwise)
-T%XGARDEN        = PGARDEN        ! fraction of veg in the streets   (-)
-T%XGREENROOF     = PFRAC_GR       ! fraction of greenroofs on roofs  (-)
-T%XBLD           = PBLD           ! fraction of buildings            (-)
-T%XROAD          = PROAD          ! fraction of roads                (-)
-T%XCAN_HW_RATIO  = PCAN_HW_RATIO  ! canyon    h/W                    (-)
-T%XBLD_HEIGHT    = PBLD_HEIGHT    ! buildings height 'h'             (m)
-T%XWALL_O_HOR    = PWALL_O_HOR    ! wall surf. / hor. surf.          (-)
-T%XROAD_O_GRND   = PROAD_O_GRND   ! road surf. / (road + garden surf.) (-)
-T%XGARDEN_O_GRND = PGARDEN_O_GRND ! gard. surf. / (road + garden surf.)(-)
-T%XWALL_O_GRND   = PWALL_O_GRND   ! wall surf. / (road + garden surf.) (-)
-T%XWALL_O_BLD    = PWALL_O_BLD    ! wall surf. / bld surf. (-)
-T%XZ0_TOWN       = PZ0_TOWN       ! roughness length for momentum    (m)
+TP%XROAD_DIR      = PROAD_DIR      ! Road direction (deg from North, clockwise)
+TP%XGARDEN        = PGARDEN        ! fraction of veg in the streets   (-)
+TP%XGREENROOF     = PFRAC_GR       ! fraction of greenroofs on roofs  (-)
+TP%XBLD           = PBLD           ! fraction of buildings            (-)
+TP%XROAD          = PROAD          ! fraction of roads                (-)
+TP%XCAN_HW_RATIO  = PCAN_HW_RATIO  ! canyon    h/W                    (-)
+TP%XBLD_HEIGHT    = PBLD_HEIGHT    ! buildings height 'h'             (m)
+TP%XWALL_O_HOR    = PWALL_O_HOR    ! wall surf. / hor. surf.          (-)
+TP%XROAD_O_GRND   = PROAD_O_GRND   ! road surf. / (road + garden surf.) (-)
+TP%XGARDEN_O_GRND = PGARDEN_O_GRND ! gard. surf. / (road + garden surf.)(-)
+TP%XWALL_O_GRND   = PWALL_O_GRND   ! wall surf. / (road + garden surf.) (-)
+TP%XWALL_O_BLD    = PWALL_O_BLD    ! wall surf. / bld surf. (-)
+TP%XZ0_TOWN       = PZ0_TOWN       ! roughness length for momentum    (m)
 !MV202609 z0 and zd to namelist
-T%XZD_TOWN       = PZD_TOWN       ! displacement height of the town  (m)
-T%XSVF_ROAD      = PSVF_ROAD      ! road sky view factor             (-)
-T%XSVF_GARDEN    = PSVF_GARDEN    ! green area sky view factor       (-)
-T%XSVF_WALL      = PSVF_WALL      ! wall sky view factor             (-)
+TP%XZD_TOWN       = PZD_TOWN       ! displacement height of the town  (m)
+TP%XSVF_ROAD      = PSVF_ROAD      ! road sky view factor             (-)
+TP%XSVF_GARDEN    = PSVF_GARDEN    ! green area sky view factor       (-)
+TP%XSVF_WALL      = PSVF_WALL      ! wall sky view factor             (-)
 !
 ! Roof parameters
 !
-T%XALB_ROOF  = PALB_ROOF     ! roof albedo                      (-)
-T%XEMIS_ROOF = PEMIS_ROOF    ! roof emissivity                  (-)
-T%XHC_ROOF   = PHC_ROOF      ! roof layers heat capacity        (J/K/m3)
-T%XTC_ROOF   = PTC_ROOF      ! roof layers thermal conductivity (W/K/m)
-T%XD_ROOF    = PD_ROOF       ! depth of roof layers             (m)
-T%XROUGH_ROOF= PROUGH_ROOF   ! roof roughness coef
+TP%XALB_ROOF  = PALB_ROOF     ! roof albedo                      (-)
+TP%XEMIS_ROOF = PEMIS_ROOF    ! roof emissivity                  (-)
+TP%XHC_ROOF   = PHC_ROOF      ! roof layers heat capacity        (J/K/m3)
+TP%XTC_ROOF   = PTC_ROOF      ! roof layers thermal conductivity (W/K/m)
+TP%XD_ROOF    = PD_ROOF       ! depth of roof layers             (m)
+TP%XROUGH_ROOF= PROUGH_ROOF   ! roof roughness coef
 !
 !
 ! Road parameters
 !
-T%XALB_ROAD  = PALB_ROAD     ! road albedo                      (-)
-T%XEMIS_ROAD = PEMIS_ROAD    ! road emissivity                  (-)
-T%XHC_ROAD   = PHC_ROAD      ! road layers heat capacity        (J/K/m3)
-T%XTC_ROAD   = PTC_ROAD      ! road layers thermal conductivity (W/K/m)
-T%XD_ROAD    = PD_ROAD       ! depth of road layers             (m)
+TP%XALB_ROAD  = PALB_ROAD     ! road albedo                      (-)
+TP%XEMIS_ROAD = PEMIS_ROAD    ! road emissivity                  (-)
+TP%XHC_ROAD   = PHC_ROAD      ! road layers heat capacity        (J/K/m3)
+TP%XTC_ROAD   = PTC_ROAD      ! road layers thermal conductivity (W/K/m)
+TP%XD_ROAD    = PD_ROAD       ! depth of road layers             (m)
 !
 ! Wall parameters
 !
-T%XALB_WALL  = PALB_WALL     ! wall albedo                      (-)
-T%XEMIS_WALL = PEMIS_WALL    ! wall emissivity                  (-)
-T%XHC_WALL   = PHC_WALL      ! wall layers heat capacity        (J/K/m3)
-T%XTC_WALL   = PTC_WALL      ! wall layers thermal conductivity (W/K/m)
-T%XD_WALL    = PD_WALL       ! depth of wall layers             (m)
-T%XROUGH_WALL= PROUGH_WALL   ! wall roughness coef
+TP%XALB_WALL  = PALB_WALL     ! wall albedo                      (-)
+TP%XEMIS_WALL = PEMIS_WALL    ! wall emissivity                  (-)
+TP%XHC_WALL   = PHC_WALL      ! wall layers heat capacity        (J/K/m3)
+TP%XTC_WALL   = PTC_WALL      ! wall layers thermal conductivity (W/K/m)
+TP%XD_WALL    = PD_WALL       ! depth of wall layers             (m)
+TP%XROUGH_WALL= PROUGH_WALL   ! wall roughness coef
 !
 ! Building's use type
 !
-T%XRESIDENTIAL = PRESIDENTIAL ! fraction of Residential use      (-)
-T%XDT_RES = PDT_RES           ! target temperature change when unoccupied (K) (residential buildings)
-T%XDT_OFF = PDT_OFF           ! target temperature change when unoccupied (K) (offices buildings)
+TP%XRESIDENTIAL = PRESIDENTIAL ! fraction of Residential use      (-)
+TP%XDT_RES = PDT_RES           ! target temperature change when unoccupied (K) (residential buildings)
+TP%XDT_OFF = PDT_OFF           ! target temperature change when unoccupied (K) (offices buildings)
   
 !
 ! anthropogenic fluxes
 !
-T%XH_TRAFFIC   = PH_TRAFFIC   ! anthropogenic sensible
+TP%XH_TRAFFIC   = PH_TRAFFIC   ! anthropogenic sensible
 !                             ! heat fluxes due to traffic       (W/m2)
-T%XLE_TRAFFIC  = PLE_TRAFFIC  ! anthropogenic latent
+TP%XLE_TRAFFIC  = PLE_TRAFFIC  ! anthropogenic latent
 !                             ! heat fluxes due to traffic       (W/m2)
-T%XH_INDUSTRY  = PH_INDUSTRY  ! anthropogenic sensible                   
+TP%XH_INDUSTRY  = PH_INDUSTRY  ! anthropogenic sensible                   
 !                             ! heat fluxes due to factories     (W/m2)
-T%XLE_INDUSTRY = PLE_INDUSTRY ! anthropogenic latent
+TP%XLE_INDUSTRY = PLE_INDUSTRY ! anthropogenic latent
 !                             ! heat fluxes due to factories     (W/m2)
 !
 ! Prognostic variables:
@@ -1250,7 +1254,7 @@ CALL TEB_GARDEN           (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENR
                           PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, &
 !MV202609 greenroof-to-atm exchange diagnostics
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
-                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM)
+                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, TP, BP)
 !
 !-------------------------------------------------------------------------------
 !
@@ -1430,7 +1434,7 @@ DMT%XPLESN_RD_ATM(:) = PLESN_RD_ATM(:)
 !
 !-------------------------------------------------------------------------------
 !
-CALL DEALLOC_TEB_STRUCT(TOP,T,BOP,B,TPN,TIR) 
+CALL DEALLOC_TEB_STRUCT(TOP,TP,T,BOP,BP,B,TPN,TIR) 
 !
 !-------------------------------------------------------------------------------
 !

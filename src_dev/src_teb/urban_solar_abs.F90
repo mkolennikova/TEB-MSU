@@ -9,7 +9,7 @@
                                PREC_SW_SN_RD, PREC_SW_WL_A, PREC_SW_WL_B,           &
                                PREC_SW_GD, PREC_SW_RF, PDIR_ALB_TWN, PSCA_ALB_TWN,  &
                                PSO_ALB_TWN, ZSW_UP_SO, PSW_RAD_GD, PREC_SW_WIN, PREF_SW_GRND,  &
-							   PREF_SW_FAC, PE_SHADING, OSHAD_DAY, OSHADE, OALB_ONLY )  
+							   PREF_SW_FAC, PE_SHADING, OSHAD_DAY, OSHADE, TP, BP , OALB_ONLY)  
 !   ##########################################################################
 !
 !!****  *URBAN_SOLAR_ABS*  
@@ -191,7 +191,12 @@ USE MODI_WINDOW_SHADING
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 !
 !*      0.1    declarations of arguments
 !
@@ -324,13 +329,13 @@ IF (PRESENT(OALB_ONLY)) GALB_ONLY = OALB_ONLY
 ZDIR_SW = MAX(PDIR_SW,0.)
 ZSCA_SW = MAX(PSCA_SW,0.000001)
 !
-ZRD_DIR = T%XROAD_DIR(:) * XPI/180.
+ZRD_DIR = TP%XROAD_DIR(:) * XPI/180.
 !
-DO JJ=1,SIZE(T%XROAD)
+DO JJ=1,SIZE(TP%XROAD)
 !
-  IF (T%XROAD(JJ)+T%XGARDEN(JJ).NE.0.) THEN
-    ZRD(JJ)   = T%XROAD(JJ) / (T%XROAD(JJ)+T%XGARDEN(JJ))
-    ZGD(JJ) = T%XGARDEN(JJ) / (T%XROAD(JJ)+T%XGARDEN(JJ))
+  IF (TP%XROAD(JJ)+TP%XGARDEN(JJ).NE.0.) THEN
+    ZRD(JJ)   = TP%XROAD(JJ) / (TP%XROAD(JJ)+TP%XGARDEN(JJ))
+    ZGD(JJ) = TP%XGARDEN(JJ) / (TP%XROAD(JJ)+TP%XGARDEN(JJ))
   ELSE
     ZRD(JJ)=0.
     ZGD(JJ)=0.
@@ -347,10 +352,10 @@ DO JJ=1,SIZE(T%XROAD)
   ZABS_SCA_SW_PANEL    (JJ) = ZSCA_SW(JJ) * (1. - PALB_PANEL    (JJ))
 !
 !* solar energy received by the surfaces below solar panels
-  ZABS_DIR_SW_RF   (JJ) = ZDIR_SW(JJ) * (1. - T%XALB_ROOF     (JJ)) * (1.-PFRAC_PANEL(JJ))
+  ZABS_DIR_SW_RF   (JJ) = ZDIR_SW(JJ) * (1. - TP%XALB_ROOF     (JJ)) * (1.-PFRAC_PANEL(JJ))
   ZABS_DIR_SW_SN_RF(JJ) = ZDIR_SW(JJ) * (1. - T%TSNOW_ROOF%ALB(JJ)) * (1.-PFRAC_PANEL(JJ))
   ZABS_DIR_SW_GRF  (JJ) = ZDIR_SW(JJ) * (1. - PALB_GRF        (JJ)) * (1.-PFRAC_PANEL(JJ))
-  ZABS_SCA_SW_RF   (JJ) = ZSCA_SW(JJ) * (1. - T%XALB_ROOF     (JJ)) * (1.-PFRAC_PANEL(JJ))
+  ZABS_SCA_SW_RF   (JJ) = ZSCA_SW(JJ) * (1. - TP%XALB_ROOF     (JJ)) * (1.-PFRAC_PANEL(JJ))
   ZABS_SCA_SW_SN_RF(JJ) = ZSCA_SW(JJ) * (1. - T%TSNOW_ROOF%ALB(JJ)) * (1.-PFRAC_PANEL(JJ))
   ZABS_SCA_SW_GRF  (JJ) = ZSCA_SW(JJ) * (1. - PALB_GRF        (JJ)) * (1.-PFRAC_PANEL(JJ))
 !
@@ -369,27 +374,27 @@ DO JJ=1,SIZE(T%XROAD)
   ENDIF
 !
 !
-  IF (T%XBLD(JJ) .GT. 0.) THEN
+  IF (TP%XBLD(JJ) .GT. 0.) THEN
 !
 !*      2.1    radiation coefficients
 !              ----------------------
 !
 IF (TOP%CROAD_DIR=='UNIF') THEN
-  ZTHETA0(JJ) = ASIN( MIN(ABS( 1./ZTANZEN(JJ))/T%XCAN_HW_RATIO(JJ), 1. ) )
+  ZTHETA0(JJ) = ASIN( MIN(ABS( 1./ZTANZEN(JJ))/TP%XCAN_HW_RATIO(JJ), 1. ) )
 !
 !*      2.2    direct solar radiation received by roads and GARDEN areas
 !               -------------------------------------------------------
 !
   ZDIR_SW_RD (JJ) = (  ZDIR_SW(JJ) * 2. * ZTHETA0(JJ) / XPI                 &
                      - ZDIR_SW(JJ) * 2. * ZTANZEN(JJ) / XPI                 &
-                        * T%XCAN_HW_RATIO(JJ) * (1.-COS(ZTHETA0(JJ)))  )  
+                        * TP%XCAN_HW_RATIO(JJ) * (1.-COS(ZTHETA0(JJ)))  )  
 !
   ZDIR_SW_GD(JJ) = ( ZDIR_SW(JJ) * 2. * ZTHETA0(JJ) / XPI                 &
                    - ZDIR_SW(JJ) * 2. * ZTANZEN(JJ) / XPI                 &
-                       * T%XCAN_HW_RATIO(JJ) * (1.-COS(ZTHETA0(JJ)))  )  
+                       * TP%XCAN_HW_RATIO(JJ) * (1.-COS(ZTHETA0(JJ)))  )  
 ELSE
   ZDIR_SW_RD (JJ) = ZDIR_SW(JJ) * &
-          MAX(0.,1.-T%XCAN_HW_RATIO(JJ)*ZTANZEN(JJ)*ABS(SIN(PAZIM(JJ)-ZRD_DIR(JJ))))
+          MAX(0.,1.-TP%XCAN_HW_RATIO(JJ)*ZTANZEN(JJ)*ABS(SIN(PAZIM(JJ)-ZRD_DIR(JJ))))
   ZDIR_SW_GD(JJ) = ZDIR_SW_RD(JJ)
 
 END IF
@@ -398,7 +403,7 @@ END IF
 !              ----------------------------------------
 !
   ZDIR_SW_WL(JJ) = (ZDIR_SW(JJ) - (ZDIR_SW_RD(JJ)*ZRD(JJ)+ZDIR_SW_GD(JJ)*ZGD(JJ))) &
-                      * 0.5 / T%XCAN_HW_RATIO(JJ)  
+                      * 0.5 / TP%XCAN_HW_RATIO(JJ)  
 !
 
   ELSE
@@ -436,14 +441,14 @@ END IF
 !*      2.4    diffuse solar radiation received by roads and GARDEN areas
 !              ---------------------------------------------------------
 !
-  ZSCA_SW_RD (JJ) = ZSCA_SW(JJ) * T%XSVF_ROAD(JJ)
+  ZSCA_SW_RD (JJ) = ZSCA_SW(JJ) * TP%XSVF_ROAD(JJ)
 !
   ZSCA_SW_GD (JJ) = ZSCA_SW(JJ) * PSVF_GD(JJ)
 !
 !*      2.5    diffuse solar radiation received by walls
 !              -----------------------------------------
 !
-  ZSCA_SW_WL (JJ) = ZSCA_SW(JJ) * T%XSVF_WALL(JJ)
+  ZSCA_SW_WL (JJ) = ZSCA_SW(JJ) * TP%XSVF_WALL(JJ)
 !
 !*      2.6    total solar radiation received by GARDEN areas
 !              ---------------------------------------------
@@ -453,7 +458,7 @@ END IF
 !*      2.7    averaged albedos when snow is present
 !              -------------------------------------
 !
-  ZAALB_RD   (JJ) =  PDF_RD (JJ) * T%XALB_ROAD   (JJ) + PDN_RD (JJ) * T%TSNOW_ROAD%ALB (JJ)  
+  ZAALB_RD   (JJ) =  PDF_RD (JJ) * TP%XALB_ROAD   (JJ) + PDN_RD (JJ) * T%TSNOW_ROAD%ALB (JJ)  
 !
 !
 ENDDO
@@ -474,7 +479,7 @@ IF (TOP%CBEM=='BEM') THEN
 	OSHAD_DAY(:)  = G_EFF_SHAD(:) .OR. OSHAD_DAY(:)
 	!OSHAD_DAY(:) = .FALSE.
     !
-    CALL WINDOW_SHADING(B%XSHGC, B%XSHGC_SH, OSHAD_DAY, T%XALB_WALL, &
+    CALL WINDOW_SHADING(BP%XSHGC, BP%XSHGC_SH, OSHAD_DAY, TP%XALB_WALL, &
                         B%XABS_WIN, ZABS_WIN, B%XALB_WIN, ZTRAN_WIN      )
     !
 ELSE
@@ -485,7 +490,7 @@ ELSE
   !
 ENDIF
 !
-ZAALB_WL(:) =  B%XGR(:) * B%XALB_WIN(:) + (1.-B%XGR(:)) * T%XALB_WALL(:)
+ZAALB_WL(:) =  BP%XGR(:) * B%XALB_WIN(:) + (1.-BP%XGR(:)) * TP%XALB_WALL(:)
 !
 !*      2.8    absorption of direct incoming solar radiation
 !              ---------------------------------------------
@@ -503,10 +508,10 @@ ELSE
 !* if walls are separated, then radiation reaches the wall facing sun
 ! Note that wall A is the one facing mostly to the North (depending to
 ! road orientation), and wall B in the one facing mostly to the South.
-  ZDW = (1.-T%XALB_WALL(:)) * ZAALB_WL(:) * (1.-2.*T%XSVF_WALL(:)) &
-       / (1.+ZAALB_WL(:)*(1.-2.*T%XSVF_WALL(:)))                 &
+  ZDW = (1.-TP%XALB_WALL(:)) * ZAALB_WL(:) * (1.-2.*TP%XSVF_WALL(:)) &
+       / (1.+ZAALB_WL(:)*(1.-2.*TP%XSVF_WALL(:)))                 &
        * 0.5 * (ZDIR_SW_WL_A(:)-ZDIR_SW_WL_B(:))            &
-       + 0.5 * (1.-T%XALB_WALL(:)) * (ZDIR_SW_WL_A-ZDIR_SW_WL_B)
+       + 0.5 * (1.-TP%XALB_WALL(:)) * (ZDIR_SW_WL_A-ZDIR_SW_WL_B)
   ZABS_DIR_SW_WL_A = ZABS_DIR_SW_WL + ZDW
   ZABS_DIR_SW_WL_B = ZABS_DIR_SW_WL - ZDW
 END IF
@@ -520,11 +525,11 @@ END IF
 !
 ! solar flux reflected for wall and road
 !
-PREF_SW_GRND = ZRD * T%XALB_ROAD / (1.-T%XALB_ROAD ) * (ZABS_DIR_SW_RD + ZABS_SCA_SW_RD) &
+PREF_SW_GRND = ZRD * TP%XALB_ROAD / (1.-TP%XALB_ROAD ) * (ZABS_DIR_SW_RD + ZABS_SCA_SW_RD) &
              + ZGD * PALB_GD     / (1.-PALB_GD     ) * (ZABS_DIR_SW_GD + ZABS_SCA_SW_GD)
 !
-PREF_SW_FAC = (1 - B%XGR) * T%XALB_WALL / (1.-T%XALB_WALL) * (ZABS_DIR_SW_WL + ZABS_SCA_SW_WL)    &
-            +      B%XGR  * B%XALB_WIN  / (1 - B%XALB_WIN) * (ZABS_DIR_SW_WIN + ZABS_SCA_SW_WIN)
+PREF_SW_FAC = (1 - BP%XGR) * TP%XALB_WALL / (1.-TP%XALB_WALL) * (ZABS_DIR_SW_WL + ZABS_SCA_SW_WL)    &
+            +      BP%XGR  * B%XALB_WIN  / (1 - B%XALB_WIN) * (ZABS_DIR_SW_WIN + ZABS_SCA_SW_WIN)
 !
 !-------------------------------------------------------------------------------
 !
@@ -617,7 +622,7 @@ PREC_SW_RF    (:) = 0.
 !
 IF (TOP%CBEM=='BEM') THEN
   !
-  DO JJ=1,SIZE(T%XROAD)
+  DO JJ=1,SIZE(TP%XROAD)
     !
     ! solar radiation absorbed (but not transmitted) by windows
     !
@@ -634,7 +639,7 @@ IF (TOP%CBEM=='BEM') THEN
   !
 ENDIF
 !
-DO JJ=1,SIZE(T%XROAD)
+DO JJ=1,SIZE(TP%XROAD)
 !
 !*      5.     Total solar radiation absorbed by each surface
 !              ----------------------------------------------
@@ -674,12 +679,12 @@ DO JJ=1,SIZE(T%XROAD)
 !*      6.     total solar radiation received by roads and GARDEN areas
 !              -------------------------------------------------------
 !
-  PREC_SW_RD      (JJ) = DMT%XABS_SW_ROAD      (JJ)/(1.-T%XALB_ROAD   (JJ))
+  PREC_SW_RD      (JJ) = DMT%XABS_SW_ROAD      (JJ)/(1.-TP%XALB_ROAD   (JJ))
 !
   PREC_SW_SN_RD   (JJ) = DMT%XABS_SW_SNOW_ROAD (JJ)/(1.-T%TSNOW_ROAD%ALB(JJ))
 !
-  PREC_SW_WL_A    (JJ) = DMT%XABS_SW_WALL_A    (JJ)/(1.-T%XALB_WALL   (JJ))
-  PREC_SW_WL_B    (JJ) = DMT%XABS_SW_WALL_B    (JJ)/(1.-T%XALB_WALL   (JJ))
+  PREC_SW_WL_A    (JJ) = DMT%XABS_SW_WALL_A    (JJ)/(1.-TP%XALB_WALL   (JJ))
+  PREC_SW_WL_B    (JJ) = DMT%XABS_SW_WALL_B    (JJ)/(1.-TP%XALB_WALL   (JJ))
 !
   PREC_SW_GD      (JJ) = DMT%XABS_SW_GARDEN    (JJ)/(1.-PALB_GD (JJ))
 !
@@ -701,7 +706,7 @@ ENDDO
 !
 IF (TOP%LSOLAR_PANEL) THEN
   !
-  DO JJ=1,SIZE(T%XROAD)
+  DO JJ=1,SIZE(TP%XROAD)
     !
     ! solar radiation absorbed by solar panels
     !
@@ -756,21 +761,21 @@ DO JJ=1,SIZE(ZSW_RD)
 !              --------------------------------
 !
 
-  ZDENOM(JJ) = 1. - (1.-2.*T%XSVF_WALL(JJ)) * T%XALB_WALL(JJ) - (1. - T%XSVF_ROAD(JJ))* &
-               T%XSVF_WALL(JJ)*T%XALB_WALL(JJ)*ZAALB_RD(JJ)*ZRD(JJ) &
+  ZDENOM(JJ) = 1. - (1.-2.*TP%XSVF_WALL(JJ)) * TP%XALB_WALL(JJ) - (1. - TP%XSVF_ROAD(JJ))* &
+               TP%XSVF_WALL(JJ)*TP%XALB_WALL(JJ)*ZAALB_RD(JJ)*ZRD(JJ) &
                   - (1. - PSVF_GD(JJ))* &
-                T%XSVF_WALL(JJ)*T%XALB_WALL(JJ)*PALB_GD(JJ)*ZGD(JJ)  
+                TP%XSVF_WALL(JJ)*TP%XALB_WALL(JJ)*PALB_GD(JJ)*ZGD(JJ)  
 
-  ZWORK1(JJ) = T%XSVF_WALL(JJ) * T%XALB_WALL(JJ) * ZRD(JJ)
-  ZWORK2(JJ) = T%XSVF_WALL(JJ) * T%XALB_WALL(JJ) * ZGD(JJ)
+  ZWORK1(JJ) = TP%XSVF_WALL(JJ) * TP%XALB_WALL(JJ) * ZRD(JJ)
+  ZWORK2(JJ) = TP%XSVF_WALL(JJ) * TP%XALB_WALL(JJ) * ZGD(JJ)
 !
 !
   ZSREF_SW_WL(JJ) = (  ZREF0_SW_WL(JJ) + ZWORK1(JJ) *ZREF0_SW_RD(JJ)   &
                         + ZWORK2(JJ) *ZREF0_SW_GD(JJ)) / ZDENOM(JJ)  
 
-  ZSREF_SW_RD(JJ) = ((1.- T%XSVF_ROAD(JJ)) * ZAALB_RD(JJ) * ZREF0_SW_WL(JJ) &
-                    +(1.- T%XSVF_ROAD(JJ)) * ZAALB_RD(JJ) * ZWORK1(JJ) * ZREF0_SW_RD(JJ)  &
-                    +(1.- T%XSVF_ROAD(JJ)) * ZAALB_RD(JJ) * ZWORK2(JJ) * ZREF0_SW_GD(JJ)) &
+  ZSREF_SW_RD(JJ) = ((1.- TP%XSVF_ROAD(JJ)) * ZAALB_RD(JJ) * ZREF0_SW_WL(JJ) &
+                    +(1.- TP%XSVF_ROAD(JJ)) * ZAALB_RD(JJ) * ZWORK1(JJ) * ZREF0_SW_RD(JJ)  &
+                    +(1.- TP%XSVF_ROAD(JJ)) * ZAALB_RD(JJ) * ZWORK2(JJ) * ZREF0_SW_GD(JJ)) &
                       / ZDENOM(JJ) + ZREF0_SW_RD(JJ)   
 
   ZSREF_SW_GD(JJ) = ((1.- PSVF_GD(JJ)) * PALB_GD(JJ) * ZREF0_SW_WL(JJ)   &
@@ -781,10 +786,10 @@ DO JJ=1,SIZE(ZSW_RD)
 !*      C.     total solar radiation received by roads and GD areas
 !              -------------------------------------------------------
 !
-  ZABS_SW_RD(JJ)    = (1.-T%XALB_ROAD(JJ)) * (ZSW_RD(JJ) + ZSREF_SW_WL(JJ) * (1.- T%XSVF_ROAD(JJ)))  
+  ZABS_SW_RD(JJ)    = (1.-TP%XALB_ROAD(JJ)) * (ZSW_RD(JJ) + ZSREF_SW_WL(JJ) * (1.- TP%XSVF_ROAD(JJ)))  
 !
   ZABS_SW_SN_RD(JJ) = (1.-T%TSNOW_ROAD%ALB(JJ)) * &
-                        (ZSW_RD(JJ) + ZSREF_SW_WL(JJ) * (1.- T%XSVF_ROAD(JJ)))  
+                        (ZSW_RD(JJ) + ZSREF_SW_WL(JJ) * (1.- TP%XSVF_ROAD(JJ)))  
 !
   ZABS_SW_GD(JJ)    = (1.-PALB_GD(JJ)) * (ZSW_GD(JJ) + ZSREF_SW_WL(JJ)  * (1.- PSVF_GD(JJ)))  
 !
@@ -792,17 +797,17 @@ DO JJ=1,SIZE(ZSW_RD)
 !*      D.     total solar radiation received by walls
 !              ---------------------------------------
 !
-  ZABS_SW_WL(JJ)      = (1.-T%XALB_WALL(JJ))                                  &
+  ZABS_SW_WL(JJ)      = (1.-TP%XALB_WALL(JJ))                                  &
                          * (ZSW_WL(JJ)                                        &
-                           + ZSREF_SW_RD(JJ) *        T%XSVF_WALL(JJ)*ZRD(JJ) &
-                           + ZSREF_SW_GD(JJ) *        T%XSVF_WALL(JJ)*ZGD(JJ) &
-                           + ZSREF_SW_WL(JJ) * (1.-2.*T%XSVF_WALL(JJ))          )  
+                           + ZSREF_SW_RD(JJ) *        TP%XSVF_WALL(JJ)*ZRD(JJ) &
+                           + ZSREF_SW_GD(JJ) *        TP%XSVF_WALL(JJ)*ZGD(JJ) &
+                           + ZSREF_SW_WL(JJ) * (1.-2.*TP%XSVF_WALL(JJ))          )  
 !
   ZABS_SW_WIN (JJ)      = (1.-B%XALB_WIN (JJ))                                  &
                          * (ZSW_WL(JJ)                                          &
-                           + ZSREF_SW_RD(JJ)   *        T%XSVF_WALL(JJ)*ZRD(JJ) &
-                           + ZSREF_SW_GD(JJ) *          T%XSVF_WALL(JJ)*ZGD(JJ) &
-                           + ZSREF_SW_WL(JJ)   * (1.-2.*T%XSVF_WALL(JJ))          )  
+                           + ZSREF_SW_RD(JJ)   *        TP%XSVF_WALL(JJ)*ZRD(JJ) &
+                           + ZSREF_SW_GD(JJ) *          TP%XSVF_WALL(JJ)*ZGD(JJ) &
+                           + ZSREF_SW_WL(JJ)   * (1.-2.*TP%XSVF_WALL(JJ))          )  
 !
 ENDDO
 !
@@ -837,15 +842,15 @@ IF (LHOOK) CALL DR_HOOK('TOWN_ALBEDO',0,ZHOOK_HANDLE)
 DO JJ=1,SIZE(ZSW)
 
   ZSW_UP(JJ) = ZSW(JJ)                                                           &
-            - ( T%XBLD(JJ)   *(1.-T%XGREENROOF(JJ))*PDF_RF(JJ) *ZABS_SW_RF   (JJ)&
-               +T%XBLD(JJ)   *(1.-T%XGREENROOF(JJ))*PDN_RF(JJ) *ZABS_SW_SN_RF(JJ)&
-               +T%XBLD(JJ)   *    T%XGREENROOF(JJ)             *ZABS_SW_GRF   (JJ)&
-               +T%XBLD(JJ)   *    PFRAC_PANEL(JJ)              *ZABS_SW_PANEL (JJ)&
-               +T%XROAD(JJ)                        *PDF_RD(JJ) *ZABS_SW_RD (JJ)    &
-               +T%XROAD(JJ)                        *PDN_RD(JJ) *ZABS_SW_SN_RD(JJ)&
-               +T%XGARDEN(JJ)                                  *ZABS_SW_GD(JJ)   &
-               +T%XWALL_O_HOR(JJ)              *(1.-B%XGR(JJ)) *ZABS_SW_WL(JJ)     &
-               +T%XWALL_O_HOR(JJ)              *    B%XGR(JJ)  *ZABS_SW_WIN (JJ)     )  
+            - ( TP%XBLD(JJ)   *(1.-TP%XGREENROOF(JJ))*PDF_RF(JJ) *ZABS_SW_RF   (JJ)&
+               +TP%XBLD(JJ)   *(1.-TP%XGREENROOF(JJ))*PDN_RF(JJ) *ZABS_SW_SN_RF(JJ)&
+               +TP%XBLD(JJ)   *    TP%XGREENROOF(JJ)             *ZABS_SW_GRF   (JJ)&
+               +TP%XBLD(JJ)   *    PFRAC_PANEL(JJ)              *ZABS_SW_PANEL (JJ)&
+               +TP%XROAD(JJ)                        *PDF_RD(JJ) *ZABS_SW_RD (JJ)    &
+               +TP%XROAD(JJ)                        *PDN_RD(JJ) *ZABS_SW_SN_RD(JJ)&
+               +TP%XGARDEN(JJ)                                  *ZABS_SW_GD(JJ)   &
+               +TP%XWALL_O_HOR(JJ)              *(1.-BP%XGR(JJ)) *ZABS_SW_WL(JJ)     &
+               +TP%XWALL_O_HOR(JJ)              *    BP%XGR(JJ)  *ZABS_SW_WIN (JJ)     )  
 !
   IF (ZSW(JJ)>0.) THEN
     ZALBEDO(JJ)  = ZSW_UP(JJ) / ZSW(JJ)

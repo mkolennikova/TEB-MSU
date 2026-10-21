@@ -26,7 +26,7 @@
                           PAC_ROAD_ATM_WAT,                                              &
 !MV202609 greenroof-to-atm exchange diagnostics
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM,       &
-                          PCH_GREENROOF_ATM, PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM   ) 
+                          PCH_GREENROOF_ATM, PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM   , TP) 
 !   ##########################################################################
 !
 !!****  *URBAN_DRAG*  
@@ -104,7 +104,10 @@ USE MODE_CONV_DOE
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+
 !
 !*      0.1    declarations of arguments
 !
@@ -332,7 +335,7 @@ IF (LHOOK) CALL DR_HOOK('URBAN_DRAG',0,ZHOOK_HANDLE)
 ZZ0_ROOF(:)    = 0.15                      ! z0 for roofs
 ZZ0_ROAD(:)    = MIN(0.05,0.1*PZ_LOWCAN(:))! z0 for roads
 !
-ZZ0_TOP(:) = T%XZ0_TOWN(:)
+ZZ0_TOP(:) = TP%XZ0_TOWN(:)
 !
 PCD    (:) = XUNDEF
 PCDN   (:) = XUNDEF
@@ -440,7 +443,7 @@ DO JJ=1,SIZE(PTA)
 !*      4.1    Averaged temperature at roof level
 !              ----------------------------------
 !
-  ZTS_TOWN(JJ) = T%XBLD(JJ) * PTS_ROOF(JJ) + (1.-T%XBLD(JJ)) * PT_CANYON(JJ)
+  ZTS_TOWN(JJ) = TP%XBLD(JJ) * PTS_ROOF(JJ) + (1.-TP%XBLD(JJ)) * PT_CANYON(JJ)
 !
 !*      4.2    Averaged water fraction on roofs
 !              -------------------------------
@@ -455,7 +458,7 @@ DO JJ=1,SIZE(PTA)
 !*      4.4    Averaged Saturation specific humidity
 !              -------------------------------------
 !
-  ZQ_TOWN(JJ) =  T%XBLD(JJ) * ZQ_ROOF(JJ) + (1.-T%XBLD(JJ)) * PQ_CANYON(JJ)
+  ZQ_TOWN(JJ) =  TP%XBLD(JJ) * ZQ_ROOF(JJ) + (1.-TP%XBLD(JJ)) * PQ_CANYON(JJ)
 !
 ENDDO
 !
@@ -468,12 +471,12 @@ IF (.NOT. TOP%LCANOPY) THEN
  
 !MV202609 z0 and zd to namelist
 ! The reference heights are taken above the displacement surface:
-!   (roof height - zd) + PZREF = (T%XBLD_HEIGHT - T%XZD_TOWN) + PZREF
-! (the official TEB has a hard-coded '+ T%XBLD_HEIGHT/3.' here, which corresponds
+!   (roof height - zd) + PZREF = (TP%XBLD_HEIGHT - TP%XZD_TOWN) + PZREF
+! (the official TEB has a hard-coded '+ TP%XBLD_HEIGHT/3.' here, which corresponds
 !  to zd = 2/3*H and is not consistent with the wind profile of the driver,
 !  where 2/3*H = H - zd gives zd = H/3)
   CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, ZTS_TOWN, ZQ_TOWN, PEXNS, PEXNA, PTA, PQA,     &
-                       PZREF+ (T%XBLD_HEIGHT-T%XZD_TOWN), PUREF+(T%XBLD_HEIGHT-T%XZD_TOWN), PVMOD, T%XZ0_TOWN, &
+                       PZREF+ (TP%XBLD_HEIGHT-TP%XZD_TOWN), PUREF+(TP%XBLD_HEIGHT-TP%XZD_TOWN), PVMOD, TP%XZ0_TOWN, &
                        PRI, PCD, PCDN, ZAC, ZRA, ZCH, ZZ0H_TOWN, ILMO_TOWN              )
   
 !  OPEN(UNIT=27, FILE = ZZ0H_TOWN1, ACCESS = 'APPEND')
@@ -492,7 +495,7 @@ ENDIF
 IF (TOP%CCH_BEM == "DOE-2") THEN
    ZCHTCN_ROOF = CHTC_UP_DOE(PTS_ROOF, PTA)
    ZCHTCS_ROOF = CHTC_SMOOTH_WIND_DOE(ZCHTCN_ROOF, PVMOD)
-   PAC_ROOF = CHTC_ROUGH_DOE(ZCHTCN_ROOF, ZCHTCS_ROOF, T%XROUGH_ROOF) / PRHOA / XCPD
+   PAC_ROOF = CHTC_ROUGH_DOE(ZCHTCN_ROOF, ZCHTCS_ROOF, TP%XROUGH_ROOF) / PRHOA / XCPD
 ELSE
    
    CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROOF, ZQ_ROOF, PEXNS, PEXNA, PTA, PQA, &
@@ -532,11 +535,11 @@ ENDDO
 IF (.NOT. TOP%LCANOPY) THEN 
 
   CALL URBAN_EXCH_COEF('MASC95', 1., PT_CANYON, PQ_CANYON, PEXNS, PEXNA, PTA, PQA,    &
-                      PZREF+T%XBLD_HEIGHT-PZ_LOWCAN, PUREF+T%XBLD_HEIGHT-PZ_LOWCAN, &
+                      PZREF+TP%XBLD_HEIGHT-PZ_LOWCAN, PUREF+TP%XBLD_HEIGHT-PZ_LOWCAN, &
                       PVMOD, ZZ0_TOP,  ZRI, ZCD, ZCDN, PAC_TOP, ZRA_TOP, PCH_TOP, ZZ0H_TOP, ILMO_TOP  )
 
 !  CALL URBAN_EXCH_COEF(TOP%CZ0H, 1., PT_CANYON, PQ_CANYON, PEXNS, PEXNA, PTA, PQA,    &
-!                        PZREF+T%XBLD_HEIGHT-PZ_LOWCAN, PUREF+T%XBLD_HEIGHT-PZ_LOWCAN, &
+!                        PZREF+TP%XBLD_HEIGHT-PZ_LOWCAN, PUREF+TP%XBLD_HEIGHT-PZ_LOWCAN, &
 !                        PVMOD, ZZ0_TOP,  ZRI, ZCD, ZCDN, PAC_TOP, ZRA_TOP, PCH_TOP,   &
 !  						ZZ0H_TOP, ILMO_TOP  )
 
@@ -569,7 +572,7 @@ IF (TOP%CCH_BEM == "DOE-2") THEN
     ZCHTCS_WALL(JJ) = 0.5 * (CHTC_SMOOTH_LEE_DOE (ZCHTCN_WALL(JJ), PU_CANYON(JJ)) + &
                              CHTC_SMOOTH_WIND_DOE(ZCHTCN_WALL(JJ), PU_CANYON(JJ)) )
                       
-    PAC_WALL(JJ) = CHTC_ROUGH_DOE(ZCHTCN_WALL(JJ), ZCHTCS_WALL(JJ), T%XROUGH_WALL(JJ)) / XCPD / PRHOA(JJ)
+    PAC_WALL(JJ) = CHTC_ROUGH_DOE(ZCHTCN_WALL(JJ), ZCHTCS_WALL(JJ), TP%XROUGH_WALL(JJ)) / XCPD / PRHOA(JJ)
   END DO
 ELSE
   PAC_WALL(:) = ( 11.8 + 4.2 * PU_CANYON(:) ) / XCPD / PRHOA(:)
@@ -597,9 +600,9 @@ DO JLOOP=1,3
 !  computation was commented out, so ZTS_GROUND was used uninitialised.
 !  The zero-denominator case (no road and no garden) is guarded, as done for
 !  ZRD/ZGD in URBAN_SOLAR_ABS.
-WHERE (T%XROAD(:) + T%XGARDEN(:) > 0.)
-  ZTS_GROUND(:) = PTS_ROAD(:)   * T%XROAD(:)   / (T%XROAD(:) + T%XGARDEN(:)) &
-                + PTS_GARDEN(:) * T%XGARDEN(:) / (T%XROAD(:) + T%XGARDEN(:))
+WHERE (TP%XROAD(:) + TP%XGARDEN(:) > 0.)
+  ZTS_GROUND(:) = PTS_ROAD(:)   * TP%XROAD(:)   / (TP%XROAD(:) + TP%XGARDEN(:)) &
+                + PTS_GARDEN(:) * TP%XGARDEN(:) / (TP%XROAD(:) + TP%XGARDEN(:))
 ELSEWHERE
   ZTS_GROUND(:) = PTS_ROAD(:)
 END WHERE
@@ -616,11 +619,11 @@ END WHERE
   
   DO JJ=1,SIZE(PTA)
 
-    ZQ0(JJ)     = (PTS_WALL  (JJ) - PT_CANYON(JJ)) * PAC_WALL  (JJ) * T%XWALL_O_GRND(JJ)
+    ZQ0(JJ)     = (PTS_WALL  (JJ) - PT_CANYON(JJ)) * PAC_WALL  (JJ) * TP%XWALL_O_GRND(JJ)
 
-    IF (T%XROAD(JJ) .GT. 0.) THEN
+    IF (TP%XROAD(JJ) .GT. 0.) THEN
 !      ZQ0(JJ)   = ZQ0(JJ) &
-!            + (PTS_ROAD  (JJ) - PT_LOWCAN(JJ)) * PAC_ROAD_CAN  (JJ) * T%XROAD  (JJ)/(T%XROAD(JJ)+T%XGARDEN(JJ)) 
+!            + (PTS_ROAD  (JJ) - PT_LOWCAN(JJ)) * PAC_ROAD_CAN  (JJ) * TP%XROAD  (JJ)/(TP%XROAD(JJ)+TP%XGARDEN(JJ)) 
 
       ZQ0(JJ)   = ZQ0(JJ) &
             + (ZTS_GROUND  (JJ) - PT_LOWCAN(JJ)) * PAC_ROAD_CAN  (JJ)
@@ -628,7 +631,7 @@ END WHERE
     ENDIF
 ! 
     IF (ZQ0(JJ) >= 0.) THEN
-      ZW_STAR(JJ) = ( (XG * PEXNA(JJ) / PTA(JJ)) * ZQ0(JJ) * T%XBLD_HEIGHT(JJ)) ** (1/3.)
+      ZW_STAR(JJ) = ( (XG * PEXNA(JJ) / PTA(JJ)) * ZQ0(JJ) * TP%XBLD_HEIGHT(JJ)) ** (1/3.)
     ELSE
       ZW_STAR(JJ) = 0.
     ENDIF

@@ -5,7 +5,7 @@
 !   ##########################################################################
     SUBROUTINE MASS_LAYER_E_BUDGET(B, PTSTEP, PFLX_BLD_MA, PDQS_MA, PIMB_MA, PRADHT_IN, &
                                    PRAD_WL_MA, PRAD_RF_MA, PRAD_WIN_MA, PLOAD_MA,       &
-                                   PRAD_FL_MA, PCONV_MA_BLD                  )
+                                   PRAD_FL_MA, PCONV_MA_BLD                  , BP)
 !   ##########################################################################
 !
 !!****  *MASS_LAYER_E_BUDGET*  
@@ -78,7 +78,10 @@ USE MODE_CONV_DOE
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 !
 !*      0.1    declarations of arguments
 !
@@ -125,7 +128,7 @@ DO JJ=1,SIZE(ZCHTC_IN_MA)
    ZCHTC_IN_MA(JJ) = MAX(1., ZCHTC_IN_MA(JJ))
 ENDDO
 !
- CALL LAYER_E_BUDGET_GET_COEF( B%XT_MASS, PTSTEP, ZIMPL, B%XHC_FLOOR, B%XTC_FLOOR, B%XD_FLOOR/2., &
+ CALL LAYER_E_BUDGET_GET_COEF( B%XT_MASS, PTSTEP, ZIMPL, BP%XHC_FLOOR, BP%XTC_FLOOR, BP%XD_FLOOR/2., &
                               ZA, ZB, ZC, ZY )
 !
 ZTS_MA(:) = B%XT_MASS(:,1) 
@@ -134,10 +137,10 @@ ZB(:,1) = ZB(:,1) + ZIMPL * 4./3. * ZCHTC_IN_MA(:)
 
 ZY(:,1) = ZY(:,1)  &
    + ZCHTC_IN_MA(:) * (B%XTI_BLD(:) - 1./3. * B%XT_MASS(:, 1) * (4 * ZEXPL -1.))  &
-   + B%XF_MASS_WIN  (:) * PRAD_WIN_MA(:) + B%XF_MASS_WALL (:) * PRAD_WL_MA(:)     &
-   + B%XF_MASS_FLOOR (:) * (PRAD_RF_MA(:) +PRAD_FL_MA(:)) + PLOAD_MA(:)
+   + BP%XF_MASS_WIN  (:) * PRAD_WIN_MA(:) + BP%XF_MASS_WALL (:) * PRAD_WL_MA(:)     &
+   + BP%XF_MASS_FLOOR (:) * (PRAD_RF_MA(:) +PRAD_FL_MA(:)) + PLOAD_MA(:)
 !
- CALL LAYER_E_BUDGET( B%XT_MASS, PTSTEP, ZIMPL, B%XHC_FLOOR, B%XTC_FLOOR, B%XD_FLOOR/2., &
+ CALL LAYER_E_BUDGET( B%XT_MASS, PTSTEP, ZIMPL, BP%XHC_FLOOR, BP%XTC_FLOOR, BP%XD_FLOOR/2., &
                      ZA, ZB, ZC, ZY, PDQS_MA )
 !
 !*      calculation of temperature used in energy balance calculation
@@ -155,9 +158,9 @@ PCONV_MA_BLD(:) = ZCHTC_IN_MA(:) * (ZTS_MA_CONV(:) - B%XTI_BLD(:))
 !       indoor
 !       ------------------------------------------------
 !
-PFLX_BLD_MA(:) = - PCONV_MA_BLD(:) + B%XF_MASS_WIN  (:) * PRAD_WIN_MA(:)  &
-       + B%XF_MASS_WALL (:) * PRAD_WL_MA(:)                               &
-       + B%XF_MASS_FLOOR (:) * (PRAD_RF_MA(:) + PRAD_FL_MA(:))  + PLOAD_MA(:)
+PFLX_BLD_MA(:) = - PCONV_MA_BLD(:) + BP%XF_MASS_WIN  (:) * PRAD_WIN_MA(:)  &
+       + BP%XF_MASS_WALL (:) * PRAD_WL_MA(:)                               &
+       + BP%XF_MASS_FLOOR (:) * (PRAD_RF_MA(:) + PRAD_FL_MA(:))  + PLOAD_MA(:)
 !
 !*      Floor residual energy imbalance for verification
 !       ------------------------------------------------

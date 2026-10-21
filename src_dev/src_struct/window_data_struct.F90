@@ -58,6 +58,7 @@ SUBROUTINE WINDOW_DATA_STRUCT(KI,PSHGC, PU_WIN, PALB_WIN, PABS_WIN, PUGG_WIN, PT
 USE MODI_WINDOW_DATA
 !
 USE MODD_BEM_n, ONLY : BEM_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t, BEM_PARAMS_INIT
 !
 IMPLICIT NONE
 !
@@ -73,11 +74,13 @@ REAL, DIMENSION(KI), INTENT(OUT) :: PTRAN_WIN! window transmittance (-)
 !*      0.2    Declarations of local variables 
 !
 TYPE(BEM_t) :: B
+TYPE(BEM_PARAMS_t) :: BP
 !
 !
 !------------------------------------------------------------------------------
-ALLOCATE(B%XSHGC    (1))
-ALLOCATE(B%XU_WIN   (1))
+CALL BEM_PARAMS_INIT(BP)
+ALLOCATE(BP%XSHGC    (1))
+ALLOCATE(BP%XU_WIN   (1))
 ALLOCATE(B%XALB_WIN (1))
 ALLOCATE(B%XABS_WIN (1))
 ALLOCATE(B%XUGG_WIN (1))
@@ -85,11 +88,11 @@ ALLOCATE(B%XTRAN_WIN(1))
 !------------------------------------------------------------------------------
 !
 ! put input variables in structures
-B%XSHGC  = PSHGC    ! solar heat gain coef. of windows
-B%XU_WIN = PU_WIN   ! window U-factor [K m W-2]
+BP%XSHGC  = PSHGC    ! solar heat gain coef. of windows
+BP%XU_WIN = PU_WIN   ! window U-factor [K m W-2]
 !------------------------------------------------------------------------------
 !
-CALL WINDOW_DATA(KI,B)
+CALL WINDOW_DATA(KI,B, BP)
 !
 !------------------------------------------------------------------------------
 !
@@ -99,8 +102,8 @@ PABS_WIN = B%XABS_WIN ! window absortance
 PUGG_WIN = B%XUGG_WIN ! window glass-to-glass U-factor [W m-2 K-1]
 PTRAN_WIN= B%XTRAN_WIN! window transmittance (-)!
 !------------------------------------------------------------------------------
-DEALLOCATE(B%XSHGC    )
-DEALLOCATE(B%XU_WIN   )
+DEALLOCATE(BP%XSHGC    )
+DEALLOCATE(BP%XU_WIN   )
 DEALLOCATE(B%XALB_WIN )
 DEALLOCATE(B%XABS_WIN )
 DEALLOCATE(B%XUGG_WIN )

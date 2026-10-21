@@ -48,7 +48,7 @@
                           PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, &
 !MV202609 greenroof-to-atm exchange diagnostics
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
-                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM)
+                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, TP, BP)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN*  
@@ -83,7 +83,7 @@
 !!    Original    05/2009
 !!                04/2012 add B%XTRAN_WIN
 !!    modified    08/2012 TOP%CCH_BEM/ ROUGH_WALL and ROUGH_ROOF for buildind conv coef.
-!!    modified    10/2012 add B%XF_WIN_WIN as arg
+!!    modified    10/2012 add BP%XF_WIN_WIN as arg
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -123,7 +123,12 @@ USE MODI_BLD_OCC_CALENDAR
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 !
 !*      0.1    Declarations of arguments
 
@@ -566,21 +571,21 @@ END DO
 !*      1.1    surfaces relative fractions
 !              ---------------------------
 !
-DO JJ=1,SIZE(T%XROAD)
-  IF (T%XROAD(JJ) .GT. 0.) THEN
-    ZTOTS_O_HORS(JJ) = 1. + T%XWALL_O_HOR(JJ)
-    ZRF_FRAC  (JJ) = T%XBLD       (JJ) / ZTOTS_O_HORS(JJ)
-    ZWL_FRAC  (JJ) = T%XWALL_O_HOR(JJ) / ZTOTS_O_HORS(JJ)
-    ZRD_FRAC  (JJ) = T%XROAD      (JJ) / ZTOTS_O_HORS(JJ)
-    ZGD_FRAC  (JJ) = T%XGARDEN    (JJ) / ZTOTS_O_HORS(JJ)
+DO JJ=1,SIZE(TP%XROAD)
+  IF (TP%XROAD(JJ) .GT. 0.) THEN
+    ZTOTS_O_HORS(JJ) = 1. + TP%XWALL_O_HOR(JJ)
+    ZRF_FRAC  (JJ) = TP%XBLD       (JJ) / ZTOTS_O_HORS(JJ)
+    ZWL_FRAC  (JJ) = TP%XWALL_O_HOR(JJ) / ZTOTS_O_HORS(JJ)
+    ZRD_FRAC  (JJ) = TP%XROAD      (JJ) / ZTOTS_O_HORS(JJ)
+    ZGD_FRAC  (JJ) = TP%XGARDEN    (JJ) / ZTOTS_O_HORS(JJ)
     ZWL_O_RD  (JJ) = ZWL_FRAC     (JJ) / ZRD_FRAC(JJ)
     ZWL_O_GRND(JJ) = ZWL_FRAC     (JJ) / (ZRD_FRAC(JJ)+ZGD_FRAC(JJ))
-  ELSEIF (T%XBLD(JJ) .EQ. 0. .AND. T%XROAD(JJ) .EQ. 0.) THEN
-    ZTOTS_O_HORS(JJ) = 1. + T%XWALL_O_HOR(JJ)
+  ELSEIF (TP%XBLD(JJ) .EQ. 0. .AND. TP%XROAD(JJ) .EQ. 0.) THEN
+    ZTOTS_O_HORS(JJ) = 1. + TP%XWALL_O_HOR(JJ)
     ZRF_FRAC  (JJ) = 0.
-    ZWL_FRAC  (JJ) = T%XWALL_O_HOR(JJ) / ZTOTS_O_HORS(JJ)
+    ZWL_FRAC  (JJ) = TP%XWALL_O_HOR(JJ) / ZTOTS_O_HORS(JJ)
     ZRD_FRAC  (JJ) = 0.
-    ZGD_FRAC  (JJ) = T%XGARDEN    (JJ) / ZTOTS_O_HORS(JJ)
+    ZGD_FRAC  (JJ) = TP%XGARDEN    (JJ) / ZTOTS_O_HORS(JJ)
     ZWL_O_RD  (JJ) = 0.
     ZWL_O_GRND(JJ) = ZWL_FRAC     (JJ) / ZGD_FRAC(JJ)
   ENDIF
@@ -732,7 +737,7 @@ ENDIF
 !* when building in unoccupied, target temperature is modified
 !
 IF (TOP%CBEM=="BEM") THEN
-  CALL BLD_OCC_CALENDAR(TOP%TTIME, PTSUN, T, B, 1., DMT%XTCOOL_TARGET, DMT%XTHEAT_TARGET, DMT%XQIN )
+  CALL BLD_OCC_CALENDAR(TOP%TTIME, PTSUN, T, B, 1., DMT%XTCOOL_TARGET, DMT%XTHEAT_TARGET, DMT%XQIN , TP, BP)
 ENDIF
 !
 !-------------------------------------------------------------------------------
@@ -764,12 +769,12 @@ END IF
 !
  CALL URBAN_SOLAR_ABS(TOP, T, B, DMT, ZDIR_SW, ZSCA_SW, PZENITH, PAZIM,  &
                       TPN%XFRAC_PANEL, TPN%XALB_PANEL, ZALB_GD,     &
-                      T%XSVF_GARDEN, ZALB_GR, PDN_RF, ZDF_RF,       &
+                      TP%XSVF_GARDEN, ZALB_GR, PDN_RF, ZDF_RF,       &
                       PDN_RD, ZDF_RD, ZREC_SW_RD, ZREC_SW_SN_RD,    &
                       ZREC_SW_WL_A, ZREC_SW_WL_B, ZREC_SW_GD,       &
                       ZREC_SW_RF, PDIR_ALB_TWN, PSCA_ALB_TWN,       &
                       PSO_ALB_TWN, ZSW_UP_SO, ZSW_RAD_GD, ZREC_SW_WIN,         &
-					  PREF_SW_GRND, PREF_SW_FAC, ZE_SHADING, B%LSHAD_DAY, GSHADE )
+					  PREF_SW_GRND, PREF_SW_FAC, ZE_SHADING, B%LSHAD_DAY, GSHADE , TP, BP)
 
 !
 !-------------------------------------------------------------------------------
@@ -787,7 +792,7 @@ END IF
                      ZLW_S_TO_NR, ZLW_S_TO_G,ZLW_S_TO_WIN,              &
                      ZLW_WIN_TO_WA, ZLW_WIN_TO_WB, ZLW_WIN_TO_R,        &
                      ZLW_WIN_TO_NR, ZLW_WIN_TO_G, ZLW_NR_TO_WA,         &
-                     ZLW_NR_TO_WB, ZLW_NR_TO_WIN          )
+                     ZLW_NR_TO_WB, ZLW_NR_TO_WIN          , TP, BP)
 
 !
 !-------------------------------------------------------------------------------
@@ -802,7 +807,7 @@ END IF
 !* (inside TEB_GARDEN2) and by the road (in TEB below).
 !
 IF (TOP%LCBS_SCHEME) THEN
-  ZTAU(:) = CBS_TAU(T%XCAN_HW_RATIO(:), TOP%XTAU_HW_THRESH, TOP%XTAU_HW_WIDTH, T%XBLD_HEIGHT(:))
+  ZTAU(:) = CBS_TAU(TP%XCAN_HW_RATIO(:), TOP%XTAU_HW_THRESH, TOP%XTAU_HW_WIDTH, TP%XBLD_HEIGHT(:))
 ELSE
   ZTAU(:) = 1.
 ENDIF
@@ -857,7 +862,7 @@ ENDIF
 !MV202609 CBS scheme of the road
                           ZTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-                          LE_ROOF_WAT, LE_ROOF_SNOW)
+                          LE_ROOF_WAT, LE_ROOF_SNOW, TP, BP)
 
 !
 !-------------------------------------------------------------------------------
@@ -870,15 +875,15 @@ IF (TOP%LSOLAR_PANEL) THEN
   !* LW radiation coming upwards from roofs
   !
   ZEMIT_LW_RF =  ZREC_LW_RF   &
-     - (        T%XGREENROOF(:)  *             DMT%XABS_LW_GREENROOF(:)  &
-          + (1.-T%XGREENROOF(:)) * ZDF_RF(:) * DMT%XABS_LW_ROOF(:)       &
-          + (1.-T%XGREENROOF(:)) * PDN_RF(:) * DMT%XABS_LW_SNOW_ROOF(:) )
+     - (        TP%XGREENROOF(:)  *             DMT%XABS_LW_GREENROOF(:)  &
+          + (1.-TP%XGREENROOF(:)) * ZDF_RF(:) * DMT%XABS_LW_ROOF(:)       &
+          + (1.-TP%XGREENROOF(:)) * PDN_RF(:) * DMT%XABS_LW_SNOW_ROOF(:) )
 
   !
   ! note that, for the time being, one considers that the solar panel 
   ! intercept radiation both above roof and greenroofs (if any)
-  CALL SOLAR_PANEL(TPN, DMT, PTSTEP, PTSUN, T%XRESIDENTIAL, ZEMIT_LW_RF, ZEMIT_LWDN_PANEL, &
-                   PLW_RAD, PTA, B%XN_FLOOR, PPROD_BLD   )
+  CALL SOLAR_PANEL(TPN, DMT, PTSTEP, PTSUN, TP%XRESIDENTIAL, ZEMIT_LW_RF, ZEMIT_LWDN_PANEL, &
+                   PLW_RAD, PTA, BP%XN_FLOOR, PPROD_BLD   )
 ELSE
   PPROD_BLD        = XUNDEF  
 END IF
@@ -908,9 +913,9 @@ END IF
                        PZREF, PVMOD,                                                       &
                        PT_CAN0, PT_CAN1, PPHI_CAN1, ZQ_CAN0, ZQ_CAN1,                       &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                       PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM )
+                       PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM , TP, BP)
 !
-PSFCO2(:) = T%XGARDEN(:) * ZSFCO2_GD(:) + T%XBLD(:) * T%XGREENROOF(:) * ZSFCO2_GR(:) ! no CO2 flux from built and road yet.
+PSFCO2(:) = TP%XGARDEN(:) * ZSFCO2_GD(:) + TP%XBLD(:) * TP%XGREENROOF(:) * ZSFCO2_GR(:) ! no CO2 flux from built and road yet.
 !
 !-------------------------------------------------------------------------------
 !
@@ -955,7 +960,7 @@ PHU_GREENROOF    (:) = ZHU_AGG_GR(:)
 !*     12.     Momentum flux for ground built surfaces
 !              ---------------------------------------
 !
-PUW_GRND (:)     = (T%XROAD(:)*ZUW_RD(:) + T%XGARDEN(:)*ZUW_GD(:)) / (T%XROAD(:)+T%XGARDEN(:))
+PUW_GRND (:)     = (TP%XROAD(:)*ZUW_RD(:) + TP%XGARDEN(:)*ZUW_GD(:)) / (TP%XROAD(:)+TP%XGARDEN(:))
 !
 PDUWDU_GRND (:)  = 0.
 !

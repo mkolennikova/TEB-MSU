@@ -3,9 +3,12 @@ MODULE MODI_FLOOR_LAYER_E_BUDGET
 INTERFACE
     SUBROUTINE FLOOR_LAYER_E_BUDGET(B, PTSTEP, PFLX_BLD_FL, PDQS_FL, PIMB_FL, PRADHT_IN,  &
                                     PRAD_WL_FL, PRAD_RF_FL, PRAD_WIN_FL, PLOAD_FL,        &
-                                    PRAD_FL_MA, PCONV_FL_BLD                  )
+                                    PRAD_FL_MA, PCONV_FL_BLD                  , BP)
 USE MODD_BEM_n, ONLY : BEM_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 TYPE(BEM_t), INTENT(INOUT) :: B
 REAL,                 INTENT(IN)    :: PTSTEP       ! time step
 REAL, DIMENSION(:),   INTENT(OUT)  :: PFLX_BLD_FL !flux from building to floor

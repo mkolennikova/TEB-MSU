@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !#####################################################################################
-SUBROUTINE BLD_OCC_CALENDAR(TPTIME, PTSUN, T, B, PQIN_FRAC, PTCOOL_TARGET, PTHEAT_TARGET, PQIN)
+SUBROUTINE BLD_OCC_CALENDAR(TPTIME, PTSUN, T, B, PQIN_FRAC, PTCOOL_TARGET, PTHEAT_TARGET, PQIN, TP, BP)
 !#####################################################################################
 !! **** BLD_OCC_CALENDAR *
 !!
@@ -32,7 +32,12 @@ USE MODI_DAY_OF_WEEK
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+
 !
 !! 1. declaration of arguments
 !
@@ -77,11 +82,11 @@ IF (TPTIME%TDATE%MONTH >= 4 .AND. TPTIME%TDATE%MONTH <= 10) CTIME = 'SUMMER'
 !
 ! Parameters assigned to the occupied values - read in namelist via BATI.csv :
 !
-PTHEAT_TARGET(:) = B%XTHEAT_TARGET(:)
+PTHEAT_TARGET(:) = BP%XTHEAT_TARGET(:)
 !  
-PTCOOL_TARGET(:) = B%XTCOOL_TARGET(:)
+PTCOOL_TARGET(:) = BP%XTCOOL_TARGET(:)
 ! 
-PQIN(:)          = B%XQIN(:)
+PQIN(:)          = BP%XQIN(:)
 !
 ZTOD_BEG(:) = 0.
 ZTOD_END(:) = 0.
@@ -92,13 +97,13 @@ ZTOD_END(:) = 0.
 !
 DO JJ =1,SIZE(PTSUN)
 !
- IF (T%XRESIDENTIAL(JJ) > 0.5) THEN ! RESIDENTIAL
+ IF (TP%XRESIDENTIAL(JJ) > 0.5) THEN ! RESIDENTIAL
    !
    IF (JDOW >= 2 .AND. JDOW <=6) THEN ! week days
      ZTOD_BEG(JJ) =  9. * 3600.       !  9 UTC - WINTER time
      ZTOD_END(JJ) = 17. * 3600.       ! 17 UTC - WINTER time
    END IF
-   ZDT(JJ) = T%XDT_RES
+   ZDT(JJ) = TP%XDT_RES
    !
  ELSE
    !     
@@ -109,7 +114,7 @@ DO JJ =1,SIZE(PTSUN)
      ZTOD_BEG(JJ) =  0. * 3600.       !   0 UTC
      ZTOD_END(JJ) = 24. * 3600.       !  24 UTC
    END IF
-   ZDT(JJ) = T%XDT_OFF
+   ZDT(JJ) = TP%XDT_OFF
    !
  END IF
 ! adjustment of unoccupied TOD based on time scheme
@@ -131,8 +136,8 @@ DO JJ =1,SIZE(PTSUN)
          ( (ZTOD_BEG(JJ) > ZTOD_END(JJ)) .AND. ((PTSUN(JJ) > 0 .AND. PTSUN(JJ) < ZTOD_END(JJ)) .OR.            &
                                         (PTSUN(JJ) > ZTOD_BEG(JJ) .AND. PTSUN(JJ) < 24 * 3600.)))) THEN             
          !
-            PTHEAT_TARGET(JJ) = B%XTHEAT_TARGET(JJ) - ZDT(JJ)
-            PTCOOL_TARGET(JJ) = B%XTCOOL_TARGET(JJ) + ZDT(JJ)
+            PTHEAT_TARGET(JJ) = BP%XTHEAT_TARGET(JJ) - ZDT(JJ)
+            PTCOOL_TARGET(JJ) = BP%XTCOOL_TARGET(JJ) + ZDT(JJ)
             PQIN         (JJ) = PQIN_FRAC * PQIN(JJ)
       ENDIF
 !
