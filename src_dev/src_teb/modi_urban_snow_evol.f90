@@ -1,7 +1,7 @@
 !auto_modi:spll_urban_snow_evol.D
 MODULE MODI_URBAN_SNOW_EVOL
 INTERFACE
-    SUBROUTINE URBAN_SNOW_EVOL(T, B, PT_LWCN, PQ_LWCN, PU_LWCN, PTS_RF, PTS_RD, PTS_WL_A,   &
+    SUBROUTINE URBAN_SNOW_EVOL(TSTATE, BSTATE, PT_LWCN, PQ_LWCN, PU_LWCN, PTS_RF, PTS_RD, PTS_WL_A,   &
                                PTS_WL_B, PPS, PTA, PQA, PRHOA, PLW_RAD, PSR, PZREF, PUREF,  &
                                PVMOD, PTSTEP, PZ_LWCN, PDN_RF, PABS_SW_SN_RF, PABS_LW_SN_RF,&
                                PDN_RD, PABS_SW_SN_RD, PABS_LW_SN_RD, PRNSN_RF, PHSN_RF,     &
@@ -9,14 +9,14 @@ INTERFACE
                                PGSN_RD, PMELT_RD, PLW_WA_TO_NR , PLW_WB_TO_NR, PLW_S_TO_NR, &
                                PLW_WIN_TO_NR, PDQS_SN_RF, PDQS_SN_RD, PSNOWD_RF, PSNOWD_RD,  &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                               PTAU, PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TP )  
+                               PTAU, PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TPARAMS )  
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
-TYPE(TEB_t), INTENT(INOUT) :: T
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 REAL, DIMENSION(:),   INTENT(IN)    :: PT_LWCN  ! LWCN air temperature
 REAL, DIMENSION(:),   INTENT(IN)    :: PQ_LWCN  ! LWCN air specific humidity
 REAL, DIMENSION(:),   INTENT(IN)    :: PU_LWCN  ! LWCN hor. wind

@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !     #########
-    SUBROUTINE TEB_GARDEN (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENROOF_EXT,      &
+    SUBROUTINE TEB_GARDEN (icell, iblock, TOPTS, TSTATE, BOPTS, BSTATE, TPN, TIR, DMT, OGREENROOF_EXT,      &
                            HIMPLICIT_WIND, PBEM_AC, PTSUN, HSNOW_ROOF, HSNOW_ROAD, &
                            PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,    &
                            PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PPS, PPA, PEXNS, PEXNA, PTA, PQA, PRHOA, PCO2,     &
@@ -16,7 +16,7 @@
 						   PALB_GD_EXT, PEMIS_GD_EXT, PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT,       &
 						   PLE_GD_EXT, PEVAP_GD_EXT,         &
 						   PCH_GD, PCD_GD, PRUNOFF_GD_EXT,       &
-                          TP, BP)
+                          TPARAMS, BPARAMS)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN*  
@@ -49,9 +49,9 @@
 !!    MODIFICATIONS
 !!    -------------
 !!    Original    05/2009
-!!                04/2012 add B%XTRAN_WIN
-!!    modified    08/2012 TOP%CCH_BEM/ ROUGH_WALL and ROUGH_ROOF for buildind conv coef.
-!!    modified    10/2012 add BP%XF_WIN_WIN as arg
+!!                04/2012 add BSTATE%XTRAN_WIN
+!!    modified    08/2012 TOPTS%CCH_BEM/ ROUGH_WALL and ROUGH_ROOF for buildind conv coef.
+!!    modified    10/2012 add BPARAMS%XF_WIN_WIN as arg
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -94,8 +94,8 @@ USE PARKIND1  ,ONLY : JPRB
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
-TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
 !
 !*      0.1    Declarations of arguments
@@ -103,10 +103,10 @@ TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
 INTEGER                           :: icell
 INTEGER                           :: iblock 
 !
-TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
-TYPE(TEB_t), INTENT(INOUT) :: T
-TYPE(BEM_OPTIONS_t), INTENT(INOUT) :: BOP
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOPTS
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_OPTIONS_t), INTENT(INOUT) :: BOPTS
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 TYPE(TEB_PANEL_t), INTENT(INOUT) :: TPN
 TYPE(TEB_IRRIG_t), INTENT(INOUT) :: TIR
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
@@ -426,8 +426,8 @@ ZDIR_SW(:) = 0.
 ZSCA_SW(:) = 0.
 !
 ! snow scheme names (from the driver)
-T%TSNOW_ROOF%SCHEME = HSNOW_ROOF
-T%TSNOW_ROAD%SCHEME = HSNOW_ROAD
+TSTATE%TSNOW_ROOF%SCHEME = HSNOW_ROOF
+TSTATE%TSNOW_ROAD%SCHEME = HSNOW_ROAD
 !
 !MV202609 the diagnostics container (Phase 4b): OUT diagnostics initialised to XUNDEF
 DMT%XLE_ROAD_SNOW                  = XUNDEF
@@ -495,21 +495,21 @@ END DO
 !*      1.1    surfaces relative fractions
 !              ---------------------------
 !
-DO JJ=1,SIZE(TP%XROAD)
-  IF (TP%XROAD(JJ) .GT. 0.) THEN
-    ZTOTS_O_HORS(JJ) = 1. + TP%XWALL_O_HOR(JJ)
-    ZRF_FRAC  (JJ) = TP%XBLD       (JJ) / ZTOTS_O_HORS(JJ)
-    ZWL_FRAC  (JJ) = TP%XWALL_O_HOR(JJ) / ZTOTS_O_HORS(JJ)
-    ZRD_FRAC  (JJ) = TP%XROAD      (JJ) / ZTOTS_O_HORS(JJ)
-    ZGD_FRAC  (JJ) = TP%XGARDEN    (JJ) / ZTOTS_O_HORS(JJ)
+DO JJ=1,SIZE(TPARAMS%XROAD)
+  IF (TPARAMS%XROAD(JJ) .GT. 0.) THEN
+    ZTOTS_O_HORS(JJ) = 1. + TPARAMS%XWALL_O_HOR(JJ)
+    ZRF_FRAC  (JJ) = TPARAMS%XBLD       (JJ) / ZTOTS_O_HORS(JJ)
+    ZWL_FRAC  (JJ) = TPARAMS%XWALL_O_HOR(JJ) / ZTOTS_O_HORS(JJ)
+    ZRD_FRAC  (JJ) = TPARAMS%XROAD      (JJ) / ZTOTS_O_HORS(JJ)
+    ZGD_FRAC  (JJ) = TPARAMS%XGARDEN    (JJ) / ZTOTS_O_HORS(JJ)
     ZWL_O_RD  (JJ) = ZWL_FRAC     (JJ) / ZRD_FRAC(JJ)
     ZWL_O_GRND(JJ) = ZWL_FRAC     (JJ) / (ZRD_FRAC(JJ)+ZGD_FRAC(JJ))
-  ELSEIF (TP%XBLD(JJ) .EQ. 0. .AND. TP%XROAD(JJ) .EQ. 0.) THEN
-    ZTOTS_O_HORS(JJ) = 1. + TP%XWALL_O_HOR(JJ)
+  ELSEIF (TPARAMS%XBLD(JJ) .EQ. 0. .AND. TPARAMS%XROAD(JJ) .EQ. 0.) THEN
+    ZTOTS_O_HORS(JJ) = 1. + TPARAMS%XWALL_O_HOR(JJ)
     ZRF_FRAC  (JJ) = 0.
-    ZWL_FRAC  (JJ) = TP%XWALL_O_HOR(JJ) / ZTOTS_O_HORS(JJ)
+    ZWL_FRAC  (JJ) = TPARAMS%XWALL_O_HOR(JJ) / ZTOTS_O_HORS(JJ)
     ZRD_FRAC  (JJ) = 0.
-    ZGD_FRAC  (JJ) = TP%XGARDEN    (JJ) / ZTOTS_O_HORS(JJ)
+    ZGD_FRAC  (JJ) = TPARAMS%XGARDEN    (JJ) / ZTOTS_O_HORS(JJ)
     ZWL_O_RD  (JJ) = 0.
     ZWL_O_GRND(JJ) = ZWL_FRAC     (JJ) / ZGD_FRAC(JJ)
   ENDIF
@@ -522,54 +522,54 @@ ENDDO
 !
 !*      2.1    Snow-covered surfaces relative fractions (at previous time-step)
 !              ----------------------------------------
- CALL SNOW_FRAC_ROAD(T%TSNOW_ROAD%WSNOW(:,1),PSR(:)>0.,DMT%XPDN_RD(1:1),ZDF_RD)
- CALL SNOW_FRAC_ROOF(T%TSNOW_ROOF%WSNOW(:,1),PSR(:)>0.,DMT%XPDN_RF(1:1),ZDF_RF)
+ CALL SNOW_FRAC_ROAD(TSTATE%TSNOW_ROAD%WSNOW(:,1),PSR(:)>0.,DMT%XPDN_RD(1:1),ZDF_RD)
+ CALL SNOW_FRAC_ROOF(TSTATE%TSNOW_ROOF%WSNOW(:,1),PSR(:)>0.,DMT%XPDN_RF(1:1),ZDF_RF)
 
  ! MT  teb_snow_check = .TRUE. activates the correction of the coupled model
  IF (teb_snow_check) THEN
    ! Claculation of snow content to exclude cases of very low snow rate
    WSNOW_ROOF_CHECK = 0.
    WSNOW_ROAD_CHECK = 0.
-   WHERE (T%TSNOW_ROAD%WSNOW(:,1)==0. .AND. PSR(:)>0.) WSNOW_ROAD_CHECK = PTSTEP * PSR(:)
-   WHERE (T%TSNOW_ROOF%WSNOW(:,1)==0. .AND. PSR(:)>0.) WSNOW_ROOF_CHECK = PTSTEP * PSR(:)
+   WHERE (TSTATE%TSNOW_ROAD%WSNOW(:,1)==0. .AND. PSR(:)>0.) WSNOW_ROAD_CHECK = PTSTEP * PSR(:)
+   WHERE (TSTATE%TSNOW_ROOF%WSNOW(:,1)==0. .AND. PSR(:)>0.) WSNOW_ROOF_CHECK = PTSTEP * PSR(:)
  ENDIF
  
 !
 !* new snow albedo
 !
-WHERE (T%TSNOW_ROAD%WSNOW(:,1)==0. .AND. PSR(:)>0.) T%TSNOW_ROAD%ALB(:) = XANSMAX
-WHERE (T%TSNOW_ROOF%WSNOW(:,1)==0. .AND. PSR(:)>0.) T%TSNOW_ROOF%ALB(:) = XANSMAX
+WHERE (TSTATE%TSNOW_ROAD%WSNOW(:,1)==0. .AND. PSR(:)>0.) TSTATE%TSNOW_ROAD%ALB(:) = XANSMAX
+WHERE (TSTATE%TSNOW_ROOF%WSNOW(:,1)==0. .AND. PSR(:)>0.) TSTATE%TSNOW_ROOF%ALB(:) = XANSMAX
 !
 
 !*      2.2    If snow was not present at previous time-step but is falling
 !              ------------------------------------------------------------
 !
-WHERE (T%TSNOW_ROAD%WSNOW(:,1)==0. .AND. PSR(:)>0.)
-  T%TSNOW_ROAD%ALB (:) = XANSMAX
-  T%TSNOW_ROAD%EMIS(:) = XEMISSN
-  T%TSNOW_ROAD%TS  (:) = MIN(T%XT_ROAD(:,1), XTT)
+WHERE (TSTATE%TSNOW_ROAD%WSNOW(:,1)==0. .AND. PSR(:)>0.)
+  TSTATE%TSNOW_ROAD%ALB (:) = XANSMAX
+  TSTATE%TSNOW_ROAD%EMIS(:) = XEMISSN
+  TSTATE%TSNOW_ROAD%TS  (:) = MIN(TSTATE%XT_ROAD(:,1), XTT)
 END WHERE
-WHERE (T%TSNOW_ROOF%WSNOW(:,1)==0. .AND. PSR(:)>0.)
-  T%TSNOW_ROOF%ALB (:) = XANSMAX
-  T%TSNOW_ROOF%EMIS(:) = XEMISSN
-  T%TSNOW_ROOF%TS  (:) = MIN(T%XT_ROOF(:,1), XTT)
+WHERE (TSTATE%TSNOW_ROOF%WSNOW(:,1)==0. .AND. PSR(:)>0.)
+  TSTATE%TSNOW_ROOF%ALB (:) = XANSMAX
+  TSTATE%TSNOW_ROOF%EMIS(:) = XEMISSN
+  TSTATE%TSNOW_ROOF%TS  (:) = MIN(TSTATE%XT_ROOF(:,1), XTT)
 END WHERE
 
 ! MT  teb_snow_check = .TRUE. activates the correction of the coupled model
 IF (teb_snow_check) THEN
   ! Exclude cases of very low snow rate
   WHERE ( WSNOW_ROAD_CHECK(:)<1.E-8 * PTSTEP )
-     T%TSNOW_ROAD%ALB (:) = XUNDEF
-     T%TSNOW_ROAD%EMIS(:) = XUNDEF
-     T%TSNOW_ROAD%TS  (:) = XUNDEF
+     TSTATE%TSNOW_ROAD%ALB (:) = XUNDEF
+     TSTATE%TSNOW_ROAD%EMIS(:) = XUNDEF
+     TSTATE%TSNOW_ROAD%TS  (:) = XUNDEF
      DMT%XPDN_RD(1:1) = 0.
      ZDF_RD = 1.
   END WHERE
   !
   WHERE ( WSNOW_ROOF_CHECK(:)<1.E-8 * PTSTEP )
-     T%TSNOW_ROOF%ALB (:) = XUNDEF
-     T%TSNOW_ROOF%EMIS(:) = XUNDEF
-     T%TSNOW_ROOF%TS  (:) = XUNDEF
+     TSTATE%TSNOW_ROOF%ALB (:) = XUNDEF
+     TSTATE%TSNOW_ROOF%EMIS(:) = XUNDEF
+     TSTATE%TSNOW_ROOF%TS  (:) = XUNDEF
      DMT%XPDN_RF(1:1) = 0.
      ZDF_RF = 1.
   END WHERE
@@ -579,10 +579,10 @@ ENDIF
 !*      2.3    Radiative snow variables at previous time-step
 !              ----------------------------------------------
 !
-ZESN_RF  (:) = T%TSNOW_ROOF%EMIS(:)
-ZESN_RD  (:) = T%TSNOW_ROAD%EMIS(:)
-ZTSSN_RF (:) = T%TSNOW_ROOF%TS  (:)
-ZTSSN_RD (:) = T%TSNOW_ROAD%TS  (:)
+ZESN_RF  (:) = TSTATE%TSNOW_ROOF%EMIS(:)
+ZESN_RD  (:) = TSTATE%TSNOW_ROAD%EMIS(:)
+ZTSSN_RF (:) = TSTATE%TSNOW_ROOF%TS  (:)
+ZTSSN_RD (:) = TSTATE%TSNOW_ROAD%TS  (:)
 !
 !-------------------------------------------------------------------------------
 !
@@ -615,14 +615,14 @@ ZEMIS_GR  = XUNDEF
 ZTSRAD_GR = XUNDEF
 
 !!
-IF (TOP%LGARDEN) THEN
-  IF (TOP%CTYPE_GARDEN /= 'EXT' .AND. TOP%CTYPE_GARDEN /= 'EXT_NEU') THEN
+IF (TOPTS%LGARDEN) THEN
+  IF (TOPTS%CTYPE_GARDEN /= 'EXT' .AND. TOPTS%CTYPE_GARDEN /= 'EXT_NEU') THEN
     ZALB_GD   = XUNDEF
     ZEMIS_GD  = XUNDEF
     ZTSRAD_GD = XUNDEF
     CALL TEB_VEG_PROPERTIES(PDIR_SW, PSCA_SW, PSW_BANDS, KSW,   &
                         ZTSRAD_GD, ZEMIS_GD, ZALB_GD,       &
-                        PTA=T%XT_CANYON(icell:icell)                       )
+                        PTA=TSTATE%XT_CANYON(icell:icell)                       )
   ELSE
     ZTSRAD_GD = PTSRAD_GD_EXT
   ENDIF	
@@ -635,9 +635,9 @@ ENDIF
 
 !
 ! for greenroofs :
-IF (TOP%LGREENROOF) THEN
-  IF (.NOT. OGREENROOF_EXT .AND. TOP%CTYPE_GREENROOF /= 'EXT' .AND. &
-      TOP%CTYPE_GREENROOF /= 'EXT_NEU') THEN
+IF (TOPTS%LGREENROOF) THEN
+  IF (.NOT. OGREENROOF_EXT .AND. TOPTS%CTYPE_GREENROOF /= 'EXT' .AND. &
+      TOPTS%CTYPE_GREENROOF /= 'EXT_NEU') THEN
     ZALB_GR   = XUNDEF
     ZEMIS_GR  = XUNDEF
     ZTSRAD_GR = XUNDEF
@@ -660,8 +660,8 @@ ENDIF
 !
 !* when building in unoccupied, target temperature is modified
 !
-IF (TOP%CBEM=="BEM") THEN
-  CALL BLD_OCC_CALENDAR(TOP%TTIME, PTSUN, T, B, 1., DMT%XTCOOL_TARGET, DMT%XTHEAT_TARGET, DMT%XQIN , TP, BP)
+IF (TOPTS%CBEM=="BEM") THEN
+  CALL BLD_OCC_CALENDAR(TOPTS%TTIME, PTSUN, TSTATE, BSTATE, 1., DMT%XTCOOL_TARGET, DMT%XTHEAT_TARGET, DMT%XQIN , TPARAMS, BPARAMS)
 ENDIF
 !
 !-------------------------------------------------------------------------------
@@ -677,28 +677,28 @@ ENDIF
 !  (needs to be equiped of solar protections and not to be confortable inside)
 !  
 GSHADE(:) = .FALSE.
-IF (TOP%CBEM=="BEM") THEN
- CALL WINDOW_SHADING_AVAILABILITY(B%LSHADE, B%XTI_BLD, DMT%XTCOOL_TARGET, GSHADE)
+IF (TOPTS%CBEM=="BEM") THEN
+ CALL WINDOW_SHADING_AVAILABILITY(BSTATE%LSHADE, BSTATE%XTI_BLD, DMT%XTCOOL_TARGET, GSHADE)
 ! MT deactivation of shading devices
 !GSHADE(:) = .FALSE.
 !
 !* Reinitialize shading of windows when changing day
 !
-  WHERE (PTSUN .LT. PTSTEP + 1E-3) B%LSHAD_DAY(:) = .FALSE.
+  WHERE (PTSUN .LT. PTSTEP + 1E-3) BSTATE%LSHAD_DAY(:) = .FALSE.
 END IF
 !
 !
 !*       5.2   computes solar radiation exchanges
 !              ----------------------------------
 !
- CALL URBAN_SOLAR_ABS(TOP, T, B, DMT, ZDIR_SW, ZSCA_SW, PZENITH, PAZIM,  &
+ CALL URBAN_SOLAR_ABS(TOPTS, TSTATE, BSTATE, DMT, ZDIR_SW, ZSCA_SW, PZENITH, PAZIM,  &
                       TPN%XFRAC_PANEL, TPN%XALB_PANEL, ZALB_GD,     &
-                      TP%XSVF_GARDEN, ZALB_GR, DMT%XPDN_RF(1:1), ZDF_RF,       &
+                      TPARAMS%XSVF_GARDEN, ZALB_GR, DMT%XPDN_RF(1:1), ZDF_RF,       &
                       DMT%XPDN_RD(1:1), ZDF_RD, ZREC_SW_RD, ZREC_SW_SN_RD,    &
                       ZREC_SW_WL_A, ZREC_SW_WL_B, ZREC_SW_GD,       &
                       ZREC_SW_RF, PDIR_ALB_TWN, PSCA_ALB_TWN,       &
                       DMT%XALB_SO(1:1), ZSW_UP_SO, ZSW_RAD_GD, ZREC_SW_WIN,         &
-					  DMT%XREF_SW_GRND(1:1), DMT%XREF_SW_FAC(1:1), ZE_SHADING, B%LSHAD_DAY, GSHADE , TP, BP)
+					  DMT%XREF_SW_GRND(1:1), DMT%XREF_SW_FAC(1:1), ZE_SHADING, BSTATE%LSHAD_DAY, GSHADE , TPARAMS, BPARAMS)
 
 !
 !-------------------------------------------------------------------------------
@@ -706,7 +706,7 @@ END IF
 !*      6.     LW properties
 !              -------------
 !
-  CALL URBAN_LW_COEF(B, T, PLW_RAD, ZEMIS_GD, T%TSNOW_ROAD%TS, ZTSRAD_GD,  &
+  CALL URBAN_LW_COEF(BSTATE, TSTATE, PLW_RAD, ZEMIS_GD, TSTATE%TSNOW_ROAD%TS, ZTSRAD_GD,  &
                      ZLW_WA_TO_WB, ZLW_WA_TO_R, ZLW_WB_TO_R,            &
                      ZLW_WA_TO_NR, ZLW_WB_TO_NR, ZLW_WA_TO_G,           &
                      ZLW_WB_TO_G, ZLW_WA_TO_WIN, ZLW_WB_TO_WIN,         &
@@ -716,7 +716,7 @@ END IF
                      ZLW_S_TO_NR, ZLW_S_TO_G,ZLW_S_TO_WIN,              &
                      ZLW_WIN_TO_WA, ZLW_WIN_TO_WB, ZLW_WIN_TO_R,        &
                      ZLW_WIN_TO_NR, ZLW_WIN_TO_G, ZLW_NR_TO_WA,         &
-                     ZLW_NR_TO_WB, ZLW_NR_TO_WIN          , TP, BP)
+                     ZLW_NR_TO_WB, ZLW_NR_TO_WIN          , TPARAMS, BPARAMS)
 
 !
 !-------------------------------------------------------------------------------
@@ -730,8 +730,8 @@ END IF
 !* It is evaluated here, before TEB_GARDEN2, because it is used both by the garden
 !* (inside TEB_GARDEN2) and by the road (in TEB below).
 !
-IF (TOP%LCBS_SCHEME) THEN
-  ZTAU(:) = CBS_TAU(TP%XCAN_HW_RATIO(:), TOP%XTAU_HW_THRESH, TOP%XTAU_HW_WIDTH, TP%XBLD_HEIGHT(:))
+IF (TOPTS%LCBS_SCHEME) THEN
+  ZTAU(:) = CBS_TAU(TPARAMS%XCAN_HW_RATIO(:), TOPTS%XTAU_HW_THRESH, TOPTS%XTAU_HW_WIDTH, TPARAMS%XBLD_HEIGHT(:))
 ELSE
   ZTAU(:) = 1.
 ENDIF
@@ -750,11 +750,11 @@ ENDIF
 !* (tau itself is computed above, before TEB_GARDEN2, and is used by the garden
 !* and by the road energy budget of TEB below)
 !
-  CALL TEB  (icell, iblock, TOP, T, BOP, B, TIR, DMT, HIMPLICIT_WIND, PBEM_AC,     &
-             PTSUN, T%XT_CANYON(icell:icell), T%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1), T%XT_CANYON(icell:icell), T%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1),       &
-             TP%XBLD_HEIGHT(icell:icell)/2, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,              &
+  CALL TEB  (icell, iblock, TOPTS, TSTATE, BOPTS, BSTATE, TIR, DMT, HIMPLICIT_WIND, PBEM_AC,     &
+             PTSUN, TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1), TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1),       &
+             TPARAMS%XBLD_HEIGHT(icell:icell)/2, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,              &
              PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PZ0_GR_EXT, PPS, PPA, PEXNS, PEXNA, PTA, PQA, PRHOA, PLW_RAD, &
-             PRR, PSR, PZREF, PUREF, PVMOD, PH_TRAFFIC, TP%XLE_TRAFFIC(icell:icell), PTSTEP,       &
+             PRR, PSR, PZREF, PUREF, PVMOD, PH_TRAFFIC, TPARAMS%XLE_TRAFFIC(icell:icell), PTSTEP,       &
              ZDF_RF, DMT%XPDN_RF(1:1), ZDF_RD, DMT%XPDN_RD(1:1), ZQSAT_RF, ZQSAT_RD, ZDELT_RF,         &
              ZDELT_RD, ZTSRAD_GD, ZQV_GD, PLEW_RF, ZUW_GR, PLEW_RD, PLE_WL_A,              &
              PLE_WL_B, PRNSN_RF, DMT%XH_SNOW_ROOF(1:1), DMT%XLE_SNOW_ROOF(1:1), PGSN_RF, PMELT_RF,             &
@@ -786,7 +786,7 @@ ENDIF
 !MV202609 CBS scheme of the road
                           ZTAU, DMT%XPH_ROAD(1:1), DMT%XPLE_ROAD(1:1), DMT%XPAC_ROAD_ATM_WAT(1:1), DMT%XLE_ROAD_WAT(1:1), DMT%XLE_ROAD_SNOW(1:1), &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-                          DMT%XLE_ROOF_WAT(1:1), DMT%XLE_ROOF_SNOW(1:1), TP, BP)
+                          DMT%XLE_ROOF_WAT(1:1), DMT%XLE_ROOF_SNOW(1:1), TPARAMS, BPARAMS)
 
 !
 !-------------------------------------------------------------------------------
@@ -794,20 +794,20 @@ ENDIF
 !*    10.      Treatment of solar panels
 !              -------------------------
 !
-IF (TOP%LSOLAR_PANEL) THEN
+IF (TOPTS%LSOLAR_PANEL) THEN
   ! 
   !* LW radiation coming upwards from roofs
   !
   ZEMIT_LW_RF =  ZREC_LW_RF   &
-     - (        TP%XGREENROOF(:)  *             DMT%XABS_LW_GREENROOF(:)  &
-          + (1.-TP%XGREENROOF(:)) * ZDF_RF(:) * DMT%XABS_LW_ROOF(:)       &
-          + (1.-TP%XGREENROOF(:)) * DMT%XPDN_RF(:) * DMT%XABS_LW_SNOW_ROOF(:) )
+     - (        TPARAMS%XGREENROOF(:)  *             DMT%XABS_LW_GREENROOF(:)  &
+          + (1.-TPARAMS%XGREENROOF(:)) * ZDF_RF(:) * DMT%XABS_LW_ROOF(:)       &
+          + (1.-TPARAMS%XGREENROOF(:)) * DMT%XPDN_RF(:) * DMT%XABS_LW_SNOW_ROOF(:) )
 
   !
   ! note that, for the time being, one considers that the solar panel 
   ! intercept radiation both above roof and greenroofs (if any)
-  CALL SOLAR_PANEL(TPN, DMT, PTSTEP, PTSUN, TP%XRESIDENTIAL, ZEMIT_LW_RF, ZEMIT_LWDN_PANEL, &
-                   PLW_RAD, PTA, BP%XN_FLOOR, DMT%XSOLAR_PROD(1:1)   )
+  CALL SOLAR_PANEL(TPN, DMT, PTSTEP, PTSUN, TPARAMS%XRESIDENTIAL, ZEMIT_LW_RF, ZEMIT_LWDN_PANEL, &
+                   PLW_RAD, PTA, BPARAMS%XN_FLOOR, DMT%XSOLAR_PROD(1:1)   )
 ELSE
   DMT%XSOLAR_PROD(1:1)        = XUNDEF  
 END IF
@@ -816,9 +816,9 @@ END IF
 !*     11.     Aggregation
 !              -----------
 !
- CALL AVG_URBAN_FLUXES(icell, iblock, TOP, T, B, TPN, DMT,                                               &
-                       DMT%XTSTOWN_S(1:1), PEMIS_TWN, T%XT_CANYON(icell:icell), T%XQ_CANYON(icell:icell), T%XT_CANYON(icell:icell), T%XQ_CANYON(icell:icell),          &
-                       ZTA, ZQA, PRHOA, PPS, PH_TRAFFIC,  TP%XLE_TRAFFIC(icell:icell), ZWL_O_GRND,        &
+ CALL AVG_URBAN_FLUXES(icell, iblock, TOPTS, TSTATE, BSTATE, TPN, DMT,                                               &
+                       DMT%XTSTOWN_S(1:1), PEMIS_TWN, TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell), TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell),          &
+                       ZTA, ZQA, PRHOA, PPS, PH_TRAFFIC,  TPARAMS%XLE_TRAFFIC(icell:icell), ZWL_O_GRND,        &
                        ZESN_RF, ZEMIS_GR, PLW_RAD,  DMT%XAC_RF(1:1), ZAC_RF_WAT, DMT%XAC_WL(1:1), DMT%XAC_RD(1:1),  &
                        DMT%XPAC_ROAD_WAT(1:1), DMT%XAC_TOP(1:1), DMT%XPAC_GARDEN(1:1), ZQSAT_GD, ZHU_AGG_GD,     &
                        ZQSAT_RF, ZQSAT_RD, ZDELT_RF, ZDELT_RD, ZRF_FRAC, ZWL_FRAC,        &
@@ -837,9 +837,9 @@ END IF
                        PZREF, PVMOD,                                                       &
                        DMT%XPT_CAN0(1:1), DMT%XPT_CAN1(1:1), DMT%XPPHI_CAN1(1:1), ZQ_CAN0, ZQ_CAN1,                       &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                       DMT%XPHSN_RD_CAN, DMT%XPHSN_RD_ATM, DMT%XPLESN_RD_CAN, DMT%XPLESN_RD_ATM , TP, BP)
+                       DMT%XPHSN_RD_CAN, DMT%XPHSN_RD_ATM, DMT%XPLESN_RD_CAN, DMT%XPLESN_RD_ATM , TPARAMS, BPARAMS)
 !
-PSFCO2(:) = TP%XGARDEN(:) * ZSFCO2_GD(:) + TP%XBLD(:) * TP%XGREENROOF(:) * ZSFCO2_GR(:) ! no CO2 flux from built and road yet.
+PSFCO2(:) = TPARAMS%XGARDEN(:) * ZSFCO2_GD(:) + TPARAMS%XBLD(:) * TPARAMS%XGREENROOF(:) * ZSFCO2_GR(:) ! no CO2 flux from built and road yet.
 !
 !-------------------------------------------------------------------------------
 !
@@ -884,7 +884,7 @@ DMT%XPHU_GREENROOF(:) = ZHU_AGG_GR(:)
 !*     12.     Momentum flux for ground built surfaces
 !              ---------------------------------------
 !
-PUW_GRND (:)     = (TP%XROAD(:)*ZUW_RD(:) + TP%XGARDEN(:)*ZUW_GD(:)) / (TP%XROAD(:)+TP%XGARDEN(:))
+PUW_GRND (:)     = (TPARAMS%XROAD(:)*ZUW_RD(:) + TPARAMS%XGARDEN(:)*ZUW_GD(:)) / (TPARAMS%XROAD(:)+TPARAMS%XGARDEN(:))
 !
 PDUWDU_GRND (:)  = 0.
 !
@@ -934,12 +934,12 @@ SUBROUTINE TEB_GARDEN2
 !*      7.1    IR rad received by gardens (snow free and snow covered separately)
 !              --------------------------
 !
-IF (TOP%LGARDEN) THEN
+IF (TOPTS%LGARDEN) THEN
   ZT_SKY  (:) = (PLW_RAD(:)/XSTEFAN)**0.25
   ZREC_LW_GD(:) = (ZLW_S_TO_G  (:) * (ZT_SKY(:)       - ZTSRAD_GD(:))   &
-                 + ZLW_WA_TO_G (:) * (T%XT_WALL_A(:,1)- ZTSRAD_GD(:))   &
-                 + ZLW_WB_TO_G (:) * (T%XT_WALL_B(:,1)- ZTSRAD_GD(:))   &
-                 + ZLW_WIN_TO_G(:) * (B%XT_WIN1(:)    - ZTSRAD_GD(:)) ) &
+                 + ZLW_WA_TO_G (:) * (TSTATE%XT_WALL_A(:,1)- ZTSRAD_GD(:))   &
+                 + ZLW_WB_TO_G (:) * (TSTATE%XT_WALL_B(:,1)- ZTSRAD_GD(:))   &
+                 + ZLW_WIN_TO_G(:) * (BSTATE%XT_WIN1(:)    - ZTSRAD_GD(:)) ) &
                    / ZEMIS_GD(:) + XSTEFAN * ZTSRAD_GD(:)**4
 ELSE
   ZREC_LW_GD      (:) = XUNDEF
@@ -948,7 +948,7 @@ END IF
 !*     7.2     Effect of solar panels on incoming LW on roofs
 !              ----------------------------------------------
 !
-IF (TOP%LSOLAR_PANEL) THEN
+IF (TOPTS%LSOLAR_PANEL) THEN
   !
   ! solar panels downwards surface is supposed to be at air temperature
   ! and to be have an emissivity of 1.
@@ -975,31 +975,31 @@ END IF
 !  canopy may need implicitation if there is a lot a garden in the grid mesh
 !
 ZPET_A_COEF(:) = 0.
-ZPET_B_COEF(:) = T%XT_CANYON(icell:icell) / PEXNS(:)
+ZPET_B_COEF(:) = TSTATE%XT_CANYON(icell:icell) / PEXNS(:)
 ZPEQ_A_COEF(:) = 0.
-ZPEQ_B_COEF(:) = T%XQ_CANYON(icell:icell)
+ZPEQ_B_COEF(:) = TSTATE%XQ_CANYON(icell:icell)
 !
 !*      8.2    Call ISBA for green areas
 !              -------------------------
 !
-IF (TOP%LGARDEN) THEN
+IF (TOPTS%LGARDEN) THEN
   !
   !* the garden model of an INTERNAL garden is the diagnostic proxy called here.
   !* The external garden ('EXT'/'EXT_NEU') is not modelled by any proxy: its state,
   !* its fluxes and its conductance come from the coupling interface, so the call is
   !* skipped and the coupling quantities are built in the ELSE branch below
-  IF (TOP%CTYPE_GARDEN /= 'EXT' .AND. TOP%CTYPE_GARDEN /= 'EXT_NEU') THEN
-    CALL GARDEN_CBS(TOP%CTYPE_GARDEN, TP%XBLD_HEIGHT(icell:icell)/2, T%XT_CANYON(icell:icell), T%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1), PZ0_GARDEN_EXT, &
+  IF (TOPTS%CTYPE_GARDEN /= 'EXT' .AND. TOPTS%CTYPE_GARDEN /= 'EXT_NEU') THEN
+    CALL GARDEN_CBS(TOPTS%CTYPE_GARDEN, TPARAMS%XBLD_HEIGHT(icell:icell)/2, TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1), PZ0_GARDEN_EXT, &
 !MV202609 garden thermal roughness (z0h)
 !* z0/z0h ratio of the garden: the scalar (thermal) coefficient of the diagnostic
-!* balance is built from it (single value of TOP, the same one that URBAN_DRAG
+!* balance is built from it (single value of TOPTS, the same one that URBAN_DRAG
 !* exports and that the emulator of the offline driver uses)
-    TOP%XZ0_O_Z0H_GD,                                                          &
+    TOPTS%XZ0_O_Z0H_GD,                                                          &
 !MV202609 CBS scheme of the garden
 !* the split (tau vs 1 - tau) is applied only to the internal diagnostic proxy:
 !* 'PROXY_OLD' has a single flux which is reported in both branches
     PUREF, PVMOD, PTA, PQA,                                                     &
-    ZTAU, ( TOP%LCBS_SCHEME .AND. TOP%CTYPE_GARDEN == 'PROXY_NEW' ),           &
+    ZTAU, ( TOPTS%LCBS_SCHEME .AND. TOPTS%CTYPE_GARDEN == 'PROXY_NEW' ),           &
     PALB_GD_EXT, PEMIS_GD_EXT, PRHOA, PPS, ZREC_SW_GD, ZREC_LW_GD,             &
     ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,                                          &
     ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, DMT%XPAC_GARDEN(1:1), ZQSAT_GD, ZTSRAD_GD,      &
@@ -1028,7 +1028,7 @@ IF (TOP%LGARDEN) THEN
     WHERE (PCD_GD(:) > 0. .AND. PCD_GD(:) < XUNDEF)
       ZUW_GD(:) = - PCD_GD(:) * DMT%XWIND_CANYON(1:1)**2
     ELSEWHERE
-      PCD_GD(:) = GARDEN_PCD_NEUTRAL(TP%XBLD_HEIGHT(icell:icell)/2, PZ0_GARDEN_EXT(:))
+      PCD_GD(:) = GARDEN_PCD_NEUTRAL(TPARAMS%XBLD_HEIGHT(icell:icell)/2, PZ0_GARDEN_EXT(:))
       ZUW_GD(:) = - PCD_GD(:) * DMT%XWIND_CANYON(1:1)**2
     END WHERE
     ZGFLUX_GD(:) = 0.
@@ -1051,7 +1051,7 @@ IF (TOP%LGARDEN) THEN
 !* not called at all and these arrays keep the values URBAN_DRAG computed in its
 !* OGARDEN_EXT branch (as in COSMO-TEB)
   !
-  IF (TOP%CTYPE_GARDEN == 'EXT' .OR. TOP%CTYPE_GARDEN == 'EXT_NEU') THEN
+  IF (TOPTS%CTYPE_GARDEN == 'EXT' .OR. TOPTS%CTYPE_GARDEN == 'EXT_NEU') THEN
     ZH_GD(:) = PH_GD_EXT(:)
     ZLE_GD(:) = PLE_GD_EXT(:)
     ZEVAP_GD(:) = PEVAP_GD_EXT(:)
@@ -1104,22 +1104,22 @@ ELSE
 !*      8.3    Call ISBA for greenroofs
 !              -------------------------
 !
-IF (TOP%LGREENROOF) THEN
+IF (TOPTS%LGREENROOF) THEN
   !
   !* the greenroof model of an INTERNAL greenroof is the proxy called here: it
   !* owns its PHU parameter and returns the multiplier of the roof node (a
   !* diagnostic: the greenroof does not couple back to the canyon air)
-  IF (.NOT. OGREENROOF_EXT .AND. TOP%CTYPE_GREENROOF /= 'EXT' .AND. &
-      TOP%CTYPE_GREENROOF /= 'EXT_NEU') THEN
-    CALL GREENROOF(TOP%CTYPE_GREENROOF, HIMPLICIT_WIND, TOP%TTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF,  &
+  IF (.NOT. OGREENROOF_EXT .AND. TOPTS%CTYPE_GREENROOF /= 'EXT' .AND. &
+      TOPTS%CTYPE_GREENROOF /= 'EXT_NEU') THEN
+    CALL GREENROOF(TOPTS%CTYPE_GREENROOF, HIMPLICIT_WIND, TOPTS%TTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF,  &
     ZPET_A_COEF, ZPEQ_A_COEF, ZPET_B_COEF, ZPEQ_B_COEF, PTSTEP, PZREF,  &
     PUREF, PTA, PQA, PEXNS, PEXNA,PRHOA, PCO2, PPS, PRR, PSR, PZENITH,  &
     ZREC_SW_RF, ZREC_LW_RF, PVMOD, PALB_GR_EXT, PEMIS_GR_EXT, PZ0_GR_EXT,  &
 !MV202609 greenroof thermal roughness (z0h)
 !* z0/z0h ratio of the greenroof: the scalar (thermal) coefficient of the
-!* diagnostic balance is built from it (single value of TOP, the same one
+!* diagnostic balance is built from it (single value of TOPTS, the same one
 !* that URBAN_DRAG exports and that the emulator of the driver uses)
-    TOP%XZ0_O_Z0H_GR,                                      &
+    TOPTS%XZ0_O_Z0H_GR,                                      &
     ZRN_GR, ZH_GR, ZLE_GR,               &
     ZGFLUX_GR, ZSFCO2_GR, ZEVAP_GR, ZUW_GR,                             &
     DMT%XPAC_GREENROOF(1:1), ZQSAT_GR, ZTSRAD_GR, ZHU_AGG_GR,                &
@@ -1160,8 +1160,8 @@ IF (TOP%LGREENROOF) THEN
   DMT%XABS_SW_GREENROOF(:) = (1.-ZALB_GR(:)) * ZREC_SW_RF
   DMT%XABS_LW_GREENROOF(:) = ZEMIS_GR * ZREC_LW_RF - XSTEFAN * ZEMIS_GR * ZTSRAD_GR**4
   !
-  IF (OGREENROOF_EXT .OR. TOP%CTYPE_GREENROOF == 'EXT' .OR. &
-      TOP%CTYPE_GREENROOF == 'EXT_NEU') THEN
+  IF (OGREENROOF_EXT .OR. TOPTS%CTYPE_GREENROOF == 'EXT' .OR. &
+      TOPTS%CTYPE_GREENROOF == 'EXT_NEU') THEN
     ZH_GR(:) = PH_GR_EXT(:)
     ZLE_GR(:) = PLE_GR_EXT(:)
     ZEVAP_GR(:) = PEVAP_GR_EXT(:)

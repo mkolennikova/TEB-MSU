@@ -49,8 +49,8 @@ TYPE BEM_t
 !* CONTRACT (checked by python_tests/container_fields_inventory.py):
 !*   state - indoor air and surfaces, shading and natural ventilation flags
 !*   work  - XAUX_MAX, XT_ADP (helpers of the autosize / coil calculations)
-!*   param - passed as the BP argument (MODD_BEM_PARAMS_n)
-! Static parameters of the building: owned by the caller and passed as BP
+!*   param - passed as the BPARAMS argument (MODD_BEM_PARAMS_n)
+! Static parameters of the building: owned by the caller and passed as BPARAMS
 !
 ! Indoor state, workspace and ventilation / shading flags
 !

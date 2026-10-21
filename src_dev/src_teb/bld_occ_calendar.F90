@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !#####################################################################################
-SUBROUTINE BLD_OCC_CALENDAR(TPTIME, PTSUN, T, B, PQIN_FRAC, PTCOOL_TARGET, PTHEAT_TARGET, PQIN, TP, BP)
+SUBROUTINE BLD_OCC_CALENDAR(TPTIME, PTSUN, TSTATE, BSTATE, PQIN_FRAC, PTCOOL_TARGET, PTHEAT_TARGET, PQIN, TPARAMS, BPARAMS)
 !#####################################################################################
 !! **** BLD_OCC_CALENDAR *
 !!
@@ -35,8 +35,8 @@ USE PARKIND1  ,ONLY : JPRB
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
-TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
 !
 !! 1. declaration of arguments
@@ -44,8 +44,8 @@ TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
 TYPE(DATE_TIME), INTENT(INOUT) :: TPTIME
 REAL,   DIMENSION(:) , INTENT(IN) :: PTSUN         ! current solar time  (s, UTC)
 !
-TYPE(TEB_t), INTENT(INOUT) :: T
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 !
 REAL,                INTENT(IN)  :: PQIN_FRAC        ! Fraction of internal gains when unoccupied (-)
 !
@@ -82,11 +82,11 @@ IF (TPTIME%TDATE%MONTH >= 4 .AND. TPTIME%TDATE%MONTH <= 10) CTIME = 'SUMMER'
 !
 ! Parameters assigned to the occupied values - read in namelist via BATI.csv :
 !
-PTHEAT_TARGET(:) = BP%XTHEAT_TARGET(:)
+PTHEAT_TARGET(:) = BPARAMS%XTHEAT_TARGET(:)
 !  
-PTCOOL_TARGET(:) = BP%XTCOOL_TARGET(:)
+PTCOOL_TARGET(:) = BPARAMS%XTCOOL_TARGET(:)
 ! 
-PQIN(:)          = BP%XQIN(:)
+PQIN(:)          = BPARAMS%XQIN(:)
 !
 ZTOD_BEG(:) = 0.
 ZTOD_END(:) = 0.
@@ -97,13 +97,13 @@ ZTOD_END(:) = 0.
 !
 DO JJ =1,SIZE(PTSUN)
 !
- IF (TP%XRESIDENTIAL(JJ) > 0.5) THEN ! RESIDENTIAL
+ IF (TPARAMS%XRESIDENTIAL(JJ) > 0.5) THEN ! RESIDENTIAL
    !
    IF (JDOW >= 2 .AND. JDOW <=6) THEN ! week days
      ZTOD_BEG(JJ) =  9. * 3600.       !  9 UTC - WINTER time
      ZTOD_END(JJ) = 17. * 3600.       ! 17 UTC - WINTER time
    END IF
-   ZDT(JJ) = TP%XDT_RES
+   ZDT(JJ) = TPARAMS%XDT_RES
    !
  ELSE
    !     
@@ -114,7 +114,7 @@ DO JJ =1,SIZE(PTSUN)
      ZTOD_BEG(JJ) =  0. * 3600.       !   0 UTC
      ZTOD_END(JJ) = 24. * 3600.       !  24 UTC
    END IF
-   ZDT(JJ) = TP%XDT_OFF
+   ZDT(JJ) = TPARAMS%XDT_OFF
    !
  END IF
 ! adjustment of unoccupied TOD based on time scheme
@@ -136,8 +136,8 @@ DO JJ =1,SIZE(PTSUN)
          ( (ZTOD_BEG(JJ) > ZTOD_END(JJ)) .AND. ((PTSUN(JJ) > 0 .AND. PTSUN(JJ) < ZTOD_END(JJ)) .OR.            &
                                         (PTSUN(JJ) > ZTOD_BEG(JJ) .AND. PTSUN(JJ) < 24 * 3600.)))) THEN             
          !
-            PTHEAT_TARGET(JJ) = BP%XTHEAT_TARGET(JJ) - ZDT(JJ)
-            PTCOOL_TARGET(JJ) = BP%XTCOOL_TARGET(JJ) + ZDT(JJ)
+            PTHEAT_TARGET(JJ) = BPARAMS%XTHEAT_TARGET(JJ) - ZDT(JJ)
+            PTCOOL_TARGET(JJ) = BPARAMS%XTCOOL_TARGET(JJ) + ZDT(JJ)
             PQIN         (JJ) = PQIN_FRAC * PQIN(JJ)
       ENDIF
 !

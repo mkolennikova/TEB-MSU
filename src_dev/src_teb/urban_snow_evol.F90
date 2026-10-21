@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !     #########
-    SUBROUTINE URBAN_SNOW_EVOL(T, B, PT_LWCN, PQ_LWCN, PU_LWCN, PTS_RF, PTS_RD, PTS_WL_A,   &
+    SUBROUTINE URBAN_SNOW_EVOL(TSTATE, BSTATE, PT_LWCN, PQ_LWCN, PU_LWCN, PTS_RF, PTS_RD, PTS_WL_A,   &
                                PTS_WL_B, PPS, PTA, PQA, PRHOA, PLW_RAD, PSR, PZREF, PUREF,  &
                                PVMOD, PTSTEP, PZ_LWCN, PDN_RF, PABS_SW_SN_RF, PABS_LW_SN_RF,& 
                                PDN_RD, PABS_SW_SN_RD, PABS_LW_SN_RD, PRNSN_RF, PHSN_RF,     &
@@ -11,7 +11,7 @@
                                PGSN_RD, PMELT_RD, PLW_WA_TO_NR , PLW_WB_TO_NR, PLW_S_TO_NR, &
                                PLW_WIN_TO_NR, PDQS_SN_RF, PDQS_SN_RD, PSNOWD_RF, PSNOWD_RD,  &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                               PTAU, PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TP )  
+                               PTAU, PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TPARAMS )  
 !   ##########################################################################
 !
 !!****  *URBAN_SNOW_EVOL*  
@@ -76,12 +76,12 @@ USE PARKIND1  ,ONLY : JPRB
 !
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
 !
 !*      0.1    declarations of arguments
 !
-TYPE(TEB_t), INTENT(INOUT) :: T
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 !
 REAL, DIMENSION(:),   INTENT(IN)    :: PT_LWCN  ! LWCN air temperature
 REAL, DIMENSION(:),   INTENT(IN)    :: PQ_LWCN  ! LWCN air specific humidity
@@ -190,8 +190,8 @@ PSNOWD_RD(:)=0.
 !
 !-------------------------------------------------------------------------------
 !
-GSN_RF = ANY( PSR(:)>0. .OR. T%TSNOW_ROOF%WSNOW(:,1)>0. )
-GSN_RD = ANY( PSR(:)>0. .OR. T%TSNOW_ROAD%WSNOW(:,1)>0. )
+GSN_RF = ANY( PSR(:)>0. .OR. TSTATE%TSNOW_ROOF%WSNOW(:,1)>0. )
+GSN_RD = ANY( PSR(:)>0. .OR. TSTATE%TSNOW_ROAD%WSNOW(:,1)>0. )
 !
 !-------------------------------------------------------------------------------
 !
@@ -205,15 +205,15 @@ IF ( GSN_RF ) THEN
 !
 !* initializes LW radiative coefficients
 !
-  ZLW1_RF(:) =   T%TSNOW_ROOF%EMIS(:) * PLW_RAD(:)
-  ZLW2_RF(:) = - T%TSNOW_ROOF%EMIS(:) * XSTEFAN
+  ZLW1_RF(:) =   TSTATE%TSNOW_ROOF%EMIS(:) * PLW_RAD(:)
+  ZLW2_RF(:) = - TSTATE%TSNOW_ROOF%EMIS(:) * XSTEFAN
 !
 !* The global amount of snow on roofs is supposed located on a
 !  fraction of the roof surface. All computations are then
 !  done only for each m2 of snow, and not for each m2 of roof.
 !
-  DO JL=1,SIZE(T%TSNOW_ROOF%WSNOW,2)
-    WHERE (PDN_RF(:)>0.) T%TSNOW_ROOF%WSNOW(:,JL) = T%TSNOW_ROOF%WSNOW(:,JL) / PDN_RF(:)
+  DO JL=1,SIZE(TSTATE%TSNOW_ROOF%WSNOW,2)
+    WHERE (PDN_RF(:)>0.) TSTATE%TSNOW_ROOF%WSNOW(:,JL) = TSTATE%TSNOW_ROOF%WSNOW(:,JL) / PDN_RF(:)
   END DO
   ZSR_RF=0.
   WHERE (PDN_RF(:)>0.) ZSR_RF   (:) = PSR   (:) / PDN_RF(:)
@@ -221,14 +221,14 @@ IF ( GSN_RF ) THEN
 !* Estimates implicit coupling between snow and roof
 ! (strictly equal to an implicit formulation for 100% snow coverage)
 !
-  CALL ROOF_IMPL_COEF(T, PTSTEP, ZTS_COEFA, ZTS_COEFB, TP)
+  CALL ROOF_IMPL_COEF(TSTATE, PTSTEP, ZTS_COEFA, ZTS_COEFB, TPARAMS)
 !
 !* call to snow mantel scheme
 !
-  IF (T%TSNOW_ROOF%SCHEME=='1-L')  &
+  IF (TSTATE%TSNOW_ROOF%SCHEME=='1-L')  &
    CALL SNOW_COVER_1LAYER(PTSTEP, XANSMIN_ROOF, XANSMAX_ROOF, XANS_TODRY_ROOF,   &
                           XRHOSMIN_ROOF, XRHOSMAX_ROOF, XANS_T_ROOF, .TRUE., 0., &
-                          XWCRN_ROOF, XZ0SN, XZ0HSN, T%TSNOW_ROOF, PTS_RF,       &
+                          XWCRN_ROOF, XZ0SN, XZ0HSN, TSTATE%TSNOW_ROOF, PTS_RF,       &
                           ZTS_COEFA, ZTS_COEFB, PABS_SW_SN_RF, ZLW1_RF,  ZLW2_RF,&
                           PTA, PQA, PVMOD, PPS, PRHOA, ZSR_RF, PZREF, PUREF,     &
                           PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF, PMELT_RF,        &
@@ -241,8 +241,8 @@ IF ( GSN_RF ) THEN
 !
 !* The global amount of snow on roofs is reported to total roof surface.
 !
-  DO JL=1,SIZE(T%TSNOW_ROOF%WSNOW,2)
-    T%TSNOW_ROOF%WSNOW(:,JL) = T%TSNOW_ROOF%WSNOW(:,JL) * PDN_RF(:)
+  DO JL=1,SIZE(TSTATE%TSNOW_ROOF%WSNOW,2)
+    TSTATE%TSNOW_ROOF%WSNOW(:,JL) = TSTATE%TSNOW_ROOF%WSNOW(:,JL) * PDN_RF(:)
   END DO
 !           
 END IF
@@ -254,18 +254,18 @@ IF ( GSN_RD ) THEN
   !
   ZT_SKY(:) = (PLW_RAD(:)/XSTEFAN)**0.25
 !
-  ZLW1_RD(:) = PLW_S_TO_NR  (:)   * (ZT_SKY   (:) - T%TSNOW_ROAD%TS(:)) &
-               + PLW_WA_TO_NR (:) * (PTS_WL_A (:) - T%TSNOW_ROAD%TS(:)) &
-               + PLW_WB_TO_NR (:) * (PTS_WL_B (:) - T%TSNOW_ROAD%TS(:)) &
-               + PLW_WIN_TO_NR(:) * (B%XT_WIN1(:) - T%TSNOW_ROAD%TS(:))
+  ZLW1_RD(:) = PLW_S_TO_NR  (:)   * (ZT_SKY   (:) - TSTATE%TSNOW_ROAD%TS(:)) &
+               + PLW_WA_TO_NR (:) * (PTS_WL_A (:) - TSTATE%TSNOW_ROAD%TS(:)) &
+               + PLW_WB_TO_NR (:) * (PTS_WL_B (:) - TSTATE%TSNOW_ROAD%TS(:)) &
+               + PLW_WIN_TO_NR(:) * (BSTATE%XT_WIN1(:) - TSTATE%TSNOW_ROAD%TS(:))
   ZLW2_RD(:) =  0.0
   !
   !* The global amount of snow on roads is supposed located on a
   !  fraction of the road surface. All computations are then
   !  done only for each m2 of snow, and not for each m2 of road.
   !
-  DO JL=1,SIZE(T%TSNOW_ROAD%WSNOW,2)
-    WHERE (PDN_RD(:)>0.) T%TSNOW_ROAD%WSNOW(:,JL) = T%TSNOW_ROAD%WSNOW(:,JL) / PDN_RD(:)
+  DO JL=1,SIZE(TSTATE%TSNOW_ROAD%WSNOW,2)
+    WHERE (PDN_RD(:)>0.) TSTATE%TSNOW_ROAD%WSNOW(:,JL) = TSTATE%TSNOW_ROAD%WSNOW(:,JL) / PDN_RD(:)
   END DO
   ZSR_RD=0.
   WHERE (PDN_RD(:)>0.) ZSR_RD   (:) = PSR   (:) / PDN_RD(:)
@@ -277,10 +277,10 @@ IF ( GSN_RD ) THEN
   !
   !* call to snow mantel scheme
   !
-  IF (T%TSNOW_ROAD%SCHEME=='1-L')                &
+  IF (TSTATE%TSNOW_ROAD%SCHEME=='1-L')                &
 	CALL SNOW_COVER_1LAYER(PTSTEP, XANSMIN_ROAD, XANSMAX_ROAD, XANS_TODRY_ROAD,   &
                            XRHOSMIN_ROAD, XRHOSMAX_ROAD, XANS_T_ROAD, .FALSE.,    &
-                           0., XWCRN_ROAD, XZ0SN, XZ0HSN, T%TSNOW_ROAD, PTS_RD,   & 
+                           0., XWCRN_ROAD, XZ0SN, XZ0HSN, TSTATE%TSNOW_ROAD, PTS_RD,   & 
                            ZTS_COEFA, ZTS_COEFB,  PABS_SW_SN_RD, ZLW1_RD, ZLW2_RD,&
                            PT_LWCN, PQ_LWCN, PU_LWCN, PPS, PRHOA, ZSR_RD, PZ_LWCN,&
                            PZ_LWCN, PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD,         &
@@ -292,13 +292,13 @@ IF ( GSN_RD ) THEN
 !
 !* The global amount of snow on roads is reported to total road surface.
 !
-  DO JL=1,SIZE(T%TSNOW_ROAD%WSNOW,2)
-    T%TSNOW_ROAD%WSNOW(:,JL) = T%TSNOW_ROAD%WSNOW(:,JL) * PDN_RD(:)
+  DO JL=1,SIZE(TSTATE%TSNOW_ROAD%WSNOW,2)
+    TSTATE%TSNOW_ROAD%WSNOW(:,JL) = TSTATE%TSNOW_ROAD%WSNOW(:,JL) * PDN_RD(:)
   END DO
 !
-  WHERE (T%TSNOW_ROAD%T(:,1) .EQ. XUNDEF) PDN_RD(:) = 0.0
+  WHERE (TSTATE%TSNOW_ROAD%T(:,1) .EQ. XUNDEF) PDN_RD(:) = 0.0
   ! MT
-  !WHERE (T%TSNOW_ROOF%T(:,1) .EQ. XUNDEF) PDN_RF(:) = 0.0
+  !WHERE (TSTATE%TSNOW_ROOF%T(:,1) .EQ. XUNDEF) PDN_RF(:) = 0.0
 
 !
 END IF

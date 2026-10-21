@@ -1,7 +1,7 @@
 !auto_modi:spll_urban_lw_coef.D
 MODULE MODI_URBAN_LW_COEF
 INTERFACE
-    SUBROUTINE URBAN_LW_COEF(B, T, PLW_RAD, PEMIS_G, PTS_SR, PTS_G,              &
+    SUBROUTINE URBAN_LW_COEF(BSTATE, TSTATE, PLW_RAD, PEMIS_G, PTS_SR, PTS_G,              &
                              PLW_WA_TO_WB, PLW_WA_TO_R, PLW_WB_TO_R,             &
                              PLW_WA_TO_NR,PLW_WB_TO_NR,                          &
                              PLW_WA_TO_G, PLW_WB_TO_G,                           &
@@ -12,17 +12,17 @@ INTERFACE
                              PLW_S_TO_NR, PLW_S_TO_G, PLW_S_TO_WIN,              &
                              PLW_WIN_TO_WA, PLW_WIN_TO_WB, PLW_WIN_TO_R,         &
                              PLW_WIN_TO_NR, PLW_WIN_TO_G,                        &
-                             PLW_NR_TO_WA, PLW_NR_TO_WB, PLW_NR_TO_WIN           , TP, BP)
+                             PLW_NR_TO_WA, PLW_NR_TO_WB, PLW_NR_TO_WIN           , TPARAMS, BPARAMS)
 USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
-TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
-TYPE(BEM_t), INTENT(INOUT) :: B
-TYPE(TEB_t), INTENT(INOUT) :: T
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
 REAL, DIMENSION(:), INTENT(IN)  :: PLW_RAD  ! incoming LW radiation
 REAL, DIMENSION(:), INTENT(IN)  :: PEMIS_G  ! GARDEN area emissivity
 REAL, DIMENSION(:), INTENT(IN)  :: PTS_G    ! garden surface temperature

@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !     #########
-    SUBROUTINE AVG_URBAN_FLUXES(icell, iblock, TOP, T, B, TPN, DMT,                               &
+    SUBROUTINE AVG_URBAN_FLUXES(icell, iblock, TOPTS, TSTATE, BSTATE, TPN, DMT,                               &
                                 PTS_TWN, PEMIS_TWN,  PT_CAN,                       &
                                 PQ_CAN, PT_LOWCAN, PQ_LOWCAN, PTA, PQA, PRHOA, PPS,&
                                 PH_TRAFFIC, PLE_TRAFFIC, PWL_O_GRND, PESN_RF,      &
@@ -29,7 +29,7 @@
                                 PT_CAN0, PT_CAN1, PPHI_CAN1,                 &
                                 PQ_CAN0, PQ_CAN1,                             &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                                PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TP, BP)
+                                PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TPARAMS, BPARAMS)
 !   ##########################################################################
 !
 !!****  *AVG_URBAN_FLUXES* computes fluxes on urbanized surfaces  
@@ -96,15 +96,15 @@ USE PARKIND1  ,ONLY : JPRB
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
-TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
 !
 !*      0.1    declarations of arguments
 !
-TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
-TYPE(TEB_t), INTENT(INOUT) :: T
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOPTS
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 TYPE(TEB_PANEL_t), INTENT(INOUT) :: TPN
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 !
@@ -260,8 +260,8 @@ CHARACTER(LEN=*), PARAMETER       :: G_WALL_A = 'output/G_WALL_A.txt'
 INTEGER                           :: icell
 INTEGER                           :: iblock 
 !REAL, DIMENSION(SIZE(PLW_RAD))    :: ZLW_UP            ! upwards radiations
-REAL, DIMENSION(SIZE(TP%XROAD)) :: ZQSAT_CAN
-REAL, DIMENSION(SIZE(TP%XROAD)) :: ZRD, ZGD
+REAL, DIMENSION(SIZE(TPARAMS%XROAD)) :: ZQSAT_CAN
+REAL, DIMENSION(SIZE(TPARAMS%XROAD)) :: ZRD, ZGD
 !
 REAL :: ZINTER
 INTEGER :: JJ
@@ -287,11 +287,11 @@ IF (LHOOK) CALL DR_HOOK('AVG_URBAN_FLUXES',0,ZHOOK_HANDLE)
 ZRD(:)=0.
 ZGD(:)=0.
 !
-DO JJ=1,SIZE(TP%XROAD)
+DO JJ=1,SIZE(TPARAMS%XROAD)
 !  
-  IF (TP%XROAD(JJ)+TP%XGARDEN(JJ).NE.0.) THEN
-    ZRD(JJ)  = TP%XROAD(JJ)   / (TP%XROAD(JJ)+TP%XGARDEN(JJ))
-    ZGD(JJ) =  TP%XGARDEN(JJ) / (TP%XROAD(JJ)+TP%XGARDEN(JJ))
+  IF (TPARAMS%XROAD(JJ)+TPARAMS%XGARDEN(JJ).NE.0.) THEN
+    ZRD(JJ)  = TPARAMS%XROAD(JJ)   / (TPARAMS%XROAD(JJ)+TPARAMS%XGARDEN(JJ))
+    ZGD(JJ) =  TPARAMS%XGARDEN(JJ) / (TPARAMS%XROAD(JJ)+TPARAMS%XGARDEN(JJ))
   ELSE
     ZRD(JJ)=0.
     ZGD(JJ)=0.
@@ -303,15 +303,15 @@ DO JJ=1,SIZE(TP%XROAD)
   PRN_GRND(JJ)    = ZRD(JJ) * DMT%XRN_ROAD   (JJ) + ZGD(JJ) * PRN_GD(JJ)
   
 !
-  PH_GRND (JJ)    = ZRD(JJ) *  DMT%XH_ROAD   (JJ) + ZGD(JJ) * PH_GD (JJ) + PH_TRAFFIC (JJ) / (1.-TP%XBLD (JJ))
+  PH_GRND (JJ)    = ZRD(JJ) *  DMT%XH_ROAD   (JJ) + ZGD(JJ) * PH_GD (JJ) + PH_TRAFFIC (JJ) / (1.-TPARAMS%XBLD (JJ))
 !
 
-  PLE_GRND(JJ)    = ZRD(JJ) * DMT%XLE_ROAD   (JJ) + ZGD(JJ) * PLE_GD(JJ) + PLE_TRAFFIC(JJ) / (1.-TP%XBLD (JJ))
+  PLE_GRND(JJ)    = ZRD(JJ) * DMT%XLE_ROAD   (JJ) + ZGD(JJ) * PLE_GD(JJ) + PLE_TRAFFIC(JJ) / (1.-TPARAMS%XBLD (JJ))
 !
   PGFLX_GRND(JJ)  = ZRD(JJ) * DMT%XGFLUX_ROAD(JJ) + ZGD(JJ) * PGFLUX_GD(JJ)
 !
 !
-  PEMIT_LW_GRND(JJ) = TP%XROAD_O_GRND(JJ) * PEMIT_LW_RD(JJ) + TP%XGARDEN_O_GRND(JJ) * PEMIT_LW_GD(JJ)
+  PEMIT_LW_GRND(JJ) = TPARAMS%XROAD_O_GRND(JJ) * PEMIT_LW_RD(JJ) + TPARAMS%XGARDEN_O_GRND(JJ) * PEMIT_LW_GD(JJ)
 !-------------------------------------------------------------------------------
 !
 !*      2.     Averaged fluxes JJ built + green areas
@@ -330,7 +330,7 @@ DO JJ=1,SIZE(TP%XROAD)
                  + PGD_FRAC(JJ) * PH_GD         (JJ)                   &
                  + PWL_FRAC(JJ) * DMT%XH_WALL_A (JJ) * 0.5             &
                  + PWL_FRAC(JJ) * DMT%XH_WALL_B (JJ) * 0.5 )           &
-                 + PH_TRAFFIC(JJ) + TP%XH_INDUSTRY(JJ)  
+                 + PH_TRAFFIC(JJ) + TPARAMS%XH_INDUSTRY(JJ)  
  
 !  OPEN(UNIT=34, FILE = H_ROOF, ACCESS = 'APPEND')
 !  WRITE(34,*) DMT%XH_ROOF
@@ -361,7 +361,7 @@ DO JJ=1,SIZE(TP%XROAD)
 !	print*, 'PLE_WL_A(JJ)        (JJ) = ', PLE_WL_A(JJ)        
 !	print*, 'PLE_WL_B(JJ)        (JJ) = ', PLE_WL_B(JJ)        
 !	print*, 'PLE_TRAFFIC(JJ)        (JJ) = ', PLE_TRAFFIC(JJ)
-!    print*, 'TP%XLE_INDUSTRY(JJ)        (JJ) = ', TP%XLE_INDUSTRY(JJ)        
+!    print*, 'TPARAMS%XLE_INDUSTRY(JJ)        (JJ) = ', TPARAMS%XLE_INDUSTRY(JJ)        
 !ENDIF
   PLE_TWN(JJ)    = PTOTS_O_HORS(JJ) * ( &
                    PRF_FRAC(JJ) * DMT%XLE_ROOF  (JJ)                   &
@@ -369,7 +369,7 @@ DO JJ=1,SIZE(TP%XROAD)
                  + PGD_FRAC(JJ) * PLE_GD        (JJ)                   &
                  + PWL_FRAC(JJ) * PLE_WL_A(JJ) * 0.5             &
                  + PWL_FRAC(JJ) * PLE_WL_B(JJ) * 0.5 )           &
-                 + PLE_TRAFFIC (JJ) + TP%XLE_INDUSTRY(JJ)  
+                 + PLE_TRAFFIC (JJ) + TPARAMS%XLE_INDUSTRY(JJ)  
 
 !IF (icell == 5 .AND. iblock == 2532) THEN
 !	print*, 'PLE_TWN        (JJ) = ', PLE_TWN        (JJ)
@@ -416,7 +416,7 @@ DO JJ=1,SIZE(TP%XROAD)
 !  CLOSE(45)
 
 !
-  IF (TOP%LSOLAR_PANEL) THEN
+  IF (TOPTS%LSOLAR_PANEL) THEN
     PRN_TWN(JJ) = PRN_TWN(JJ) + PTOTS_O_HORS(JJ) * (PRF_FRAC(JJ) * DMT%XRN_PANEL(JJ) * TPN%XFRAC_PANEL(JJ))
     PH_TWN (JJ) = PH_TWN (JJ) + PTOTS_O_HORS(JJ) * (PRF_FRAC(JJ) * DMT%XH_PANEL (JJ) * TPN%XFRAC_PANEL(JJ))
   ENDIF
@@ -429,9 +429,9 @@ DO JJ=1,SIZE(TP%XROAD)
 !              ----------------------------
 !
   PLW_UP(JJ) = PLW_RAD  (JJ)      &
-            - ( PRF_FRAC(JJ) * (1.-TP%XGREENROOF(JJ)) * PDF_RF(JJ) * DMT%XABS_LW_ROOF     (JJ) &
-               +PRF_FRAC(JJ) * (1.-TP%XGREENROOF(JJ)) * PDN_RF(JJ) * DMT%XABS_LW_SNOW_ROOF(JJ) &
-               +PRF_FRAC(JJ) *     TP%XGREENROOF(JJ)               * DMT%XABS_LW_GREENROOF(JJ) &
+            - ( PRF_FRAC(JJ) * (1.-TPARAMS%XGREENROOF(JJ)) * PDF_RF(JJ) * DMT%XABS_LW_ROOF     (JJ) &
+               +PRF_FRAC(JJ) * (1.-TPARAMS%XGREENROOF(JJ)) * PDN_RF(JJ) * DMT%XABS_LW_SNOW_ROOF(JJ) &
+               +PRF_FRAC(JJ) *     TPARAMS%XGREENROOF(JJ)               * DMT%XABS_LW_GREENROOF(JJ) &
                +PRD_FRAC(JJ)                         * PDF_RD(JJ) * DMT%XABS_LW_ROAD     (JJ) &
                +PRD_FRAC(JJ)                         * PDN_RD(JJ) * DMT%XABS_LW_SNOW_ROAD(JJ) &
                +PGD_FRAC(JJ)                                      * DMT%XABS_LW_GARDEN   (JJ) &
@@ -439,7 +439,7 @@ DO JJ=1,SIZE(TP%XROAD)
                +PWL_FRAC(JJ)* 0.5                                 * DMT%XABS_LW_WALL_B (JJ) &
               ) * PTOTS_O_HORS(JJ)  
 !
-  IF (TOP%LSOLAR_PANEL) THEN
+  IF (TOPTS%LSOLAR_PANEL) THEN
     PLW_UP(JJ) = PLW_UP(JJ) - PTOTS_O_HORS(JJ) * (PRF_FRAC(JJ) * DMT%XABS_LW_PANEL(JJ) * TPN%XFRAC_PANEL(JJ))
   ENDIF
 !
@@ -447,14 +447,14 @@ DO JJ=1,SIZE(TP%XROAD)
 !              ---------------
 !
 
-    PEMIS_TWN(JJ) = TP%XBLD       (JJ) * (1.-TP%XGREENROOF(JJ)) * PDF_RF(JJ) * TP%XEMIS_ROOF(JJ) * (1.-TPN%XFRAC_PANEL(JJ)) &
-                  + TP%XBLD       (JJ) * (1.-TP%XGREENROOF(JJ)) * PDN_RF(JJ) * PESN_RF     (JJ) * (1.-TPN%XFRAC_PANEL(JJ)) &
-                  + TP%XBLD       (JJ) *     TP%XGREENROOF(JJ)               * PEMIS_GR    (JJ) * (1.-TPN%XFRAC_PANEL(JJ)) &
-                  + TP%XBLD       (JJ)                                   * TPN%XEMIS_PANEL(JJ) *      TPN%XFRAC_PANEL(JJ) &
-                  + TP%XROAD      (JJ) * ( TP%XSVF_ROAD(JJ)     * PDF_RD(JJ) * TP%XEMIS_ROAD(JJ)                       &
-                                      +   TP%XSVF_ROAD(JJ)     * PDN_RD(JJ) * T%TSNOW_ROAD%EMIS(JJ))                 &
-                  + TP%XGARDEN    (JJ) *    TP%XSVF_GARDEN(JJ)               * PEMIS_GD    (JJ)                       &
-                  + TP%XWALL_O_HOR(JJ) *    TP%XSVF_WALL  (JJ)               * TP%XEMIS_WALL(JJ) 
+    PEMIS_TWN(JJ) = TPARAMS%XBLD       (JJ) * (1.-TPARAMS%XGREENROOF(JJ)) * PDF_RF(JJ) * TPARAMS%XEMIS_ROOF(JJ) * (1.-TPN%XFRAC_PANEL(JJ)) &
+                  + TPARAMS%XBLD       (JJ) * (1.-TPARAMS%XGREENROOF(JJ)) * PDN_RF(JJ) * PESN_RF     (JJ) * (1.-TPN%XFRAC_PANEL(JJ)) &
+                  + TPARAMS%XBLD       (JJ) *     TPARAMS%XGREENROOF(JJ)               * PEMIS_GR    (JJ) * (1.-TPN%XFRAC_PANEL(JJ)) &
+                  + TPARAMS%XBLD       (JJ)                                   * TPN%XEMIS_PANEL(JJ) *      TPN%XFRAC_PANEL(JJ) &
+                  + TPARAMS%XROAD      (JJ) * ( TPARAMS%XSVF_ROAD(JJ)     * PDF_RD(JJ) * TPARAMS%XEMIS_ROAD(JJ)                       &
+                                      +   TPARAMS%XSVF_ROAD(JJ)     * PDN_RD(JJ) * TSTATE%TSNOW_ROAD%EMIS(JJ))                 &
+                  + TPARAMS%XGARDEN    (JJ) *    TPARAMS%XSVF_GARDEN(JJ)               * PEMIS_GD    (JJ)                       &
+                  + TPARAMS%XWALL_O_HOR(JJ) *    TPARAMS%XSVF_WALL  (JJ)               * TPARAMS%XEMIS_WALL(JJ) 
 !
 !*      3.3    Town radiative surface temperature
 !              ----------------------------------
@@ -472,34 +472,34 @@ DO JJ=1,SIZE(TP%XROAD)
 !* m2 of road (the snow-free fraction is inside the budget, no PDF_RD weight
 !* here); PLESN_RD is per m2 of snow and carries the PDN_RD fraction.
   PEVAP_TWN(JJ) = PTOTS_O_HORS(JJ)*(                                                             &
-                   PRF_FRAC  (JJ) * PDF_RF(JJ) * (1.-TP%XGREENROOF(JJ)) * PLEW_RF   (JJ) / XLVTT  &
-                 + PRF_FRAC  (JJ) * PDN_RF(JJ) * (1.-TP%XGREENROOF(JJ)) * PLESN_RF  (JJ) / XLSTT  &
-                 + PRF_FRAC  (JJ)              *     TP%XGREENROOF(JJ)  * PEVAP_GR  (JJ)          &
+                   PRF_FRAC  (JJ) * PDF_RF(JJ) * (1.-TPARAMS%XGREENROOF(JJ)) * PLEW_RF   (JJ) / XLVTT  &
+                 + PRF_FRAC  (JJ) * PDN_RF(JJ) * (1.-TPARAMS%XGREENROOF(JJ)) * PLESN_RF  (JJ) / XLSTT  &
+                 + PRF_FRAC  (JJ)              *     TPARAMS%XGREENROOF(JJ)  * PEVAP_GR  (JJ)          &
                  + PRD_FRAC  (JJ)                                  * PLEW_RD   (JJ) / XLVTT  &
                  + PRD_FRAC  (JJ) * PDN_RD(JJ)                         * PLESN_RD  (JJ) / XLSTT  &
                  + PGD_FRAC  (JJ)                                      * PEVAP_GD  (JJ)          &
                  + PWL_FRAC  (JJ) * 0.5                 * (PLE_WL_A(JJ) + PLE_WL_B(JJ)) / XLVTT )&
                  +                                                     PLE_TRAFFIC (JJ) / XLVTT  &
-                 +                                                   TP%XLE_INDUSTRY(JJ) / XLVTT
+                 +                                                   TPARAMS%XLE_INDUSTRY(JJ) / XLVTT
 !
-  IF (TOP%CBEM=="BEM") THEN
-    PEVAP_TWN(JJ) = PEVAP_TWN(JJ) + PRF_FRAC  (JJ) * (1.-BP%XF_WASTE_CAN(JJ)) * DMT%XLE_WASTE(JJ) / XLVTT
+  IF (TOPTS%CBEM=="BEM") THEN
+    PEVAP_TWN(JJ) = PEVAP_TWN(JJ) + PRF_FRAC  (JJ) * (1.-BPARAMS%XF_WASTE_CAN(JJ)) * DMT%XLE_WASTE(JJ) / XLVTT
   ENDIF
 !-------------------------------------------------------------------------------
 !
 !*      5.     Averaged runoff flux (kg/m2/s)
 !              -----------------------------------
 !
-  DMT%XRUNOFF_TOWN(JJ) =  ((1.-TP%XGREENROOF(JJ))* DMT%XRUNOFF_STRLROOF (JJ)                  &
-                      +   TP%XGREENROOF(JJ) *(PRUNOFF_GR(JJ) + PDRAIN_GR(JJ))) * TP%XBLD(JJ)   &
-                      +    TP%XROAD    (JJ) * DMT%XRUNOFF_ROAD(JJ)                            &
-                      +    TP%XGARDEN  (JJ) * PRUNOFF_GD(JJ)                 
+  DMT%XRUNOFF_TOWN(JJ) =  ((1.-TPARAMS%XGREENROOF(JJ))* DMT%XRUNOFF_STRLROOF (JJ)                  &
+                      +   TPARAMS%XGREENROOF(JJ) *(PRUNOFF_GR(JJ) + PDRAIN_GR(JJ))) * TPARAMS%XBLD(JJ)   &
+                      +    TPARAMS%XROAD    (JJ) * DMT%XRUNOFF_ROAD(JJ)                            &
+                      +    TPARAMS%XGARDEN  (JJ) * PRUNOFF_GD(JJ)                 
 !-------------------------------------------------------------------------------
 !
 !*      6.    Air canyon temperature at time t+dt
 !             -----------------------------------
 !
-  IF (.NOT. TOP%LCANOPY) THEN
+  IF (.NOT. TOPTS%LCANOPY) THEN
   	!print*, 'avg_urban_fluxes PAC_RD = ', PAC_RD(JJ)
 	!print*, 'avg_urban_fluxes PDF_RD = ', PDF_RD(JJ)
 	!print*, 'avg_urban_fluxes ZRD = ', ZRD(JJ)
@@ -510,25 +510,25 @@ DO JJ=1,SIZE(TP%XROAD)
 	!print*, 'avg_urban_fluxes PAC_TOP = ', PAC_TOP(JJ)
 	!print*, 'avg_urban_fluxes ZINTER = ', ZINTER
 	!
-  	!print*, 'avg_urban_fluxes T%XT_ROAD  (JJ,1) = ', T%XT_ROAD  (JJ,1)
-	!print*, 'avg_urban_fluxes T%XT_WALL_A(JJ,1) = ', T%XT_WALL_A(JJ,1)
-	!print*, 'avg_urban_fluxes BP%XGR(JJ) = ', BP%XGR(JJ)
-	!print*, 'avg_urban_fluxes T%XT_WALL_B(JJ,1) = ', T%XT_WALL_B(JJ,1)
-	!print*, 'avg_urban_fluxes B%XT_WIN1 = ', B%XT_WIN1
+  	!print*, 'avg_urban_fluxes TSTATE%XT_ROAD  (JJ,1) = ', TSTATE%XT_ROAD  (JJ,1)
+	!print*, 'avg_urban_fluxes TSTATE%XT_WALL_A(JJ,1) = ', TSTATE%XT_WALL_A(JJ,1)
+	!print*, 'avg_urban_fluxes BPARAMS%XGR(JJ) = ', BPARAMS%XGR(JJ)
+	!print*, 'avg_urban_fluxes TSTATE%XT_WALL_B(JJ,1) = ', TSTATE%XT_WALL_B(JJ,1)
+	!print*, 'avg_urban_fluxes BSTATE%XT_WIN1 = ', BSTATE%XT_WIN1
 	!print*, 'avg_urban_fluxes PTA = ', PTA(JJ)
 	!print*, 'avg_urban_fluxes PH_TRAFFIC = ', PH_TRAFFIC(JJ)
-	!print*, 'avg_urban_fluxes TP%XBLD (JJ) = ', TP%XBLD (JJ)
+	!print*, 'avg_urban_fluxes TPARAMS%XBLD (JJ) = ', TPARAMS%XBLD (JJ)
 	
 !MV202609 CBS scheme of the road
 !* only the tau fraction of the road exchange heats the canyon air; the
 !* remaining part exchanges directly with the air of the forcing level
     ZINTER = PAC_RD(JJ) * PDF_RD(JJ) * ZRD (JJ) +  PAC_GD(JJ) * ZGD(JJ) + PAC_WL(JJ) * PWL_O_GRND(JJ) + PAC_TOP(JJ) 
-    PT_CAN0(JJ) =  (  T%XT_ROAD  (JJ,1) * PAC_RD (JJ) * PDF_RD (JJ) * ZRD(JJ)  &
-                   + T%XT_WALL_A(JJ,1) * PAC_WL (JJ) * (1.-BP%XGR(JJ)) * PWL_O_GRND(JJ) * 0.5 &
-                   + T%XT_WALL_B(JJ,1) * PAC_WL (JJ) * (1.-BP%XGR(JJ)) * PWL_O_GRND(JJ) * 0.5 &
-                   + B%XT_WIN1    (JJ) * PAC_WL (JJ) *     BP%XGR(JJ)  * PWL_O_GRND(JJ)       &
+    PT_CAN0(JJ) =  (  TSTATE%XT_ROAD  (JJ,1) * PAC_RD (JJ) * PDF_RD (JJ) * ZRD(JJ)  &
+                   + TSTATE%XT_WALL_A(JJ,1) * PAC_WL (JJ) * (1.-BPARAMS%XGR(JJ)) * PWL_O_GRND(JJ) * 0.5 &
+                   + TSTATE%XT_WALL_B(JJ,1) * PAC_WL (JJ) * (1.-BPARAMS%XGR(JJ)) * PWL_O_GRND(JJ) * 0.5 &
+                   + BSTATE%XT_WIN1    (JJ) * PAC_WL (JJ) *     BPARAMS%XGR(JJ)  * PWL_O_GRND(JJ)       &
                    + PTA          (JJ) * PAC_TOP(JJ)                                         &
-                   + PH_TRAFFIC   (JJ) / (1.-TP%XBLD (JJ))               / PRHOA(JJ) / XCPD   &
+                   + PH_TRAFFIC   (JJ) / (1.-TPARAMS%XBLD (JJ))               / PRHOA(JJ) / XCPD   &
                    + ZRD(JJ) * PHSN_RD_CAN(JJ) * PDN_RD(JJ)  / PRHOA(JJ) / XCPD  ) &
                                             / ZINTER  
 !
@@ -539,8 +539,8 @@ DO JJ=1,SIZE(TP%XROAD)
 	
 !	print*, 'avg_urban_fluxes PT_CAN2 = ', PT_CAN(JJ)
 !	print*, 'avg_urban_fluxes PTSRAD_GD = ', PTSRAD_GD(JJ)
-    IF (TOP%CBEM=="BEM") THEN
-      PT_CAN0(JJ) = PT_CAN0(JJ) + (DMT%XH_WASTE(JJ) * BP%XF_WASTE_CAN(JJ) / (1-TP%XBLD(JJ)) / PRHOA(JJ) / XCPD) / ZINTER
+    IF (TOPTS%CBEM=="BEM") THEN
+      PT_CAN0(JJ) = PT_CAN0(JJ) + (DMT%XH_WASTE(JJ) * BPARAMS%XF_WASTE_CAN(JJ) / (1-TPARAMS%XBLD(JJ)) / PRHOA(JJ) / XCPD) / ZINTER
     ENDIF
 !
 !MV202609 CBS scheme of the road (revision: three-temperature construction)
@@ -555,16 +555,16 @@ DO JJ=1,SIZE(TP%XROAD)
 !* road->atmosphere path). The snow covered road is not included yet (it
 !* requires the snow-to-atmosphere exchange, added in a second step).
 !
-    ZWLWIN_EFF = (1.-BP%XGR(JJ)) * 0.5 * ( T%XT_WALL_A(JJ,1) + T%XT_WALL_B(JJ,1) )      &
-               +      BP%XGR(JJ)  * B%XT_WIN1(JJ)
+    ZWLWIN_EFF = (1.-BPARAMS%XGR(JJ)) * 0.5 * ( TSTATE%XT_WALL_A(JJ,1) + TSTATE%XT_WALL_B(JJ,1) )      &
+               +      BPARAMS%XGR(JJ)  * BSTATE%XT_WIN1(JJ)
     ZH_CAN1    = ZRD(JJ) * PH_ROAD_ATM(JJ) + ZGD(JJ) * PH_GD_ATM(JJ)                   &
                + PRHOA(JJ) * XCPD * PAC_WL(JJ) * PWL_O_GRND(JJ)                        &
                * ( ZWLWIN_EFF - PT_LOWCAN(JJ) )                                        &
-               + PH_TRAFFIC(JJ) / (1.-TP%XBLD(JJ))                                      &
+               + PH_TRAFFIC(JJ) / (1.-TPARAMS%XBLD(JJ))                                      &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                + ZRD(JJ) * PHSN_RD_ATM(JJ) * PDN_RD(JJ)
-    IF (TOP%CBEM=="BEM") THEN
-      ZH_CAN1 = ZH_CAN1 + DMT%XH_WASTE(JJ) * BP%XF_WASTE_CAN(JJ) / (1-TP%XBLD(JJ))
+    IF (TOPTS%CBEM=="BEM") THEN
+      ZH_CAN1 = ZH_CAN1 + DMT%XH_WASTE(JJ) * BPARAMS%XF_WASTE_CAN(JJ) / (1-TPARAMS%XBLD(JJ))
     ENDIF
 !
     ZOK_CAN1    = ( PCD_ROAD_ATM(JJ) .GT. 0. .AND. PCD_ROAD_ATM(JJ) .LT. 1.            &
@@ -575,7 +575,7 @@ DO JJ=1,SIZE(TP%XROAD)
 !* z_ref the MOST profile anchored at z_ref is not defined there, and the free
 !* layer is identified with the air of the forcing level: PHI_CAN1 = 0, so that
 !* T_CAN1 = PTA (and PQ_CAN1 = PQA).
-    ZZ_MID      = MAX( 0.5 * TP%XBLD_HEIGHT(JJ), 1. )
+    ZZ_MID      = MAX( 0.5 * TPARAMS%XBLD_HEIGHT(JJ), 1. )
     ZU_ROAD_ATM = MAX( SQRT( MAX( PCD_ROAD_ATM(JJ), 0. ) ) * PVMOD(JJ), ZU_ROAD_MIN )
     ZTH_CAN1    = ZH_CAN1 / ( PRHOA(JJ) * XCPD * ZU_ROAD_ATM )
     ZPHI_CAN1   = 0.                                          ! H/2 >= z_ref
@@ -594,7 +594,7 @@ DO JJ=1,SIZE(TP%XROAD)
 !* air temperature seen by the surfaces: tau relaxation of both end members
 !* (CAN0: classic canyon air, CAN1: free layer air)
 !
-    IF (TOP%LCBS_SCHEME) THEN
+    IF (TOPTS%LCBS_SCHEME) THEN
       PT_CAN(JJ) = PTAU(JJ) * PT_CAN0(JJ) + (1.-PTAU(JJ)) * PT_CAN1(JJ)
     ELSE
       PT_CAN(JJ) = PT_CAN0(JJ)
@@ -618,11 +618,11 @@ DO JJ=1,SIZE(TP%XROAD)
     PQ_CAN0(JJ) = (  PQSAT_RD   (JJ) * PAC_RD_WAT(JJ) * PDF_RD    (JJ) * ZRD(JJ) * PDELT_RD(JJ)    &
                   + PQSAT_GD   (JJ) * PAC_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ)                   &
                   + PQA        (JJ) * PAC_TOP(JJ)                                                 &
-                  + PLE_TRAFFIC(JJ) / (1.-TP%XBLD(JJ)) / PRHOA(JJ) / XLVTT                         &
+                  + PLE_TRAFFIC(JJ) / (1.-TPARAMS%XBLD(JJ)) / PRHOA(JJ) / XLVTT                         &
                   + PLESN_RD_CAN(JJ) * PDN_RD(JJ)     / PRHOA(JJ) / XLSTT * ZRD(JJ)  ) / ZINTER
 
-    IF (TOP%CBEM=="BEM") THEN
-      PQ_CAN0(JJ) = PQ_CAN0(JJ) + (DMT%XLE_WASTE(JJ) * BP%XF_WASTE_CAN(JJ) / (1-TP%XBLD(JJ)) / PRHOA(JJ) / XLVTT) / ZINTER
+    IF (TOPTS%CBEM=="BEM") THEN
+      PQ_CAN0(JJ) = PQ_CAN0(JJ) + (DMT%XLE_WASTE(JJ) * BPARAMS%XF_WASTE_CAN(JJ) / (1-TPARAMS%XBLD(JJ)) / PRHOA(JJ) / XLVTT) / ZINTER
     ENDIF
 !
 !MV202609 CBS scheme of the road (revision: three-temperature construction)
@@ -630,9 +630,9 @@ DO JJ=1,SIZE(TP%XROAD)
 !* input of the free layer and the same MOST profile at H/2 (psi_q = psi_h)
 !
     ZLE_CAN1 = ZRD(JJ) * PLE_ROAD_ATM(JJ) + ZGD(JJ) * PLE_GD_ATM(JJ)                   &
-             + PLE_TRAFFIC(JJ) / (1.-TP%XBLD(JJ))
-    IF (TOP%CBEM=="BEM") THEN
-      ZLE_CAN1 = ZLE_CAN1 + DMT%XLE_WASTE(JJ) * BP%XF_WASTE_CAN(JJ) / (1-TP%XBLD(JJ))
+             + PLE_TRAFFIC(JJ) / (1.-TPARAMS%XBLD(JJ))
+    IF (TOPTS%CBEM=="BEM") THEN
+      ZLE_CAN1 = ZLE_CAN1 + DMT%XLE_WASTE(JJ) * BPARAMS%XF_WASTE_CAN(JJ) / (1-TPARAMS%XBLD(JJ))
     ENDIF
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 !* the snow sublimates (XLSTT) while the other sources evaporate liquid water
@@ -642,7 +642,7 @@ DO JJ=1,SIZE(TP%XROAD)
     PQ_CAN1(JJ) = PQA(JJ) + ( ZLE_CAN1 + ZLE_CAN1_SN )                                 &
                 / ( PRHOA(JJ) * XLVTT * XKARMAN * ZU_ROAD_ATM ) * ZPHI_CAN1
 !
-    IF (TOP%LCBS_SCHEME) THEN
+    IF (TOPTS%LCBS_SCHEME) THEN
       PQ_CAN(JJ) = PTAU(JJ) * PQ_CAN0(JJ) + (1.-PTAU(JJ)) * PQ_CAN1(JJ)
     ELSE
       PQ_CAN(JJ) = PQ_CAN0(JJ)

@@ -21,7 +21,7 @@
 !!      * indoor geometry and the view factors of the building cavity.
 !!
 !!    The fields are written once per run by the driver (category `param`) and
-!!    are reached as the component `P` of BEM_t (`BP%XU_WIN`).
+!!    are reached as the component `P` of BEM_t (`BPARAMS%XU_WIN`).
 !!
 !!    REFERENCE
 !!    ---------

@@ -1,7 +1,7 @@
 !auto_modi:spll_avg_urban_fluxes.D
 MODULE MODI_AVG_URBAN_FLUXES
 INTERFACE
-    SUBROUTINE AVG_URBAN_FLUXES(icell, iblock, TOP, T, B, TPN, DMT,                               &
+    SUBROUTINE AVG_URBAN_FLUXES(icell, iblock, TOPTS, TSTATE, BSTATE, TPN, DMT,                               &
                                 PTS_TWN, PEMIS_TWN,  PT_CAN,                       &
                                 PQ_CAN, PT_LOWCAN, PQ_LOWCAN, PTA, PQA, PRHOA, PPS,&
                                 PH_TRAFFIC, PLE_TRAFFIC, PWL_O_GRND, PESN_RF,      &
@@ -27,7 +27,7 @@ INTERFACE
                                 PT_CAN0, PT_CAN1, PPHI_CAN1,                 &
                                 PQ_CAN0, PQ_CAN1,                             &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                                PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TP, BP)
+                                PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TPARAMS, BPARAMS)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
@@ -36,14 +36,14 @@ USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
-TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
 INTEGER                           :: icell
 INTEGER                           :: iblock 
-TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
-TYPE(TEB_t), INTENT(INOUT) :: T
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOPTS
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 TYPE(TEB_PANEL_t), INTENT(INOUT) :: TPN
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 !

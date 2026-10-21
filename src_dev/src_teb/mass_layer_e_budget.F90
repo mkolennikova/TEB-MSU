@@ -3,9 +3,9 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !   ##########################################################################
-    SUBROUTINE MASS_LAYER_E_BUDGET(B, PTSTEP, PFLX_BLD_MA, PDQS_MA, PIMB_MA, PRADHT_IN, &
+    SUBROUTINE MASS_LAYER_E_BUDGET(BSTATE, PTSTEP, PFLX_BLD_MA, PDQS_MA, PIMB_MA, PRADHT_IN, &
                                    PRAD_WL_MA, PRAD_RF_MA, PRAD_WIN_MA, PLOAD_MA,       &
-                                   PRAD_FL_MA, PCONV_MA_BLD                  , BP)
+                                   PRAD_FL_MA, PCONV_MA_BLD                  , BPARAMS)
 !   ##########################################################################
 !
 !!****  *MASS_LAYER_E_BUDGET*  
@@ -80,12 +80,12 @@ USE PARKIND1  ,ONLY : JPRB
 !
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
-TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
 !
 !*      0.1    declarations of arguments
 !
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 !
 REAL,                 INTENT(IN)    :: PTSTEP       ! time step
 REAL, DIMENSION(:),   INTENT(OUT)  :: PFLX_BLD_MA !flux from building to floor
@@ -106,15 +106,15 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PCONV_MA_BLD  ! conv. fluxes from floor to 
 REAL :: ZIMPL=1.0      ! implicit coefficient
 REAL :: ZEXPL=0.0      ! explicit coefficient
 !
-REAL, DIMENSION(SIZE(B%XT_MASS,1),SIZE(B%XT_MASS,2)) :: ZA,& ! lower diag.
+REAL, DIMENSION(SIZE(BSTATE%XT_MASS,1),SIZE(BSTATE%XT_MASS,2)) :: ZA,& ! lower diag.
                                                       ZB,& ! main  diag.
                                                       ZC,& ! upper diag.
                                                       ZY   ! r.h.s.
 !
-REAL, DIMENSION(SIZE(B%XT_MASS,1)) :: ZTS_MA  ! surf. mass temp.
+REAL, DIMENSION(SIZE(BSTATE%XT_MASS,1)) :: ZTS_MA  ! surf. mass temp.
                                               ! used during calculation
-REAL, DIMENSION(SIZE(B%XT_MASS,1)) :: ZTS_MA_CONV  ! surf. mass temp. used for conv flux
-REAL, DIMENSION(SIZE(B%XT_MASS,1)) :: ZCHTC_IN_MA ! Indoor floor convec heat transfer coefficient
+REAL, DIMENSION(SIZE(BSTATE%XT_MASS,1)) :: ZTS_MA_CONV  ! surf. mass temp. used for conv flux
+REAL, DIMENSION(SIZE(BSTATE%XT_MASS,1)) :: ZCHTC_IN_MA ! Indoor floor convec heat transfer coefficient
                                                 ! [W K-1 m-2(bld)]
 INTEGER :: JJ
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
@@ -123,44 +123,44 @@ IF (LHOOK) CALL DR_HOOK('MASS_LAYER_E_BUDGET',0,ZHOOK_HANDLE)
 !
 ! *Convection heat transfer coefficients [W m-2 K-1] from EP Engineering Reference
 !
-ZCHTC_IN_MA(:) = CHTC_VERT_DOE(B%XT_MASS(:,1), B%XTI_BLD(:)) 
+ZCHTC_IN_MA(:) = CHTC_VERT_DOE(BSTATE%XT_MASS(:,1), BSTATE%XTI_BLD(:)) 
 DO JJ=1,SIZE(ZCHTC_IN_MA)
    ZCHTC_IN_MA(JJ) = MAX(1., ZCHTC_IN_MA(JJ))
 ENDDO
 !
- CALL LAYER_E_BUDGET_GET_COEF( B%XT_MASS, PTSTEP, ZIMPL, BP%XHC_FLOOR, BP%XTC_FLOOR, BP%XD_FLOOR/2., &
+ CALL LAYER_E_BUDGET_GET_COEF( BSTATE%XT_MASS, PTSTEP, ZIMPL, BPARAMS%XHC_FLOOR, BPARAMS%XTC_FLOOR, BPARAMS%XD_FLOOR/2., &
                               ZA, ZB, ZC, ZY )
 !
-ZTS_MA(:) = B%XT_MASS(:,1) 
+ZTS_MA(:) = BSTATE%XT_MASS(:,1) 
 
 ZB(:,1) = ZB(:,1) + ZIMPL * 4./3. * ZCHTC_IN_MA(:)
 
 ZY(:,1) = ZY(:,1)  &
-   + ZCHTC_IN_MA(:) * (B%XTI_BLD(:) - 1./3. * B%XT_MASS(:, 1) * (4 * ZEXPL -1.))  &
-   + BP%XF_MASS_WIN  (:) * PRAD_WIN_MA(:) + BP%XF_MASS_WALL (:) * PRAD_WL_MA(:)     &
-   + BP%XF_MASS_FLOOR (:) * (PRAD_RF_MA(:) +PRAD_FL_MA(:)) + PLOAD_MA(:)
+   + ZCHTC_IN_MA(:) * (BSTATE%XTI_BLD(:) - 1./3. * BSTATE%XT_MASS(:, 1) * (4 * ZEXPL -1.))  &
+   + BPARAMS%XF_MASS_WIN  (:) * PRAD_WIN_MA(:) + BPARAMS%XF_MASS_WALL (:) * PRAD_WL_MA(:)     &
+   + BPARAMS%XF_MASS_FLOOR (:) * (PRAD_RF_MA(:) +PRAD_FL_MA(:)) + PLOAD_MA(:)
 !
- CALL LAYER_E_BUDGET( B%XT_MASS, PTSTEP, ZIMPL, BP%XHC_FLOOR, BP%XTC_FLOOR, BP%XD_FLOOR/2., &
+ CALL LAYER_E_BUDGET( BSTATE%XT_MASS, PTSTEP, ZIMPL, BPARAMS%XHC_FLOOR, BPARAMS%XTC_FLOOR, BPARAMS%XD_FLOOR/2., &
                      ZA, ZB, ZC, ZY, PDQS_MA )
 !
 !*      calculation of temperature used in energy balance calculation
 !       -------------------------------------------------------------
 !
-ZTS_MA_CONV(:) = ZIMPL * 4./3. * B%XT_MASS(:,1) +1./3 * ZTS_MA(:) * (4 * ZEXPL -1.)
-ZTS_MA(:) = ZEXPL * ZTS_MA(:) + ZIMPL * B%XT_MASS(:,1)
+ZTS_MA_CONV(:) = ZIMPL * 4./3. * BSTATE%XT_MASS(:,1) +1./3 * ZTS_MA(:) * (4 * ZEXPL -1.)
+ZTS_MA(:) = ZEXPL * ZTS_MA(:) + ZIMPL * BSTATE%XT_MASS(:,1)
 !
 !*      calculation of convection flux between mass and building air
 !       ------------------------------------------------------------
 !
-PCONV_MA_BLD(:) = ZCHTC_IN_MA(:) * (ZTS_MA_CONV(:) - B%XTI_BLD(:))
+PCONV_MA_BLD(:) = ZCHTC_IN_MA(:) * (ZTS_MA_CONV(:) - BSTATE%XTI_BLD(:))
 !
 !*      For diagnostics calculation of flux exchanged between the mass and the
 !       indoor
 !       ------------------------------------------------
 !
-PFLX_BLD_MA(:) = - PCONV_MA_BLD(:) + BP%XF_MASS_WIN  (:) * PRAD_WIN_MA(:)  &
-       + BP%XF_MASS_WALL (:) * PRAD_WL_MA(:)                               &
-       + BP%XF_MASS_FLOOR (:) * (PRAD_RF_MA(:) + PRAD_FL_MA(:))  + PLOAD_MA(:)
+PFLX_BLD_MA(:) = - PCONV_MA_BLD(:) + BPARAMS%XF_MASS_WIN  (:) * PRAD_WIN_MA(:)  &
+       + BPARAMS%XF_MASS_WALL (:) * PRAD_WL_MA(:)                               &
+       + BPARAMS%XF_MASS_FLOOR (:) * (PRAD_RF_MA(:) + PRAD_FL_MA(:))  + PLOAD_MA(:)
 !
 !*      Floor residual energy imbalance for verification
 !       ------------------------------------------------

@@ -3,13 +3,13 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !   ##########################################################################
-    SUBROUTINE ROAD_LAYER_E_BUDGET(T, B, PTSTEP, PDN_ROAD, PRHOA, PAC_ROAD, PAC_ROAD_WAT, &
+    SUBROUTINE ROAD_LAYER_E_BUDGET(TSTATE, BSTATE, PTSTEP, PDN_ROAD, PRHOA, PAC_ROAD, PAC_ROAD_WAT, &
                                    PLW_RAD, PPS, PQSAT_ROAD, PDELT_ROAD, PEXNS,           &
                                    PABS_SW_ROAD, PGSNOW_ROAD, PQ_LOWCAN, PT_LOWCAN,       &
                                    PTS_WALL_A, PTS_WALL_B, PTSNOW_ROAD, PTS_GARDEN,       &
                                    PLW_WA_TO_R, PLW_WB_TO_R, PLW_S_TO_R, PLW_WIN_TO_R,    &
                                    PEMIT_LW_ROAD, PDQS_ROAD, PABS_LW_ROAD, PHFREE_ROAD,   &
-                                   PLEFREE_ROAD, PIMB_ROAD, PRR , TP)
+                                   PLEFREE_ROAD, PIMB_ROAD, PRR , TPARAMS)
 !   ##########################################################################
 !
 !!****  *ROAD_LAYER_E_BUDGET*  
@@ -107,13 +107,13 @@ USE PARKIND1  ,ONLY : JPRB
 !
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
 
 !
 !*      0.1    declarations of arguments
 !
-TYPE(TEB_t), INTENT(INOUT) :: T
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 !
 REAL,               INTENT(IN)    :: PTSTEP       ! time step
 REAL, DIMENSION(:), INTENT(IN)    :: PDN_ROAD     ! road snow fraction
@@ -161,7 +161,7 @@ REAL, DIMENSION(:), INTENT(IN)    :: PRR          ! rain rate [kg m-2 s-1]
 REAL :: ZIMPL=1.0      ! implicit coefficient
 REAL :: ZEXPL=0.0      ! explicit coefficient
 !
-REAL, DIMENSION(SIZE(T%XT_ROAD,1),SIZE(T%XT_ROAD,2)) :: ZA,& ! lower diag.
+REAL, DIMENSION(SIZE(TSTATE%XT_ROAD,1),SIZE(TSTATE%XT_ROAD,2)) :: ZA,& ! lower diag.
                                                     ZB,& ! main  diag.
                                                     ZC,& ! upper diag.
                                                     ZY   ! r.h.s.
@@ -185,13 +185,13 @@ REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('ROAD_LAYER_E_BUDGET',0,ZHOOK_HANDLE)
 !
- CALL LAYER_E_BUDGET_GET_COEF( T%XT_ROAD, PTSTEP, ZIMPL, TP%XHC_ROAD, TP%XTC_ROAD, TP%XD_ROAD, &
+ CALL LAYER_E_BUDGET_GET_COEF( TSTATE%XT_ROAD, PTSTEP, ZIMPL, TPARAMS%XHC_ROAD, TPARAMS%XTC_ROAD, TPARAMS%XD_ROAD, &
                               ZA, ZB, ZC, ZY )
 !
 !*      1.     Layer thermal properties
 !              ------------------------
 !
-IROAD_LAYER = SIZE(T%XT_ROAD,2)
+IROAD_LAYER = SIZE(TSTATE%XT_ROAD,2)
 !
 DO JJ=1, SIZE(PDN_ROAD) 
   !
@@ -201,7 +201,7 @@ DO JJ=1, SIZE(PDN_ROAD)
   !*      2.3    Surface temperatures
   !              --------------------
   !
-  ZTS_ROAD(JJ) = T%XT_ROAD(JJ,1)
+  ZTS_ROAD(JJ) = TSTATE%XT_ROAD(JJ,1)
   !
   !*      2.2    flux properties
   !              ---------------
@@ -226,7 +226,7 @@ ZDQSAT_ROAD(:) = DQSAT(ZTS_ROAD(:),PPS(:),PQSAT_ROAD(:))
 !*      3.     First road layers coefficients (in contact with outdoor env.)
 !              -------------------------------------------------------------
 !
-DO JJ=1,SIZE(T%XT_ROAD,1)
+DO JJ=1,SIZE(TSTATE%XT_ROAD,1)
   !
   ZB(JJ,1) = ZB(JJ,1) + ZIMPL * XCPD/PEXNS(JJ) * ZRHO_ACF_R(JJ) &
                       + ZIMPL * XLVTT * ZRHO_ACF_R_WAT(JJ) * PDELT_ROAD(JJ) * ZDQSAT_ROAD(JJ)
@@ -245,7 +245,7 @@ DO JJ=1,SIZE(T%XT_ROAD,1)
   ZY(JJ,1) = ZY(JJ,1) &
              + ZDF_ROAD(JJ) * (                                             &
                PLW_S_TO_R  (JJ) * (ZT_SKY    (JJ) - ZEXPL * ZTS_ROAD(JJ))   &
-             + PLW_WIN_TO_R(JJ) * (B%XT_WIN1 (JJ) - ZEXPL * ZTS_ROAD(JJ))   &
+             + PLW_WIN_TO_R(JJ) * (BSTATE%XT_WIN1 (JJ) - ZEXPL * ZTS_ROAD(JJ))   &
              + PLW_WA_TO_R (JJ) * (PTS_WALL_A(JJ) - ZEXPL * ZTS_ROAD(JJ))   & 
              + PLW_WB_TO_R (JJ) * (PTS_WALL_B(JJ) - ZEXPL * ZTS_ROAD(JJ))   &
              + PRR(JJ) * XCL *    (PT_LOWCAN (JJ) - ZEXPL * ZTS_ROAD(JJ) ))   !heat/cool rain     
@@ -253,7 +253,7 @@ DO JJ=1,SIZE(T%XT_ROAD,1)
 ENDDO
 !
 !
- CALL LAYER_E_BUDGET( T%XT_ROAD, PTSTEP, ZIMPL, TP%XHC_ROAD, TP%XTC_ROAD, TP%XD_ROAD, &
+ CALL LAYER_E_BUDGET( TSTATE%XT_ROAD, PTSTEP, ZIMPL, TPARAMS%XHC_ROAD, TPARAMS%XTC_ROAD, TPARAMS%XD_ROAD, &
                      ZA, ZB, ZC, ZY, PDQS_ROAD )
 !
 !-------------------------------------------------------------------------------
@@ -262,33 +262,33 @@ ENDDO
 !             ----------------------------------------------------------------
 !
 !* absorbed LW
-DO JJ=1,SIZE(T%XT_ROAD,1)
+DO JJ=1,SIZE(TSTATE%XT_ROAD,1)
   !
   ! surface temperature used in energy balance
-  ZTS_ROAD(JJ) = ZEXPL *  ZTS_ROAD(JJ) + ZIMPL * T%XT_ROAD(JJ,1)
+  ZTS_ROAD(JJ) = ZEXPL *  ZTS_ROAD(JJ) + ZIMPL * TSTATE%XT_ROAD(JJ,1)
   PABS_LW_ROAD(JJ) = PLW_S_TO_R  (JJ) * (ZT_SKY(JJ)     - ZTS_ROAD(JJ)) + &
                      PLW_WA_TO_R (JJ) * (PTS_WALL_A(JJ) - ZTS_ROAD(JJ)) + &
                      PLW_WB_TO_R (JJ) * (PTS_WALL_B(JJ) - ZTS_ROAD(JJ)) + &
-                     PLW_WIN_TO_R(JJ) * (B%XT_WIN1(JJ)  - ZTS_ROAD(JJ))
+                     PLW_WIN_TO_R(JJ) * (BSTATE%XT_WIN1(JJ)  - ZTS_ROAD(JJ))
 
   !
   !*     9.    Road emitted LW radiation on snow-free surfaces
   !            -----------------------------------------------
-  PEMIT_LW_ROAD(JJ) = XSTEFAN * T%XT_ROAD(JJ,1)**4 + &
-                      (1 - TP%XEMIS_ROAD(JJ))/TP%XEMIS_ROAD(JJ) * PABS_LW_ROAD(JJ)
+  PEMIT_LW_ROAD(JJ) = XSTEFAN * TSTATE%XT_ROAD(JJ,1)**4 + &
+                      (1 - TPARAMS%XEMIS_ROAD(JJ))/TPARAMS%XEMIS_ROAD(JJ) * PABS_LW_ROAD(JJ)
   !
   !*      10.     road and wall sensible heat flux
   !              --------------------------------
   !
   PHFREE_ROAD(JJ) = ZRHO_ACF_R(JJ) * XCPD/PEXNS(JJ) * &
-                   ( ZIMPL*T%XT_ROAD(JJ,1) + ZEXPL*ZTS_ROAD(JJ) - PT_LOWCAN(JJ) )
+                   ( ZIMPL*TSTATE%XT_ROAD(JJ,1) + ZEXPL*ZTS_ROAD(JJ) - PT_LOWCAN(JJ) )
   !
   !*      11     road latent heat flux
   !              ---------------------
   !
   PLEFREE_ROAD(JJ) = ZRHO_ACF_R_WAT(JJ) * XLVTT * PDELT_ROAD(JJ) * &
                     ( PQSAT_ROAD(JJ) - PQ_LOWCAN(JJ) +             &
-                     ZIMPL * ZDQSAT_ROAD(JJ) * (T%XT_ROAD(JJ,1) - ZTS_ROAD(JJ)) )
+                     ZIMPL * ZDQSAT_ROAD(JJ) * (TSTATE%XT_ROAD(JJ,1) - ZTS_ROAD(JJ)) )
   ZHEAT_RR(JJ) = PRR(JJ) * XCL * (ZTS_ROAD(JJ) - PT_LOWCAN(JJ))
   !
   !*      12     heat storage inside roads

@@ -2,12 +2,12 @@
 !SFX_LIC This is part of the SURFEX software governed by the CeCILL-C licence
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
-SUBROUTINE WINDOW_E_BUDGET(B, PEMIS_WIN, PLW_W_TO_WIN, PLW_R_TO_WIN, PLW_G_TO_WIN, &
+SUBROUTINE WINDOW_E_BUDGET(BSTATE, PEMIS_WIN, PLW_W_TO_WIN, PLW_R_TO_WIN, PLW_G_TO_WIN, &
                            PLW_NR_TO_WIN, PLW_S_TO_WIN, PRAD_RF_WIN, PRAD_WL_WIN,  &
                            PABS_SW_WIN, PLW_RAD, PAC_WL, PRADHT_IN, PTS_FL, PRHOA, &
                            PDN_RD, PT_CANYON, PTS_WL, PTS_RD, PTSN_RD, PTS_GD,     &
                            PRAD_WIN_FL, PRAD_WIN_MA, PCONV_WIN_BLD, PEMIT_LW_WIN,  &
-                           PABS_LW_WIN, PLOAD_IN_WIN, BP)
+                           PABS_LW_WIN, PLOAD_IN_WIN, BPARAMS)
 !###################################################################################################################################
 !
 !!****  *WINDOW_E_BUDGET*  
@@ -66,12 +66,12 @@ USE PARKIND1  ,ONLY : JPRB
 !
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
-TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
 !
 !*      0.1    declarations of arguments
 !
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 !
 REAL, DIMENSION(:), INTENT(IN)    :: PEMIS_WIN    ! window emissivity
 REAL, DIMENSION(:), INTENT(IN)    :: PLW_W_TO_WIN ! Radiative heat trasfer coeff window-wall outdoor
@@ -116,7 +116,7 @@ INTEGER :: JJ
 
 !*      Preliminaries
 !       -------------
-ZCHTC_IN_WIN = CHTC_VERT_DOE(B%XT_WIN2, B%XTI_BLD)
+ZCHTC_IN_WIN = CHTC_VERT_DOE(BSTATE%XT_WIN2, BSTATE%XTI_BLD)
 DO JJ=1,SIZE(ZCHTC_IN_WIN)
    ZCHTC_IN_WIN(JJ) = MAX(1., ZCHTC_IN_WIN(JJ))
 ENDDO
@@ -126,15 +126,15 @@ ENDDO
 ZT_SKY(:) = (PLW_RAD(:)/XSTEFAN)**0.25
 !  
 ZA12(:) = ZCHTC_IN_WIN(:)   &
-         + PRADHT_IN(:) * BP%XF_WIN_MASS (:)  &
-         + PRADHT_IN(:) * BP%XF_WIN_FLOOR(:) &
-         + B%XUGG_WIN(:)
+         + PRADHT_IN(:) * BPARAMS%XF_WIN_MASS (:)  &
+         + PRADHT_IN(:) * BPARAMS%XF_WIN_FLOOR(:) &
+         + BSTATE%XUGG_WIN(:)
 !
-ZB1(:)  = ZCHTC_IN_WIN   (:) * B%XTI_BLD (:)             &
-         + PRADHT_IN     (:) * BP%XF_WIN_MASS(:) * B%XT_MASS(:,1)             &
-         + BP%XF_WIN_WALL (:) * PRAD_WL_WIN(:) &
-         + BP%XF_WIN_FLOOR(:) * PRAD_RF_WIN(:) &
-         + PRADHT_IN     (:) * BP%XF_WIN_FLOOR(:)* PTS_FL(:) &
+ZB1(:)  = ZCHTC_IN_WIN   (:) * BSTATE%XTI_BLD (:)             &
+         + PRADHT_IN     (:) * BPARAMS%XF_WIN_MASS(:) * BSTATE%XT_MASS(:,1)             &
+         + BPARAMS%XF_WIN_WALL (:) * PRAD_WL_WIN(:) &
+         + BPARAMS%XF_WIN_FLOOR(:) * PRAD_RF_WIN(:) &
+         + PRADHT_IN     (:) * BPARAMS%XF_WIN_FLOOR(:)* PTS_FL(:) &
          + PLOAD_IN_WIN(:) + PABS_SW_WIN(:) /2.
 !
 ZA21(:) = - PAC_WL       (:) * PRHOA(:)*XCPD   &
@@ -143,7 +143,7 @@ ZA21(:) = - PAC_WL       (:) * PRHOA(:)*XCPD   &
           - PLW_R_TO_WIN (:) *(1.-PDN_RD(:))&
           - PLW_G_TO_WIN (:)                  &
           - PLW_NR_TO_WIN(:) * PDN_RD(:)    &
-          - B%XUGG_WIN(:)
+          - BSTATE%XUGG_WIN(:)
 !
 ZB2(:)  = - PAC_WL       (:) * PRHOA(:)*XCPD*PT_CANYON(:)   &
           - PLW_S_TO_WIN (:) * ZT_SKY(:)                     &
@@ -157,27 +157,27 @@ IF (SIZE(PTS_GD)>0) THEN
 ENDIF
 !
 ! compute outdoor temperature
-B%XT_WIN1(:) = ( ZB2(:) - ZB1(:)*B%XUGG_WIN(:)/ZA12(:) ) / &
-                  ( ZA21(:) + B%XUGG_WIN(:)**2/ZA12(:) )
+BSTATE%XT_WIN1(:) = ( ZB2(:) - ZB1(:)*BSTATE%XUGG_WIN(:)/ZA12(:) ) / &
+                  ( ZA21(:) + BSTATE%XUGG_WIN(:)**2/ZA12(:) )
 !
 ! compute indoor temperature
-B%XT_WIN2(:) = (ZB1(:) + B%XUGG_WIN(:)*B%XT_WIN1(:) ) / ZA12(:)
+BSTATE%XT_WIN2(:) = (ZB1(:) + BSTATE%XUGG_WIN(:)*BSTATE%XT_WIN1(:) ) / ZA12(:)
 !
 ! outdoor infrared radiation absorded by the window
-PABS_LW_WIN(:)    = PLW_S_TO_WIN (:) * (ZT_SKY (:) - B%XT_WIN1(:)) + &
-  (1.-PDN_RD(:)) *  PLW_R_TO_WIN (:) * (PTS_RD (:) - B%XT_WIN1(:)) + &
-                    PLW_W_TO_WIN (:) * (PTS_WL (:) - B%XT_WIN1(:)) + &
-        PDN_RD(:) * PLW_NR_TO_WIN(:) * (PTSN_RD(:) - B%XT_WIN1(:))
+PABS_LW_WIN(:)    = PLW_S_TO_WIN (:) * (ZT_SKY (:) - BSTATE%XT_WIN1(:)) + &
+  (1.-PDN_RD(:)) *  PLW_R_TO_WIN (:) * (PTS_RD (:) - BSTATE%XT_WIN1(:)) + &
+                    PLW_W_TO_WIN (:) * (PTS_WL (:) - BSTATE%XT_WIN1(:)) + &
+        PDN_RD(:) * PLW_NR_TO_WIN(:) * (PTSN_RD(:) - BSTATE%XT_WIN1(:))
 !
 IF (SIZE(PTS_GD)>0) THEN
-  PABS_LW_WIN(:) = PABS_LW_WIN(:) +  PLW_G_TO_WIN (:) * (PTS_GD (:) - B%XT_WIN1(:))      
+  PABS_LW_WIN(:) = PABS_LW_WIN(:) +  PLW_G_TO_WIN (:) * (PTS_GD (:) - BSTATE%XT_WIN1(:))      
 ENDIF
 !
 ! outdoor infrared radiation emited by the window
-PEMIT_LW_WIN(:) = XSTEFAN * B%XT_WIN1(:)**4 + (1 - PEMIS_WIN(:))/PEMIS_WIN(:) * PABS_LW_WIN(:)
+PEMIT_LW_WIN(:) = XSTEFAN * BSTATE%XT_WIN1(:)**4 + (1 - PEMIS_WIN(:))/PEMIS_WIN(:) * PABS_LW_WIN(:)
 !
-PRAD_WIN_FL  (:)  = PRADHT_IN(:)    * (B%XT_WIN2(:) - PTS_FL(:))
-PRAD_WIN_MA  (:)  = PRADHT_IN(:)    * (B%XT_WIN2(:) - B%XT_MASS(:,1))
-PCONV_WIN_BLD(:)  = ZCHTC_IN_WIN(:) * (B%XT_WIN2(:) - B%XTI_BLD(:))
+PRAD_WIN_FL  (:)  = PRADHT_IN(:)    * (BSTATE%XT_WIN2(:) - PTS_FL(:))
+PRAD_WIN_MA  (:)  = PRADHT_IN(:)    * (BSTATE%XT_WIN2(:) - BSTATE%XT_MASS(:,1))
+PCONV_WIN_BLD(:)  = ZCHTC_IN_WIN(:) * (BSTATE%XT_WIN2(:) - BSTATE%XTI_BLD(:))
 !
 END SUBROUTINE WINDOW_E_BUDGET

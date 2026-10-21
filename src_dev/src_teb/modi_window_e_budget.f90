@@ -1,18 +1,18 @@
 !auto_modi:spll_window_e_budget.D
 MODULE MODI_WINDOW_E_BUDGET
 INTERFACE
-SUBROUTINE WINDOW_E_BUDGET(B, PEMIS_WIN, PLW_W_TO_WIN, PLW_R_TO_WIN, PLW_G_TO_WIN, &
+SUBROUTINE WINDOW_E_BUDGET(BSTATE, PEMIS_WIN, PLW_W_TO_WIN, PLW_R_TO_WIN, PLW_G_TO_WIN, &
                            PLW_NR_TO_WIN, PLW_S_TO_WIN, PRAD_RF_WIN, PRAD_WL_WIN,  &
                            PABS_SW_WIN, PLW_RAD, PAC_WL, PRADHT_IN, PTS_FL, PRHOA, &
                            PDN_RD, PT_CANYON, PTS_WL, PTS_RD, PTSN_RD, PTS_GD,     &
                            PRAD_WIN_FL, PRAD_WIN_MA, PCONV_WIN_BLD, PEMIT_LW_WIN,  &
-                           PABS_LW_WIN, PLOAD_IN_WIN, BP)
+                           PABS_LW_WIN, PLOAD_IN_WIN, BPARAMS)
 USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
-TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 REAL, DIMENSION(:), INTENT(IN)    :: PEMIS_WIN    ! window emissivity
 REAL, DIMENSION(:), INTENT(IN)    :: PLW_W_TO_WIN ! Radiative heat trasfer coeff window-wall outdoor
 REAL, DIMENSION(:), INTENT(IN)    :: PLW_R_TO_WIN ! Radiative heat trasfer coeff window-road 

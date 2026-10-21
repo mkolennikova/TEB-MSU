@@ -4,7 +4,7 @@
 !SFX_LIC for details. version 1.
 !   ##########################################################################
     SUBROUTINE ALLOC_TEB_STRUCT(KROOF_LAYER,KROAD_LAYER,KWALL_LAYER,KFLOOR_LAYER,&
-                               TOP,T,BOP,B,TPN,TIR                           )
+                               TOPTS,TSTATE,BOPTS,BSTATE,TPN,TIR                           )
 !   ##########################################################################
 !
 !!****  *ALLOC_TEB_STRUCT*
@@ -64,10 +64,10 @@ INTEGER, INTENT(IN) :: KROOF_LAYER   ! number of roof layers
 INTEGER, INTENT(IN) :: KROAD_LAYER   ! number of road layers
 INTEGER, INTENT(IN) :: KWALL_LAYER   ! number of wall layers
 INTEGER, INTENT(IN) :: KFLOOR_LAYER  ! number of floor layers
-TYPE(TEB_OPTIONS_t),   INTENT(INOUT) :: TOP
-TYPE(TEB_t),           INTENT(INOUT) :: T
-TYPE(BEM_OPTIONS_t),   INTENT(INOUT) :: BOP
-TYPE(BEM_t),           INTENT(INOUT) :: B
+TYPE(TEB_OPTIONS_t),   INTENT(INOUT) :: TOPTS
+TYPE(TEB_t),           INTENT(INOUT) :: TSTATE
+TYPE(BEM_OPTIONS_t),   INTENT(INOUT) :: BOPTS
+TYPE(BEM_t),           INTENT(INOUT) :: BSTATE
 TYPE(TEB_PANEL_t),     INTENT(INOUT) :: TPN
 TYPE(TEB_IRRIG_t),     INTENT(INOUT) :: TIR
 !
@@ -77,10 +77,10 @@ TYPE(TEB_IRRIG_t),     INTENT(INOUT) :: TIR
 !
 !-------------------------------------------------------------------------------
 !
-CALL TEB_INIT(T)
+CALL TEB_INIT(TSTATE)
 CALL TEB_PANEL_INIT(TPN)
 CALL TEB_IRRIG_INIT(TIR)
-CALL BEM_INIT(B)
+CALL BEM_INIT(BSTATE)
 !
 !-------------------------------------------------------------------------------
 !
@@ -99,34 +99,34 @@ CALL BEM_INIT(B)
 !
 ! Indoor parameters
 !
-ALLOCATE(B%XTI_BLD(1))                    ! building interior temperature    (K)
-ALLOCATE(B%XT_FLOOR (1,KFLOOR_LAYER)) ! floor layer temperatures         (K)
-ALLOCATE(B%XT_MASS  (1,KFLOOR_LAYER)) ! Air cooled building internal th. mass temperature (K)
+ALLOCATE(BSTATE%XTI_BLD(1))                    ! building interior temperature    (K)
+ALLOCATE(BSTATE%XT_FLOOR (1,KFLOOR_LAYER)) ! floor layer temperatures         (K)
+ALLOCATE(BSTATE%XT_MASS  (1,KFLOOR_LAYER)) ! Air cooled building internal th. mass temperature (K)
 !
-ALLOCATE(B%XTRAN_WIN(1))      ! window transmittance (-)
+ALLOCATE(BSTATE%XTRAN_WIN(1))      ! window transmittance (-)
 !
 ! New parameters
 !
-ALLOCATE(B%XAUX_MAX(1))      ! Auxiliar variable for autosize calcs
-ALLOCATE(B%XT_WIN2(1))       ! Indoor window temperature [K]
-ALLOCATE(B%XQI_BLD(1))       ! Indoor air specific humidity [kg kg-1]
+ALLOCATE(BSTATE%XAUX_MAX(1))      ! Auxiliar variable for autosize calcs
+ALLOCATE(BSTATE%XT_WIN2(1))       ! Indoor window temperature [K]
+ALLOCATE(BSTATE%XQI_BLD(1))       ! Indoor air specific humidity [kg kg-1]
                              ! [W m-2(bld)]
-ALLOCATE(B%XCAP_SYS_RAT(1))  ! Rated capacity of the cooling system
+ALLOCATE(BSTATE%XCAP_SYS_RAT(1))  ! Rated capacity of the cooling system
                              ! [W m-2(bld)]
-ALLOCATE(B%XT_ADP(1))        ! Apparatus dewpoint temperature of the
+ALLOCATE(BSTATE%XT_ADP(1))        ! Apparatus dewpoint temperature of the
                              ! cooling coil [K]
-ALLOCATE(B%XM_SYS_RAT(1))    ! Rated HVAC mass flow rate 
+ALLOCATE(BSTATE%XM_SYS_RAT(1))    ! Rated HVAC mass flow rate 
                              ! [kg s-1 m-2(bld)]
-ALLOCATE(B%XT_WIN1(1))       ! outdoor window temperature [K]
-ALLOCATE(B%XALB_WIN(1))      ! window albedo
-ALLOCATE(B%XABS_WIN(1))      ! window absortance
-ALLOCATE(B%XUGG_WIN(1))      ! Window glass-to-glass U-factor [K m W-2]
-ALLOCATE(B%LSHADE(1))        ! flag to activate shading devices -> LOGICAL in the code
-ALLOCATE(B%XSHADE(1))        ! flag to activate shading devices -> REAL for i/o 0. or 1.
-ALLOCATE(B%XNATVENT(1))      ! flag to describe surventilation system for i/o 
+ALLOCATE(BSTATE%XT_WIN1(1))       ! outdoor window temperature [K]
+ALLOCATE(BSTATE%XALB_WIN(1))      ! window albedo
+ALLOCATE(BSTATE%XABS_WIN(1))      ! window absortance
+ALLOCATE(BSTATE%XUGG_WIN(1))      ! Window glass-to-glass U-factor [K m W-2]
+ALLOCATE(BSTATE%LSHADE(1))        ! flag to activate shading devices -> LOGICAL in the code
+ALLOCATE(BSTATE%XSHADE(1))        ! flag to activate shading devices -> REAL for i/o 0. or 1.
+ALLOCATE(BSTATE%XNATVENT(1))      ! flag to describe surventilation system for i/o 
                              ! 0 for NONE, 1 for MANU and 2 for AUTO
-ALLOCATE(B%LSHAD_DAY(1))     !Has shading been necessary this day ?
-ALLOCATE(B%LNATVENT_NIGHT(1))!Has nocturnal surventilation been necessary and possible this night ?
+ALLOCATE(BSTATE%LSHAD_DAY(1))     !Has shading been necessary this day ?
+ALLOCATE(BSTATE%LNATVENT_NIGHT(1))!Has nocturnal surventilation been necessary and possible this night ?
   !
   !indoor relative surfaces and view factors
 !
@@ -165,34 +165,34 @@ ALLOCATE(B%LNATVENT_NIGHT(1))!Has nocturnal surventilation been necessary and po
 !
 ! Prognostic variables:
 !
-ALLOCATE(T%XWS_ROOF(1))      ! roof water reservoir             (kg/m2)
-ALLOCATE(T%XWS_ROAD(1))      ! road water reservoir             (kg/m2)
-ALLOCATE(T%XT_ROOF(1,KROOF_LAYER))       ! roof layer temperatures          (K)
-ALLOCATE(T%XT_ROAD(1,KROAD_LAYER))       ! road layer temperatures          (K)
-ALLOCATE(T%XT_WALL_A(1,KWALL_LAYER))     ! wall layer temperatures          (K)
-ALLOCATE(T%XT_WALL_B(1,KWALL_LAYER))     ! wall layer temperatures          (K)
+ALLOCATE(TSTATE%XWS_ROOF(1))      ! roof water reservoir             (kg/m2)
+ALLOCATE(TSTATE%XWS_ROAD(1))      ! road water reservoir             (kg/m2)
+ALLOCATE(TSTATE%XT_ROOF(1,KROOF_LAYER))       ! roof layer temperatures          (K)
+ALLOCATE(TSTATE%XT_ROAD(1,KROAD_LAYER))       ! road layer temperatures          (K)
+ALLOCATE(TSTATE%XT_WALL_A(1,KWALL_LAYER))     ! wall layer temperatures          (K)
+ALLOCATE(TSTATE%XT_WALL_B(1,KWALL_LAYER))     ! wall layer temperatures          (K)
 !
 ! Semi-prognostic variables:
 !
-ALLOCATE(T%XT_CANYON(1))     ! canyon air temperature           (K)
-ALLOCATE(T%XQ_CANYON(1))     ! canyon air specific humidity     (kg/kg)
+ALLOCATE(TSTATE%XT_CANYON(1))     ! canyon air temperature           (K)
+ALLOCATE(TSTATE%XQ_CANYON(1))     ! canyon air specific humidity     (kg/kg)
 !
 !
 ! Prognostic snow:
 !
-ALLOCATE(T%TSNOW_ROOF%WSNOW(1,1))     ! snow (& liq. water) content      (kg/m2) 
-ALLOCATE(T%TSNOW_ROOF%T    (1,1))     ! temperature                      (K)
-ALLOCATE(T%TSNOW_ROOF%RHO  (1,1))     ! density                          (kg m-3)
-ALLOCATE(T%TSNOW_ROOF%ALB  (1))     ! albedo                           (-)
-ALLOCATE(T%TSNOW_ROOF%EMIS (1))     ! emissivity                       (-)
-ALLOCATE(T%TSNOW_ROOF%TS   (1))     ! Surface temperature              (K)
+ALLOCATE(TSTATE%TSNOW_ROOF%WSNOW(1,1))     ! snow (& liq. water) content      (kg/m2) 
+ALLOCATE(TSTATE%TSNOW_ROOF%T    (1,1))     ! temperature                      (K)
+ALLOCATE(TSTATE%TSNOW_ROOF%RHO  (1,1))     ! density                          (kg m-3)
+ALLOCATE(TSTATE%TSNOW_ROOF%ALB  (1))     ! albedo                           (-)
+ALLOCATE(TSTATE%TSNOW_ROOF%EMIS (1))     ! emissivity                       (-)
+ALLOCATE(TSTATE%TSNOW_ROOF%TS   (1))     ! Surface temperature              (K)
 
-ALLOCATE(T%TSNOW_ROAD%WSNOW(1,1))     ! snow (& liq. water) content      (kg/m2) 
-ALLOCATE(T%TSNOW_ROAD%T    (1,1))     ! temperature                      (K)
-ALLOCATE(T%TSNOW_ROAD%RHO  (1,1))     ! density                          (kg m-3)
-ALLOCATE(T%TSNOW_ROAD%ALB  (1))     ! albedo                           (-)
-ALLOCATE(T%TSNOW_ROAD%EMIS (1))     ! emissivity                       (-)
-ALLOCATE(T%TSNOW_ROAD%TS   (1))     ! Surface temperature              (K)
+ALLOCATE(TSTATE%TSNOW_ROAD%WSNOW(1,1))     ! snow (& liq. water) content      (kg/m2) 
+ALLOCATE(TSTATE%TSNOW_ROAD%T    (1,1))     ! temperature                      (K)
+ALLOCATE(TSTATE%TSNOW_ROAD%RHO  (1,1))     ! density                          (kg m-3)
+ALLOCATE(TSTATE%TSNOW_ROAD%ALB  (1))     ! albedo                           (-)
+ALLOCATE(TSTATE%TSNOW_ROAD%EMIS (1))     ! emissivity                       (-)
+ALLOCATE(TSTATE%TSNOW_ROAD%TS   (1))     ! Surface temperature              (K)
 
 !-------------------------------------------------------------------------------
 !

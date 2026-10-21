@@ -73,41 +73,41 @@ REAL, DIMENSION(KI), INTENT(OUT) :: PTRAN_WIN! window transmittance (-)
 !
 !*      0.2    Declarations of local variables 
 !
-TYPE(BEM_t) :: B
-TYPE(BEM_PARAMS_t) :: BP
+TYPE(BEM_t) :: BSTATE
+TYPE(BEM_PARAMS_t) :: BPARAMS
 !
 !
 !------------------------------------------------------------------------------
-CALL BEM_PARAMS_INIT(BP)
-ALLOCATE(BP%XSHGC    (1))
-ALLOCATE(BP%XU_WIN   (1))
-ALLOCATE(B%XALB_WIN (1))
-ALLOCATE(B%XABS_WIN (1))
-ALLOCATE(B%XUGG_WIN (1))
-ALLOCATE(B%XTRAN_WIN(1))
+CALL BEM_PARAMS_INIT(BPARAMS)
+ALLOCATE(BPARAMS%XSHGC    (1))
+ALLOCATE(BPARAMS%XU_WIN   (1))
+ALLOCATE(BSTATE%XALB_WIN (1))
+ALLOCATE(BSTATE%XABS_WIN (1))
+ALLOCATE(BSTATE%XUGG_WIN (1))
+ALLOCATE(BSTATE%XTRAN_WIN(1))
 !------------------------------------------------------------------------------
 !
 ! put input variables in structures
-BP%XSHGC  = PSHGC    ! solar heat gain coef. of windows
-BP%XU_WIN = PU_WIN   ! window U-factor [K m W-2]
+BPARAMS%XSHGC  = PSHGC    ! solar heat gain coef. of windows
+BPARAMS%XU_WIN = PU_WIN   ! window U-factor [K m W-2]
 !------------------------------------------------------------------------------
 !
-CALL WINDOW_DATA(KI,B, BP)
+CALL WINDOW_DATA(KI,BSTATE, BPARAMS)
 !
 !------------------------------------------------------------------------------
 !
 ! put computed variables in output variables
-PALB_WIN = B%XALB_WIN ! window albedo
-PABS_WIN = B%XABS_WIN ! window absortance
-PUGG_WIN = B%XUGG_WIN ! window glass-to-glass U-factor [W m-2 K-1]
-PTRAN_WIN= B%XTRAN_WIN! window transmittance (-)!
+PALB_WIN = BSTATE%XALB_WIN ! window albedo
+PABS_WIN = BSTATE%XABS_WIN ! window absortance
+PUGG_WIN = BSTATE%XUGG_WIN ! window glass-to-glass U-factor [W m-2 K-1]
+PTRAN_WIN= BSTATE%XTRAN_WIN! window transmittance (-)!
 !------------------------------------------------------------------------------
-DEALLOCATE(BP%XSHGC    )
-DEALLOCATE(BP%XU_WIN   )
-DEALLOCATE(B%XALB_WIN )
-DEALLOCATE(B%XABS_WIN )
-DEALLOCATE(B%XUGG_WIN )
-DEALLOCATE(B%XTRAN_WIN)
+DEALLOCATE(BPARAMS%XSHGC    )
+DEALLOCATE(BPARAMS%XU_WIN   )
+DEALLOCATE(BSTATE%XALB_WIN )
+DEALLOCATE(BSTATE%XABS_WIN )
+DEALLOCATE(BSTATE%XUGG_WIN )
+DEALLOCATE(BSTATE%XTRAN_WIN)
 !------------------------------------------------------------------------------
 !
 END SUBROUTINE WINDOW_DATA_STRUCT

@@ -1,21 +1,21 @@
 !auto_modi:spll_road_layer_e_budget.D
 MODULE MODI_ROAD_LAYER_E_BUDGET
 INTERFACE
-    SUBROUTINE ROAD_LAYER_E_BUDGET(T, B, PTSTEP, PDN_ROAD, PRHOA, PAC_ROAD, PAC_ROAD_WAT, &
+    SUBROUTINE ROAD_LAYER_E_BUDGET(TSTATE, BSTATE, PTSTEP, PDN_ROAD, PRHOA, PAC_ROAD, PAC_ROAD_WAT, &
                                    PLW_RAD, PPS, PQSAT_ROAD, PDELT_ROAD, PEXNS,           &
                                    PABS_SW_ROAD, PGSNOW_ROAD, PQ_LOWCAN, PT_LOWCAN,       &
                                    PTS_WALL_A, PTS_WALL_B, PTSNOW_ROAD, PTS_GARDEN,       &
                                    PLW_WA_TO_R, PLW_WB_TO_R, PLW_S_TO_R, PLW_WIN_TO_R,    &
                                    PEMIT_LW_ROAD, PDQS_ROAD, PABS_LW_ROAD, PHFREE_ROAD,   &
-                                   PLEFREE_ROAD, PIMB_ROAD, PRR , TP)
+                                   PLEFREE_ROAD, PIMB_ROAD, PRR , TPARAMS)
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
 
-TYPE(TEB_t), INTENT(INOUT) :: T
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 REAL,               INTENT(IN)    :: PTSTEP       ! time step
 REAL, DIMENSION(:), INTENT(IN)    :: PDN_ROAD     ! road snow fraction
 REAL, DIMENSION(:), INTENT(IN)    :: PRHOA        ! rho

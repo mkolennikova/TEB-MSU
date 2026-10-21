@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !   ##########################################################################
-    SUBROUTINE DEALLOC_TEB_STRUCT(TOP,T,BOP,B,TPN,TIR)
+    SUBROUTINE DEALLOC_TEB_STRUCT(TOPTS,TSTATE,BOPTS,BSTATE,TPN,TIR)
 !   ##########################################################################
 !
 !!****  *DEALLOC_TEB_STRUCT*
@@ -58,10 +58,10 @@ IMPLICIT NONE
 !
 !
 !
-TYPE(TEB_OPTIONS_t),   INTENT(INOUT) :: TOP
-TYPE(TEB_t),           INTENT(INOUT) :: T
-TYPE(BEM_OPTIONS_t),   INTENT(INOUT) :: BOP
-TYPE(BEM_t),           INTENT(INOUT) :: B
+TYPE(TEB_OPTIONS_t),   INTENT(INOUT) :: TOPTS
+TYPE(TEB_t),           INTENT(INOUT) :: TSTATE
+TYPE(BEM_OPTIONS_t),   INTENT(INOUT) :: BOPTS
+TYPE(BEM_t),           INTENT(INOUT) :: BSTATE
 TYPE(TEB_PANEL_t),     INTENT(INOUT) :: TPN
 TYPE(TEB_IRRIG_t),     INTENT(INOUT) :: TIR
 !
@@ -83,34 +83,34 @@ TYPE(TEB_IRRIG_t),     INTENT(INOUT) :: TIR
 !
 ! Indoor parameters
 !
-DEALLOCATE(B%XTI_BLD)                    ! building interior temperature    (K)
-DEALLOCATE(B%XT_FLOOR ) ! floor layer temperatures         (K)
-DEALLOCATE(B%XT_MASS  ) ! Air cooled building internal th. mass temperature (K)
+DEALLOCATE(BSTATE%XTI_BLD)                    ! building interior temperature    (K)
+DEALLOCATE(BSTATE%XT_FLOOR ) ! floor layer temperatures         (K)
+DEALLOCATE(BSTATE%XT_MASS  ) ! Air cooled building internal th. mass temperature (K)
 !
-DEALLOCATE(B%XTRAN_WIN)      ! window transmittance (-)
+DEALLOCATE(BSTATE%XTRAN_WIN)      ! window transmittance (-)
 !
 ! New parameters
 !
-DEALLOCATE(B%XAUX_MAX)      ! Auxiliar variable for autosize calcs
-DEALLOCATE(B%XT_WIN2)       ! Indoor window temperature [K]
-DEALLOCATE(B%XQI_BLD)       ! Indoor air specific humidity [kg kg-1]
+DEALLOCATE(BSTATE%XAUX_MAX)      ! Auxiliar variable for autosize calcs
+DEALLOCATE(BSTATE%XT_WIN2)       ! Indoor window temperature [K]
+DEALLOCATE(BSTATE%XQI_BLD)       ! Indoor air specific humidity [kg kg-1]
                              ! [W m-2(bld)]
-DEALLOCATE(B%XCAP_SYS_RAT)  ! Rated capacity of the cooling system
+DEALLOCATE(BSTATE%XCAP_SYS_RAT)  ! Rated capacity of the cooling system
                              ! [W m-2(bld)]
-DEALLOCATE(B%XT_ADP)        ! Apparatus dewpoint temperature of the
+DEALLOCATE(BSTATE%XT_ADP)        ! Apparatus dewpoint temperature of the
                              ! cooling coil [K]
-DEALLOCATE(B%XM_SYS_RAT)    ! Rated HVAC mass flow rate 
+DEALLOCATE(BSTATE%XM_SYS_RAT)    ! Rated HVAC mass flow rate 
                              ! [kg s-1 m-2(bld)]
-DEALLOCATE(B%XT_WIN1)       ! outdoor window temperature [K]
-DEALLOCATE(B%XALB_WIN)      ! window albedo
-DEALLOCATE(B%XABS_WIN)      ! window absortance
-DEALLOCATE(B%XUGG_WIN)      ! Window glass-to-glass U-factor [K m W-2]
-DEALLOCATE(B%LSHADE)        ! flag to activate shading devices -> LOGICAL in the code
-DEALLOCATE(B%XSHADE)        ! flag to activate shading devices -> REAL for i/o 0. or 1.
-DEALLOCATE(B%XNATVENT)      ! flag to describe surventilation system for i/o 
+DEALLOCATE(BSTATE%XT_WIN1)       ! outdoor window temperature [K]
+DEALLOCATE(BSTATE%XALB_WIN)      ! window albedo
+DEALLOCATE(BSTATE%XABS_WIN)      ! window absortance
+DEALLOCATE(BSTATE%XUGG_WIN)      ! Window glass-to-glass U-factor [K m W-2]
+DEALLOCATE(BSTATE%LSHADE)        ! flag to activate shading devices -> LOGICAL in the code
+DEALLOCATE(BSTATE%XSHADE)        ! flag to activate shading devices -> REAL for i/o 0. or 1.
+DEALLOCATE(BSTATE%XNATVENT)      ! flag to describe surventilation system for i/o 
                              ! 0 for NONE, 1 for MANU and 2 for AUTO
-DEALLOCATE(B%LSHAD_DAY)     !Has shading been necessary this day ?
-DEALLOCATE(B%LNATVENT_NIGHT)!Has nocturnal surventilation been necessary and possible this night ?
+DEALLOCATE(BSTATE%LSHAD_DAY)     !Has shading been necessary this day ?
+DEALLOCATE(BSTATE%LNATVENT_NIGHT)!Has nocturnal surventilation been necessary and possible this night ?
   !
   !indoor relative surfaces and view factors
 !
@@ -148,34 +148,34 @@ DEALLOCATE(B%LNATVENT_NIGHT)!Has nocturnal surventilation been necessary and pos
 !
 ! Prognostic variables:
 !
-DEALLOCATE(T%XWS_ROOF)      ! roof water reservoir             (kg/m2)
-DEALLOCATE(T%XWS_ROAD)      ! road water reservoir             (kg/m2)
-DEALLOCATE(T%XT_ROOF)       ! roof layer temperatures          (K)
-DEALLOCATE(T%XT_ROAD)       ! road layer temperatures          (K)
-DEALLOCATE(T%XT_WALL_A)     ! wall layer temperatures          (K)
-DEALLOCATE(T%XT_WALL_B)     ! wall layer temperatures          (K)
+DEALLOCATE(TSTATE%XWS_ROOF)      ! roof water reservoir             (kg/m2)
+DEALLOCATE(TSTATE%XWS_ROAD)      ! road water reservoir             (kg/m2)
+DEALLOCATE(TSTATE%XT_ROOF)       ! roof layer temperatures          (K)
+DEALLOCATE(TSTATE%XT_ROAD)       ! road layer temperatures          (K)
+DEALLOCATE(TSTATE%XT_WALL_A)     ! wall layer temperatures          (K)
+DEALLOCATE(TSTATE%XT_WALL_B)     ! wall layer temperatures          (K)
 !
 ! Semi-prognostic variables:
 !
-DEALLOCATE(T%XT_CANYON)     ! canyon air temperature           (K)
-DEALLOCATE(T%XQ_CANYON)     ! canyon air specific humidity     (kg/kg)
+DEALLOCATE(TSTATE%XT_CANYON)     ! canyon air temperature           (K)
+DEALLOCATE(TSTATE%XQ_CANYON)     ! canyon air specific humidity     (kg/kg)
 !
 !
 ! Prognostic snow:
 !
-DEALLOCATE(T%TSNOW_ROOF%WSNOW)     ! snow (& liq. water) content      (kg/m2) 
-DEALLOCATE(T%TSNOW_ROOF%T    )     ! temperature                      (K)
-DEALLOCATE(T%TSNOW_ROOF%RHO  )     ! density                          (kg m-3)
-DEALLOCATE(T%TSNOW_ROOF%ALB  )     ! albedo                           (-)
-DEALLOCATE(T%TSNOW_ROOF%EMIS )     ! emissivity                       (-)
-DEALLOCATE(T%TSNOW_ROOF%TS   )     ! Surface temperature              (K)
+DEALLOCATE(TSTATE%TSNOW_ROOF%WSNOW)     ! snow (& liq. water) content      (kg/m2) 
+DEALLOCATE(TSTATE%TSNOW_ROOF%T    )     ! temperature                      (K)
+DEALLOCATE(TSTATE%TSNOW_ROOF%RHO  )     ! density                          (kg m-3)
+DEALLOCATE(TSTATE%TSNOW_ROOF%ALB  )     ! albedo                           (-)
+DEALLOCATE(TSTATE%TSNOW_ROOF%EMIS )     ! emissivity                       (-)
+DEALLOCATE(TSTATE%TSNOW_ROOF%TS   )     ! Surface temperature              (K)
 
-DEALLOCATE(T%TSNOW_ROAD%WSNOW)     ! snow (& liq. water) content      (kg/m2) 
-DEALLOCATE(T%TSNOW_ROAD%T    )     ! temperature                      (K)
-DEALLOCATE(T%TSNOW_ROAD%RHO  )     ! density                          (kg m-3)
-DEALLOCATE(T%TSNOW_ROAD%ALB  )     ! albedo                           (-)
-DEALLOCATE(T%TSNOW_ROAD%EMIS )     ! emissivity                       (-)
-DEALLOCATE(T%TSNOW_ROAD%TS   )     ! Surface temperature              (K)
+DEALLOCATE(TSTATE%TSNOW_ROAD%WSNOW)     ! snow (& liq. water) content      (kg/m2) 
+DEALLOCATE(TSTATE%TSNOW_ROAD%T    )     ! temperature                      (K)
+DEALLOCATE(TSTATE%TSNOW_ROAD%RHO  )     ! density                          (kg m-3)
+DEALLOCATE(TSTATE%TSNOW_ROAD%ALB  )     ! albedo                           (-)
+DEALLOCATE(TSTATE%TSNOW_ROAD%EMIS )     ! emissivity                       (-)
+DEALLOCATE(TSTATE%TSNOW_ROAD%TS   )     ! Surface temperature              (K)
 !
 ! Static parameters of the surface (component P)
 !

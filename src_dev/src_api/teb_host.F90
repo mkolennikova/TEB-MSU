@@ -9,7 +9,7 @@
 !!
 !!    PURPOSE
 !!    -------
-!!    The parameter containers (TOP, TP, BOP, BP) are filled here, at the
+!!    The parameter containers (TOPTS, TPARAMS, BOPTS, BPARAMS) are filled here, at the
 !!    level where the configuration values are known: in TEB_INTERFACE.
 !!    CALL_DRIVER therefore does not copy its arguments into the containers
 !!    any more, and does not need them as dummies.
@@ -48,17 +48,17 @@ IMPLICIT NONE
 !             TEB_HOST_ENSURE on the first call of TEB_INTERFACE (one set per
 !             thread), filled per call and passed down the call chain.
 !
-TYPE(TEB_OPTIONS_t),  SAVE :: TOP   ! options of TEB
-TYPE(TEB_PARAMS_t),   SAVE :: TP    ! parameters of TEB
-TYPE(TEB_t),          SAVE :: TSTATE     ! state of TEB
-TYPE(BEM_OPTIONS_t),  SAVE :: BOP   ! options of BEM
-TYPE(BEM_PARAMS_t),   SAVE :: BP    ! parameters of BEM
-TYPE(BEM_t),          SAVE :: BSTATE     ! state of BEM
-TYPE(TEB_PANEL_t),    SAVE :: TPN   ! solar panels
-TYPE(TEB_IRRIG_t),    SAVE :: TIR   ! irrigation
-TYPE(DIAG_MISC_TEB_t),SAVE :: DMT   ! diagnostics
+TYPE(TEB_OPTIONS_t),  SAVE :: TOPTS     ! options of TEB
+TYPE(TEB_PARAMS_t),   SAVE :: TPARAMS   ! parameters of TEB
+TYPE(TEB_t),          SAVE :: TSTATE    ! state of TEB
+TYPE(BEM_OPTIONS_t),  SAVE :: BOPTS     ! options of BEM
+TYPE(BEM_PARAMS_t),   SAVE :: BPARAMS   ! parameters of BEM
+TYPE(BEM_t),          SAVE :: BSTATE    ! state of BEM
+TYPE(TEB_PANEL_t),    SAVE :: TPN       ! solar panels
+TYPE(TEB_IRRIG_t),    SAVE :: TIR       ! irrigation
+TYPE(DIAG_MISC_TEB_t),SAVE :: DMT       ! diagnostics
 LOGICAL,              SAVE :: LTEB_HOST_ALLOC = .FALSE.
-!$OMP THREADPRIVATE(TOP,TP,T,BOP,BP,B,TPN,TIR,DMT,LTEB_HOST_ALLOC)
+!$OMP THREADPRIVATE(TOPTS,TPARAMS,TSTATE,BOPTS,BPARAMS,BSTATE,TPN,TIR,DMT,LTEB_HOST_ALLOC)
 !
 CONTAINS
 
@@ -115,53 +115,53 @@ INTEGER :: K
 DO K = KSTART, KEND
 !
 !* BEM options and parameters
-    BOP%CCOOL_COIL            = teb_itype_bem_cool
-    BOP%CHEAT_COIL            = teb_itype_bem_heat
-    BOP%LBEM_AC              = teb_lbem_ac
-    BP%XTCOOL_TARGET(K)       = teb_tcool_target(K)
-    BP%XTHEAT_TARGET(K)       = teb_theat_target(K)
-    BP%XGR(K)                 = teb_frac_gz(K)
-    BP%XINF(K)                = teb_bem_inf(K)
-    BP%XV_VENT(K)             = teb_bem_vent(K)
-    BP%XCAP_SYS_HEAT(K)       = teb_cap_sys_heat(K)
-    BP%XCOP_RAT(K)            = teb_bem_cop(K)
-    BP%CNATVENT(K)            = teb_itype_natvent
+    BOPTS%CCOOL_COIL            = teb_itype_bem_cool
+    BOPTS%CHEAT_COIL            = teb_itype_bem_heat
+    BOPTS%LBEM_AC              = teb_lbem_ac
+    BPARAMS%XTCOOL_TARGET(K)       = teb_tcool_target(K)
+    BPARAMS%XTHEAT_TARGET(K)       = teb_theat_target(K)
+    BPARAMS%XGR(K)                 = teb_frac_gz(K)
+    BPARAMS%XINF(K)                = teb_bem_inf(K)
+    BPARAMS%XV_VENT(K)             = teb_bem_vent(K)
+    BPARAMS%XCAP_SYS_HEAT(K)       = teb_cap_sys_heat(K)
+    BPARAMS%XCOP_RAT(K)            = teb_bem_cop(K)
+    BPARAMS%CNATVENT(K)            = teb_itype_natvent
 !
 !* TEB options
-    TOP%LGARDEN               = teb_lgarden
-    TOP%CROAD_DIR             = teb_hroad_dir
-    TOP%CWALL_OPT             = teb_wall_opt
-    TOP%CBEM                  = teb_itype_bem
-    TOP%LGREENROOF            = teb_lgreenroof
-    TOP%CTYPE_GARDEN          = teb_type_garden
-    TOP%CTYPE_GREENROOF       = teb_type_greenroof
-    TOP%LSOLAR_PANEL          = teb_lsolar_panel
-    TOP%ITYPE_WIND          = teb_itype_wind
-    TOP%NUTC_HOUR           = teb_utc_hour
-    TOP%LGREENROOF_EXT      = teb_lgreenroof_ext
-    TOP%LCBS_SCHEME           = teb_lcbs_scheme
-    TOP%XTAU_HW_THRESH        = teb_tau_hw_thresh
-    TOP%XTAU_HW_WIDTH         = teb_tau_hw_width
-    TOP%XZ0_O_Z0H_GD          = urb_z0_o_z0h_gdn
-    TOP%XZ0_O_Z0H_GR          = urb_z0_o_z0h_grf
+    TOPTS%LGARDEN               = teb_lgarden
+    TOPTS%CROAD_DIR             = teb_hroad_dir
+    TOPTS%CWALL_OPT             = teb_wall_opt
+    TOPTS%CBEM                  = teb_itype_bem
+    TOPTS%LGREENROOF            = teb_lgreenroof
+    TOPTS%CTYPE_GARDEN          = teb_type_garden
+    TOPTS%CTYPE_GREENROOF       = teb_type_greenroof
+    TOPTS%LSOLAR_PANEL          = teb_lsolar_panel
+    TOPTS%ITYPE_WIND          = teb_itype_wind
+    TOPTS%NUTC_HOUR           = teb_utc_hour
+    TOPTS%LGREENROOF_EXT      = teb_lgreenroof_ext
+    TOPTS%LCBS_SCHEME           = teb_lcbs_scheme
+    TOPTS%XTAU_HW_THRESH        = teb_tau_hw_thresh
+    TOPTS%XTAU_HW_WIDTH         = teb_tau_hw_width
+    TOPTS%XZ0_O_Z0H_GD          = urb_z0_o_z0h_gdn
+    TOPTS%XZ0_O_Z0H_GR          = urb_z0_o_z0h_grf
 !
 !* TEB parameters
-    TP%XROAD_DIR(K)           = teb_road_dir(K)
-    TP%XGARDEN(K)             = fr_garden(K)
-    TP%XGREENROOF(K)          = teb_frac_gr(K)
-    TP%XBLD(K)                = urb_fr_bld(K)
-    TP%XCAN_HW_RATIO(K)       = urb_h2w(K)
-    TP%XBLD_HEIGHT(K)         = urb_h_bld(K)
-    TP%XALB_ROOF(K)           = urb_alb_rf_so(K)
-    TP%XEMIS_ROOF(K)          = 1. - urb_alb_rf_th(K)
-    TP%XALB_ROAD(K)           = urb_alb_rd_so(K)
-    TP%XEMIS_ROAD(K)          = 1. - urb_alb_rd_th(K)
-    TP%XALB_WALL(K)           = urb_alb_wl_so(K)
-    TP%XEMIS_WALL(K)          = 1. - urb_alb_wl_th(K)
-    TP%XRESIDENTIAL(K)        = teb_zresidential(K)
-    TP%XDT_RES                 = teb_dt_res(K)
-    TP%XDT_OFF                 = teb_dt_off(K)
-    TP%XH_INDUSTRY(K)         = ahf_industry(K)
+    TPARAMS%XROAD_DIR(K)           = teb_road_dir(K)
+    TPARAMS%XGARDEN(K)             = fr_garden(K)
+    TPARAMS%XGREENROOF(K)          = teb_frac_gr(K)
+    TPARAMS%XBLD(K)                = urb_fr_bld(K)
+    TPARAMS%XCAN_HW_RATIO(K)       = urb_h2w(K)
+    TPARAMS%XBLD_HEIGHT(K)         = urb_h_bld(K)
+    TPARAMS%XALB_ROOF(K)           = urb_alb_rf_so(K)
+    TPARAMS%XEMIS_ROOF(K)          = 1. - urb_alb_rf_th(K)
+    TPARAMS%XALB_ROAD(K)           = urb_alb_rd_so(K)
+    TPARAMS%XEMIS_ROAD(K)          = 1. - urb_alb_rd_th(K)
+    TPARAMS%XALB_WALL(K)           = urb_alb_wl_so(K)
+    TPARAMS%XEMIS_WALL(K)          = 1. - urb_alb_wl_th(K)
+    TPARAMS%XRESIDENTIAL(K)        = teb_zresidential(K)
+    TPARAMS%XDT_RES                 = teb_dt_res(K)
+    TPARAMS%XDT_OFF                 = teb_dt_off(K)
+    TPARAMS%XH_INDUSTRY(K)         = ahf_industry(K)
 !
 !* solar panels and road irrigation (P-C4: filled here, not in CALL_DRIVER)
     TPN%XEMIS_PANEL(K)       = 0.9
@@ -191,7 +191,7 @@ SUBROUTINE TEB_FILL_DERIVED (KSTART, KEND, &
 !* The derived static parameters: the layer profiles of the roof/road/wall/floor,
 !* the geometry fractions, the sky-view factors, z0/zd, the roughness coefficients,
 !* the BEM constants and the anthropogenic fluxes. Everything is written into
-!* TP/BP/TOP/BOP here, so that CALL_DRIVER does not derive statics any more
+!* TPARAMS/BPARAMS/TOPTS/BOPTS here, so that CALL_DRIVER does not derive statics any more
 !* (P-C1b). Only the window KSTART:KEND is filled.
 !
 INTEGER, INTENT(IN) :: KSTART, KEND
@@ -212,145 +212,145 @@ REAL, DIMENSION(1) :: ZSHGC, PU_WIN, ZABS_WIN, ZUGG_WIN, ZTRAN_WIN
 !------------------------------------------------------------------------------
 !
 !* BEM constants (single-valued, once per run)
-BP%XQIN          = 5.8
-BP%XQIN_FRAD     = 0.2
-BP%XQIN_FLAT     = 0.2
-BP%XSHGC         = 0.763
-BP%XSHGC_SH      = 0.025
-BP%XF_WATER_COND = 0.
-BP%XF_WASTE_CAN  = 1.0
-BP%XEFF_HEAT     = 0.9
-BP%XHR_TARGET    = 0.5
-TOP%CCH_BEM      = ' '
-BOP%LAUTOSIZE    = .FALSE.
+BPARAMS%XQIN          = 5.8
+BPARAMS%XQIN_FRAD     = 0.2
+BPARAMS%XQIN_FLAT     = 0.2
+BPARAMS%XSHGC         = 0.763
+BPARAMS%XSHGC_SH      = 0.025
+BPARAMS%XF_WATER_COND = 0.
+BPARAMS%XF_WASTE_CAN  = 1.0
+BPARAMS%XEFF_HEAT     = 0.9
+BPARAMS%XHR_TARGET    = 0.5
+TOPTS%CCH_BEM      = ' '
+BOPTS%LAUTOSIZE    = .FALSE.
 !MV202609 z0 and zd to namelist
-TOP%CZ0H         = 'MASC95'
+TOPTS%CZ0H         = 'MASC95'
 !
 DO K = KSTART, KEND
 !
 !* Roof layers
-    TP%XHC_ROOF(K,1) = urb_hcap_rf(K)
-    TP%XHC_ROOF(K,2) = urb_hcap_rf(K)
-    TP%XHC_ROOF(K,3) = urb_hcap_rf(K)
-    TP%XHC_ROOF(K,4) = 1127845.62
-    TP%XHC_ROOF(K,5) =   52030.
-    TP%XTC_ROOF(K,1) = urb_hcon_rf(K)
-    TP%XTC_ROOF(K,2) = urb_hcon_rf(K)
-    TP%XTC_ROOF(K,3) = urb_hcon_rf(K)
-    TP%XTC_ROOF(K,4) = 0.095454545
-    TP%XTC_ROOF(K,5) = 0.03
-    TP%XD_ROOF(K,1)  = 0.001
-    TP%XD_ROOF(K,2)  = 0.098
-    TP%XD_ROOF(K,3)  = 0.132
-    TP%XD_ROOF(K,4)  = 0.098
-    TP%XD_ROOF(K,5)  = 0.001
+    TPARAMS%XHC_ROOF(K,1) = urb_hcap_rf(K)
+    TPARAMS%XHC_ROOF(K,2) = urb_hcap_rf(K)
+    TPARAMS%XHC_ROOF(K,3) = urb_hcap_rf(K)
+    TPARAMS%XHC_ROOF(K,4) = 1127845.62
+    TPARAMS%XHC_ROOF(K,5) =   52030.
+    TPARAMS%XTC_ROOF(K,1) = urb_hcon_rf(K)
+    TPARAMS%XTC_ROOF(K,2) = urb_hcon_rf(K)
+    TPARAMS%XTC_ROOF(K,3) = urb_hcon_rf(K)
+    TPARAMS%XTC_ROOF(K,4) = 0.095454545
+    TPARAMS%XTC_ROOF(K,5) = 0.03
+    TPARAMS%XD_ROOF(K,1)  = 0.001
+    TPARAMS%XD_ROOF(K,2)  = 0.098
+    TPARAMS%XD_ROOF(K,3)  = 0.132
+    TPARAMS%XD_ROOF(K,4)  = 0.098
+    TPARAMS%XD_ROOF(K,5)  = 0.001
 !
 !* Road layers
-    TP%XHC_ROAD(K,1) = urb_hcap_rd(K)
-    TP%XHC_ROAD(K,2) = urb_hcap_rd(K)
-    TP%XHC_ROAD(K,3) = 1989600.
-    TP%XHC_ROAD(K,4) = 1640000.
-    TP%XHC_ROAD(K,5) = 1400000.
-    TP%XTC_ROAD(K,1) = urb_hcon_rd(K)
-    TP%XTC_ROAD(K,2) = urb_hcon_rd(K)
-    TP%XTC_ROAD(K,3) = 1.976584
-    TP%XTC_ROAD(K,4) = 0.5915493
-    TP%XTC_ROAD(K,5) = 0.4000
-    TP%XD_ROAD(K,1)  = 0.001
-    TP%XD_ROAD(K,2)  = 0.045296296
-    TP%XD_ROAD(K,3)  = 0.092592593
-    TP%XD_ROAD(K,4)  = 0.27777778
-    TP%XD_ROAD(K,5)  = 0.83333333
+    TPARAMS%XHC_ROAD(K,1) = urb_hcap_rd(K)
+    TPARAMS%XHC_ROAD(K,2) = urb_hcap_rd(K)
+    TPARAMS%XHC_ROAD(K,3) = 1989600.
+    TPARAMS%XHC_ROAD(K,4) = 1640000.
+    TPARAMS%XHC_ROAD(K,5) = 1400000.
+    TPARAMS%XTC_ROAD(K,1) = urb_hcon_rd(K)
+    TPARAMS%XTC_ROAD(K,2) = urb_hcon_rd(K)
+    TPARAMS%XTC_ROAD(K,3) = 1.976584
+    TPARAMS%XTC_ROAD(K,4) = 0.5915493
+    TPARAMS%XTC_ROAD(K,5) = 0.4000
+    TPARAMS%XD_ROAD(K,1)  = 0.001
+    TPARAMS%XD_ROAD(K,2)  = 0.045296296
+    TPARAMS%XD_ROAD(K,3)  = 0.092592593
+    TPARAMS%XD_ROAD(K,4)  = 0.27777778
+    TPARAMS%XD_ROAD(K,5)  = 0.83333333
 !
 !* Wall layers
-    TP%XHC_WALL(K,1) = urb_hcap_wl(K)
-    TP%XHC_WALL(K,2) = urb_hcap_wl(K)
-    TP%XHC_WALL(K,3) = urb_hcap_wl(K)
-    TP%XHC_WALL(K,4) = 1127845.6
-    TP%XHC_WALL(K,5) =   52030.
-    TP%XTC_WALL(K,1) = urb_hcon_wl(K)
-    TP%XTC_WALL(K,2) = urb_hcon_wl(K)
-    TP%XTC_WALL(K,3) = urb_hcon_wl(K)
-    TP%XTC_WALL(K,4) = 0.095454545
-    TP%XTC_WALL(K,5) = 0.03
-    TP%XD_WALL(K,1)  = 0.001
-    TP%XD_WALL(K,2)  = 0.098
-    TP%XD_WALL(K,3)  = 0.132
-    TP%XD_WALL(K,4)  = 0.098
-    TP%XD_WALL(K,5)  = 0.001
+    TPARAMS%XHC_WALL(K,1) = urb_hcap_wl(K)
+    TPARAMS%XHC_WALL(K,2) = urb_hcap_wl(K)
+    TPARAMS%XHC_WALL(K,3) = urb_hcap_wl(K)
+    TPARAMS%XHC_WALL(K,4) = 1127845.6
+    TPARAMS%XHC_WALL(K,5) =   52030.
+    TPARAMS%XTC_WALL(K,1) = urb_hcon_wl(K)
+    TPARAMS%XTC_WALL(K,2) = urb_hcon_wl(K)
+    TPARAMS%XTC_WALL(K,3) = urb_hcon_wl(K)
+    TPARAMS%XTC_WALL(K,4) = 0.095454545
+    TPARAMS%XTC_WALL(K,5) = 0.03
+    TPARAMS%XD_WALL(K,1)  = 0.001
+    TPARAMS%XD_WALL(K,2)  = 0.098
+    TPARAMS%XD_WALL(K,3)  = 0.132
+    TPARAMS%XD_WALL(K,4)  = 0.098
+    TPARAMS%XD_WALL(K,5)  = 0.001
 !
 !* Floor and internal mass layers
-    BP%XHC_FLOOR(K,1) = 2016000.
-    BP%XHC_FLOOR(K,2) = 2016000.
-    BP%XHC_FLOOR(K,3) = 2016000.
-    BP%XHC_FLOOR(K,4) = 2016000.
-    BP%XHC_FLOOR(K,5) = 2016000.
-    BP%XTC_FLOOR(K,1) = 1.95
-    BP%XTC_FLOOR(K,2) = 1.95
-    BP%XTC_FLOOR(K,3) = 1.95
-    BP%XTC_FLOOR(K,4) = 1.95
-    BP%XTC_FLOOR(K,5) = 1.95
-    BP%XD_FLOOR(K,1)  = 0.001
-    BP%XD_FLOOR(K,2)  = 0.0064074074
-    BP%XD_FLOOR(K,3)  = 0.014814815
-    BP%XD_FLOOR(K,4)  = 0.044444444
-    BP%XD_FLOOR(K,5)  = 0.13333333
+    BPARAMS%XHC_FLOOR(K,1) = 2016000.
+    BPARAMS%XHC_FLOOR(K,2) = 2016000.
+    BPARAMS%XHC_FLOOR(K,3) = 2016000.
+    BPARAMS%XHC_FLOOR(K,4) = 2016000.
+    BPARAMS%XHC_FLOOR(K,5) = 2016000.
+    BPARAMS%XTC_FLOOR(K,1) = 1.95
+    BPARAMS%XTC_FLOOR(K,2) = 1.95
+    BPARAMS%XTC_FLOOR(K,3) = 1.95
+    BPARAMS%XTC_FLOOR(K,4) = 1.95
+    BPARAMS%XTC_FLOOR(K,5) = 1.95
+    BPARAMS%XD_FLOOR(K,1)  = 0.001
+    BPARAMS%XD_FLOOR(K,2)  = 0.0064074074
+    BPARAMS%XD_FLOOR(K,3)  = 0.014814815
+    BPARAMS%XD_FLOOR(K,4)  = 0.044444444
+    BPARAMS%XD_FLOOR(K,5)  = 0.13333333
 !
 !* roughness coefficients (DOE-2 case)
-    TP%XROUGH_ROOF(K) = 1.52
-    TP%XROUGH_WALL(K) = 1.52
+    TPARAMS%XROUGH_ROOF(K) = 1.52
+    TPARAMS%XROUGH_WALL(K) = 1.52
 !
 !* frontal area index and the annual-mean traffic flux
-    TP%XFAI(K,:)            = fai(K,:)
-    TP%XH_TRAFFIC_MEAN(K)   = ahf_traffic(K)
+    TPARAMS%XFAI(K,:)            = fai(K,:)
+    TPARAMS%XH_TRAFFIC_MEAN(K)   = ahf_traffic(K)
 !
 !* geometry fractions and sky-view factors
-    ZROAD        = 1. - TP%XBLD(K) - TP%XGARDEN(K)
-    ZWALL_O_HOR  = 2. * TP%XCAN_HW_RATIO(K) * (1. - TP%XBLD(K))
-    TP%XSVF_ROAD(K)   = SQRT(TP%XCAN_HW_RATIO(K)**2 + 1.) - TP%XCAN_HW_RATIO(K)
-    TP%XSVF_GARDEN(K) = TP%XSVF_ROAD(K)
-    TP%XSVF_WALL(K)   = 0.5 * (TP%XCAN_HW_RATIO(K) + 1. - SQRT(TP%XCAN_HW_RATIO(K)**2 + 1.)) / TP%XCAN_HW_RATIO(K)
+    ZROAD        = 1. - TPARAMS%XBLD(K) - TPARAMS%XGARDEN(K)
+    ZWALL_O_HOR  = 2. * TPARAMS%XCAN_HW_RATIO(K) * (1. - TPARAMS%XBLD(K))
+    TPARAMS%XSVF_ROAD(K)   = SQRT(TPARAMS%XCAN_HW_RATIO(K)**2 + 1.) - TPARAMS%XCAN_HW_RATIO(K)
+    TPARAMS%XSVF_GARDEN(K) = TPARAMS%XSVF_ROAD(K)
+    TPARAMS%XSVF_WALL(K)   = 0.5 * (TPARAMS%XCAN_HW_RATIO(K) + 1. - SQRT(TPARAMS%XCAN_HW_RATIO(K)**2 + 1.)) / TPARAMS%XCAN_HW_RATIO(K)
     ZTOTS_O_HORS  = 1. + ZWALL_O_HOR
     ZROAD_FRAC    = ZROAD      / ZTOTS_O_HORS
     ZWALL_FRAC    = ZWALL_O_HOR / ZTOTS_O_HORS
-    ZGARDEN_FRAC  = TP%XGARDEN(K) / ZTOTS_O_HORS
-    TP%XROAD(K)          = ZROAD
-    TP%XWALL_O_HOR(K)    = ZWALL_O_HOR
-    TP%XWALL_O_GRND(K)   = ZWALL_FRAC / (ZROAD_FRAC + ZGARDEN_FRAC)
-    TP%XROAD_O_GRND(K)   = ZROAD / (ZROAD + TP%XGARDEN(K))
-    TP%XGARDEN_O_GRND(K) = TP%XGARDEN(K) / (ZROAD + TP%XGARDEN(K))
+    ZGARDEN_FRAC  = TPARAMS%XGARDEN(K) / ZTOTS_O_HORS
+    TPARAMS%XROAD(K)          = ZROAD
+    TPARAMS%XWALL_O_HOR(K)    = ZWALL_O_HOR
+    TPARAMS%XWALL_O_GRND(K)   = ZWALL_FRAC / (ZROAD_FRAC + ZGARDEN_FRAC)
+    TPARAMS%XROAD_O_GRND(K)   = ZROAD / (ZROAD + TPARAMS%XGARDEN(K))
+    TPARAMS%XGARDEN_O_GRND(K) = TPARAMS%XGARDEN(K) / (ZROAD + TPARAMS%XGARDEN(K))
 !
 !* BEM morphology (building view factors) and the window optics
     ZPFLOOR(1) = 3.0
-    IF (ZPFLOOR(1) > TP%XBLD_HEIGHT(K)) ZPFLOOR(1) = TP%XBLD_HEIGHT(K)
-    ZN_FLOOR(1) = FLOAT(NINT(TP%XBLD_HEIGHT(K) / ZPFLOOR(1)))
+    IF (ZPFLOOR(1) > TPARAMS%XBLD_HEIGHT(K)) ZPFLOOR(1) = TPARAMS%XBLD_HEIGHT(K)
+    ZN_FLOOR(1) = FLOAT(NINT(TPARAMS%XBLD_HEIGHT(K) / ZPFLOOR(1)))
     ZF_WASTE_CAN(1) = 1.0
-    CALL BEM_MORPHO_STRUCT(TP%XBLD(K:K), TP%XWALL_O_HOR(K:K), TP%XBLD_HEIGHT(K:K), ZPFLOOR, &
-                           BP%XGR(K:K), ZN_FLOOR, ZWALL_O_BLD, ZGLAZ_O_BLD, ZMASS_O_BLD, &
+    CALL BEM_MORPHO_STRUCT(TPARAMS%XBLD(K:K), TPARAMS%XWALL_O_HOR(K:K), TPARAMS%XBLD_HEIGHT(K:K), ZPFLOOR, &
+                           BPARAMS%XGR(K:K), ZN_FLOOR, ZWALL_O_BLD, ZGLAZ_O_BLD, ZMASS_O_BLD, &
                            ZFLOOR_HW_RATIO, ZF_FLOOR_MASS, ZF_FLOOR_WALL, ZF_FLOOR_WIN, &
                            ZF_FLOOR_ROOF, ZF_WALL_FLOOR, ZF_WALL_MASS, ZF_WALL_WIN, &
                            ZF_WIN_FLOOR, ZF_WIN_MASS, ZF_WIN_WALL, ZF_MASS_FLOOR, &
                            ZF_MASS_WALL, ZF_MASS_WIN, ZF_WASTE_CAN, ZF_WIN_WIN)
-    BP%XN_FLOOR(K)        = ZN_FLOOR(1)
-    TP%XWALL_O_BLD(K)     = ZWALL_O_BLD(1)
-    BP%XGLAZ_O_BLD(K)     = ZGLAZ_O_BLD(1)
-    BP%XMASS_O_BLD(K)     = ZMASS_O_BLD(1)
-    BP%XFLOOR_HW_RATIO(K) = ZFLOOR_HW_RATIO(1)
-    BP%XF_FLOOR_MASS(K)   = ZF_FLOOR_MASS(1)
-    BP%XF_FLOOR_WALL(K)   = ZF_FLOOR_WALL(1)
-    BP%XF_FLOOR_WIN(K)    = ZF_FLOOR_WIN(1)
-    BP%XF_FLOOR_ROOF(K)   = ZF_FLOOR_ROOF(1)
-    BP%XF_WALL_FLOOR(K)   = ZF_WALL_FLOOR(1)
-    BP%XF_WALL_MASS(K)    = ZF_WALL_MASS(1)
-    BP%XF_WALL_WIN(K)     = ZF_WALL_WIN(1)
-    BP%XF_WIN_FLOOR(K)    = ZF_WIN_FLOOR(1)
-    BP%XF_WIN_MASS(K)     = ZF_WIN_MASS(1)
-    BP%XF_WIN_WALL(K)     = ZF_WIN_WALL(1)
-    BP%XF_MASS_FLOOR(K)   = ZF_MASS_FLOOR(1)
-    BP%XF_MASS_WALL(K)    = ZF_MASS_WALL(1)
-    BP%XF_MASS_WIN(K)     = ZF_MASS_WIN(1)
-    BP%XF_WIN_WIN(K)      = ZF_WIN_WIN(1)
-    ! BP%XF_WASTE_CAN was set above; BEM_MORPHO_STRUCT passes it through
+    BPARAMS%XN_FLOOR(K)        = ZN_FLOOR(1)
+    TPARAMS%XWALL_O_BLD(K)     = ZWALL_O_BLD(1)
+    BPARAMS%XGLAZ_O_BLD(K)     = ZGLAZ_O_BLD(1)
+    BPARAMS%XMASS_O_BLD(K)     = ZMASS_O_BLD(1)
+    BPARAMS%XFLOOR_HW_RATIO(K) = ZFLOOR_HW_RATIO(1)
+    BPARAMS%XF_FLOOR_MASS(K)   = ZF_FLOOR_MASS(1)
+    BPARAMS%XF_FLOOR_WALL(K)   = ZF_FLOOR_WALL(1)
+    BPARAMS%XF_FLOOR_WIN(K)    = ZF_FLOOR_WIN(1)
+    BPARAMS%XF_FLOOR_ROOF(K)   = ZF_FLOOR_ROOF(1)
+    BPARAMS%XF_WALL_FLOOR(K)   = ZF_WALL_FLOOR(1)
+    BPARAMS%XF_WALL_MASS(K)    = ZF_WALL_MASS(1)
+    BPARAMS%XF_WALL_WIN(K)     = ZF_WALL_WIN(1)
+    BPARAMS%XF_WIN_FLOOR(K)    = ZF_WIN_FLOOR(1)
+    BPARAMS%XF_WIN_MASS(K)     = ZF_WIN_MASS(1)
+    BPARAMS%XF_WIN_WALL(K)     = ZF_WIN_WALL(1)
+    BPARAMS%XF_MASS_FLOOR(K)   = ZF_MASS_FLOOR(1)
+    BPARAMS%XF_MASS_WALL(K)    = ZF_MASS_WALL(1)
+    BPARAMS%XF_MASS_WIN(K)     = ZF_MASS_WIN(1)
+    BPARAMS%XF_WIN_WIN(K)      = ZF_WIN_WIN(1)
+    ! BPARAMS%XF_WASTE_CAN was set above; BEM_MORPHO_STRUCT passes it through
     ZSHGC(1)  = 0.763
     PU_WIN(1) = 2.716
     CALL WINDOW_DATA_STRUCT(1, ZSHGC, PU_WIN, BSTATE%XALB_WIN(K:K), ZABS_WIN, ZUGG_WIN, ZTRAN_WIN)
@@ -359,24 +359,24 @@ DO K = KSTART, KEND
     BSTATE%XTRAN_WIN(K:K) = ZTRAN_WIN
 !
 !* z0 and zd from the namelist (URB_AERO_PARAMS, moved out of CALL_DRIVER)
-    CALL URB_AERO_PARAMS(urb_z0_town, urb_zd_town, TP%XBLD_HEIGHT(K:K), TP%XBLD(K:K), TP%XFAI(K:K,:), ZZ0, ZZDU)
-    TP%XZ0_TOWN(K) = ZZ0(1)
-    TP%XZD_TOWN(K) = ZZDU(1)
-    IF (TP%XZ0_TOWN(K) <= 0. .OR. TP%XZ0_TOWN(K) > 0.5*TP%XBLD_HEIGHT(K)) THEN
-       WRITE(*,*) 'ERROR in CALL_DRIVER: urb_z0_town = ', TRIM(urb_z0_town), ' -> z0 = ', TP%XZ0_TOWN(K), ' m'
-       WRITE(*,*) '   z0 must be in (0, 0.5*urb_h_bld], urb_h_bld = ', TP%XBLD_HEIGHT(K), ' m'
+    CALL URB_AERO_PARAMS(urb_z0_town, urb_zd_town, TPARAMS%XBLD_HEIGHT(K:K), TPARAMS%XBLD(K:K), TPARAMS%XFAI(K:K,:), ZZ0, ZZDU)
+    TPARAMS%XZ0_TOWN(K) = ZZ0(1)
+    TPARAMS%XZD_TOWN(K) = ZZDU(1)
+    IF (TPARAMS%XZ0_TOWN(K) <= 0. .OR. TPARAMS%XZ0_TOWN(K) > 0.5*TPARAMS%XBLD_HEIGHT(K)) THEN
+       WRITE(*,*) 'ERROR in CALL_DRIVER: urb_z0_town = ', TRIM(urb_z0_town), ' -> z0 = ', TPARAMS%XZ0_TOWN(K), ' m'
+       WRITE(*,*) '   z0 must be in (0, 0.5*urb_h_bld], urb_h_bld = ', TPARAMS%XBLD_HEIGHT(K), ' m'
        STOP
     ENDIF
-    IF (TP%XZD_TOWN(K) < 0. .OR. TP%XZD_TOWN(K) >= TP%XBLD_HEIGHT(K)) THEN
-       WRITE(*,*) 'ERROR in CALL_DRIVER: urb_zd_town = ', TRIM(urb_zd_town), ' -> zd = ', TP%XZD_TOWN(K), ' m'
-       WRITE(*,*) '   zd must be in [0, urb_h_bld), urb_h_bld = ', TP%XBLD_HEIGHT(K), ' m'
+    IF (TPARAMS%XZD_TOWN(K) < 0. .OR. TPARAMS%XZD_TOWN(K) >= TPARAMS%XBLD_HEIGHT(K)) THEN
+       WRITE(*,*) 'ERROR in CALL_DRIVER: urb_zd_town = ', TRIM(urb_zd_town), ' -> zd = ', TPARAMS%XZD_TOWN(K), ' m'
+       WRITE(*,*) '   zd must be in [0, urb_h_bld), urb_h_bld = ', TPARAMS%XBLD_HEIGHT(K), ' m'
        STOP
     ENDIF
 END DO
 !
 !* anthropogenic latent fluxes are zero in this version
-TP%XLE_TRAFFIC  = 0.0
-TP%XLE_INDUSTRY = 0.0
+TPARAMS%XLE_TRAFFIC  = 0.0
+TPARAMS%XLE_INDUSTRY = 0.0
 !
 END SUBROUTINE TEB_FILL_DERIVED
 !
@@ -395,9 +395,9 @@ INTEGER, INTENT(IN) :: KFLOOR  ! number of floor layers
 !------------------------------------------------------------------------------
 !
 IF (.NOT. LTEB_HOST_ALLOC) THEN
-   CALL ALLOC_TEB_STRUCT(KROOF, KROAD, KWALL, KFLOOR, TOP, TSTATE, BOP, BSTATE, TPN, TIR)
-   CALL ALLOC_TEB_PARAMS(TP, KROOF, KROAD, KWALL)
-   CALL ALLOC_BEM_PARAMS(BP, KFLOOR)
+   CALL ALLOC_TEB_STRUCT(KROOF, KROAD, KWALL, KFLOOR, TOPTS, TSTATE, BOPTS, BSTATE, TPN, TIR)
+   CALL ALLOC_TEB_PARAMS(TPARAMS, KROOF, KROAD, KWALL)
+   CALL ALLOC_BEM_PARAMS(BPARAMS, KFLOOR)
    CALL DIAG_MISC_TEB_ALLOC(DMT, KNVEC)
    LTEB_HOST_ALLOC = .TRUE.
 END IF
@@ -411,9 +411,9 @@ SUBROUTINE TEB_HOST_FINAL
 !------------------------------------------------------------------------------
 !
 IF (LTEB_HOST_ALLOC) THEN
-   CALL DEALLOC_TEB_STRUCT(TOP, TSTATE, BOP, BSTATE, TPN, TIR)
-   CALL DEALLOC_TEB_PARAMS(TP)
-   CALL DEALLOC_BEM_PARAMS(BP)
+   CALL DEALLOC_TEB_STRUCT(TOPTS, TSTATE, BOPTS, BSTATE, TPN, TIR)
+   CALL DEALLOC_TEB_PARAMS(TPARAMS)
+   CALL DEALLOC_BEM_PARAMS(BPARAMS)
    CALL DIAG_MISC_TEB_DEALLOC(DMT)
    LTEB_HOST_ALLOC = .FALSE.
 END IF

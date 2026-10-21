@@ -1,7 +1,7 @@
 !auto_modi:spll_urban_drag.D
 MODULE MODI_URBAN_DRAG
 INTERFACE
-    SUBROUTINE URBAN_DRAG(icell, iblock, TOP, T, B, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
+    SUBROUTINE URBAN_DRAG(icell, iblock, TOPTS, TSTATE, BSTATE, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
                           PU_CANYON, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ_LOWCAN,   &
                           PTS_ROOF, PTS_ROAD, PTS_WALL, PTS_GARDEN, PQS_GARDEN,    &
                           PDELT_SNOW_ROOF, PDELT_SNOW_ROAD,  PTAU, PEXNS, PEXNA, PTA,    &
@@ -24,19 +24,19 @@ INTERFACE
                           PAC_ROAD_ATM_WAT,                                              &
 !MV202609 greenroof-to-atm exchange diagnostics
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM,       &
-                          PCH_GREENROOF_ATM, PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM   , TP) 
+                          PCH_GREENROOF_ATM, PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM   , TPARAMS) 
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
 
 INTEGER                           :: icell
 INTEGER                           :: iblock 
-TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
-TYPE(TEB_t), INTENT(INOUT) :: T
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOPTS
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
 REAL,               INTENT(IN)    :: PTSTEP         ! time-step
 REAL, INTENT(IN)    :: PTIME         ! current time since midnight (UTC, s)

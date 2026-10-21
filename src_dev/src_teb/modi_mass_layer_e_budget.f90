@@ -1,15 +1,15 @@
 !auto_modi:spll_mass_layer_e_budget.D
 MODULE MODI_MASS_LAYER_E_BUDGET
 INTERFACE
-    SUBROUTINE MASS_LAYER_E_BUDGET(B, PTSTEP, PFLX_BLD_MA, PDQS_MA, PIMB_MA, PRADHT_IN, &
+    SUBROUTINE MASS_LAYER_E_BUDGET(BSTATE, PTSTEP, PFLX_BLD_MA, PDQS_MA, PIMB_MA, PRADHT_IN, &
                                    PRAD_WL_MA, PRAD_RF_MA, PRAD_WIN_MA, PLOAD_MA,       &
-                                   PRAD_FL_MA, PCONV_MA_BLD                  , BP)
+                                   PRAD_FL_MA, PCONV_MA_BLD                  , BPARAMS)
 USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
-TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 REAL,                 INTENT(IN)    :: PTSTEP       ! time step
 REAL, DIMENSION(:),   INTENT(OUT)  :: PFLX_BLD_MA !flux from building to floor
 REAL, DIMENSION(:),   INTENT(OUT) :: PDQS_MA !heat storage inside the floor

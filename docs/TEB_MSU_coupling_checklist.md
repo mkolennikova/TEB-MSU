@@ -36,8 +36,8 @@
 **внешний**: состояние (`T_s`, `q_v`), потоки и шероховатость приходят от хоста, а TEB обязан
 вернуть коэффициенты обмена. Внутренние садовые схемы (`'PROXY_NEW'`, `'PROXY_OLD'`) упоминаются
 только там, где влияют на внешнюю ветвь. В дереве B садовый прокси вызывается всегда и сам
-является внешней ветвью (`B:src_teb/teb_garden.F90:799` → `IF (TOP%LGARDEN) THEN`, вызов
-`B:src_teb/teb_garden.F90:802` → `CALL GARDEN(HIMPLICIT_WIND, TOP%TTIME, PTSUN, PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, &`), но модели поверхности в нём нет: бовэновские потоки и β
+является внешней ветвью (`B:src_teb/teb_garden.F90:799` → `IF (TOPTS%LGARDEN) THEN`, вызов
+`B:src_teb/teb_garden.F90:802` → `CALL GARDEN(HIMPLICIT_WIND, TOPTS%TTIME, PTSUN, PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, &`), но модели поверхности в нём нет: бовэновские потоки и β
 закомментированы (`B:src_proxi_SVAT/garden.F90:129` → `!PRN_GARDEN(:) = (1.-0.15) * PSW(:)`), а
 множитель влажности строится из влагосодержания хоста
 (`B:src_proxi_SVAT/garden.F90:164` → `PHU_AGG_GARDEN(:) = PQV_GD(:)/PQSAT_GARDEN(:)`, клиппинги —
@@ -208,7 +208,7 @@ CALL DIAG_MISC_TEB_DEALLOC (DMT)         ! после цикла
 
 | аспект | B | A_ctrl | A_dev | вердикт |
 | --- | --- | --- | --- | --- |
-| стратифицированные коэффициенты | `URBAN_EXCH_COEF` безусловно (`B:src_teb/urban_drag.F90:589` → `IF (TOP%LGARDEN) THEN`, вызов `B:src_teb/urban_drag.F90:593` → `PU_LOWCAN, PZ0_GARDEN, ZRI, PCD_GARDEN, ZCDN_GARDEN,         &`) | то же в ветви флага (`src_teb/urban_drag.F90:618` → `IF (OGARDEN_EXT) THEN`, вызов `src_teb/urban_drag.F90:620` → `CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,`) | то же для `'EXT'`, но отношения z0/z0h из словника: `src_dev/src_teb/urban_drag.F90:792` → `CALL URBAN_EXCH_COEF(TOP%CZ0H, TOP%XZ0_O_Z0H_GD, PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,`, `'EXT_NEU'` — нейтральные (`src_dev/src_teb/urban_drag.F90:770` → `IF (TOP%CTYPE_GARDEN == 'EXT_NEU') THEN`) | ✅ совпадает при `urb_z0_o_z0h_gdn = 4.` (дефолт: `src_dev/src_proxi_SVAT/modd_proxi_svat_par.F90:86` → `XZ0_O_Z0H_GD = 4.0`); `'EXT_NEU'` аналога в B не имеет |
+| стратифицированные коэффициенты | `URBAN_EXCH_COEF` безусловно (`B:src_teb/urban_drag.F90:589` → `IF (TOPTS%LGARDEN) THEN`, вызов `B:src_teb/urban_drag.F90:593` → `PU_LOWCAN, PZ0_GARDEN, ZRI, PCD_GARDEN, ZCDN_GARDEN,         &`) | то же в ветви флага (`src_teb/urban_drag.F90:618` → `IF (OGARDEN_EXT) THEN`, вызов `src_teb/urban_drag.F90:620` → `CALL URBAN_EXCH_COEF(TOPTS%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,`) | то же для `'EXT'`, но отношения z0/z0h из словника: `src_dev/src_teb/urban_drag.F90:792` → `CALL URBAN_EXCH_COEF(TOPTS%CZ0H, TOPTS%XZ0_O_Z0H_GD, PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,`, `'EXT_NEU'` — нейтральные (`src_dev/src_teb/urban_drag.F90:770` → `IF (TOPTS%CTYPE_GARDEN == 'EXT_NEU') THEN`) | ✅ совпадает при `urb_z0_o_z0h_gdn = 4.` (дефолт: `src_dev/src_proxi_SVAT/modd_proxi_svat_par.F90:86` → `XZ0_O_Z0H_GD = 4.0`); `'EXT_NEU'` аналога в B не имеет |
 | обнуление пары в EXT | пара не обнуляется (`B:src_teb/teb_garden.F90:172`) | **закрыто**: прокси не вызывается (`src_teb/teb_garden.F90:834`), пара остаётся от `URBAN_DRAG` | **закрыто** (`src_dev/src_teb/teb_garden.F90:1081` → `PCD_GD, PCH_GD, ZHU_AGG_GD`) | ✅ совпадает |
 | трение | нейтральная формула с жёстким z0 = 0.1 м (`B:src_proxi_SVAT/garden.F90:145` → `PUW_GARDEN(:) = - (XKARMAN/LOG(PZ_LOWCAN(:)/0.1))**2 * PU_LOWCAN(:)**2`) | **та же формула** (`src_proxi_SVAT/garden.F90:154` → `PUW_GARDEN(:) = - (XKARMAN/LOG(PZ_LOWCAN(:)/0.1))**2 * PU_LOWCAN(:)**2`) | моментный коэффициент режима (`src_dev/src_teb/teb_garden.F90:1100` → `ZUW_GD(:) = - PCD_GD(:) * PU_LOWCAN(:)**2`; фолбэк `src_dev/src_teb/teb_garden.F90:1102` → `PCD_GD(:) = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:))`) | ✅ `A_ctrl`; ❌ `A_dev` — см. §5 п.2 |
 | множитель влажности каньона | `clamp(q_v/q_sat(Ts))` в прокси (`B:src_proxi_SVAT/garden.F90:164`) | то же, но в `TEB_GARDEN` (`src_teb/teb_garden.F90:876` → `ZHU_AGG_GD(:) = PQV_GD_EXT(:)/ZQSAT_GD(:)`) | то же | ✅ совпадает |
@@ -219,7 +219,7 @@ CALL DIAG_MISC_TEB_DEALLOC (DMT)         ! после цикла
 
 | аспект | B | A_ctrl | A_dev | вердикт |
 | --- | --- | --- | --- | --- |
-| прокси вызывается | да (`B:src_teb/teb_garden.F90:844` → `IF (TOP%LGREENROOF) THEN`) | да (`src_teb/teb_garden.F90:914`) | **нет** для `'EXT'`/`'EXT_NEU'`: ветвь прокси закрыта `ELSE` (`src_dev/src_teb/teb_garden.F90:1198`), мёртвая ветка `CASE` удалена | разная механика, одинаковый результат |
+| прокси вызывается | да (`B:src_teb/teb_garden.F90:844` → `IF (TOPTS%LGREENROOF) THEN`) | да (`src_teb/teb_garden.F90:914`) | **нет** для `'EXT'`/`'EXT_NEU'`: ветвь прокси закрыта `ELSE` (`src_dev/src_teb/teb_garden.F90:1198`), мёртвая ветка `CASE` удалена | разная механика, одинаковый результат |
 | потоки, `T_s` | хостовые (`B:src_proxi_SVAT/greenroof.F90:136`, `B:src_proxi_SVAT/greenroof.F90:161` закомментированы) | хостовые (`src_teb/teb_garden.F90:930`) | хостовые (`src_dev/src_teb/teb_garden.F90:1236`) | ✅ совпадает |
 | проводимость | `0.` (`B:src_proxi_SVAT/greenroof.F90:155` → `PAC_GREENROOF(:) = 0.`) | `0.` (`src_proxi_SVAT/greenroof.F90:158`) | `0.` во внешнем режиме (`src_dev/src_teb/teb_garden.F90:1219` → `PAC_GR(:)     = 0.      ! no implicit coupling of an external surface (as in COSMO-TEB)`) | ✅ совпадает |
 | трение | нейтральная формула, жёсткий z0 = 0.01 м (`B:src_proxi_SVAT/greenroof.F90:149`) | та же формула со словниковым `urb_z0_grf` (`src_proxi_SVAT/greenroof.F90:152`), дефолт = 0.01 | коэффициент режима (`src_dev/src_teb/teb_garden.F90:1211` → `ZUW_GR(:) = - PCD_GREENROOF_ATM(:) * PVMOD(:)**2`; фолбэк `src_dev/src_teb/teb_garden.F90:1213`) | ✅ `A_ctrl`; ❌ `A_dev` |

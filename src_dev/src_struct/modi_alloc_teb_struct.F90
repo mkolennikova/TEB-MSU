@@ -8,7 +8,7 @@ INTERFACE
 !
 !   ##########################################################################
     SUBROUTINE ALLOC_TEB_STRUCT(KROOF_LAYER,KROAD_LAYER,KWALL_LAYER,KFLOOR_LAYER, &
-                                TOP,T,BOP,B,TPN,TIR                           )
+                                TOPTS,TSTATE,BOPTS,BSTATE,TPN,TIR                           )
 !   ##########################################################################
 !
 !
@@ -30,10 +30,10 @@ INTEGER, INTENT(IN) :: KROOF_LAYER   ! number of roof layers
 INTEGER, INTENT(IN) :: KROAD_LAYER   ! number of road layers
 INTEGER, INTENT(IN) :: KWALL_LAYER   ! number of wall layers
 INTEGER, INTENT(IN) :: KFLOOR_LAYER  ! number of floor layers
-TYPE(TEB_OPTIONS_t),   INTENT(INOUT) :: TOP
-TYPE(TEB_t),           INTENT(INOUT) :: T
-TYPE(BEM_OPTIONS_t),   INTENT(INOUT) :: BOP
-TYPE(BEM_t),           INTENT(INOUT) :: B
+TYPE(TEB_OPTIONS_t),   INTENT(INOUT) :: TOPTS
+TYPE(TEB_t),           INTENT(INOUT) :: TSTATE
+TYPE(BEM_OPTIONS_t),   INTENT(INOUT) :: BOPTS
+TYPE(BEM_t),           INTENT(INOUT) :: BSTATE
 TYPE(TEB_PANEL_t),     INTENT(INOUT) :: TPN
 TYPE(TEB_IRRIG_t),     INTENT(INOUT) :: TIR
 !

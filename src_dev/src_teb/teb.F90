@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !   ##########################################################################
-    SUBROUTINE TEB  (icell, iblock, TOP, T, BOP, B, TIR, DMT, HIMPLICIT_WIND, PBEM_AC, PTSUN,                   &
+    SUBROUTINE TEB  (icell, iblock, TOPTS, TSTATE, BOPTS, BSTATE, TIR, DMT, HIMPLICIT_WIND, PBEM_AC, PTSUN,                   &
                      PT_CANYON, PQ_CANYON, PU_CANYON, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN,  &
                      PZ_LOWCAN, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,           &
                      PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PZ0_GR_EXT, PPS, PPA, PEXNS, PEXNA, PTA, PQA, PRHOA,       &
@@ -39,7 +39,7 @@
 !MV202609 CBS scheme of the road
                           PTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-                          LE_ROOF_WAT, LE_ROOF_SNOW, TP, BP)
+                          LE_ROOF_WAT, LE_ROOF_SNOW, TPARAMS, BPARAMS)
 					 
 				 
 !   ##########################################################################
@@ -233,8 +233,8 @@ USE PARKIND1  ,ONLY : JPRB
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
-TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
 !
 !*      0.1    Declarations of arguments
@@ -243,10 +243,10 @@ INTEGER                           :: icell
 INTEGER                           :: iblock 
 
 !
-TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
-TYPE(TEB_t), INTENT(INOUT) :: T
-TYPE(BEM_OPTIONS_t), INTENT(INOUT) :: BOP
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOPTS
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_OPTIONS_t), INTENT(INOUT) :: BOPTS
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 TYPE(TEB_IRRIG_t), INTENT(INOUT) :: TIR
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 !
@@ -492,7 +492,7 @@ REAL, DIMENSION(SIZE(PTA)) :: ZTS_WL       ! averaged wall surface temperature
 !                                            ! at previous time-step
 REAL, DIMENSION(SIZE(PTA)) :: ZTS_RF       ! roof surface temperature 
 !                                            ! at previous time-step
-REAL, DIMENSION(SIZE(PTA),SIZE(T%XT_WALL_A,2)) :: ZT_WL ! averaged wall surface temperature 
+REAL, DIMENSION(SIZE(PTA),SIZE(TSTATE%XT_WALL_A,2)) :: ZT_WL ! averaged wall surface temperature 
 !
 INTEGER :: IWL, IRF                      ! number of wall, roof layer
 REAL, DIMENSION(SIZE(PTA)) :: ZRADHT_IN     ! Indoor radiant heat transfer coefficient
@@ -568,7 +568,7 @@ ZWS_RD_MAX =  1. ! (1mm) maximum deepness of road water reservoir
 !*      1.2    radiative snow variables at previous time-step
 !              ----------------------------------------------
 !
-ZTSSN_RD(:) = T%TSNOW_ROAD%TS(:)
+ZTSSN_RD(:) = TSTATE%TSNOW_ROAD%TS(:)
 
 
 
@@ -578,20 +578,20 @@ ZTSSN_RD(:) = T%TSNOW_ROAD%TS(:)
 !              ----------------------------------------------
 !
 ZAC_BLD(:) = XUNDEF
-IF (TOP%CBEM=='DEF') ZAC_BLD=1. / 0.123 / (XCPD * PRHOA(:)) !* (normalized by rho Cp for convenience)
+IF (TOPTS%CBEM=='DEF') ZAC_BLD=1. / 0.123 / (XCPD * PRHOA(:)) !* (normalized by rho Cp for convenience)
 !-------------------------------------------------------------------------------
 !
 !*      1.3    number of roof/wall layer
 !              -------------------------
 !
-IWL = SIZE(T%XT_WALL_A,2)
-IRF = SIZE(T%XT_ROOF,2)
+IWL = SIZE(TSTATE%XT_WALL_A,2)
+IRF = SIZE(TSTATE%XT_ROOF,2)
 !
-ZTS_WL_A  (:)=T%XT_WALL_A   (:,1)
-ZTS_WL_B  (:)=T%XT_WALL_B   (:,1)
+ZTS_WL_A  (:)=TSTATE%XT_WALL_A   (:,1)
+ZTS_WL_B  (:)=TSTATE%XT_WALL_B   (:,1)
 ZTS_WL    (:)=0.5 * (ZTS_WL_A(:)+ZTS_WL_B(:))
-ZTS_RD    (:)=T%XT_ROAD     (:,1)
-ZTS_RF    (:)=T%XT_ROOF     (:,1)
+ZTS_RD    (:)=TSTATE%XT_ROAD     (:,1)
+ZTS_RF    (:)=TSTATE%XT_ROOF     (:,1)
 
 
 
@@ -600,18 +600,18 @@ ZTS_RF    (:)=T%XT_ROOF     (:,1)
 !*      1.4    load on indoor walls
 !              -------------------------
 !
-IF (TOP%CBEM=='BEM') THEN
+IF (TOPTS%CBEM=='BEM') THEN
   !
-  ZLOAD_IN_RF = BP%XF_FLOOR_WIN * DMT%XTR_SW_WIN + DMT%XQIN * BP%XN_FLOOR * (1-BP%XQIN_FLAT) * BP%XQIN_FRAD  &
-           / (2 + TP%XWALL_O_BLD + BP%XGLAZ_O_BLD + BP%XMASS_O_BLD ) ! W/m2 [ROOF]
-  ZLOAD_IN_FL = BP%XF_FLOOR_WIN * DMT%XTR_SW_WIN + DMT%XQIN * BP%XN_FLOOR * (1-BP%XQIN_FLAT) * BP%XQIN_FRAD  &
-           / (2 + TP%XWALL_O_BLD + BP%XGLAZ_O_BLD + BP%XMASS_O_BLD )
-  ZLOAD_IN_MA = BP%XF_MASS_WIN * DMT%XTR_SW_WIN + DMT%XQIN * BP%XN_FLOOR * (1-BP%XQIN_FLAT) * BP%XQIN_FRAD  &
-           / (2 + TP%XWALL_O_BLD + BP%XGLAZ_O_BLD + BP%XMASS_O_BLD )
-  ZLOAD_IN_WL = BP%XF_WALL_WIN * DMT%XTR_SW_WIN + DMT%XQIN * BP%XN_FLOOR * (1-BP%XQIN_FLAT) * BP%XQIN_FRAD  &
-           / (2 + TP%XWALL_O_BLD + BP%XGLAZ_O_BLD + BP%XMASS_O_BLD )
-  ZLOAD_IN_WIN = BP%XF_WIN_WIN * DMT%XTR_SW_WIN + DMT%XQIN * BP%XN_FLOOR * (1-BP%XQIN_FLAT) * BP%XQIN_FRAD  &
-           / (2 + TP%XWALL_O_BLD + BP%XGLAZ_O_BLD + BP%XMASS_O_BLD )
+  ZLOAD_IN_RF = BPARAMS%XF_FLOOR_WIN * DMT%XTR_SW_WIN + DMT%XQIN * BPARAMS%XN_FLOOR * (1-BPARAMS%XQIN_FLAT) * BPARAMS%XQIN_FRAD  &
+           / (2 + TPARAMS%XWALL_O_BLD + BPARAMS%XGLAZ_O_BLD + BPARAMS%XMASS_O_BLD ) ! W/m2 [ROOF]
+  ZLOAD_IN_FL = BPARAMS%XF_FLOOR_WIN * DMT%XTR_SW_WIN + DMT%XQIN * BPARAMS%XN_FLOOR * (1-BPARAMS%XQIN_FLAT) * BPARAMS%XQIN_FRAD  &
+           / (2 + TPARAMS%XWALL_O_BLD + BPARAMS%XGLAZ_O_BLD + BPARAMS%XMASS_O_BLD )
+  ZLOAD_IN_MA = BPARAMS%XF_MASS_WIN * DMT%XTR_SW_WIN + DMT%XQIN * BPARAMS%XN_FLOOR * (1-BPARAMS%XQIN_FLAT) * BPARAMS%XQIN_FRAD  &
+           / (2 + TPARAMS%XWALL_O_BLD + BPARAMS%XGLAZ_O_BLD + BPARAMS%XMASS_O_BLD )
+  ZLOAD_IN_WL = BPARAMS%XF_WALL_WIN * DMT%XTR_SW_WIN + DMT%XQIN * BPARAMS%XN_FLOOR * (1-BPARAMS%XQIN_FLAT) * BPARAMS%XQIN_FRAD  &
+           / (2 + TPARAMS%XWALL_O_BLD + BPARAMS%XGLAZ_O_BLD + BPARAMS%XMASS_O_BLD )
+  ZLOAD_IN_WIN = BPARAMS%XF_WIN_WIN * DMT%XTR_SW_WIN + DMT%XQIN * BPARAMS%XN_FLOOR * (1-BPARAMS%XQIN_FLAT) * BPARAMS%XQIN_FRAD  &
+           / (2 + TPARAMS%XWALL_O_BLD + BPARAMS%XGLAZ_O_BLD + BPARAMS%XMASS_O_BLD )
 ELSE
   ZLOAD_IN_RF = 0.
   ZLOAD_IN_FL = 0.
@@ -639,7 +639,7 @@ ZWS_RD_MAX(:) = ZWS_RD_MAX(:) * PDF_RD(:)
 !*      3.     Surface drag
 !              ------------
 !
- CALL URBAN_DRAG(icell, iblock, TOP, T, B, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
+ CALL URBAN_DRAG(icell, iblock, TOPTS, TSTATE, BSTATE, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
                  PU_CANYON, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ_LOWCAN, &
                  ZTS_RF, ZTS_RD, ZTS_WL, PTS_GARDEN, PQS_GARDEN, PDN_RF, PDN_RD, PTAU,    &
                  PEXNS, PEXNA, PTA, PQA, PPS, PRHOA, PZREF, PUREF,      &
@@ -661,7 +661,7 @@ ZWS_RD_MAX(:) = ZWS_RD_MAX(:) * PDF_RD(:)
                   ZAC_RD_ATM_WAT,                                                        &
 !MV202609 greenroof-to-atm exchange diagnostics
                   PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
-                  PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM , TP)
+                  PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM , TPARAMS)
 !MV202609 CBS scheme of the road (revision: puddle diagnostics)
 !* road -> forcing level water-limited conductance (diagnostic; also used by the
 !* tau aggregation and by the reference humidity ZQ_REF of the road budget)
@@ -681,11 +681,11 @@ PAC_ROAD_ATM_WAT(:) = ZAC_RD_ATM_WAT(:)
 !
 ZVMOD(:) = WIND_THRESHOLD(PVMOD(:),PUREF(:))
 !
-PCH_TWN(:) = (TP%XBLD(:) * PAC_RF(:) + (1.-TP%XBLD(:)) * PAC_TOP (:)) / ZVMOD(:)
+PCH_TWN(:) = (TPARAMS%XBLD(:) * PAC_RF(:) + (1.-TPARAMS%XBLD(:)) * PAC_TOP (:)) / ZVMOD(:)
 !
 !* aggregation of momentum fluxes for roofs (=> derivate of flux also recalculated)
 !
-PUW_RF (:) = (1-TP%XGREENROOF(:)) * PUW_RF(:) + TP%XGREENROOF(:) * PUW_GR(:)
+PUW_RF (:) = (1-TPARAMS%XGREENROOF(:)) * PUW_RF(:) + TPARAMS%XGREENROOF(:) * PUW_GR(:)
 WHERE (PVMOD(:)/=0.) PDUWDU_RF(:) = 2. * PUW_RF(:) / PVMOD(:)
 
 
@@ -710,7 +710,7 @@ ZQA(:) = PQA(:) * QSAT(ZTA(:),PPS(:)) / QSAT(PTA(:),PPA(:))
 !*      5.     Snow mantel model
 !              -----------------
 !
- CALL URBAN_SNOW_EVOL(T, B, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, ZTS_RF, ZTS_RD, ZTS_WL_A,    &
+ CALL URBAN_SNOW_EVOL(TSTATE, BSTATE, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, ZTS_RF, ZTS_RD, ZTS_WL_A,    &
                       ZTS_WL_B, PPS, ZTA, ZQA, PRHOA, PLW_RAD, PSR, PZREF, PUREF, PVMOD,  &
                       PTSTEP,  PZ_LOWCAN, PDN_RF, DMT%XABS_SW_SNOW_ROOF,                 &
                       DMT%XABS_LW_SNOW_ROOF, PDN_RD, DMT%XABS_SW_SNOW_ROAD,             &
@@ -719,7 +719,7 @@ ZQA(:) = PQA(:) * QSAT(ZTA(:),PPS(:)) / QSAT(PTA(:),PPA(:))
                       PLW_WA_TO_NR, PLW_WB_TO_NR, PLW_S_TO_NR, PLW_WIN_TO_NR, ZDQS_SN_RF, &
                       ZDQS_SN_RD, PSNOWD_RF, PSNOWD_RD, PTAU,                           &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                      PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TP   )
+                      PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TPARAMS   )
 					  
 
 !
@@ -739,19 +739,19 @@ PDF_RD (:) = 1. - PDN_RD (:)
 !              ---------------------------
 !
 ! uses the averaged temperature of both walls for the building energy balance
-ZT_WL   (:,:)=0.5 * (T%XT_WALL_A(:,:)+T%XT_WALL_B(:,:))
+ZT_WL   (:,:)=0.5 * (TSTATE%XT_WALL_A(:,:)+TSTATE%XT_WALL_B(:,:))
 !
-SELECT CASE(TOP%CBEM)
+SELECT CASE(TOPTS%CBEM)
    CASE("DEF")
       ZTS_FL(:) = 19. + XTT
-	  PT_RAD_IND(:) = ( TP%XWALL_O_HOR(:) / TP%XBLD(:) * ZT_WL(:,IWL) + &
-                  T%XT_ROOF(:,IRF) + ZTS_FL(:) ) / (TP%XWALL_O_HOR(:) / TP%XBLD(:) + 1. + 1.) 
+	  PT_RAD_IND(:) = ( TPARAMS%XWALL_O_HOR(:) / TPARAMS%XBLD(:) * ZT_WL(:,IWL) + &
+                  TSTATE%XT_ROOF(:,IRF) + ZTS_FL(:) ) / (TPARAMS%XWALL_O_HOR(:) / TPARAMS%XBLD(:) + 1. + 1.) 
       ZRADHT_IN(:) = XUNDEF
    CASE("BEM")
-      ZTS_FL(:) = B%XT_FLOOR(:,1)
-      PT_RAD_IND(:)  = (B%XT_MASS(:,1)*BP%XMASS_O_BLD(:) + ZT_WL(:,IWL)*TP%XWALL_O_BLD(:)     &
-                   + ZTS_FL(:) + T%XT_ROOF(:,IRF) + B%XT_WIN2(:) * BP%XGLAZ_O_BLD(:)) &
-                   /(BP%XMASS_O_BLD(:) + TP%XWALL_O_BLD(:) + 1. + 1. + BP%XGLAZ_O_BLD(:))
+      ZTS_FL(:) = BSTATE%XT_FLOOR(:,1)
+      PT_RAD_IND(:)  = (BSTATE%XT_MASS(:,1)*BPARAMS%XMASS_O_BLD(:) + ZT_WL(:,IWL)*TPARAMS%XWALL_O_BLD(:)     &
+                   + ZTS_FL(:) + TSTATE%XT_ROOF(:,IRF) + BSTATE%XT_WIN2(:) * BPARAMS%XGLAZ_O_BLD(:)) &
+                   /(BPARAMS%XMASS_O_BLD(:) + TPARAMS%XWALL_O_BLD(:) + 1. + 1. + BPARAMS%XGLAZ_O_BLD(:))
       !             Assuming indoor surface emissivities of 0.9
       ZRADHT_IN(:)   = 0.9 * 0.9 * 4 * XSTEFAN * PT_RAD_IND(:)**3          
 END SELECT
@@ -766,14 +766,14 @@ END SELECT
 !* ts_roof and qsat_roof are updated
 !
  
- CALL ROOF_LAYER_E_BUDGET(TOP, T, B, PQSAT_RF, ZAC_BLD, PTSTEP, PDN_RF, PRHOA,    &
+ CALL ROOF_LAYER_E_BUDGET(TOPTS, TSTATE, BSTATE, PQSAT_RF, ZAC_BLD, PTSTEP, PDN_RF, PRHOA,    &
                           PAC_RF, PAC_RF_WAT, PLW_RAD, PPS, PDELT_RF, ZTA, ZQA,   &
                           PEXNA, PEXNS, DMT%XABS_SW_ROOF, PGSN_RF,  ZFLX_BLD_RF, &
                           ZDQS_RF, DMT%XABS_LW_ROOF, DMT%XH_ROOF, PLEW_RF, ZIMB_RF, &
                           DMT%XG_GREENROOF_ROOF, ZRADHT_IN, ZTS_FL, ZT_WL(:,IWL),&
                           ZRAD_RF_WL, ZRAD_RF_WIN, ZRAD_RF_FL, ZRAD_RF_MA, ZCONV_RF_BLD, &
                           PRR, & !modif to add heating/cooling of rain
-                          ZLOAD_IN_RF , TP, BP)
+                          ZLOAD_IN_RF , TPARAMS, BPARAMS)
 
 !
 !-------------------------------------------------------------------------------
@@ -783,7 +783,7 @@ END SELECT
 !
 !* Road watering
 
- CALL TEB_IRRIG(TIR%LPAR_RD_IRRIG, PTSTEP, TOP%TTIME%TDATE%MONTH, PTSUN,   &
+ CALL TEB_IRRIG(TIR%LPAR_RD_IRRIG, PTSTEP, TOPTS%TTIME%TDATE%MONTH, PTSUN,   &
                TIR%XRD_START_MONTH, TIR%XRD_END_MONTH, TIR%XRD_START_HOUR, &
                TIR%XRD_END_HOUR, TIR%XRD_24H_IRRIG, DMT%XIRRIG_ROAD      )
 			   
@@ -801,7 +801,7 @@ ZPAC_RD(:)     = PAC_RD(:)
 ZPAC_RD_WAT(:) = PAC_RD_WAT(:)
 ZT_REF(:)      = PT_LOWCAN(:)
 ZQ_REF(:)      = PQ_LOWCAN(:)
-IF (TOP%LCBS_SCHEME) THEN
+IF (TOPTS%LCBS_SCHEME) THEN
   ZPAC_RD(:)     = PTAU(:) * PAC_RD(:)     + (1.-PTAU(:)) * PAC_ROAD_ATM(:)
   ZPAC_RD_WAT(:) = PTAU(:) * PAC_RD_WAT(:) + (1.-PTAU(:)) * ZAC_RD_ATM_WAT(:)
   !* the effective reference air is only needed where the effective conductance
@@ -825,13 +825,13 @@ ENDIF
 !
 !* ts_road, ts_wall, qsat_road, t_canyon and q_canyon are updated
 !
- CALL ROAD_LAYER_E_BUDGET(T, B, PTSTEP, PDN_RD, PRHOA, ZPAC_RD, ZPAC_RD_WAT, &
+ CALL ROAD_LAYER_E_BUDGET(TSTATE, BSTATE, PTSTEP, PDN_RD, PRHOA, ZPAC_RD, ZPAC_RD_WAT, &
                           PLW_RAD, PPS, PQSAT_RD, PDELT_RD, PEXNS,         &
                           DMT%XABS_SW_ROAD, PGSN_RD, ZQ_REF, ZT_REF,       &
                           ZTS_WL_A, ZTS_WL_B, ZTSSN_RD,  PTS_GARDEN,       &
                           PLW_WA_TO_R, PLW_WB_TO_R, PLW_S_TO_R,            &
                           PLW_WIN_TO_R, PEMIT_LW_RD, ZDQS_RD, DMT%XABS_LW_ROAD,  &
-                          DMT%XH_ROAD, PLEW_RD, ZIMB_RD, PRR+DMT%XIRRIG_ROAD    , TP)
+                          DMT%XH_ROAD, PLEW_RD, ZIMB_RD, PRR+DMT%XIRRIG_ROAD    , TPARAMS)
 !
 !MV202609 CBS scheme of the road
 !* actual road fluxes: sensible and latent heat fluxes used by the road energy
@@ -864,7 +864,7 @@ LE_ROOF_SNOW(:) =        PDN_RF(:)   * PLESN_RF(:)
 !* potential component fluxes of the road: same quantity as if the whole exchange
 !* occurred with the canyon air (tau = 1) or directly with the air of the forcing
 !* level (tau = 0), computed from the surface temperature resulting from the road
-!* energy-budget solve (T%XT_ROAD(:,1), which is also the surface temperature used
+!* energy-budget solve (TSTATE%XT_ROAD(:,1), which is also the surface temperature used
 !* by the road/canyon fluxes, the scheme being fully implicit). Same formula, same
 !* water limitation and same cp/Exns convention as PHFREE_ROAD/PLEFREE_ROAD, only
 !* the reference air - and hence its conductance - is changed. Diagnostics only:
@@ -872,11 +872,11 @@ LE_ROOF_SNOW(:) =        PDN_RF(:)   * PLESN_RF(:)
 !
 ZDF_RD(:)       = 1. - PDN_RD(:)
 PH_ROAD_CAN(:)  = PRHOA(:) * PAC_RD(:)         * ZDF_RD(:) * XCPD/PEXNS(:)  &
-                  * (T%XT_ROAD(:,1) - PT_LOWCAN(:))
+                  * (TSTATE%XT_ROAD(:,1) - PT_LOWCAN(:))
 PLE_ROAD_CAN(:) = PRHOA(:) * PAC_RD_WAT(:)     * ZDF_RD(:) * XLVTT         &
                   * PDELT_RD(:) * (PQSAT_RD(:) - PQ_LOWCAN(:))
 PH_ROAD_ATM(:)  = PRHOA(:) * PAC_ROAD_ATM(:)   * ZDF_RD(:) * XCPD/PEXNS(:)  &
-                  * (T%XT_ROAD(:,1) - PTA(:))
+                  * (TSTATE%XT_ROAD(:,1) - PTA(:))
 PLE_ROAD_ATM(:) = PRHOA(:) * ZAC_RD_ATM_WAT(:) * ZDF_RD(:) * XLVTT         &
                   * PDELT_RD(:) * (PQSAT_RD(:) - PQA(:))
 						  
@@ -888,7 +888,7 @@ PLE_ROAD_ATM(:) = PRHOA(:) * ZAC_RD_ATM_WAT(:) * ZDF_RD(:) * XLVTT         &
 !*      8.     Wall Ts computations
 !              -----------------------------
 !
- CALL FACADE_E_BUDGET(TOP, T, B, DMT, PTSTEP, PDN_RD, PRHOA, PAC_WL, ZAC_BLD,   &
+ CALL FACADE_E_BUDGET(TOPTS, TSTATE, BSTATE, DMT, PTSTEP, PDN_RD, PRHOA, PAC_WL, ZAC_BLD,   &
                       PLW_RAD, PPS, PEXNS, PT_CANYON, ZTS_RD, ZTSSN_RD, PTS_GARDEN, &
                       ZTS_FL, PLW_WA_TO_WB, PLW_R_TO_WA, PLW_R_TO_WB,      &
                       PLW_G_TO_WA, PLW_G_TO_WB, PLW_S_TO_WA, PLW_S_TO_WB,  &
@@ -899,7 +899,7 @@ PLE_ROAD_ATM(:) = PRHOA(:) * ZAC_RD_ATM_WAT(:) * ZDF_RD(:) * XLVTT         &
                       ZFLX_BLD_WL_B, ZDQS_WL_B, PEMIT_LW_FAC, ZIMB_WL,     &
                       ZRADHT_IN, ZRAD_RF_WL, ZRAD_RF_WIN, ZRAD_WL_FL,      &
                       ZRAD_WL_MA, ZRAD_WIN_FL, ZRAD_WIN_MA, ZCONV_WL_BLD,  &
-                      ZCONV_WIN_BLD, ZAC_WIN, ZLOAD_IN_WL, ZLOAD_IN_WIN   , BP, TP)
+                      ZCONV_WIN_BLD, ZAC_WIN, ZLOAD_IN_WL, ZLOAD_IN_WIN   , BPARAMS, TPARAMS)
 					  
 
 !
@@ -909,16 +909,16 @@ PLE_ROAD_ATM(:) = PRHOA(:) * ZAC_RD_ATM_WAT(:) * ZDF_RD(:) * XLVTT         &
 !              ----------------------------------------------
 !
 ! uses the averaged temperature of both walls for the building energy balance
-ZT_WL   (:,:)=0.5 * (T%XT_WALL_A(:,:)+T%XT_WALL_B(:,:))
+ZT_WL   (:,:)=0.5 * (TSTATE%XT_WALL_A(:,:)+TSTATE%XT_WALL_B(:,:))
 !
-SELECT CASE(TOP%CBEM)
+SELECT CASE(TOPTS%CBEM)
 CASE("DEF")
 !
-   CALL BLD_E_BUDGET(.TRUE., PTSTEP, TP%XBLD, TP%XWALL_O_HOR,        &
-                     PRHOA, T%XT_ROOF, ZT_WL, B%XTI_BLD, ZTS_FL(:) )
+   CALL BLD_E_BUDGET(.TRUE., PTSTEP, TPARAMS%XBLD, TPARAMS%XWALL_O_HOR,        &
+                     PRHOA, TSTATE%XT_ROOF, ZT_WL, BSTATE%XTI_BLD, ZTS_FL(:) )
 
    !variables that needs to be computed apart
-   B%XQI_BLD = 0.5 * QSAT(B%XTI_BLD, PPS)
+   BSTATE%XQI_BLD = 0.5 * QSAT(BSTATE%XTI_BLD, PPS)
    !variables that need to be set 0 for calculation
    ZFLX_BLD_FL(:) = 0.
    ZFLX_BLD_MA (:) = 0.
@@ -933,15 +933,15 @@ CASE("DEF")
    DMT%XLE_WASTE(:) = 0.
 
 CASE("BEM")
-  CALL BEM(icell, iblock, BOP, T, B, DMT, PTSTEP, PBEM_AC, PTSUN, KDAY, PPS, PRHOA, PT_CANYON, &
+  CALL BEM(icell, iblock, BOPTS, TSTATE, BSTATE, DMT, PTSTEP, PBEM_AC, PTSUN, KDAY, PPS, PRHOA, PT_CANYON, &
            PQ_CANYON, PU_CANYON, PHU_BLD, PT_RAD_IND, ZFLX_BLD_FL,&
            ZFLX_BLD_MA, ZRADHT_IN, ZRAD_RF_MA, ZRAD_RF_FL,        &
            ZRAD_WL_MA, ZRAD_WL_FL, ZRAD_WIN_MA, ZRAD_WIN_FL,      &
            ZCONV_RF_BLD, ZCONV_WL_BLD, ZCONV_WIN_BLD, ZLOAD_IN_FL,&
-           ZLOAD_IN_MA                                 , TP, BP)
+           ZLOAD_IN_MA                                 , TPARAMS, BPARAMS)
 
-   DMT%XH_WASTE  = DMT%XH_WASTE  * TP%XBLD
-   DMT%XLE_WASTE = DMT%XLE_WASTE * TP%XBLD
+   DMT%XH_WASTE  = DMT%XH_WASTE  * TPARAMS%XBLD
+   DMT%XLE_WASTE = DMT%XLE_WASTE * TPARAMS%XBLD
 END SELECT
 
 
@@ -951,14 +951,14 @@ END SELECT
 !*      10.    Fluxes over built surfaces
 !              --------------------------
 !
- CALL URBAN_FLUXES   (TOP, T, B, DMT, HIMPLICIT_WIND, PT_CANYON, PPEW_A_COEF, PPEW_B_COEF,      &
+ CALL URBAN_FLUXES   (TOPTS, TSTATE, BSTATE, DMT, HIMPLICIT_WIND, PT_CANYON, PPEW_A_COEF, PPEW_B_COEF,      &
                       PEXNS, PRHOA, PVMOD, PH_TRAFFIC, PLE_TRAFFIC,PAC_WL, PCD, PDF_RF,         &
                       PDN_RF, PDF_RD, PDN_RD, PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF,             &
                       PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RF, ZDQS_RF, PMELT_RD,        &
                       ZDQS_RD, ZDQS_WL_A, ZDQS_WL_B, ZFLX_BLD_RF, ZFLX_BLD_WL_A,                &
                       ZFLX_BLD_WL_B, ZFLX_BLD_FL, ZFLX_BLD_MA, PE_SHADING, PLEW_RF,             &
                       PRN_GR, PH_GR, PLE_GR, PGFLUX_GR,                                         &
-                      PLEW_RD, PLE_WL_A, PLE_WL_B, PMELT_BLT, PUSTAR_TWN                        , TP, BP)
+                      PLEW_RD, PLE_WL_A, PLE_WL_B, PMELT_BLT, PUSTAR_TWN                        , TPARAMS, BPARAMS)
 !
 !
 ! Water transfer from snow reservoir to water reservoir in case of snow melt
@@ -979,11 +979,11 @@ END SELECT
 !* not fit in the roof/road puddle (a water leak of the same order as the melt
 !* itself during the melt season, ZWS_*_MAX being only 1 mm * (1-PDN_*)).
 WHERE (PMELT_RF(:) .GT. 0.)
-  T%XWS_ROOF(:) = T%XWS_ROOF(:) + PDN_RF(:) * PMELT_RF(:) * PTSTEP
+  TSTATE%XWS_ROOF(:) = TSTATE%XWS_ROOF(:) + PDN_RF(:) * PMELT_RF(:) * PTSTEP
 ENDWHERE
 !
 WHERE (PMELT_RD(:) .GT. 0.)
-  T%XWS_ROAD(:) = T%XWS_ROAD(:) + PDN_RD(:) * PMELT_RD(:) * PTSTEP
+  TSTATE%XWS_ROAD(:) = TSTATE%XWS_ROAD(:) + PDN_RD(:) * PMELT_RD(:) * PTSTEP
 ENDWHERE
 
 !
@@ -1015,14 +1015,14 @@ ENDWHERE
 !*    is already taken from the roof snowpack by the snow scheme (WSNOW_RF):
 !*    draining the puddle with it evaporates the roof puddle water a second time
 !*    (and with XLVTT instead of the XLSTT used by the snow scheme).
- CALL URBAN_HYDRO(ZWS_RF_MAX, ZWS_RD_MAX, T%XWS_ROOF, T%XWS_ROAD, PRR,          &
-                  DMT%XIRRIG_ROAD, PTSTEP, TP%XBLD, LE_ROOF_WAT(:),              &
+ CALL URBAN_HYDRO(ZWS_RF_MAX, ZWS_RD_MAX, TSTATE%XWS_ROOF, TSTATE%XWS_ROAD, PRR,          &
+                  DMT%XIRRIG_ROAD, PTSTEP, TPARAMS%XBLD, LE_ROOF_WAT(:),              &
                   PLEW_RD(:),                                                    &
                   DMT%XRUNOFF_STRLROOF, DMT%XRUNOFF_ROAD   )
 !
-IF (TOP%LGREENROOF) THEN
-  DMT%XRUNOFF_ROOF(:) =  (1.-TP%XGREENROOF(:)) * DMT%XRUNOFF_STRLROOF(:) &
-                        + TP%XGREENROOF(:) * (PRUNOFF_GR(:) + PDRAIN_GR(:))
+IF (TOPTS%LGREENROOF) THEN
+  DMT%XRUNOFF_ROOF(:) =  (1.-TPARAMS%XGREENROOF(:)) * DMT%XRUNOFF_STRLROOF(:) &
+                        + TPARAMS%XGREENROOF(:) * (PRUNOFF_GR(:) + PDRAIN_GR(:))
 ELSE
   DMT%XRUNOFF_ROOF(:) =  DMT%XRUNOFF_STRLROOF(:)
 ENDIF         
@@ -1034,7 +1034,7 @@ ENDIF
 !*      19.    Compute aerodynamical resistance 
 !              --------------------------------
 !
-PRESA_TWN(:) = 1. / ( TP%XBLD(:) * PAC_RF(:)  + ( 1. - TP%XBLD(:)) * PAC_TOP (:))
+PRESA_TWN(:) = 1. / ( TPARAMS%XBLD(:) * PAC_RF(:)  + ( 1. - TPARAMS%XBLD(:)) * PAC_TOP (:))
 !
 
 

@@ -2,7 +2,7 @@
 !SFX_LIC This is part of the SURFEX software governed by the CeCILL-C licence
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
-SUBROUTINE FACADE_E_BUDGET(TOP, T, B, DMT, PTSTEP, PDN_RD, PRHOA, PAC_WL, PAC_BLD, &
+SUBROUTINE FACADE_E_BUDGET(TOPTS, TSTATE, BSTATE, DMT, PTSTEP, PDN_RD, PRHOA, PAC_WL, PAC_BLD, &
                            PLW_RAD, PPS, PEXNS, PT_CANYON, PTS_RD, PTSN_RD, PTS_GD, &
                            PTS_FL, PLW_WA_TO_WB, PLW_R_TO_WA, PLW_R_TO_WB,          &
                            PLW_G_TO_WA, PLW_G_TO_WB, PLW_S_TO_WA, PLW_S_TO_WB,      &
@@ -12,7 +12,7 @@ SUBROUTINE FACADE_E_BUDGET(TOP, T, B, DMT, PTSTEP, PDN_RD, PRHOA, PAC_WL, PAC_BL
                            PFLX_BLD_WL_B, PDQS_WL_B, PEMIT_LW_FAC, PIMB_WL,         &
                            PRADHT_IN, PRAD_RF_WL, PRAD_RF_WIN, PRAD_WL_FL,          &
                            PRAD_WL_MA, PRAD_WIN_FL, PRAD_WIN_MA, PCONV_WL_BLD,      &
-                           PCONV_WIN_BLD, PAC_WIN,  PLOAD_IN_WL, PLOAD_IN_WIN , BP, TP)
+                           PCONV_WIN_BLD, PAC_WIN,  PLOAD_IN_WL, PLOAD_IN_WIN , BPARAMS, TPARAMS)
 !
 !   ##########################################################################
 !
@@ -73,15 +73,15 @@ USE PARKIND1  ,ONLY : JPRB
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
-TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
 !
 !*      0.1    declarations of arguments
 !
-TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
-TYPE(TEB_t), INTENT(INOUT) :: T
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOPTS
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 !
 REAL,               INTENT(IN)    :: PTSTEP       ! time step
@@ -147,22 +147,22 @@ REAL, DIMENSION(:), INTENT(IN)    :: PLOAD_IN_WL  ! solar + inter. heat gains W/
 REAL, DIMENSION(:), INTENT(IN)    :: PLOAD_IN_WIN   ! solar + inter. heat gains W/m2 [win]
 !*      0.2    declarations of local variables
 !
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZRAD_WL_WIN   ! rad. fluxes between averaged wall and win [W m-2(wall)]
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZRAD_WL_A_WIN ! rad. fluxes between one wall and win [W m-2(wall)]
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZEMIS_WIN     ! window emissivity
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZEMIT_LW_WIN  ! Longwave radiation emitted by the window [W m-2(window)]
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZEMIT_LW_WL_A ! Longwave radiation emitted by the wall [W m-2(wall)]
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZEMIT_LW_WL_B ! Longwave radiation emitted by the wall [W m-2(wall)]
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZTS_WL_A    ! surface temperature of wall A at previous time-step
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZTS_WL_B    ! surface temperature of wall B at previous time-step
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZTI_WL_A    ! internal temperature of wall A at previous time-step
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZTI_WL_B    ! internal temperature of wall B at previous time-step
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZTS_WL      ! surface temperature of averaged wall at new time-step
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZIMB_WL     ! wall residual energy imbalance for verification [W m-2]
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZRAD_WL_FL! rad. fluxes from wall to floor [W m-2(wall)]
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZRAD_WL_MA ! rad. fluxes from wall to mass [W m-2(wall)]
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZCONV_WL_BLD ! conv. fluxes from wall to bld [W m-2(wall)]
-REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZLW_W_TO_WIN   ! Radiative heat trasfer coeff wall-window [W K-1 m-2]
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZRAD_WL_WIN   ! rad. fluxes between averaged wall and win [W m-2(wall)]
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZRAD_WL_A_WIN ! rad. fluxes between one wall and win [W m-2(wall)]
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZEMIS_WIN     ! window emissivity
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZEMIT_LW_WIN  ! Longwave radiation emitted by the window [W m-2(window)]
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZEMIT_LW_WL_A ! Longwave radiation emitted by the wall [W m-2(wall)]
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZEMIT_LW_WL_B ! Longwave radiation emitted by the wall [W m-2(wall)]
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZTS_WL_A    ! surface temperature of wall A at previous time-step
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZTS_WL_B    ! surface temperature of wall B at previous time-step
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZTI_WL_A    ! internal temperature of wall A at previous time-step
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZTI_WL_B    ! internal temperature of wall B at previous time-step
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZTS_WL      ! surface temperature of averaged wall at new time-step
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZIMB_WL     ! wall residual energy imbalance for verification [W m-2]
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZRAD_WL_FL! rad. fluxes from wall to floor [W m-2(wall)]
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZRAD_WL_MA ! rad. fluxes from wall to mass [W m-2(wall)]
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZCONV_WL_BLD ! conv. fluxes from wall to bld [W m-2(wall)]
+REAL, DIMENSION(SIZE(BSTATE%XTI_BLD)) :: ZLW_W_TO_WIN   ! Radiative heat trasfer coeff wall-window [W K-1 m-2]
 INTEGER                        :: IWL
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
@@ -178,11 +178,11 @@ PCONV_WIN_BLD  = XUNDEF
 !* surface temperature of the opposite wall
 !  ----------------------------------------
 !
-ZTS_WL_A(:) = T%XT_WALL_A(:,1)
-ZTS_WL_B(:) = T%XT_WALL_B(:,1)
-IWL = SIZE(T%XT_WALL_A,2)
-ZTI_WL_A(:) = T%XT_WALL_A(:,IWL)
-ZTI_WL_B(:) = T%XT_WALL_B(:,IWL)
+ZTS_WL_A(:) = TSTATE%XT_WALL_A(:,1)
+ZTS_WL_B(:) = TSTATE%XT_WALL_B(:,1)
+IWL = SIZE(TSTATE%XT_WALL_A,2)
+ZTI_WL_A(:) = TSTATE%XT_WALL_A(:,IWL)
+ZTI_WL_B(:) = TSTATE%XT_WALL_B(:,IWL)
 !
 ! *Convection heat transfer coefficients [W m-2 K-1] from EP Engineering Reference
 ! --------------------------------------------------------------------------------
@@ -191,14 +191,14 @@ ZTI_WL_B(:) = T%XT_WALL_B(:,IWL)
 ! *opaque balance of the facade for wall A
 !  ---------------------------------------
 !
- CALL WALL_LAYER_E_BUDGET(TOP, T, B, T%XT_WALL_A, ZTS_WL_B, ZTI_WL_B, PTSTEP, PDN_RD, &
+ CALL WALL_LAYER_E_BUDGET(TOPTS, TSTATE, BSTATE, TSTATE%XT_WALL_A, ZTS_WL_B, ZTI_WL_B, PTSTEP, PDN_RD, &
                           PRHOA, PAC_WL, PAC_BLD, PLW_RAD, PPS, PEXNS, DMT%XABS_SW_WALL_A,&
                           PT_CANYON, PTS_RD, PTSN_RD, PTS_GD, PTS_FL, PLW_WA_TO_WB,   &
                           PLW_R_TO_WA, PLW_G_TO_WA, PLW_NR_TO_WA, PLW_WIN_TO_WA,      &
                           PLW_S_TO_WA, PFLX_BLD_WL_A, PDQS_WL_A, DMT%XABS_LW_WALL_A, &
                           ZEMIT_LW_WL_A, DMT%XH_WALL_A, ZIMB_WL, PRADHT_IN, PRAD_RF_WL, &
                           ZRAD_WL_A_WIN, ZRAD_WL_FL, ZRAD_WL_MA, ZCONV_WL_BLD,        &
-                          PLOAD_IN_WL, TP, BP)
+                          PLOAD_IN_WL, TPARAMS, BPARAMS)
 !
 PIMB_WL      = 0.5 * ZIMB_WL
 PRAD_WL_FL   = 0.5 * ZRAD_WL_FL
@@ -209,17 +209,17 @@ ZRAD_WL_WIN  = 0.5 * ZRAD_WL_A_WIN
 ! *opaque balance of the facade for wall B
 !  ---------------------------------------
 !
-IF (TOP%CWALL_OPT/='UNIF') THEN
- CALL WALL_LAYER_E_BUDGET(TOP, T, B, T%XT_WALL_B, ZTS_WL_A, ZTI_WL_A, PTSTEP, PDN_RD, &
+IF (TOPTS%CWALL_OPT/='UNIF') THEN
+ CALL WALL_LAYER_E_BUDGET(TOPTS, TSTATE, BSTATE, TSTATE%XT_WALL_B, ZTS_WL_A, ZTI_WL_A, PTSTEP, PDN_RD, &
                           PRHOA, PAC_WL, PAC_BLD, PLW_RAD, PPS, PEXNS, DMT%XABS_SW_WALL_B, &
                           PT_CANYON, PTS_RD, PTSN_RD, PTS_GD, PTS_FL, PLW_WA_TO_WB,   &
                           PLW_R_TO_WB, PLW_G_TO_WB, PLW_NR_TO_WB, PLW_WIN_TO_WB,      &
                           PLW_S_TO_WB, PFLX_BLD_WL_B, PDQS_WL_B, DMT%XABS_LW_WALL_B,   &
                           ZEMIT_LW_WL_B, DMT%XH_WALL_B, ZIMB_WL, PRADHT_IN, PRAD_RF_WL,&
                           ZRAD_WL_A_WIN, ZRAD_WL_FL, ZRAD_WL_MA, ZCONV_WL_BLD,        & 
-                          PLOAD_IN_WL                                                , TP, BP)
+                          PLOAD_IN_WL                                                , TPARAMS, BPARAMS)
 ELSE
-  T%XT_WALL_B    = T%XT_WALL_A
+  TSTATE%XT_WALL_B    = TSTATE%XT_WALL_A
   DMT%XH_WALL_B        = DMT%XH_WALL_A
   DMT%XABS_LW_WALL_B   = DMT%XABS_LW_WALL_A
   PDQS_WL_B      = PDQS_WL_A
@@ -238,29 +238,29 @@ ZRAD_WL_WIN  = ZRAD_WL_WIN  + 0.5 * ZRAD_WL_A_WIN
 ! *Energy Balance for windows (averaged on both walls)
 !  ---------------------------------------------------
 !
-IF (TOP%CBEM == 'DEF') THEN
+IF (TOPTS%CBEM == 'DEF') THEN
   ZEMIT_LW_WIN(:) = 0.
 END IF
 !
-IF (TOP%CBEM == 'BEM') THEN
+IF (TOPTS%CBEM == 'BEM') THEN
    ZEMIS_WIN(:) = 0.84 ! From Engineering Reference documentation p219 
                        ! (see http://apps1.eere.energy.gov/buildings/energyplus/
    ZLW_W_TO_WIN(:) = PLW_WA_TO_WIN(:) + PLW_WB_TO_WIN(:)
    ZTS_WL(:) = XUNDEF
    WHERE (ZLW_W_TO_WIN(:)>0.) &
-   ZTS_WL(:) = ( PLW_WA_TO_WIN(:)*T%XT_WALL_A(:,1)+PLW_WB_TO_WIN(:)*T%XT_WALL_B(:,1) ) / ZLW_W_TO_WIN(:)
-   CALL WINDOW_E_BUDGET(B, ZEMIS_WIN, ZLW_W_TO_WIN, PLW_R_TO_WIN, PLW_G_TO_WIN, PLW_NR_TO_WIN, &
+   ZTS_WL(:) = ( PLW_WA_TO_WIN(:)*TSTATE%XT_WALL_A(:,1)+PLW_WB_TO_WIN(:)*TSTATE%XT_WALL_B(:,1) ) / ZLW_W_TO_WIN(:)
+   CALL WINDOW_E_BUDGET(BSTATE, ZEMIS_WIN, ZLW_W_TO_WIN, PLW_R_TO_WIN, PLW_G_TO_WIN, PLW_NR_TO_WIN, &
                         PLW_S_TO_WIN, PRAD_RF_WIN, ZRAD_WL_WIN, DMT%XABS_SW_WIN, PLW_RAD, PAC_WIN, &
                         PRADHT_IN, PTS_FL, PRHOA, PDN_RD,  PT_CANYON, ZTS_WL, PTS_RD, PTSN_RD, &
                         PTS_GD, PRAD_WIN_FL, PRAD_WIN_MA, PCONV_WIN_BLD, ZEMIT_LW_WIN,          &
-                        DMT%XABS_LW_WIN, PLOAD_IN_WIN                                   , BP)
+                        DMT%XABS_LW_WIN, PLOAD_IN_WIN                                   , BPARAMS)
 ENDIF
 
 !*        wall, and win emitted LW radiation on snow-free surfaces
 !         ----------------------------------------------------------------
 !
 !
-PEMIT_LW_FAC (:) = 0.5*(ZEMIT_LW_WL_A(:)+ZEMIT_LW_WL_B(:)) * (1-BP%XGR(:)) +  ZEMIT_LW_WIN(:) * BP%XGR(:)
+PEMIT_LW_FAC (:) = 0.5*(ZEMIT_LW_WL_A(:)+ZEMIT_LW_WL_B(:)) * (1-BPARAMS%XGR(:)) +  ZEMIT_LW_WIN(:) * BPARAMS%XGR(:)
 !
 !-------------------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('FACADE_E_BUDGET',1,ZHOOK_HANDLE)

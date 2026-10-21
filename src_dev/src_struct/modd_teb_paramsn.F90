@@ -24,7 +24,7 @@
 !!
 !!    The fields are written once per run by the driver (category `param` and
 !!    `flux` of python_tests/container_fields_inventory.py) and are reached as
-!!    the component `P` of TEB_t (`TP%XALB_ROOF`); the model state lives in
+!!    the component `P` of TEB_t (`TPARAMS%XALB_ROOF`); the model state lives in
 !!    TEB_t itself.
 !!
 !!    REFERENCE

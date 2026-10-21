@@ -15,7 +15,7 @@ MODULE sfc_teb
 !* variable when an identifier is misspelled.
 USE MODI_CALL_DRIVER, ONLY : CALL_DRIVER
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
-USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_HOST_ENSURE, TOP, TP, BOP, BP, TSTATE, BSTATE, TPN, TIR, DMT, TEB_BIND_STATE, TEB_UNBIND_STATE
+USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_HOST_ENSURE, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, DMT, TEB_BIND_STATE, TEB_UNBIND_STATE
 USE TEB_LOG,  ONLY : TEB_LOG_SET_FILTER, TEB_LOG_AT_CADENCE, TEB_LOG_EMIT
 IMPLICIT NONE
 
@@ -347,7 +347,7 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                  teb_lhfl_gr(i), teb_qvfl_gr(i), teb_runoff_gr(i), teb_z0_gd(i), &
                  teb_alb_gd(i), teb_emis_gd(i), teb_ts_gd(i), teb_qs_gd(i), teb_shfl_gd(i), &
                  teb_lhfl_gd(i), teb_qvfl_gd(i), teb_tch_gd(i), teb_tcm_gd(i), &
-                 teb_runoff_gd(i), DMT, TOP, TP, BOP, BP, TSTATE, BSTATE, TPN, TIR)
+                 teb_runoff_gd(i), DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR)
 	END DO
 	
     CALL TEB_UNBIND_STATE (ivstart, ivend, &
@@ -395,7 +395,7 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
     teb_runoff_roof(1:nvec) = DMT%XRUNOFF_ROOF(1:nvec)
     !MV202610 universal output: one row per selected cell, at the output cadence
     IF (TEB_LOG_AT_CADENCE()) THEN
-       CALL TEB_LOG_EMIT(iblock, DMT, TOP, TSTATE, BSTATE, teb_year, teb_month, teb_day, teb_hour_seconds, &
+       CALL TEB_LOG_EMIT(iblock, DMT, TOPTS, TSTATE, BSTATE, teb_year, teb_month, teb_day, teb_hour_seconds, &
             teb_tch_gd, &
             teb_tcm_gd, &
             t, &

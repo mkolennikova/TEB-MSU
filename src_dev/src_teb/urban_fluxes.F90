@@ -3,14 +3,14 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !     #########
-    SUBROUTINE URBAN_FLUXES(TOP, T, B, DMT, HIMPLICIT_WIND, PT_CANYON, PPEW_A_COEF, PPEW_B_COEF,      &
+    SUBROUTINE URBAN_FLUXES(TOPTS, TSTATE, BSTATE, DMT, HIMPLICIT_WIND, PT_CANYON, PPEW_A_COEF, PPEW_B_COEF,      &
                             PEXNS, PRHOA, PVMOD, PH_TRAFFIC, PLE_TRAFFIC, PAC_WL, PCD, PDF_RF,        &
                             PDN_RF, PDF_RD, PDN_RD, PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF,             &
                             PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RF, PDQS_RF, PMELT_RD,        &
                             PDQS_RD, PDQS_WL_A, PDQS_WL_B, PFLX_BLD_RF, PFLX_BLD_WL_A,                &
                             PFLX_BLD_WL_B, PFLX_BLD_FL, PFLX_BLD_MA, PE_SHADING, PLEW_RF,             &
                             PRN_GR, PH_GR, PLE_GR, PGFLUX_GR,                                         &
-                            PLEW_RD, PLE_WL_A, PLE_WL_B, PMELT_BLT, PUSTAR_TWN                        , TP, BP)
+                            PLEW_RD, PLE_WL_A, PLE_WL_B, PMELT_BLT, PUSTAR_TWN                        , TPARAMS, BPARAMS)
 !   ##########################################################################
 !
 !!****  *URBAN_FLUXES* computes fluxes on urbanized surfaces  
@@ -72,15 +72,15 @@ USE PARKIND1  ,ONLY : JPRB
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
-TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
 !
 !*      0.1    declarations of arguments
 !
-TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
-TYPE(TEB_t), INTENT(INOUT) :: T
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOPTS
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 !
  CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
@@ -190,10 +190,10 @@ DMT%XRN_ROAD(:) = DMT%XABS_SW_ROAD(:) + DMT%XABS_LW_ROAD(:)
 DMT%XRN_WALL_A(:) = DMT%XABS_SW_WALL_A(:) + DMT%XABS_LW_WALL_A(:)
 DMT%XRN_WALL_B(:) = DMT%XABS_SW_WALL_B(:) + DMT%XABS_LW_WALL_B(:)
 !
-IF (TOP%CBEM=="BEM") THEN
+IF (TOPTS%CBEM=="BEM") THEN
   ZINTER(:) = DMT%XABS_SW_WIN (:) + DMT%XABS_LW_WIN (:)
-  DMT%XRN_WALL_A(:) = DMT%XRN_WALL_A(:) * (1.-BP%XGR(:))  + ZINTER(:) * BP%XGR(:)
-  DMT%XRN_WALL_B(:) = DMT%XRN_WALL_B(:) * (1.-BP%XGR(:))  + ZINTER(:) * BP%XGR(:)
+  DMT%XRN_WALL_A(:) = DMT%XRN_WALL_A(:) * (1.-BPARAMS%XGR(:))  + ZINTER(:) * BPARAMS%XGR(:)
+  DMT%XRN_WALL_B(:) = DMT%XRN_WALL_B(:) * (1.-BPARAMS%XGR(:))  + ZINTER(:) * BPARAMS%XGR(:)
 ENDIF
 !
 !                                            heat flux into the ground
@@ -204,20 +204,20 @@ DMT%XGFLUX_WALL_B(:) = DMT%XRN_WALL_B(:) - DMT%XH_WALL_B(:)
 !                                            sensible heat flux
 !
 !before -> PH_WL in [W.m-2(wall)]
-ZINTER(:) = PAC_WL(:)*XCPD*PRHOA(:)/PEXNS(:) * (B%XT_WIN1(:)-PT_CANYON(:)) + PE_SHADING(:)
+ZINTER(:) = PAC_WL(:)*XCPD*PRHOA(:)/PEXNS(:) * (BSTATE%XT_WIN1(:)-PT_CANYON(:)) + PE_SHADING(:)
 !
-DMT%XH_WALL_A(:) = (1. - BP%XGR(:)) * DMT%XH_WALL_A(:) + BP%XGR(:) * ZINTER(:)
-DMT%XH_WALL_B(:) = (1. - BP%XGR(:)) * DMT%XH_WALL_B(:) + BP%XGR(:) * ZINTER(:)
+DMT%XH_WALL_A(:) = (1. - BPARAMS%XGR(:)) * DMT%XH_WALL_A(:) + BPARAMS%XGR(:) * ZINTER(:)
+DMT%XH_WALL_B(:) = (1. - BPARAMS%XGR(:)) * DMT%XH_WALL_B(:) + BPARAMS%XGR(:) * ZINTER(:)
 !
-IF (TOP%CBEM=="BEM") THEN
-  ZINTER(:) = BP%XF_WASTE_CAN(:) * DMT%XH_WASTE(:) / TP%XWALL_O_HOR(:)
+IF (TOPTS%CBEM=="BEM") THEN
+  ZINTER(:) = BPARAMS%XF_WASTE_CAN(:) * DMT%XH_WASTE(:) / TPARAMS%XWALL_O_HOR(:)
   DMT%XH_WALL_A(:) = DMT%XH_WALL_A(:) + ZINTER(:)
   DMT%XH_WALL_B(:) = DMT%XH_WALL_B(:) + ZINTER(:)
 ENDIF
 !
-IF (TOP%CBEM=="BEM") THEN
+IF (TOPTS%CBEM=="BEM") THEN
   !after PH_WALL in [W.m-2(facade=wall + win)]
-  ZINTER(:) = BP%XF_WASTE_CAN(:) * DMT%XLE_WASTE(:) / TP%XWALL_O_HOR(:)
+  ZINTER(:) = BPARAMS%XF_WASTE_CAN(:) * DMT%XLE_WASTE(:) / TPARAMS%XWALL_O_HOR(:)
 ELSE
   ZINTER(:) = 0.
 ENDIF
@@ -268,13 +268,13 @@ DMT%XLE_ROAD (:) = PLEW_RD(:)               + PLESN_RD(:) * PDN_RD(:)
 !
   
 DMT%XGFLUX_STRLROOF(:) =  PDF_RF(:) * (ZRN_RF_SNFREE(:) - ZH_RF_SNFREE(:) - PLEW_RF(:)) + PDN_RF(:) *  PGSN_RF(:)  
-DMT%XGFLUX_ROOF    (:) = (1.-TP%XGREENROOF(:)) * DMT%XGFLUX_STRLROOF(:) + TP%XGREENROOF(:) * PGFLUX_GR(:)
+DMT%XGFLUX_ROOF    (:) = (1.-TPARAMS%XGREENROOF(:)) * DMT%XGFLUX_STRLROOF(:) + TPARAMS%XGREENROOF(:) * PGFLUX_GR(:)
 !
 !
 !                                            net radiation
 ! 
 DMT%XRN_STRLROOF   (:) = ZRN_RF_SNFREE(:) * PDF_RF(:) + PRNSN_RF(:) * PDN_RF(:)
-DMT%XRN_ROOF       (:) = (1.-TP%XGREENROOF(:)) * DMT%XRN_STRLROOF(:) + TP%XGREENROOF(:) * PRN_GR(:)
+DMT%XRN_ROOF       (:) = (1.-TPARAMS%XGREENROOF(:)) * DMT%XRN_STRLROOF(:) + TPARAMS%XGREENROOF(:) * PRN_GR(:)
 !
 !                                            sensible heat flux
 !                                            total latent heat of evaporation from
@@ -283,18 +283,18 @@ DMT%XRN_ROOF       (:) = (1.-TP%XGREENROOF(:)) * DMT%XRN_STRLROOF(:) + TP%XGREEN
 ! sensible heat flux
 !
 DMT%XH_STRLROOF    (:) = DMT%XH_ROOF(:) * PDF_RF(:) + PHSN_RF(:)  * PDN_RF(:)
-DMT%XH_ROOF        (:) = (1.-TP%XGREENROOF(:)) * DMT%XH_STRLROOF(:) + TP%XGREENROOF(:) * PH_GR(:)
+DMT%XH_ROOF        (:) = (1.-TPARAMS%XGREENROOF(:)) * DMT%XH_STRLROOF(:) + TPARAMS%XGREENROOF(:) * PH_GR(:)
 !
 !
   
 ! total latent heat of evaporation from the roof (snow free + snow)
 !
 DMT%XLE_STRLROOF   (:) = PLEW_RF(:) * PDF_RF(:)  + PLESN_RF(:) * PDN_RF(:)
-DMT%XLE_ROOF       (:) = (1.-TP%XGREENROOF(:)) * DMT%XLE_STRLROOF(:) + TP%XGREENROOF(:) * PLE_GR(:) 
+DMT%XLE_ROOF       (:) = (1.-TPARAMS%XGREENROOF(:)) * DMT%XLE_STRLROOF(:) + TPARAMS%XGREENROOF(:) * PLE_GR(:) 
 !
-IF (TOP%CBEM=="BEM") THEN
-  DMT%XH_ROOF (:) = DMT%XH_ROOF (:) + (1 - BP%XF_WASTE_CAN(:)) * DMT%XH_WASTE (:)/TP%XBLD(:)
-  DMT%XLE_ROOF(:) = DMT%XLE_ROOF(:) + (1 - BP%XF_WASTE_CAN(:)) * DMT%XLE_WASTE(:)/TP%XBLD(:)
+IF (TOPTS%CBEM=="BEM") THEN
+  DMT%XH_ROOF (:) = DMT%XH_ROOF (:) + (1 - BPARAMS%XF_WASTE_CAN(:)) * DMT%XH_WASTE (:)/TPARAMS%XBLD(:)
+  DMT%XLE_ROOF(:) = DMT%XLE_ROOF(:) + (1 - BPARAMS%XF_WASTE_CAN(:)) * DMT%XLE_WASTE(:)/TPARAMS%XBLD(:)
 ENDIF
 
 !-------------------------------------------------------------------------------
@@ -304,7 +304,7 @@ ENDIF
 !
 PUSTAR_TWN(:) = XUNDEF
 !
-IF (.NOT. TOP%LCANOPY) THEN
+IF (.NOT. TOPTS%LCANOPY) THEN
   !
   ZUSTAR2(:) = 0.0
   ZVMOD  (:) = PVMOD(:)
@@ -338,55 +338,55 @@ ENDIF
 !*      6.1    Built fraction
 !              --------------
 !
-DMT%XRN_BLT (:)    = ( TP%XBLD(:)        * DMT%XRN_ROOF(:)        &
-                  +     TP%XROAD(:)       * DMT%XRN_ROAD(:)        &
-                  + 0.5*TP%XWALL_O_HOR(:) * DMT%XRN_WALL_A(:)      &
-                  + 0.5*TP%XWALL_O_HOR(:) * DMT%XRN_WALL_B(:))     &
-                  / (TP%XROAD(:) + TP%XBLD(:))
+DMT%XRN_BLT (:)    = ( TPARAMS%XBLD(:)        * DMT%XRN_ROOF(:)        &
+                  +     TPARAMS%XROAD(:)       * DMT%XRN_ROAD(:)        &
+                  + 0.5*TPARAMS%XWALL_O_HOR(:) * DMT%XRN_WALL_A(:)      &
+                  + 0.5*TPARAMS%XWALL_O_HOR(:) * DMT%XRN_WALL_B(:))     &
+                  / (TPARAMS%XROAD(:) + TPARAMS%XBLD(:))
 !
-DMT%XH_BLT  (:)    = ( TP%XBLD(:)        * DMT%XH_ROOF(:)         &
-                  +     TP%XROAD(:)       * DMT%XH_ROAD(:)         &
-                  + 0.5*TP%XWALL_O_HOR(:) * DMT%XH_WALL_A(:)       &   
-                  + 0.5*TP%XWALL_O_HOR(:) * DMT%XH_WALL_B(:))      &   
-                  / (TP%XROAD(:) + TP%XBLD(:))
+DMT%XH_BLT  (:)    = ( TPARAMS%XBLD(:)        * DMT%XH_ROOF(:)         &
+                  +     TPARAMS%XROAD(:)       * DMT%XH_ROAD(:)         &
+                  + 0.5*TPARAMS%XWALL_O_HOR(:) * DMT%XH_WALL_A(:)       &   
+                  + 0.5*TPARAMS%XWALL_O_HOR(:) * DMT%XH_WALL_B(:))      &   
+                  / (TPARAMS%XROAD(:) + TPARAMS%XBLD(:))
 !
-DMT%XLE_BLT (:)    = ( TP%XBLD(:)        * DMT%XLE_ROOF (:)       &
-                  +     TP%XROAD(:)       * DMT%XLE_ROAD (:)       &
-                  + 0.5*TP%XWALL_O_HOR(:) * PLE_WL_A (:)     & 
-                  + 0.5*TP%XWALL_O_HOR(:) * PLE_WL_B (:))    & 
-                  / (TP%XROAD(:) + TP%XBLD(:))
+DMT%XLE_BLT (:)    = ( TPARAMS%XBLD(:)        * DMT%XLE_ROOF (:)       &
+                  +     TPARAMS%XROAD(:)       * DMT%XLE_ROAD (:)       &
+                  + 0.5*TPARAMS%XWALL_O_HOR(:) * PLE_WL_A (:)     & 
+                  + 0.5*TPARAMS%XWALL_O_HOR(:) * PLE_WL_B (:))    & 
+                  / (TPARAMS%XROAD(:) + TPARAMS%XBLD(:))
 !
-DMT%XGFLUX_BLT (:) = ( TP%XBLD(:)        * DMT%XGFLUX_ROOF (:)    &
-                  +     TP%XROAD(:)       * DMT%XGFLUX_ROAD (:)    &
-                  + 0.5*TP%XWALL_O_HOR(:) * DMT%XGFLUX_WALL_A (:)  &
-                  + 0.5*TP%XWALL_O_HOR(:) * DMT%XGFLUX_WALL_B (:)) &
-                  / (TP%XROAD(:) + TP%XBLD(:))
+DMT%XGFLUX_BLT (:) = ( TPARAMS%XBLD(:)        * DMT%XGFLUX_ROOF (:)    &
+                  +     TPARAMS%XROAD(:)       * DMT%XGFLUX_ROAD (:)    &
+                  + 0.5*TPARAMS%XWALL_O_HOR(:) * DMT%XGFLUX_WALL_A (:)  &
+                  + 0.5*TPARAMS%XWALL_O_HOR(:) * DMT%XGFLUX_WALL_B (:)) &
+                  / (TPARAMS%XROAD(:) + TPARAMS%XBLD(:))
 !
-PMELT_BLT  (:) = (     TP%XBLD(:)         * PMELT_RF(:) * PDN_RF(:)  &
-                  +    TP%XROAD(:)        * PMELT_RD(:) * PDN_RD(:)) &
-                  / (TP%XROAD(:) + TP%XBLD(:))
+PMELT_BLT  (:) = (     TPARAMS%XBLD(:)         * PMELT_RF(:) * PDN_RF(:)  &
+                  +    TPARAMS%XROAD(:)        * PMELT_RD(:) * PDN_RD(:)) &
+                  / (TPARAMS%XROAD(:) + TPARAMS%XBLD(:))
 !
-DMT%XDQS_TOWN  (:) = (  TP%XBLD(:)         * PDQS_RF (:)      &
-                  +      TP%XROAD(:)      * PDQS_RD (:)      &
-                  + 0.5*TP%XWALL_O_HOR(:) * PDQS_WL_A (:)    &
-                  + 0.5*TP%XWALL_O_HOR(:) * PDQS_WL_B (:) )  &
-                / (TP%XROAD(:) + TP%XBLD(:))
+DMT%XDQS_TOWN  (:) = (  TPARAMS%XBLD(:)         * PDQS_RF (:)      &
+                  +      TPARAMS%XROAD(:)      * PDQS_RD (:)      &
+                  + 0.5*TPARAMS%XWALL_O_HOR(:) * PDQS_WL_A (:)    &
+                  + 0.5*TPARAMS%XWALL_O_HOR(:) * PDQS_WL_B (:) )  &
+                / (TPARAMS%XROAD(:) + TPARAMS%XBLD(:))
 !
-IF (TOP%CBEM == "DEF") THEN
+IF (TOPTS%CBEM == "DEF") THEN
   DMT%XQF_BLD(:) = ( ZH_RF_SNFREE(:) + PLEW_RF(:) +          & 
                  PDQS_RF(:) - ZRN_RF_SNFREE(:)  ) * PDF_RF(:) &
              + ( PDQS_RF(:) - PGSN_RF      (:)  ) * PDN_RF(:) &
-             + 0.5*TP%XWALL_O_HOR(:)/TP%XBLD(:) * ( DMT%XH_WALL_A(:) + PLE_WL_A(:) + PDQS_WL_A(:) - DMT%XRN_WALL_A(:) ) &
-             + 0.5*TP%XWALL_O_HOR(:)/TP%XBLD(:) * ( DMT%XH_WALL_B(:) + PLE_WL_B(:) + PDQS_WL_B(:) - DMT%XRN_WALL_B(:) )
+             + 0.5*TPARAMS%XWALL_O_HOR(:)/TPARAMS%XBLD(:) * ( DMT%XH_WALL_A(:) + PLE_WL_A(:) + PDQS_WL_A(:) - DMT%XRN_WALL_A(:) ) &
+             + 0.5*TPARAMS%XWALL_O_HOR(:)/TPARAMS%XBLD(:) * ( DMT%XH_WALL_B(:) + PLE_WL_B(:) + PDQS_WL_B(:) - DMT%XRN_WALL_B(:) )
   DMT%XFLX_BLD(:)= XUNDEF
-ELSEIF (TOP%CBEM == "BEM") THEN
-  DMT%XQF_BLD(:) = DMT%XQIN(:)*BP%XN_FLOOR(:) + DMT%XHVAC_COOL(:) + DMT%XHVAC_HEAT(:)
-  DMT%XFLX_BLD(:)=  PFLX_BLD_RF(:) + 0.5*TP%XWALL_O_HOR(:)/TP%XBLD(:)*PFLX_BLD_WL_A(:) &
-                 +                    0.5*TP%XWALL_O_HOR(:)/TP%XBLD(:)*PFLX_BLD_WL_B(:) &
+ELSEIF (TOPTS%CBEM == "BEM") THEN
+  DMT%XQF_BLD(:) = DMT%XQIN(:)*BPARAMS%XN_FLOOR(:) + DMT%XHVAC_COOL(:) + DMT%XHVAC_HEAT(:)
+  DMT%XFLX_BLD(:)=  PFLX_BLD_RF(:) + 0.5*TPARAMS%XWALL_O_HOR(:)/TPARAMS%XBLD(:)*PFLX_BLD_WL_A(:) &
+                 +                    0.5*TPARAMS%XWALL_O_HOR(:)/TPARAMS%XBLD(:)*PFLX_BLD_WL_B(:) &
                  + PFLX_BLD_FL(:) + PFLX_BLD_MA(:)  
 ENDIF
 !
-DMT%XQF_TOWN(:)= TP%XBLD(:)*DMT%XQF_BLD(:) + PH_TRAFFIC(:) + TP%XH_INDUSTRY(:) + PLE_TRAFFIC(:) + TP%XLE_INDUSTRY(:)
+DMT%XQF_TOWN(:)= TPARAMS%XBLD(:)*DMT%XQF_BLD(:) + PH_TRAFFIC(:) + TPARAMS%XH_INDUSTRY(:) + PLE_TRAFFIC(:) + TPARAMS%XLE_INDUSTRY(:)
 !
 !Flux from the building to its structure -> we need to add the component to the
 !floor, the mass and the window

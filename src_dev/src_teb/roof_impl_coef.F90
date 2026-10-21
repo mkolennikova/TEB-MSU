@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !   ###############################################
-SUBROUTINE ROOF_IMPL_COEF(T, PTSTEP, PTDEEP_A, PTDEEP_B, TP)
+SUBROUTINE ROOF_IMPL_COEF(TSTATE, PTSTEP, PTDEEP_A, PTDEEP_B, TPARAMS)
 !   ###############################################
 !
 !!
@@ -57,13 +57,13 @@ USE MODI_LAYER_E_BUDGET_GET_COEF
 !
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
 
 !
 !
 !*      0.1    Declarations of arguments
 !
-TYPE(TEB_t), INTENT(INOUT) :: T
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
 !
 REAL              ,   INTENT(IN)  :: PTSTEP      ! time step
 REAL, DIMENSION(:),   INTENT(OUT) :: PTDEEP_A, PTDEEP_B     
@@ -85,14 +85,14 @@ REAL :: ZIMPL = 1.0        ! implicit coefficient
 INTEGER :: JK              ! loop counter
 INTEGER :: ILAYER
 !
-REAL, DIMENSION(SIZE(PTDEEP_A),SIZE(T%XT_ROOF,2)) :: ZA,& ! lower diag.
+REAL, DIMENSION(SIZE(PTDEEP_A),SIZE(TSTATE%XT_ROOF,2)) :: ZA,& ! lower diag.
                                                ZB,& ! main  diag.
                                                ZC,& ! upper diag.
                                                ZY   ! r.h.s.
 
 REAL, DIMENSION(SIZE(PTDEEP_A))             :: ZDET ! work array
-REAL, DIMENSION(SIZE(PTDEEP_A),SIZE(T%XT_ROOF,2)) :: ZW   ! work array
-REAL, DIMENSION(SIZE(PTDEEP_A),SIZE(T%XT_ROOF,2)) :: ZT   ! guess of T
+REAL, DIMENSION(SIZE(PTDEEP_A),SIZE(TSTATE%XT_ROOF,2)) :: ZW   ! work array
+REAL, DIMENSION(SIZE(PTDEEP_A),SIZE(TSTATE%XT_ROOF,2)) :: ZT   ! guess of T
 !
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
@@ -101,9 +101,9 @@ IF (LHOOK) CALL DR_HOOK('ROOF_IMPL_COEF',0,ZHOOK_HANDLE)
 !*      1.0    Coefficients of the tridioagonal matrix for heat conduction eq.
 !              ---------------------------------------------------------------
 !
-ILAYER = SIZE(T%XT_ROOF,2)
+ILAYER = SIZE(TSTATE%XT_ROOF,2)
 !
- CALL LAYER_E_BUDGET_GET_COEF(T%XT_ROOF, PTSTEP, ZIMPL, TP%XHC_ROOF, TP%XTC_ROOF, TP%XD_ROOF, &
+ CALL LAYER_E_BUDGET_GET_COEF(TSTATE%XT_ROOF, PTSTEP, ZIMPL, TPARAMS%XHC_ROOF, TPARAMS%XTC_ROOF, TPARAMS%XD_ROOF, &
                               ZA, ZB, ZC, ZY )
 !
 !-------------------------------------------------------------------------------
@@ -136,7 +136,7 @@ PTDEEP_B = ZT  (:,1)
 PTDEEP_A = 1. / ZDET(:) 
 !
 !* The following lines are here if you want to test the explicit coupling
-!PTDEEP_B = T%XT_ROOF(:,1)
+!PTDEEP_B = TSTATE%XT_ROOF(:,1)
 !PTDEEP_A = 0.
 !-------------------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('ROOF_IMPL_COEF',1,ZHOOK_HANDLE)

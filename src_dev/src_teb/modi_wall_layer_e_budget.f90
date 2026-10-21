@@ -1,26 +1,26 @@
 !auto_modi:spll_wall_layer_e_budget.D
 MODULE MODI_WALL_LAYER_E_BUDGET
 INTERFACE
-    SUBROUTINE WALL_LAYER_E_BUDGET(TOP, T, B, PT_WL, PTS_WL_B, PTI_WL_B, PTSTEP, PDN_RD,     &
+    SUBROUTINE WALL_LAYER_E_BUDGET(TOPTS, TSTATE, BSTATE, PT_WL, PTS_WL_B, PTI_WL_B, PTSTEP, PDN_RD,     &
                                    PRHOA, PAC_WL, PAC_BLD, PLW_RAD, PPS, PEXNS, PABS_SW_WL,  &
                                    PT_CANYON, PTS_RD, PTSNOW_RD, PTS_GD, PTS_FL,             &
                                    PLW_WA_TO_WB, PLW_R_TO_W, PLW_G_TO_W, PLW_NR_TO_W,        &
                                    PLW_WIN_TO_W, PLW_S_TO_W, PFLX_BLD_WL, PDQS_WL,           &
                                    PABS_LW_WL, PEMIT_LW_WL, PH_WL, PIMB_WL, PRADHT_IN,       &
                                    PRAD_RF_WL, PRAD_WL_WIN, PRAD_WL_FL, PRAD_WL_MA,          &
-                                   PCONV_WL_BLD, PLOAD_IN_WL , TP, BP) 
+                                   PCONV_WL_BLD, PLOAD_IN_WL , TPARAMS, BPARAMS) 
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
-TYPE(TEB_PARAMS_t), INTENT(IN) :: TP
-TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BP
+TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
+TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
-TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
-TYPE(TEB_t), INTENT(INOUT) :: T
-TYPE(BEM_t), INTENT(INOUT) :: B
+TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOPTS
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 REAL, DIMENSION(:,:), INTENT(INOUT) :: PT_WL    ! wall layers temperatures
 REAL, DIMENSION(:),   INTENT(IN)  :: PTS_WL_B ! opposite wall surface temperature
 REAL, DIMENSION(:),   INTENT(IN)  :: PTI_WL_B ! opposite wall internal temperature

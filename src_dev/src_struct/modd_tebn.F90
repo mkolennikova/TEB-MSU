@@ -48,7 +48,7 @@ TYPE TEB_t
 !*   state    - prognostic state carried across sub-steps (XWS_*, XT_ROOF/ROAD/WALL_*,
 !*              TSNOW_ROOF/ROAD, XT_CANYON, XQ_CANYON)
 !*   reserved - TSNOW_GARDEN (garden snow is not used in TEB-MSU)
-!*   param, flux - passed as the TP argument (MODD_TEB_PARAMS_n)
+!*   param, flux - passed as the TPARAMS argument (MODD_TEB_PARAMS_n)
 ! TEB scheme option
 !
 ! Prognostic variables:
