@@ -529,6 +529,11 @@ scheme** (сокращённо **CBS**). Переименование чисто
 
 ## 2. Реестр коммитов
 
+Шаги локальной серии (2026-10-16…21) генерализованы 2026-10-21 в 15
+тематических коммитов (запись 86): несколько последовательных строк реестра
+ссылаются на один и тот же SHA — шаг остаётся единицей описания, коммит —
+единицей истории. Ссылки на новые коммиты появятся после выгрузки в `origin`.
+
 | № | коммит | дата | тип | суть | версия / режим | документация |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | [`788ea00`](https://github.com/mkolennikova/TEB-MSU/commit/788ea00) | 2026-09-14 | feat | ключи `urb_z0_town`/`urb_zd_town`, схема Macdonald (1998) | инфраструктура | variables description (Urban Aerodynamics) |
@@ -560,32 +565,32 @@ scheme** (сокращённо **CBS**). Переименование чисто
 | 27 | [`7f01e2c`](https://github.com/mkolennikova/TEB-MSU/commit/7f01e2c) | 2026-10-05 | feat | свободный слой CBS-схемы на уровне форсинга при `H/2 ≥ z_ref` (снятие защитной крышки `MIN(H, z_ref)`); поток импульса τ-расщеплению не подлежит (обоснование в §4.8 схемного документа) | τ v1.5 (**локальный**) | tau-документ, настоящая история |
 | 28 | [`3bd76e6`](https://github.com/mkolennikova/TEB-MSU/commit/3bd76e6) | 2026-10-05 | fix | невязка `PIMB_ROAD` (бюджет дороги): `ZDF_ROAD` перенесён на радиацию, снежный член — приход `+ZDN_ROAD·PGSNOW_ROAD` | диагностика (**локальный**) | дефекты исходной модели (D10), tau-документ, история |
 
-| 29 | [`5ab2d0c`](https://github.com/mkolennikova/TEB-MSU/commit/5ab2d0c) | 2026-10-16 | feat | колонка `USTAR_TOWN` (скорость трения города) в обеих ветвях; в `src_ctrl` заодно исправлены устаревшие имена носителей (`teb_ilmo_*` → `teb_ustar_town`/`teb_cd_terra`/`teb_ch_terra`) | вывод (**локальный**) | tau-документ (§4.8, §5) |
-| 30 | [`8f77520`](https://github.com/mkolennikova/TEB-MSU/commit/8f77520) | 2026-10-16 | test | стенд побитового A/B-сравнения CSV двух бинарников и страж четырёх списков полей контейнера | контейнер диагностик (**локальный**) | — |
-| 31 | [`6bcb346`](https://github.com/mkolennikova/TEB-MSU/commit/6bcb346) | 2026-10-16 | test | генератор инвентаря диагностик драйвера: классы объявлений, контракт CSV, карта имён контейнера | контейнер диагностик (**локальный**) | — |
-| 32 | [`5cf1902`](https://github.com/mkolennikova/TEB-MSU/commit/5cf1902) | 2026-10-16 | test | классификация 277 объявлений драйвера по их собственным комментариям (`!IN`/`!INOUT`/`!OUT`): 119 диагностик, 8 переиспользуемых полей | контейнер диагностик (**локальный**) | — |
-| 33 | [`a7c5e5e`](https://github.com/mkolennikova/TEB-MSU/commit/a7c5e5e) | 2026-10-16 | refactor | `CALL_DRIVER` — процедура модуля `MODI_CALL_DRIVER` (проверяемый интерфейс) и `IMPLICIT NONE` в `sfc_teb`; исправлены четыре класса формальных несоответствий вызова | контейнер диагностик (**локальный**) | — |
-| 34 | [`3900433`](https://github.com/mkolennikova/TEB-MSU/commit/3900433) | 2026-10-16 | refactor | табличный писатель CSV: `CSV_ADD` регистрирует имя и значение колонки одним вызовом, два параллельных списка слиты | контейнер диагностик (**локальный**) | — |
-| 35 | [`1907e6e`](https://github.com/mkolennikova/TEB-MSU/commit/1907e6e) | 2026-10-16 | refactor | тип `DIAG_MISC_TEB_t` расширен 111 полями (8 уже существовавших переиспользованы); закрыты 15 полей `XABS_*`, пропущенных в `NULLIFY` | контейнер диагностик (**локальный**) | документ контейнера |
-| 36 | [`43653fb`](https://github.com/mkolennikova/TEB-MSU/commit/43653fb) | 2026-10-16 | refactor | контейнер принадлежит драйверу: `MODI_DIAG_MISC_TEB_UTIL` (`ALLOC`/`DEALLOC`), проводка `DMT` по цепочке, блок `XUNDEF` физики | контейнер диагностик (**локальный**) | документ контейнера |
-| 37 | [`0ff02bd`](https://github.com/mkolennikova/TEB-MSU/commit/0ff02bd) | 2026-10-16 | refactor | физика и драйвер заполняют контейнер: 119 диагностик уходят из подписей (`TEB_INTERFACE` 267 → 149, `CALL_DRIVER` 265 → 147) | контейнер диагностик (**локальный**) | документ контейнера, coupling checklist |
+| 29 | [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) | 2026-10-16 | feat | колонка `USTAR_TOWN` (скорость трения города) в обеих ветвях; в `src_ctrl` заодно исправлены устаревшие имена носителей (`teb_ilmo_*` → `teb_ustar_town`/`teb_cd_terra`/`teb_ch_terra`) | вывод (**локальный**) | tau-документ (§4.8, §5) |
+| 30 | [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) | 2026-10-16 | test | стенд побитового A/B-сравнения CSV двух бинарников и страж четырёх списков полей контейнера | контейнер диагностик (**локальный**) | — |
+| 31 | [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) | 2026-10-16 | test | генератор инвентаря диагностик драйвера: классы объявлений, контракт CSV, карта имён контейнера | контейнер диагностик (**локальный**) | — |
+| 32 | [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) | 2026-10-16 | test | классификация 277 объявлений драйвера по их собственным комментариям (`!IN`/`!INOUT`/`!OUT`): 119 диагностик, 8 переиспользуемых полей | контейнер диагностик (**локальный**) | — |
+| 33 | [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) | 2026-10-16 | refactor | `CALL_DRIVER` — процедура модуля `MODI_CALL_DRIVER` (проверяемый интерфейс) и `IMPLICIT NONE` в `sfc_teb`; исправлены четыре класса формальных несоответствий вызова | контейнер диагностик (**локальный**) | — |
+| 34 | [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) | 2026-10-16 | refactor | табличный писатель CSV: `CSV_ADD` регистрирует имя и значение колонки одним вызовом, два параллельных списка слиты | контейнер диагностик (**локальный**) | — |
+| 35 | [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) | 2026-10-16 | refactor | тип `DIAG_MISC_TEB_t` расширен 111 полями (8 уже существовавших переиспользованы); закрыты 15 полей `XABS_*`, пропущенных в `NULLIFY` | контейнер диагностик (**локальный**) | документ контейнера |
+| 36 | [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) | 2026-10-16 | refactor | контейнер принадлежит драйверу: `MODI_DIAG_MISC_TEB_UTIL` (`ALLOC`/`DEALLOC`), проводка `DMT` по цепочке, блок `XUNDEF` физики | контейнер диагностик (**локальный**) | документ контейнера |
+| 37 | [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) | 2026-10-16 | refactor | физика и драйвер заполняют контейнер: 119 диагностик уходят из подписей (`TEB_INTERFACE` 267 → 149, `CALL_DRIVER` 265 → 147) | контейнер диагностик (**локальный**) | документ контейнера, coupling checklist |
 
-| 38 | [`c93c3cd`](https://github.com/mkolennikova/TEB-MSU/commit/c93c3cd) | 2026-10-17 | test | инвентарь полей шести контейнеров: категория `param`/`flux`/`state`/`work`/`reserved`/`dead`, число обращений и файлы-писатели; страж таблицы | контейнеры: инвентарь (**локальный**) | документ контейнера |
-| 39 | [`a61d02b`](https://github.com/mkolennikova/TEB-MSU/commit/a61d02b) | 2026-10-17 | refactor | удалены 20 неиспользуемых полей SURFEX: 11 в `TEB_t`, 7 в `TEB_OPTIONS_t`, 2 в `BEM_t`; 17 оставлены как задел и помечены `reserved` | контейнеры: инвентарь (**локальный**) | документ контейнера |
+| 38 | [`d4a0e27`](https://github.com/mkolennikova/TEB-MSU/commit/d4a0e27) | 2026-10-17 | test | инвентарь полей шести контейнеров: категория `param`/`flux`/`state`/`work`/`reserved`/`dead`, число обращений и файлы-писатели; страж таблицы | контейнеры: инвентарь (**локальный**) | документ контейнера |
+| 39 | [`d4a0e27`](https://github.com/mkolennikova/TEB-MSU/commit/d4a0e27) | 2026-10-17 | refactor | удалены 20 неиспользуемых полей SURFEX: 11 в `TEB_t`, 7 в `TEB_OPTIONS_t`, 2 в `BEM_t`; 17 оставлены как задел и помечены `reserved` | контейнеры: инвентарь (**локальный**) | документ контейнера |
 
-| 40 | [`f32f302`](https://github.com/mkolennikova/TEB-MSU/commit/f32f302) | 2026-10-17 | test | проверка контракта контейнеров: `param`/`flux`/`work` не присваиваются вне драйвера (122 поля в блоке копирования), ключ `--enforce-param` | контейнеры: контракт (**локальный**) | документ контейнера (§8.1) |
-| 41 | [`51209ed`](https://github.com/mkolennikova/TEB-MSU/commit/51209ed) | 2026-10-17 | refactor | контракт `param`/`flux`/`state`/`work`/`reserved` объявлен в шапках шести типов контейнеров | контейнеры: контракт (**локальный**) | документ контейнера (§8.1) |
+| 40 | [`d4a0e27`](https://github.com/mkolennikova/TEB-MSU/commit/d4a0e27) | 2026-10-17 | test | проверка контракта контейнеров: `param`/`flux`/`work` не присваиваются вне драйвера (122 поля в блоке копирования), ключ `--enforce-param` | контейнеры: контракт (**локальный**) | документ контейнера (§8.1) |
+| 41 | [`d4a0e27`](https://github.com/mkolennikova/TEB-MSU/commit/d4a0e27) | 2026-10-17 | refactor | контракт `param`/`flux`/`state`/`work`/`reserved` объявлен в шапках шести типов контейнеров | контейнеры: контракт (**локальный**) | документ контейнера (§8.1) |
 
-| 42 | [`d829637`](https://github.com/mkolennikova/TEB-MSU/commit/d829637) | 2026-10-17 | refactor | статика `TEB_t` вынесена в `TEB_PARAMS_t` (37 `param` + 4 `flux`), вложенный компонент `P`; 488 обращений переименованы | контейнеры: разделение (**локальный**) | документ контейнера (§8.1) |
-| 43 | [`e0a968b`](https://github.com/mkolennikova/TEB-MSU/commit/e0a968b) | 2026-10-17 | refactor | статика `BEM_t` вынесена в `BEM_PARAMS_t` (45 `param`), вложенный компонент `P`; 674 обращения переименованы | контейнеры: разделение (**локальный**) | документ контейнера (§8.1) |
+| 42 | [`aa6cc4a`](https://github.com/mkolennikova/TEB-MSU/commit/aa6cc4a) | 2026-10-17 | refactor | статика `TEB_t` вынесена в `TEB_PARAMS_t` (37 `param` + 4 `flux`), вложенный компонент `P`; 488 обращений переименованы | контейнеры: разделение (**локальный**) | документ контейнера (§8.1) |
+| 43 | [`aa6cc4a`](https://github.com/mkolennikova/TEB-MSU/commit/aa6cc4a) | 2026-10-17 | refactor | статика `BEM_t` вынесена в `BEM_PARAMS_t` (45 `param`), вложенный компонент `P`; 674 обращения переименованы | контейнеры: разделение (**локальный**) | документ контейнера (§8.1) |
 
-| 44 | [`f4a5e99`](https://github.com/mkolennikova/TEB-MSU/commit/f4a5e99) | 2026-10-17 | refactor | `BEM_t`: блок `WORK VARIABLES` (8 полей), `RESERVED` (`XSHADE`, `XNATVENT`); `XQIN` → `BEM_PARAMS_t` (40 полей) | контейнеры: разделение (**локальный**) | документ контейнера (§8.1) |
+| 44 | [`aa6cc4a`](https://github.com/mkolennikova/TEB-MSU/commit/aa6cc4a) | 2026-10-17 | refactor | `BEM_t`: блок `WORK VARIABLES` (8 полей), `RESERVED` (`XSHADE`, `XNATVENT`); `XQIN` → `BEM_PARAMS_t` (40 полей) | контейнеры: разделение (**локальный**) | документ контейнера (§8.1) |
 
-| 45 | [`92d554e`](https://github.com/mkolennikova/TEB-MSU/commit/92d554e) | 2026-10-17 | refactor | плоский доступ: `TP`/`BP` как аргументы вместо компонента `P`; 1252 переименования, 19 рутин + `modi_*`, `ALLOC/DEALLOC_TEB_STRUCT` принимают контейнеры | контейнеры: плоский доступ (**локальный**) | документ контейнера (§8.1) |
+| 45 | [`aa6cc4a`](https://github.com/mkolennikova/TEB-MSU/commit/aa6cc4a) | 2026-10-17 | refactor | плоский доступ: `TP`/`BP` как аргументы вместо компонента `P`; 1252 переименования, 19 рутин + `modi_*`, `ALLOC/DEALLOC_TEB_STRUCT` принимают контейнеры | контейнеры: плоский доступ (**локальный**) | документ контейнера (§8.1) |
 
-| 46 | [`004eb7e`](https://github.com/mkolennikova/TEB-MSU/commit/004eb7e) | 2026-10-17 | refactor | драйвер владеет `TOP`/`TP`/`BOP`/`BP`: инициализация, аллокация (`ALLOC_TEB_PARAMS`/`ALLOC_BEM_PARAMS`), 16 неймлист-полей и 103 присваивания в `CALL_DRIVER` вместо блока копирования в физике | контейнеры: владение (**локальный**) | документ контейнера (§8.1) |
+| 46 | [`a800917`](https://github.com/mkolennikova/TEB-MSU/commit/a800917) | 2026-10-17 | refactor | драйвер владеет `TOP`/`TP`/`BOP`/`BP`: инициализация, аллокация (`ALLOC_TEB_PARAMS`/`ALLOC_BEM_PARAMS`), 16 неймлист-полей и 103 присваивания в `CALL_DRIVER` вместо блока копирования в физике | контейнеры: владение (**локальный**) | документ контейнера (§8.1) |
 
-| 47 | [`4e94370`](https://github.com/mkolennikova/TEB-MSU/commit/4e94370) | 2026-10-17 | refactor | из `TEB_GARDEN_STRUCT` и её интерфейсной копии сняты 89 dummy (415 → 326) и их `INTENT`-объявления; фактические аргументы убраны из вызова `CALL_DRIVER` по позициям | контейнеры: владение (**локальный**) | документ контейнера (§8.1) |
+| 47 | [`a800917`](https://github.com/mkolennikova/TEB-MSU/commit/a800917) | 2026-10-17 | refactor | из `TEB_GARDEN_STRUCT` и её интерфейсной копии сняты 89 dummy (415 → 326) и их `INTENT`-объявления; фактические аргументы убраны из вызова `CALL_DRIVER` по позициям | контейнеры: владение (**локальный**) | документ контейнера (§8.1) |
 
 ¹ Дата автора коммита `15158ef` — 2026-08-17, хотя топологически это последний коммит
 ветки; расхождение возникло при переносе истории. Порядок записей — как в `git log`.
@@ -603,7 +608,7 @@ scheme** (сокращённо **CBS**). Переименование чисто
 содержать хеш коммита, в котором он сам создаётся. Запись для этого коммита будет
 проставлена следующим служебным.
 
-⁵ Документационный коммит `a6d9258` (документ контейнера и записи №29–№37) в реестр
+⁵ Документационный коммит `67fa25a` (документ контейнера и записи №29–№37) в реестр
 не включён по той же причине, что в сносках ²–⁴: реестр не может содержать хеш
 коммита, в котором он сам создаётся. Правки реестра после него (сноски и таблица §3)
 не включаются тем же правилом.
@@ -1455,7 +1460,7 @@ PLEFREE_ROAD) - ZDN_ROAD*PGSNOW_ROAD`: вес был на потоках вме�
 
 ---
 
-### №29 · [`5ab2d0c`](https://github.com/mkolennikova/TEB-MSU/commit/5ab2d0c) · 2026-10-16 · `feat(output)`: колонка `USTAR_TOWN` в обеих ветвях
+### №29 · [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) · 2026-10-16 · `feat(output)`: колонка `USTAR_TOWN` в обеих ветвях
 
 **Что сделано.** Обе ветки (`src_dev` и `src_ctrl`) пишут в `TEB_output.csv` колонку
 `USTAR_TOWN` — скорость трения города (м/с), сразу после `WIND_TOP`. Величина —
@@ -1473,7 +1478,7 @@ PLEFREE_ROAD) - ZDN_ROAD*PGSNOW_ROAD`: вес был на потоках вме�
 
 ---
 
-### №30 · [`8f77520`](https://github.com/mkolennikova/TEB-MSU/commit/8f77520) · 2026-10-16 · `test(python)`: стенд A/B и страж списков полей
+### №30 · [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) · 2026-10-16 · `test(python)`: стенд A/B и страж списков полей
 
 **Что сделано.** Два инструмента, на которых дальше строится вся проверка контейнера:
 `python_tests/container_ab_compare.py` запускает два бинарника на одном кейсе и
@@ -1489,7 +1494,7 @@ PLEFREE_ROAD) - ZDN_ROAD*PGSNOW_ROAD`: вес был на потоках вме�
 
 ---
 
-### №31 · [`6bcb346`](https://github.com/mkolennikova/TEB-MSU/commit/6bcb346) · 2026-10-16 · `test(python)`: инвентарь диагностик драйвера
+### №31 · [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) · 2026-10-16 · `test(python)`: инвентарь диагностик драйвера
 
 **Что сделано.** `python_tests/diag_container_inventory.py` читает исходники
 (read-only) и выдаёт рабочую таблицу: класс каждого объявления драйвера, контракт CSV
@@ -1501,7 +1506,7 @@ PLEFREE_ROAD) - ZDN_ROAD*PGSNOW_ROAD`: вес был на потоках вме�
 
 ---
 
-### №32 · [`5cf1902`](https://github.com/mkolennikova/TEB-MSU/commit/5cf1902) · 2026-10-16 · `test(python)`: классификация диагностик для контейнера
+### №32 · [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) · 2026-10-16 · `test(python)`: классификация диагностик для контейнера
 
 **Что сделано.** Классификация переведена с эвристики на **собственные комментарии
 драйвера** (`!IN` / `!INOUT` / `!OUT`), добавлены карта имён полей и кросс-проверки
@@ -1514,7 +1519,7 @@ PLEFREE_ROAD) - ZDN_ROAD*PGSNOW_ROAD`: вес был на потоках вме�
 
 ---
 
-### №33 · [`a7c5e5e`](https://github.com/mkolennikova/TEB-MSU/commit/a7c5e5e) · 2026-10-16 · `refactor(driver)`: проверяемый интерфейс `CALL_DRIVER`
+### №33 · [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) · 2026-10-16 · `refactor(driver)`: проверяемый интерфейс `CALL_DRIVER`
 
 **Что сделано.** `CALL_DRIVER` был внешней процедурой, и компилятор не видел её
 265-аргументную подпись: ошибка порядка, типа или ранга на этом стыке принималась
@@ -1530,7 +1535,7 @@ PLEFREE_ROAD) - ZDN_ROAD*PGSNOW_ROAD`: вес был на потоках вме�
 до правки: равные SHA-256, 0 из 111 колонок.
 
 ---
-### №34 · [`3900433`](https://github.com/mkolennikova/TEB-MSU/commit/3900433) · 2026-10-16 · `refactor(output)`: табличный писатель CSV
+### №34 · [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) · 2026-10-16 · `refactor(output)`: табличный писатель CSV
 
 **Что сделано.** Два параллельных списка колонок — имена (`nout = nout + 1;
 out_names(nout) = 'ИМЯ'`) и значения (`CALL CSV_APPEND`) — слиты в один вызов на
@@ -1552,7 +1557,7 @@ CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_TOWN', teb_shfl(1))
 
 ---
 
-### №35 · [`1907e6e`](https://github.com/mkolennikova/TEB-MSU/commit/1907e6e) · 2026-10-16 · `refactor(urban)`: тип контейнера расширен полями драйвера
+### №35 · [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) · 2026-10-16 · `refactor(urban)`: тип контейнера расширен полями драйвера
 
 **Что сделано.** `DIAG_MISC_TEB_t` получил **111** новых полей; восемь уже
 существующих переиспользованы, а не продублированы (`XDQS_TOWN`, `XHVAC_COOL`,
@@ -1570,7 +1575,7 @@ CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_TOWN', teb_shfl(1))
 
 ---
 
-### №36 · [`43653fb`](https://github.com/mkolennikova/TEB-MSU/commit/43653fb) · 2026-10-16 · `refactor(driver)`: контейнер принадлежит драйверу
+### №36 · [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) · 2026-10-16 · `refactor(driver)`: контейнер принадлежит драйверу
 
 **Что сделано.** Контейнер выведен из `TEB_GARDEN_STRUCT`: добавлен модуль
 `src_struct/modi_diag_misc_teb_util.F90` (`DIAG_MISC_TEB_ALLOC` /
@@ -1591,7 +1596,7 @@ CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_TOWN', teb_shfl(1))
 
 ---
 
-### №37 · [`0ff02bd`](https://github.com/mkolennikova/TEB-MSU/commit/0ff02bd) · 2026-10-16 · `refactor(driver)`: физика и драйвер заполняют контейнер
+### №37 · [`67fa25a`](https://github.com/mkolennikova/TEB-MSU/commit/67fa25a) · 2026-10-16 · `refactor(driver)`: физика и драйвер заполняют контейнер
 
 **Что сделано.** 119 диагностик уходят из подписей: в вызове физики фактическим
 аргументом становится `DMT%X<поле>(1:1)`. Трёхзвенное выравнивание «имя драйвера →
@@ -1616,7 +1621,7 @@ dummy `CALL_DRIVER` → фактический аргумент вызова ф�
 
 ---
 
-### №38 · [`c93c3cd`](https://github.com/mkolennikova/TEB-MSU/commit/c93c3cd) · 2026-10-17 · `test(python)`: инвентарь полей контейнеров
+### №38 · [`d4a0e27`](https://github.com/mkolennikova/TEB-MSU/commit/d4a0e27) · 2026-10-17 · `test(python)`: инвентарь полей контейнеров
 
 **Что сделано.** `python_tests/container_fields_inventory.py` читает шесть типов
 (`TEB_OPTIONS_t`, `TEB_t`, `BEM_OPTIONS_t`, `BEM_t`, `TEB_PANEL_t`, `TEB_IRRIG_t`) и
@@ -1637,7 +1642,7 @@ dummy `CALL_DRIVER` → фактический аргумент вызова ф�
 
 ---
 
-### №39 · [`a61d02b`](https://github.com/mkolennikova/TEB-MSU/commit/a61d02b) · 2026-10-17 · `refactor(struct)`: удаление неиспользуемых полей SURFEX
+### №39 · [`d4a0e27`](https://github.com/mkolennikova/TEB-MSU/commit/d4a0e27) · 2026-10-17 · `refactor(struct)`: удаление неиспользуемых полей SURFEX
 
 **Что сделано.** Из типов удалены 20 полей, не имеющих ни одного обращения вне типа,
 его `*_INIT` и модуля аллокации: в `TEB_t` — `XTI_ROAD`,
@@ -1660,7 +1665,7 @@ dummy `CALL_DRIVER` → фактический аргумент вызова ф�
 
 ---
 
-### №40 · [`f32f302`](https://github.com/mkolennikova/TEB-MSU/commit/f32f302) · 2026-10-17 · `test(python)`: проверка контракта контейнеров
+### №40 · [`d4a0e27`](https://github.com/mkolennikova/TEB-MSU/commit/d4a0e27) · 2026-10-17 · `test(python)`: проверка контракта контейнеров
 
 **Что сделано.** В инвентарь `python_tests/container_fields_inventory.py` добавлена
 проверка: поле категории `param`/`flux`/`work` не должно присваиваться вне
@@ -1677,7 +1682,7 @@ dummy `CALL_DRIVER` → фактический аргумент вызова ф�
 
 ---
 
-### №41 · [`51209ed`](https://github.com/mkolennikova/TEB-MSU/commit/51209ed) · 2026-10-17 · `refactor(struct)`: контракт в шапках типов
+### №41 · [`d4a0e27`](https://github.com/mkolennikova/TEB-MSU/commit/d4a0e27) · 2026-10-17 · `refactor(struct)`: контракт в шапках типов
 
 **Что сделано.** В шапке каждого из шести типов (`TEB_OPTIONS_t`, `TEB_t`,
 `BEM_OPTIONS_t`, `BEM_t`, `TEB_PANEL_t`, `TEB_IRRIG_t`) объявлен контракт категорий:
@@ -1693,7 +1698,7 @@ dummy `CALL_DRIVER` → фактический аргумент вызова ф�
 
 ---
 
-### №42 · [`d829637`](https://github.com/mkolennikova/TEB-MSU/commit/d829637) · 2026-10-17 · `refactor(struct)`: статика TEB вынесена в `TEB_PARAMS_t`
+### №42 · [`aa6cc4a`](https://github.com/mkolennikova/TEB-MSU/commit/aa6cc4a) · 2026-10-17 · `refactor(struct)`: статика TEB вынесена в `TEB_PARAMS_t`
 
 **Что сделано.** Новый модуль `src_struct/modd_teb_paramsn.F90` (`MODD_TEB_PARAMS_n`,
 `TYPE TEB_PARAMS_t`, `TEB_PARAMS_INIT`) несёт 37 статических параметров (геометрия,
@@ -1716,7 +1721,7 @@ dummy `CALL_DRIVER` → фактический аргумент вызова ф�
 
 ---
 
-### №43 · [`e0a968b`](https://github.com/mkolennikova/TEB-MSU/commit/e0a968b) · 2026-10-17 · `refactor(struct)`: статика здания вынесена в `BEM_PARAMS_t`
+### №43 · [`aa6cc4a`](https://github.com/mkolennikova/TEB-MSU/commit/aa6cc4a) · 2026-10-17 · `refactor(struct)`: статика здания вынесена в `BEM_PARAMS_t`
 
 **Что сделано.** Новый модуль `src_struct/modd_bem_paramsn.F90` (`MODD_BEM_PARAMS_n`,
 `TYPE BEM_PARAMS_t`, `BEM_PARAMS_INIT`) несёт 45 статических параметров здания:
@@ -1736,7 +1741,7 @@ dummy `CALL_DRIVER` → фактический аргумент вызова ф�
 
 ---
 
-### №44 · [`f4a5e99`](https://github.com/mkolennikova/TEB-MSU/commit/f4a5e99) · 2026-10-17 · `refactor(struct)`: блок `WORK VARIABLES` в `BEM_t`
+### №44 · [`aa6cc4a`](https://github.com/mkolennikova/TEB-MSU/commit/aa6cc4a) · 2026-10-17 · `refactor(struct)`: блок `WORK VARIABLES` в `BEM_t`
 
 **Что сделано.** В `BEM_t` появился явный блок `WORK VARIABLES` — непрогностические
 величины, пересчитываемые на каждом вызове: `XAUX_MAX` (аккумулятор autosize),
@@ -1766,7 +1771,7 @@ dummy `CALL_DRIVER` → фактический аргумент вызова ф�
 
 ---
 
-### №45 · [`92d554e`](https://github.com/mkolennikova/TEB-MSU/commit/92d554e) · 2026-10-17 · `refactor(struct)`: плоский доступ `TP`/`BP`
+### №45 · [`aa6cc4a`](https://github.com/mkolennikova/TEB-MSU/commit/aa6cc4a) · 2026-10-17 · `refactor(struct)`: плоский доступ `TP`/`BP`
 
 **Что сделано.** Из `TEB_t` и `BEM_t` убран компонент `P`: контейнеры
 `TEB_PARAMS_t`/`BEM_PARAMS_t` передаются явными аргументами `TP`/`BP`, физика
@@ -1796,7 +1801,7 @@ optional нельзя); вызов из `teb_garden.F90` передаёт `OALB_
 
 ---
 
-### №47 · [`4e94370`](https://github.com/mkolennikova/TEB-MSU/commit/4e94370) · 2026-10-17 · `refactor(struct)`: снятие аргументов физики (N2, часть 1)
+### №47 · [`a800917`](https://github.com/mkolennikova/TEB-MSU/commit/a800917) · 2026-10-17 · `refactor(struct)`: снятие аргументов физики (N2, часть 1)
 
 **Что сделано.** Из `TEB_GARDEN_STRUCT` и её интерфейсной копии удалены **89**
 аргументов, значения которых уже лежат в контейнерах: 415 → **326**. Вместе с ними
@@ -1911,7 +1916,7 @@ optional нельзя); вызов из `teb_garden.F90` передаёт `OALB_
   правила `movable()` из скрипта перестановки аргументов не понимают `SIZE(...)`.
 * Проверено: `build=0`; полный A/B (BEM) — `IDENTICAL`, SHA-256 CSV `8e3233ef…`;
   `--strict --enforce-param` → `OK`. Инвентарь переведён на префиксы
-  `TSTATE`/`BSTATE` (отдельный коммит `5e404ea`).
+  `TSTATE`/`BSTATE` (отдельный коммит `c9ecd08`).
 
 ---
 
@@ -2528,6 +2533,42 @@ optional нельзя); вызов из `teb_garden.F90` передаёт `OALB_
 
   `max_rel = 1.0` у проветривания — переход `HVAC_COOL` между нулём и
   ненулевым значением (нормировка на максимум из двух).
+
+---
+
+### 86. Локальная серия генерализована: 87 шагов -> 15 коммитов
+
+* 87 коммитов локальной серии (2026-10-16…21, от `9007d15` до `a113c4d`, ветка `backup-pre-squash-87`) не были
+  выгружены в `origin` и описывали один рефакторинг пошагово. Серия сжата в
+  15 тематических коммитов; **дерево не изменилось**: `HEAD^{tree}` до и после
+  совпадает (`9872d93a…`), A/B остаётся `IDENTICAL` (`30499e1f…`).
+* Диапазоны непрерывны, поэтому перенос сделан «пересадкой деревьев»
+  (`git read-tree -u --reset <конец диапазона>` + коммит с консолидированным
+  сообщением), без перестановок и без конфликтов.
+* Ссылки реестра (§2) перепривязаны: несколько шагов одного диапазона теперь
+  указывают на SHA своего тематического коммита. Соответствие (нумерация
+  шагов — по локальной серии: строка `N` реестра = шаг `N−28`):
+
+| шаги | коммит | тема |
+| --- | --- | --- |
+| 1–14 | `67fa25a` | feat(api): table-driven CSV output and the diagnostics container |
+| 15–20 | `d4a0e27` | refactor(struct): the container field contract; the unused SURFEX fields are removed |
+| 21–27 | `aa6cc4a` | refactor(struct): TEB_PARAMS_t/BEM_PARAMS_t split, WORK block, flat parameter access |
+| 28–32 | `a800917` | refactor(driver): the driver owns the containers; the dead physics arguments are removed |
+| 33–35 | `df03f4f` | refactor(api): src_api layout and TEB_HOST fills the parameter containers |
+| 36–44 | `c9ecd08` | feat(api): TEB_LOG, the container lifecycle and the state threading |
+| 45–50 | `acc5535` | refactor(io): the output layout of the host |
+| 51–58 | `d585759` | refactor(api): CALL_DRIVER deduplication P-C0..P-C6 |
+| 59–64 | `620e637` | refactor(api): derived statics in TEB_FILL_DERIVED (P-C1b) |
+| 65–70 | `d0c92f2` | refactor(api): TEB_GARDEN called directly, matrix harness, garden radiation fixes |
+| 71–73 | `e502633` | refactor(naming): TOPTS/TPARAMS/BOPTS/BPARAMS and TSTATE/BSTATE |
+| 74–78 | `6693c3c` | refactor(diag): the CBS branch record used twice |
+| 79–83 | `5761b16` | refactor(forcing): the forcing of the sub-step becomes the container FORC |
+| 84–85 | `37db260` | refactor(forcing): the external garden / greenroof surface becomes the container EXT |
+| 86–87 | `86635e1` | test(coverage): the extended A/B matrix and the BEM option sensitivity |
+
+* Локальные страховки: ветка `backup-pre-squash-87` и тег `pre-squash-87`
+  (на `a113c4d`); в `origin` ничего не выгружалось.
 
 ---
 
