@@ -373,7 +373,8 @@ HVAC-уставки (`XTCOOL_TARGET`, `XTHEAT_TARGET`, `XCAP_SYS_HEAT`, `XCOP_RA
 | `python_tests/container_fields_inventory.py` | категории полей десяти типов (`param`/`flux`/`state`/`work`/`reserved`/`dead`), включая `FORC` (22 `work`) и `EXT` (18 `work`), и сверка контракта в обе стороны: необъявленное поле — `UNCLASSIFIED`, объявленное, но не упомянутое нигде — `dead`, исчезнувшее из кода — `STALE TABLE`; `--strict` — `dead` как ошибка, `--enforce-param` — `param`/`flux` пишет только драйвер или слой `TEB_HOST`. Сейчас `RESULT: OK` во всех трёх режимах (27/11/42/5/19/40/5/19/22/18 поля) |
 | `python_tests/call_signature_inventory.py` | подпись `CALL_DRIVER`: классы `transient`/`container`/`host-export`/`deferred`/`violation`; `--strict --expect 27` |
 | `python_tests/container_ab_compare.py` | два бинарника на кейсе `tests/CAPITOUL`: побитовое сравнение CSV поле-в-поле, заголовок, число строк, SHA-256 |
-| `python_tests/container_ab_matrix.py` | то же по матрице конфигураций словника (BEM, режимы сада и кровли, панели, CBS); физика — по именам колонок, `RUNOFF_*` и `EMU_*` — против отдельных файлов кандидата |
+| `python_tests/container_ab_matrix.py` | то же по матрице конфигураций; наборы (`--set`): `base` — 13 конфигураций словника (BEM, режимы сада и кровли, панели, CBS), `ext` — 13 конфигураций покрытия контейнеров (высота форсинга 3/50 м, `EXT_NEU` кровли, обе внешние поверхности одновременно, CBS при `urb_h_bld` 10/40 и `urb_h2w` 0.1/0.3/0.5/0.75, «внешний сад + CBS»), `opt` — 3, `all` — 29; физика — по именам колонок, `RUNOFF_*` и `EMU_*` — против отдельных файлов кандидата; сводка — `summary_matrix.csv` / `summary_matrix_<set>.csv` |
+| `python_tests/bem_option_sensitivity.py` | чувствительность опций BEM и их A/B: для каждой опции два словника (off/on) и четыре прогона (ref/new x off/on). Проверяются обе вещи: кандидат побитово равен эталону для одного и того же словника (A/B) и результат кандидата меняется между off и on в наблюдаемых колонках, причём материально (`max_rel > 1e-6`, чтобы 1 ulp не выдавался за эффект). Опции: ставни (`teb_lshade`), кондиционеры (`teb_lbem_ac`), проветривание (`teb_itype_natvent` = `AUTO` и `MECH`); сводка — `bem_sensitivity/summary_bem_sensitivity.csv` |
 
 ```powershell
 python python_tests/check_diag_container.py
@@ -382,8 +383,28 @@ python python_tests/container_fields_inventory.py
 python python_tests/call_signature_inventory.py
 python python_tests/container_ab_compare.py --ref-exe build/TEB_offline_dev_ref.exe `
     --new-exe build/TEB_offline_dev.exe
-python python_tests/container_ab_matrix.py
+python python_tests/container_ab_matrix.py                  # --set base (по умолчанию)
+python python_tests/container_ab_matrix.py --set ext        # покрытие контейнеров
+python python_tests/container_ab_matrix.py --set all        # base + ext + opt
+python python_tests/bem_option_sensitivity.py      # опции BEM: A/B + чувствительность
 ```
+
+**Почему набор `ext` нужен.** Базовая матрица варьирует только словник на одной
+геометрии и одном форсинге: `hlev_teb = 28`, `urb_h_bld = 20`,
+`urb_h2w = 1.38158`. Последнее даёт `τ = 0.5·(1 + tanh((H/W − 0.5)/0.25)) = 0.999`,
+т.е. и `baseline`, и `cbs_on` сидят в самом «каньонном» конце релаксации, а
+переходная полоса и режим `τ ≈ 0` не проверяются вовсе. Набор `ext` добавляет:
+
+* высоту форсинга 3 и 50 м — вклад `ZREF·G` в `XRHOA`/`XPA`/`XEXNA`, профиль
+  `DMT%XWIND_TOP`, нейтральные коэффициенты эмулятора и мост `XZREF`/`XUREF`
+  (плюс связка с обеими внешними поверхностями);
+* `EXT_NEU` зелёной кровли и `combined_ext` — обе внешние поверхности в одном
+  шаге вместе с панелями и CBS (базовый `combined` считает внутренние прокси);
+* `urb_h2w` = 0.1 / 0.3 / 0.5 / 0.75 (`τ` = 0.04 / 0.17 / 0.50 / 0.88) и
+  `urb_h_bld` = 10 / 40 м; `urb_z0_town='0.1H'` и `urb_zd_town='H/3'` следуют
+  за высотой, поэтому аэродинамика остаётся согласованной.
+
+**Опции BEM.** `bem_option_sensitivity.py` проверяет, что опции не «мёртвые»: для каждой — пара словников off/on, четыре прогона, A/B-идентичность на каждом и материальный отклик (`max_rel > 1e-6`). Измерено (18 000 шагов): ставни — до 28.97 на 13 842 строках, кондиционеры — до 54.02 на 13 848, проветривание `AUTO`/`MECH` — до 11.48/19.74; все четыре — `IDENTICAL` и материальны.
 
 Референсный кейс — `tests/CAPITOUL` (18 000 шагов): 109 колонок в
 `TEB_output_b1_c1.csv` и 26 колонок эмулятора в `TEB_emu.csv`. Критерий приёмки:
