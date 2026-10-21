@@ -85,8 +85,8 @@ The Fortran sources are split into two independent trees, each with its own `Mak
 | `src_ctrl/` | control line (physics of the first commit `582c3ab`) with the same I/O and namelists | `build/TEB_offline_ctrl.exe` |
 
 Both trees share `tests/`, `python/` and `docs/`, are built in the same way
-(`make -C src_dev` / `make -C src_ctrl`) and write the same columns to `TEB_output.csv`, so
-runs of the two trees can be compared line by line.
+(`make -C src_dev` / `make -C src_ctrl`) and write the same columns to the per-cell tables
+`TEB_output_b<block>_c<cell>.csv`, so runs of the two trees can be compared line by line.
 
 ## Repository Layout
 
@@ -104,7 +104,8 @@ runs of the two trees can be compared line by line.
 The executable is started in the directory of the case, because the driver reads `namelist/` and
 the forcing directory and writes `output/` relative to the working directory (for the reference
 case that is `tests/CAPITOUL/`). The command-line options `-forcing_nml`, `-param_nml` and
-`-output` override each of them.
+`-output` override each of them; `-verbose` additionally asks the model to echo its
+configuration once per run (see below).
 
 ## Configuration
 
@@ -141,14 +142,24 @@ date of the run, the forcing window and the location are echoed in the log.
 
 ### Model Output
 
-The model writes all output variables, together with the atmospheric forcing used at
-each step, to a single semicolon-separated file `<output_dir>/TEB_output.csv`
-(`-output <dir>` on the command line, `output/` by default). The file contains one line
-per forcing step: first the time column `time` (ISO 8601, the end of the forcing
-interval, e.g. `2004-02-20 00:30:00`), then the model variables, then the forcing
-columns `Forc_*` (see [TEB_MSU_variables_description.md](docs/TEB_MSU_variables_description.md)).
-The columns depend on the model options (e.g. `HVAC_*` only with the Building Energy
-Model, `SOLAR_PROD` only with solar panels).
+Each owner writes its own files into `<output_dir>` (`-output <dir>` on the command
+line, `output/` by default):
+
+| file | written by | content |
+| --- | --- | --- |
+| `TEB_output_b<block>_c<cell>.csv` | TEB (`TEB_LOG`) | the universal table of the cell: time, model variables and the atmospheric forcing used at that step (`Forc_*`), one line per forcing step |
+| `TEB_emu.csv` | driver | the columns of the external garden/green-roof emulator (`EMU_*`), only for the `EXT`/`EXT_NEU` configurations |
+| `TEB_runoff.csv` | driver | the road and roof runoff accumulated over the sub-steps of each forcing step |
+
+All three are semicolon-separated with a header line. The first column of the universal
+table is `time` (ISO 8601, the end of the forcing interval, e.g. `2004-02-20 00:30:00`);
+the list of its columns depends on the model options (e.g. `HVAC_*` only with the
+Building Energy Model, `SOLAR_PROD` only with solar panels) and is printed once per run
+as the `Output columns:` line of the console.
+
+The console belongs to the driver: banner, namelist diagnostics, progress and the final
+line. The model itself prints only errors and the `Output columns:` line; `-verbose`
+adds its configuration dump, printed once per run.
 
 The Python utility [`python/output_utils.py`](python/output_utils.py) reads this file (the
 `Forc_*` columns it contains are used as the forcing overlay in the plots) as well as the
@@ -157,8 +168,8 @@ legacy per-variable `*.txt` output of older runs:
 ```python
 import output_utils
 
-df = output_utils.read_output('output/TEB_output.csv')    # the output file itself
-df = output_utils.read_output('output/')                  # ... or its directory
+df = output_utils.read_output('output/TEB_output_b1_c1.csv')  # the output file itself
+df = output_utils.read_output('output/')                      # ... or its directory
 df = output_utils.read_output('output_old/', fmt='txt',   # legacy <VAR>.txt files
                               namelist_path='namelist_forcing.nml')
 ```

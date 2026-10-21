@@ -200,8 +200,8 @@ def main(argv=None) -> int:
     run_case(ref_exe, case, forcing_nml, out_root / 'ref', args.timeout)
     run_case(new_exe, case, forcing_nml, out_root / 'new', args.timeout)
 
-    ref_csv = out_root / 'ref' / 'TEB_output.csv'
-    new_csv = out_root / 'new' / 'TEB_output.csv'
+    ref_csv = out_root / 'ref' / 'TEB_output_b1_c1.csv'
+    new_csv = out_root / 'new' / 'TEB_output_b1_c1.csv'
     for path in (ref_csv, new_csv):
         if not path.is_file():
             sys.exit(f'ERROR: no output written: {path}')

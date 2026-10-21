@@ -149,6 +149,9 @@ USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
+!* Console: the model prints nothing on its own, except errors and the dump of
+!* the configuration that the host asks for with TEB_LOG_SET_VERBOSE
+USE TEB_LOG, ONLY : TEB_LOG_VERBOSE_FIRST
 IMPLICIT NONE
 TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
 TYPE(TEB_PARAMS_t),  INTENT(INOUT) :: TP
@@ -1007,9 +1010,10 @@ IF (ntstep == 1) THEN
 	! For (Wang, 2012) Wind Calculation
 	DMT%XUSTAR_TOWN(1:1)         = 0.2 
 	
-	IF (icell .EQ. 1 .AND. iblock .EQ. 1) THEN
+	IF (TEB_LOG_VERBOSE_FIRST()) THEN
 		!-------------------------------------------------------------------
-		! Print configuration parameters (only on first time step)
+		! Print configuration parameters: once per run and only when the host
+		! asked for it (TEB_LOG_SET_VERBOSE) - the loop is per cell and per call
 		!-------------------------------------------------------------------
 		PRINT*, '=================================================='
 		PRINT*, 'TEB-MSU Configuration Parameters (from namelists):'

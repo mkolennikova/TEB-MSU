@@ -34,16 +34,34 @@ def read_output_txt(output_dir, namelist_path):
   return output_df
 
 
+def _find_csv (output_dir):
+  """Locate the universal output table in an output directory.
+
+  The current driver writes one table per selected (block, cell) pair,
+  ``TEB_output_b<block>_c<cell>.csv``; the pre-P-log name ``TEB_output.csv`` is
+  still accepted for old runs. If the directory holds several per-cell tables,
+  the choice is ambiguous and the caller must pass the file it wants.
+  """
+  per_cell = sorted(glob.glob(os.path.join(output_dir, 'TEB_output_b*_c*.csv')))
+  if len(per_cell) == 1:
+    return per_cell[0]
+  if len(per_cell) > 1:
+    names = ', '.join(os.path.basename(p) for p in per_cell)
+    raise ValueError(f'{output_dir}: several per-cell output tables ({names}); '
+                     'pass one of them explicitly')
+  return os.path.join(output_dir, 'TEB_output.csv')
+
+
 def read_output (output_path, namelist_path=None, fmt='auto', include_forcing=True):
   """Read the output of a TEB-MSU offline run.
 
   Two formats are supported:
 
-  * ``'csv'`` - the current output: a single semicolon-separated file
-    ``TEB_output.csv`` with a header line. Column 1 is ``time`` (the time of the model
-    state, i.e. the end of the forcing interval, ``t0 + n * forc_step``), then the
-    model variables, then the atmospheric forcing used by the model at that step
-    (columns ``Forc_*``).
+  * ``'csv'`` - the current output: one semicolon-separated table per selected
+    (block, cell) pair, ``TEB_output_b<block>_c<cell>.csv`` with a header line.
+    Column 1 is ``time`` (the time of the model state, i.e. the end of the
+    forcing interval, ``t0 + n * forc_step``), then the model variables, then the
+    atmospheric forcing used by the model at that step (columns ``Forc_*``).
   * ``'txt'`` - the legacy output: one ``<VARIABLE>.txt`` file per variable with one
     value per forcing step (no time stamps; the index is reconstructed from the
     forcing namelist).
@@ -52,13 +70,13 @@ def read_output (output_path, namelist_path=None, fmt='auto', include_forcing=Tr
   ----------
   output_path : str
       The output directory (with or without a trailing separator) or the output file
-      itself, e.g. ``.../output/TEB_output.csv``. A directory is looked up for
-      ``TEB_output.csv``.
+      itself, e.g. ``.../output/TEB_output_b1_c1.csv``. A directory is looked up for
+      the per-cell tables (the legacy ``TEB_output.csv`` is still accepted).
   namelist_path : str, optional
       Forcing namelist. Required for the legacy txt format only, because the CSV file
       carries its own time stamps.
   fmt : {'auto', 'csv', 'txt'}
-      'auto' (default) reads ``TEB_output.csv`` when it is present, otherwise the
+      'auto' (default) reads the CSV table when it is present, otherwise the
       legacy txt files.
   include_forcing : bool
       For the CSV format only: if False, the ``Forc_*`` columns are dropped, so that
@@ -72,7 +90,8 @@ def read_output (output_path, namelist_path=None, fmt='auto', include_forcing=Tr
   """
   output_path = str(output_path)
 
-  # A path to a concrete file is used as is; a directory is looked up for TEB_output.csv.
+  # A path to a concrete file is used as is; a directory is looked up for the
+  # universal table (TEB_output_b<block>_c<cell>.csv, legacy TEB_output.csv).
   output_is_file = os.path.isfile(output_path) or output_path.lower().endswith('.csv')
   if output_is_file:
     csv_file = output_path
@@ -81,7 +100,7 @@ def read_output (output_path, namelist_path=None, fmt='auto', include_forcing=Tr
       output_path += os.sep
     if not os.path.isdir(output_path):
       raise FileNotFoundError(f'no such directory: {output_path}')
-    csv_file = os.path.join(output_path, 'TEB_output.csv')
+    csv_file = _find_csv(output_path)
 
   fmt = fmt.lower()
   if fmt == 'auto':

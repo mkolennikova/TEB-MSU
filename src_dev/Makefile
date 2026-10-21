@@ -46,8 +46,8 @@ $(OBJDIR)/close_file.o: src_driver/close_file.F90
 $(OBJDIR)/close_file_asc.o: src_driver/close_file_asc.F90
 $(OBJDIR)/day_of_week.o: src_teb/day_of_week.F90 $(OBJDIR)/hook.o
 $(OBJDIR)/dealloc_teb_struct.o: src_struct/dealloc_teb_struct.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_diag_misc_tebn.o
-$(OBJDIR)/call_driver.o: src_driver/call_driver.F90 $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_atm.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/modd_reprod_oper.o $(OBJDIR)/modi_init_surfconsphy.o $(OBJDIR)/sunpos.o $(OBJDIR)/ol_read_atm.o $(OBJDIR)/ol_alloc_atm.o $(OBJDIR)/ol_time_interp_atm.o $(OBJDIR)/modi_teb_garden_struct.o $(OBJDIR)/modi_window_data_struct.o $(OBJDIR)/modi_bem_morpho_struct.o $(OBJDIR)/circumsolar_rad.o $(OBJDIR)/modd_forc_atm.o $(OBJDIR)/wind_profile_wang.o $(OBJDIR)/modi_wind_threshold.o $(OBJDIR)/ahf_traffic_now.o
-$(OBJDIR)/sfc_teb.o: src_api/sfc_teb.F90 $(OBJDIR)/call_driver.o $(OBJDIR)/teb_host.o
+$(OBJDIR)/call_driver.o: src_driver/call_driver.F90 $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_atm.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/modd_reprod_oper.o $(OBJDIR)/modi_init_surfconsphy.o $(OBJDIR)/sunpos.o $(OBJDIR)/ol_read_atm.o $(OBJDIR)/ol_alloc_atm.o $(OBJDIR)/ol_time_interp_atm.o $(OBJDIR)/modi_teb_garden_struct.o $(OBJDIR)/modi_window_data_struct.o $(OBJDIR)/modi_bem_morpho_struct.o $(OBJDIR)/circumsolar_rad.o $(OBJDIR)/modd_forc_atm.o $(OBJDIR)/wind_profile_wang.o $(OBJDIR)/modi_wind_threshold.o $(OBJDIR)/ahf_traffic_now.o $(OBJDIR)/teb_log.o
+$(OBJDIR)/sfc_teb.o: src_api/sfc_teb.F90 $(OBJDIR)/call_driver.o $(OBJDIR)/teb_host.o $(OBJDIR)/teb_log.o
 $(OBJDIR)/run_teb_offline.o: src_driver/run_teb_offline.F90 $(OBJDIR)/sfc_teb.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_proxi_svat_par.o $(OBJDIR)/modd_surf_atm.o $(OBJDIR)/ol_read_atm.o $(OBJDIR)/ol_alloc_atm.o $(OBJDIR)/ol_time_interp_atm.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modi_garden.o $(OBJDIR)/garden.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/modi_diag_misc_teb_util.o $(OBJDIR)/teb_log.o
 $(OBJDIR)/dx_air_cooling_coil_cv.o: src_teb/dx_air_cooling_coil_cv.F90 $(OBJDIR)/mode_thermos.o $(OBJDIR)/mode_psychro.o $(OBJDIR)/modd_csts.o $(OBJDIR)/hook.o
 $(OBJDIR)/facade_e_budget.o: src_teb/facade_e_budget.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modi_wall_layer_e_budget.o $(OBJDIR)/modi_window_e_budget.o $(OBJDIR)/hook.o
@@ -68,7 +68,7 @@ $(OBJDIR)/modd_bemn.o: src_struct/modd_bemn.F90 $(OBJDIR)/modd_bem_paramsn.o $(O
 $(OBJDIR)/modd_bem_paramsn.o: src_struct/modd_bem_paramsn.F90 $(OBJDIR)/hook.o
 $(OBJDIR)/modd_teb_paramsn.o: src_struct/modd_teb_paramsn.F90 $(OBJDIR)/hook.o
 $(OBJDIR)/teb_host.o: src_api/teb_host.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_teb_paramsn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modi_alloc_teb_struct.o $(OBJDIR)/modi_dealloc_teb_struct.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modi_diag_misc_teb_util.o $(OBJDIR)/modd_diag_misc_tebn.o
-$(OBJDIR)/teb_log.o: src_api/teb_log.F90
+$(OBJDIR)/teb_log.o: src_api/teb_log.F90 $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_forc_atm.o $(OBJDIR)/modd_csts.o
 $(OBJDIR)/modd_csts.o: src_teb/modd_csts.F90
 $(OBJDIR)/modd_proxi_svat_par.o: src_proxi_SVAT/modd_proxi_svat_par.F90
 $(OBJDIR)/modd_diag_misc_tebn.o: src_struct/modd_diag_misc_tebn.F90 $(OBJDIR)/hook.o

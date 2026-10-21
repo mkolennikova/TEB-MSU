@@ -15,8 +15,8 @@ MODULE sfc_teb
 !* variable when an identifier is misspelled.
 USE MODI_CALL_DRIVER, ONLY : CALL_DRIVER
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
-USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_HOST_ENSURE, TOP, TP, BOP, BP, TSTATE, BSTATE, TPN, TIR, TEB_BIND_STATE, TEB_UNBIND_STATE
-USE TEB_LOG,  ONLY : TEB_LOG_SET_FILTER
+USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_HOST_ENSURE, TOP, TP, BOP, BP, TSTATE, BSTATE, TPN, TIR, DMT, TEB_BIND_STATE, TEB_UNBIND_STATE
+USE TEB_LOG,  ONLY : TEB_LOG_SET_FILTER, TEB_LOG_AT_CADENCE, TEB_LOG_EMIT
 IMPLICIT NONE
 
 PUBLIC :: teb_interface
@@ -67,7 +67,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
                  teb_rd_irrig_end_h, teb_rd_irrig_sum, teb_utc_hour, &
                  teb_lshade, urb_z0_town, urb_zd_town, urb_z0_o_z0h_gdn, &
                  urb_z0_o_z0h_grf, teb_lcbs_scheme, teb_tau_hw_thresh, &
-                 teb_tau_hw_width, DMT, kteb_log_block, &
+                 teb_tau_hw_width, teb_wind_canyon, teb_sobs, teb_thbs, teb_runoff_road, teb_runoff_roof, kteb_log_block, &
                  kteb_log_point)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
@@ -279,7 +279,12 @@ REAL,    DIMENSION(1) :: zemis_road_arg  ! 1 - thermal albedo of the road
 REAL,    DIMENSION(1) :: zemis_roof_arg  ! 1 - thermal albedo of the roof
 REAL,    DIMENSION(1) :: zemis_wall_arg  ! 1 - thermal albedo of the wall
 LOGICAL, DIMENSION(1) :: lshade_arg      ! shadowing flag of the namelist (teb_lshade)
-TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT   ! diagnostics container (owned by the driver)
+!MV202610 emulator inputs as individual fields (no structures across the boundary)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_wind_canyon   ! canyon wind (m/s)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_sobs         ! solar radiation absorbed by the ground (W/m2)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_thbs         ! thermal radiation absorbed by the ground (W/m2)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_runoff_road  ! road runoff of this sub-step (kg/m2/s)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_runoff_roof  ! roof runoff of this sub-step (kg/m2/s)
 !* MV202610 blocks and points for which the text output is written;
 !* in the coupled model both lists are empty by default (no filter).
 INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_BLOCK   ! blocks to write
@@ -403,6 +408,42 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                  teb_asnow_road, &
                  teb_esnow_road, &
                  teb_tssnow_road)
+    !MV202610 the emulator of the host reads these as individual fields
+    teb_wind_canyon(1:nvec) = DMT%XWIND_CANYON(1:nvec)
+    teb_sobs(1:nvec)        = DMT%XSOBS(1:nvec)
+    teb_thbs(1:nvec)        = DMT%XTHBS(1:nvec)
+    teb_runoff_road(1:nvec) = DMT%XRUNOFF_ROAD(1:nvec)
+    teb_runoff_roof(1:nvec) = DMT%XRUNOFF_ROOF(1:nvec)
+    !MV202610 universal output: one row per selected cell, at the output cadence
+    IF (TEB_LOG_AT_CADENCE()) THEN
+       CALL TEB_LOG_EMIT(iblock, DMT, teb_year, teb_month, teb_day, teb_hour_seconds, &
+            teb_tcanyon, &
+            teb_ti_bld, &
+            teb_qcanyon, &
+            teb_tsnow_road, &
+            teb_tch_gd, &
+            teb_tcm_gd, &
+            teb_ws_road, &
+            teb_ws_roof, &
+            teb_wsnow_road, &
+            teb_wsnow_roof, &
+            teb_itype_bem, &
+            teb_lsolar_panel, &
+            t, &
+            qv, &
+            ps, &
+            rho, &
+            u, &
+            v, &
+            prr_con, &
+            prs_con, &
+            prr_gsp, &
+            prs_gsp, &
+            prg_gsp, &
+            lwd_s, &
+            swdir_s, &
+            swdifd_s)
+    END IF
 END SUBROUTINE teb_interface
 
 END MODULE sfc_teb
