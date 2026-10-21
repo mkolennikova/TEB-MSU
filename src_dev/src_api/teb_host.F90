@@ -40,6 +40,11 @@ USE MODI_DIAG_MISC_TEB_UTIL, ONLY : DIAG_MISC_TEB_ALLOC, DIAG_MISC_TEB_DEALLOC
 USE MODI_URB_AERO_PARAMS,   ONLY : URB_AERO_PARAMS
 USE MODI_BEM_MORPHO_STRUCT, ONLY : BEM_MORPHO_STRUCT
 USE MODI_WINDOW_DATA_STRUCT, ONLY : WINDOW_DATA_STRUCT
+USE MODD_TEB_FORCING_n,   ONLY : TEB_FORCING_t, ALLOC_TEB_FORCING, DEALLOC_TEB_FORCING
+USE MODI_SUNPOS,          ONLY : SUNPOS
+USE MODI_CIRCUMSOLAR_RAD, ONLY : CIRCUMSOLAR_RAD
+USE MODD_CSTS,            ONLY : XRD, XRV, XCPD, XP00, XG, XPI
+USE MODD_SURF_PAR,        ONLY : XUNDEF
 IMPLICIT NONE
 !
 !
@@ -57,8 +62,9 @@ TYPE(BEM_t),          SAVE :: BSTATE    ! state of BEM
 TYPE(TEB_PANEL_t),    SAVE :: TPN       ! solar panels
 TYPE(TEB_IRRIG_t),    SAVE :: TIR       ! irrigation
 TYPE(DIAG_MISC_TEB_t),SAVE :: DMT       ! diagnostics
+TYPE(TEB_FORCING_t),  SAVE :: FORC      ! atmospheric forcing of the sub-step
 LOGICAL,              SAVE :: LTEB_HOST_ALLOC = .FALSE.
-!$OMP THREADPRIVATE(TOPTS,TPARAMS,TSTATE,BOPTS,BPARAMS,BSTATE,TPN,TIR,DMT,LTEB_HOST_ALLOC)
+!$OMP THREADPRIVATE(TOPTS,TPARAMS,TSTATE,BOPTS,BPARAMS,BSTATE,FORC,TPN,TIR,DMT,LTEB_HOST_ALLOC)
 !
 CONTAINS
 
@@ -383,6 +389,100 @@ END SUBROUTINE TEB_FILL_DERIVED
 !
 !
 !------------------------------------------------------------------------------
+!*      1.3  FILL THE FORCING CONTAINER OF THE SUB-STEP
+!------------------------------------------------------------------------------
+SUBROUTINE TEB_FILL_FORCING (KSTART, KEND, KYEAR, KMONTH, KDAY, PZTIME, &
+                             PLON, PLAT, PU, PV, PTA, PQA, PPS, &
+                             PRAIN_CONV, PSNOW_CONV, PRAIN_LSP, PSNOW_LSP, PGRAUPEL, &
+                             PLW, PDIR_SW, PDIF_SW, PZREF, PUREF)
+!!****  *TEB_FILL_FORCING* - fill the forcing container of one sub-step
+!!
+!!    The raw forcing of the window KSTART:KEND is copied from the host arrays
+!!    and the derived quantities are computed here, once per sub-step: the
+!!    pressure, the Exner functions and the density at the forcing level, the
+!!    wind speed, the solar time and the sun position (SUNPOS) and the direct /
+!!    diffuse partition of the circumsolar model (CIRCUMSOLAR_RAD).
+!!
+!!    The formulas, their order and the XUNDEF fallbacks are the ones of
+!!    CALL_DRIVER before the container existed, so that the forcing seen by the
+!!    physics is bit-for-bit the same.
+!!
+INTEGER,            INTENT(IN) :: KSTART, KEND           ! window of the block
+INTEGER,            INTENT(IN) :: KYEAR, KMONTH, KDAY    ! date (UTC)
+REAL,               INTENT(IN) :: PZTIME                 ! time of the day  (s)
+REAL, DIMENSION(:), INTENT(IN) :: PLON, PLAT             ! coordinates      (deg)
+REAL, DIMENSION(:), INTENT(IN) :: PU, PV                 ! wind             (m/s)
+REAL, DIMENSION(:), INTENT(IN) :: PTA, PQA, PPS          ! T, qv, pressure
+REAL, DIMENSION(:), INTENT(IN) :: PRAIN_CONV, PSNOW_CONV, PRAIN_LSP, PSNOW_LSP, PGRAUPEL
+REAL, DIMENSION(:), INTENT(IN) :: PLW, PDIR_SW, PDIF_SW  ! radiation        (W/m2)
+REAL, DIMENSION(:), INTENT(IN) :: PZREF, PUREF           ! forcing heights  (m)
+!
+REAL, DIMENSION(SIZE(PTA)) :: ZF1_O_B   ! circumsolar partition coefficient (-)
+REAL, DIMENSION(SIZE(PTA)) :: ZCOEF     ! horizon correction of the direct beam (-)
+!
+!* the offline host provides no orography: SURFEX initialises it to XUNDEF and
+!* the historical fallback of the pressure therefore keeps its behaviour
+FORC%XZS(KSTART:KEND) = XUNDEF
+!
+!* raw forcing, then the density and the pressure of the forcing level (these
+!* two do not use the fallback below: the order is the one of the former block)
+FORC%XTA  (KSTART:KEND) = PTA(KSTART:KEND)
+FORC%XPS  (KSTART:KEND) = PPS(KSTART:KEND)
+FORC%XZREF(KSTART:KEND) = PZREF(KSTART:KEND)
+FORC%XUREF(KSTART:KEND) = PUREF(KSTART:KEND)
+FORC%XQA  (KSTART:KEND) = PQA(KSTART:KEND)
+FORC%XRHOA(KSTART:KEND) = FORC%XPS(KSTART:KEND)                                         &
+    / ( FORC%XTA(KSTART:KEND)*XRD*(1.+((XRV/XRD)-1.)*PQA(KSTART:KEND))                  &
+        + FORC%XZREF(KSTART:KEND)*XG )
+!
+!* precipitation, pressure, wind and radiation of the forcing level
+FORC%XSNOW(KSTART:KEND) = PSNOW_CONV(KSTART:KEND) + PSNOW_LSP(KSTART:KEND) + PGRAUPEL(KSTART:KEND)
+FORC%XRAIN(KSTART:KEND) = PRAIN_CONV(KSTART:KEND) + PRAIN_LSP(KSTART:KEND)
+FORC%XPA  (KSTART:KEND) = FORC%XPS(KSTART:KEND) - FORC%XRHOA(KSTART:KEND)*XG*FORC%XZREF(KSTART:KEND)
+FORC%XCO2 (KSTART:KEND) = 0.
+FORC%XU   (KSTART:KEND) = PU(KSTART:KEND)
+FORC%XV   (KSTART:KEND) = PV(KSTART:KEND)
+FORC%XLW  (KSTART:KEND) = PLW(KSTART:KEND)
+FORC%XDIR_SW(KSTART:KEND,1) = PDIR_SW(KSTART:KEND)
+FORC%XSCA_SW(KSTART:KEND,1) = PDIF_SW(KSTART:KEND)
+!
+!* missing-value fallbacks (the same conditions as in CALL_DRIVER: they act on
+!* the whole window when any point carries XUNDEF)
+IF (MINVAL(FORC%XPS(KSTART:KEND)) == XUNDEF) THEN
+   FORC%XPS(KSTART:KEND) = 101325.*(1.-0.0065*FORC%XZS(KSTART:KEND)/288.15)**5.31
+END IF
+IF (MINVAL(FORC%XDIR_SW(KSTART:KEND,1)) == XUNDEF) FORC%XDIR_SW(KSTART:KEND,1) = 0.
+IF (MINVAL(FORC%XSCA_SW(KSTART:KEND,1)) == XUNDEF) FORC%XSCA_SW(KSTART:KEND,1) = 0.
+!
+!* Exner functions and wind speed
+FORC%XEXNS(KSTART:KEND) = (FORC%XPS(KSTART:KEND)/XP00)**(XRD/XCPD)
+FORC%XEXNA(KSTART:KEND) = (FORC%XPA(KSTART:KEND)/XP00)**(XRD/XCPD)
+FORC%XVMOD(KSTART:KEND) = SQRT(FORC%XU(KSTART:KEND)**2 + FORC%XV(KSTART:KEND)**2)
+!
+!* sun position
+CALL SUNPOS(KYEAR, KMONTH, KDAY, PZTIME, PLON(KSTART:KEND), PLAT(KSTART:KEND), &
+            FORC%XTSUN(KSTART:KEND), FORC%XZENITH(KSTART:KEND), FORC%XAZIM(KSTART:KEND))
+!
+!* coherence between the zenith angle and the radiation: when the sun is close to
+!* the horizon the direct beam is transferred to the scattered one
+ZCOEF(KSTART:KEND) = (XPI/2. - FORC%XZENITH(KSTART:KEND) - 0.05) / 0.05
+ZCOEF(KSTART:KEND) = MAX(MIN(ZCOEF(KSTART:KEND),1.),0.)
+FORC%XSCA_SW(KSTART:KEND,1) = FORC%XSCA_SW(KSTART:KEND,1)                               &
+                              + FORC%XDIR_SW(KSTART:KEND,1) * (1. - ZCOEF(KSTART:KEND))
+FORC%XDIR_SW(KSTART:KEND,1) = FORC%XDIR_SW(KSTART:KEND,1) * ZCOEF(KSTART:KEND)
+!
+!* directional contribution of the scattered radiation (circumsolar model)
+CALL CIRCUMSOLAR_RAD(FORC%XDIR_SW(KSTART:KEND,1), FORC%XSCA_SW(KSTART:KEND,1), &
+                     FORC%XZENITH(KSTART:KEND), ZF1_O_B(KSTART:KEND))
+FORC%XDIR_SW(KSTART:KEND,1) = FORC%XDIR_SW(KSTART:KEND,1)                               &
+                              + FORC%XSCA_SW(KSTART:KEND,1) * ZF1_O_B(KSTART:KEND)
+FORC%XSCA_SW(KSTART:KEND,1) = FORC%XSCA_SW(KSTART:KEND,1) * (1. - ZF1_O_B(KSTART:KEND))
+!
+END SUBROUTINE TEB_FILL_FORCING
+!
+!
+!
+!------------------------------------------------------------------------------
 !*      2.   LAZY ALLOCATION OF THE CONTAINERS (first call, per thread)
 !------------------------------------------------------------------------------
 SUBROUTINE TEB_HOST_ENSURE (KNVEC, KROOF, KROAD, KWALL, KFLOOR)
@@ -399,6 +499,7 @@ IF (.NOT. LTEB_HOST_ALLOC) THEN
    CALL ALLOC_TEB_PARAMS(TPARAMS, KROOF, KROAD, KWALL)
    CALL ALLOC_BEM_PARAMS(BPARAMS, KFLOOR)
    CALL DIAG_MISC_TEB_ALLOC(DMT, KNVEC)
+   CALL ALLOC_TEB_FORCING(FORC, KNVEC)
    LTEB_HOST_ALLOC = .TRUE.
 END IF
 !
@@ -415,6 +516,7 @@ IF (LTEB_HOST_ALLOC) THEN
    CALL DEALLOC_TEB_PARAMS(TPARAMS)
    CALL DEALLOC_BEM_PARAMS(BPARAMS)
    CALL DIAG_MISC_TEB_DEALLOC(DMT)
+   CALL DEALLOC_TEB_FORCING(FORC)
    LTEB_HOST_ALLOC = .FALSE.
 END IF
 !

@@ -16,7 +16,7 @@
 !!    TEB_LOG_SET_VERBOSE and is printed once per run (see section 0.1).
 !
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
-USE MODD_FORC_ATM,  ONLY : XPS, XZENITH, XAZIM
+USE MODD_TEB_FORCING_n, ONLY : TEB_FORCING_t
 USE MODD_CSTS,      ONLY : XPI
 USE MODD_TEB_n,          ONLY : TEB_t
 USE MODD_BEM_n,          ONLY : BEM_t
@@ -197,12 +197,13 @@ END IF
 !
 END SUBROUTINE TEB_LOG_FINAL
 !
-SUBROUTINE TEB_LOG_ROW (DMT, TOPTS, TSTATE, BSTATE, KICELL, teb_year, teb_month, teb_day, teb_hour_seconds, teb_tch_gd, teb_tcm_gd, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, CHDR, COUT, KNCOL, CNAME)
+SUBROUTINE TEB_LOG_ROW (DMT, TOPTS, TSTATE, BSTATE, FORC, KICELL, teb_year, teb_month, teb_day, teb_hour_seconds, teb_tch_gd, teb_tcm_gd, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, CHDR, COUT, KNCOL, CNAME)
 !
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 TYPE(TEB_OPTIONS_t), INTENT(IN) :: TOPTS
 TYPE(TEB_t), INTENT(INOUT) :: TSTATE
 TYPE(BEM_t), INTENT(INOUT) :: BSTATE
+TYPE(TEB_FORCING_t), INTENT(IN) :: FORC
 INTEGER, INTENT(IN) :: KICELL   ! index of the cell in the window
 INTEGER, INTENT(IN) :: teb_year, teb_month, teb_day
 REAL, DIMENSION(:), INTENT(IN) :: teb_hour_seconds
@@ -245,7 +246,7 @@ WRITE(time_buf,'(I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2,":",I2.2)')           
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_WALLB1', DMT%XTS_WALL_B(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'TI_BLD', BSTATE%XTI_BLD(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'Q_CANYON', TSTATE%XQ_CANYON(KICELL))
-    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'P_CANYON', XPS(KICELL))
+    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'P_CANYON', FORC%XPS(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'U_CANYON', DMT%XWIND_CANYON(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'H_TOWN', DMT%XH_TOWN(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'LE_TOWN', DMT%XLE_TOWN(KICELL))
@@ -391,7 +392,7 @@ SUBROUTINE CSV_APPEND(line, value)
 END SUBROUTINE CSV_APPEND
 !
 
-SUBROUTINE TEB_LOG_EMIT (KIBLOCK, DMT, TOPTS, TSTATE, BSTATE, teb_year, teb_month, teb_day, teb_hour_seconds, teb_tch_gd, teb_tcm_gd, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s)
+SUBROUTINE TEB_LOG_EMIT (KIBLOCK, DMT, TOPTS, TSTATE, BSTATE, FORC, teb_year, teb_month, teb_day, teb_hour_seconds, teb_tch_gd, teb_tcm_gd, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s)
 !
 !* The universal output row: the TEB diagnostics of one cell (TEB_LOG_ROW)
 !* followed by the solar geometry and the atmospheric forcing of the step.
@@ -401,6 +402,7 @@ TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 TYPE(TEB_OPTIONS_t), INTENT(IN) :: TOPTS
 TYPE(TEB_t), INTENT(INOUT) :: TSTATE
 TYPE(BEM_t), INTENT(INOUT) :: BSTATE
+TYPE(TEB_FORCING_t), INTENT(IN) :: FORC
 INTEGER, INTENT(IN) :: teb_year, teb_month, teb_day
 REAL, DIMENSION(:), INTENT(IN) :: teb_hour_seconds
 REAL, DIMENSION(:), INTENT(IN) :: teb_tch_gd
@@ -430,10 +432,10 @@ DO J = 1, SIZE(TEB_LOG_BLOCK)
    IF (TEB_LOG_BLOCK(J) /= KIBLOCK) CYCLE
    KNCOL = 0
    CHDR  = 'time'
-   CALL TEB_LOG_ROW(DMT, TOPTS, TSTATE, BSTATE, TEB_LOG_POINT(J), teb_year, teb_month, teb_day, teb_hour_seconds, teb_tch_gd, teb_tcm_gd, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, CHDR, COUT, KNCOL, CNAME)
-   CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SOLAR_ZENITH', XZENITH(1) * 180. / XPI)
-   CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SOLAR_ELEV', 90. - XZENITH(1) * 180. / XPI)
-   CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SOLAR_AZIM', MOD(XAZIM(1) * 180. / XPI + 360., 360.))
+   CALL TEB_LOG_ROW(DMT, TOPTS, TSTATE, BSTATE, FORC, TEB_LOG_POINT(J), teb_year, teb_month, teb_day, teb_hour_seconds, teb_tch_gd, teb_tcm_gd, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, CHDR, COUT, KNCOL, CNAME)
+   CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SOLAR_ZENITH', FORC%XZENITH(1) * 180. / XPI)
+   CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SOLAR_ELEV', 90. - FORC%XZENITH(1) * 180. / XPI)
+   CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SOLAR_AZIM', MOD(FORC%XAZIM(1) * 180. / XPI + 360., 360.))
    ZFORC_WIND = SQRT(U(1)**2 + V(1)**2)
    ZFORC_DIR  = MOD(ATAN2(U(1), V(1))*180./XPI + 360., 360.)
    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'Forc_TA', T(1))

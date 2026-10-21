@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """Inventory of the namelist / state containers of the dev tree: what each field is.
 
-Step 0 of the namelist-container plan. The six containers of the offline driver
-carry three different kinds of data, and the types do not always say which:
+Step 0 of the namelist-container plan, still the contract of the containers.
+The containers of the offline driver carry five different kinds of data, and
+the types do not always say which:
 
   * `param` - configuration and static parameters (namelist keys, geometry,
     material properties, BEM parameters). Written once per run by the driver;
@@ -10,7 +11,9 @@ carry three different kinds of data, and the types do not always say which:
     `ahf_industry`); written once per run, read every sub-step;
   * `state` - prognostic state carried across sub-steps (layer temperatures,
     water and snow reservoirs, canyon air, indoor air);
-  * `work`  - clock and per-step workspace (date, time step, autosize helpers);
+  * `work`  - clock and per-step workspace (date, time step, autosize helpers,
+    and the forcing of the sub-step, refilled by `TEB_FILL_FORCING`);
+  * `reserved` - unused in TEB-MSU, kept as a SURFEX feature placeholder;
   * `dead`  - declared but not referenced anywhere outside the type, its `*_INIT`
     and the allocation module: SURFEX leftovers of this tree.
 
@@ -51,22 +54,23 @@ OWNERS = {'run_teb_offline.F90', 'call_driver.F90', 'teb_host.F90',
           'bem_morpho_struct.F90', 'bem_morpho.F90',
           'window_data_struct.F90', 'window_data.F90'}
 
-#: containers still owned by the physics (their arguments are not moved yet)
-OWNER_BY_TYPE = {
-    'TEB_PANEL_t': OWNERS | {'teb_garden_struct.F90'},
-    'TEB_IRRIG_t': OWNERS | {'teb_garden_struct.F90'},
-}
+#: containers still owned by the physics (their arguments are not moved yet):
+#: TPN and TIR are filled by TEB_FILL_PARAMS of the container layer, so they
+#: need no extra owner; the entry stays for a future container of its own
+OWNER_BY_TYPE = {}
 
-#: type -> (module file, code prefix)
+#: type -> (module file, code prefix); the prefix is the name of the variable
+#: of the container in the code (module TEB_HOST: TOPTS, TPARAMS, ...)
 TYPES = [
-    ('TEB_OPTIONS_t', 'src_struct/modd_teb_optionn.F90', 'TOP'),
+    ('TEB_OPTIONS_t', 'src_struct/modd_teb_optionn.F90', 'TOPTS'),
     ('TEB_t', 'src_struct/modd_tebn.F90', 'TSTATE'),
-    ('TEB_PARAMS_t', 'src_struct/modd_teb_paramsn.F90', 'TP'),
-    ('BEM_OPTIONS_t', 'src_struct/modd_bem_optionn.F90', 'BOP'),
+    ('TEB_PARAMS_t', 'src_struct/modd_teb_paramsn.F90', 'TPARAMS'),
+    ('BEM_OPTIONS_t', 'src_struct/modd_bem_optionn.F90', 'BOPTS'),
     ('BEM_t', 'src_struct/modd_bemn.F90', 'BSTATE'),
-    ('BEM_PARAMS_t', 'src_struct/modd_bem_paramsn.F90', 'BP'),
+    ('BEM_PARAMS_t', 'src_struct/modd_bem_paramsn.F90', 'BPARAMS'),
     ('TEB_PANEL_t', 'src_struct/modd_teb_paneln.F90', 'TPN'),
     ('TEB_IRRIG_t', 'src_struct/modd_teb_irrign.F90', 'TIR'),
+    ('TEB_FORCING_t', 'src_struct/modd_teb_forcingn.F90', 'FORC'),
 ]
 
 #: the contract: category of every live field (dead fields must NOT be listed)
@@ -149,6 +153,15 @@ CATEGORY = {
             'XGR_START_MONTH', 'XGR_END_MONTH', 'XGR_START_HOUR', 'XGR_END_HOUR', 'XGR_24H_IRRIG',
         },
     },
+    'TEB_FORCING_t': {
+        'work': {
+            # raw forcing, as the host provides it
+            'XU', 'XV', 'XTA', 'XQA', 'XPS', 'XZS',
+            'XRAIN', 'XSNOW', 'XLW', 'XDIR_SW', 'XSCA_SW', 'XZREF', 'XUREF', 'XCO2',
+            # derived once per sub-step by TEB_FILL_FORCING
+            'XPA', 'XEXNS', 'XEXNA', 'XRHOA', 'XVMOD', 'XTSUN', 'XZENITH', 'XAZIM',
+        },
+    },
 }
 
 DECL = re.compile(r'::\s*([A-Z][A-Z0-9_]*)')
@@ -216,8 +229,8 @@ def main() -> int:
     ap.add_argument('--strict', action='store_true',
                     help='treat dead fields as an error (the gate of the cleanup step)')
     ap.add_argument('--enforce-param', action='store_true',
-                    help='treat param/flux/work fields assigned outside the driver as an error'
-                         ' (the gate of the namelist-container step)')
+                    help='treat param/flux fields assigned outside the driver or the'
+                         ' container layer as an error (the gate of the namelist-container step)')
     args = ap.parse_args()
 
     tree = (MODEL_DIR / args.tree).resolve()
@@ -283,11 +296,10 @@ def main() -> int:
     out += ['', '## Contract: assignments outside the owner', '',
             '`param` and `flux` fields are written once by the driver (`run_teb_offline`'
             ' and its per-column routine `call_driver`, which derives the geometry, the'
-            ' morphology and the window optics); an assignment'
-            ' elsewhere is a leftover of the copy block of the physics. `work` fields are'
-            ' recomputed by the physics by definition and are not checked.'
-            ' elsewhere is a leftover of the copy block of the physics (removed by the'
-            ' namelist-container step).', '']
+            ' morphology and the window optics) or by the container layer (`teb_host`,'
+            ' `TEB_FILL_PARAMS`/`TEB_FILL_DERIVED`); an assignment elsewhere is a leftover'
+            ' of the copy block of the physics. `work` fields are recomputed every step by'
+            ' definition and are not checked.', '']
     if violations:
         out += ['| type | field | category | assigned by |', '| --- | --- | --- | --- |']
         out += [f'| `{t}` | `{f}` | {c} | {w} |' for t, f, c, w in violations]

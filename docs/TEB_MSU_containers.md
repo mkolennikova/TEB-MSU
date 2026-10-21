@@ -1,7 +1,8 @@
 # Контейнеры TEB-MSU: устройство, владение и пути от teb_interface до teb_garden
 
 Документ описывает **реализованное** устройство всех контейнеров модели TEB-MSU:
-девять объектов (параметры, опции, состояние и диагностика), их владение и
+десять объектов (параметры, опции, состояние, диагностика и форсинг подшага), их
+владение и
 жизненный цикл, состав полей и путь по цепочке вызовов
 `run_teb_offline → teb_interface → CALL_DRIVER → TEB_GARDEN`. Обёртка
 `TEB_GARDEN_STRUCT` удалена: `CALL_DRIVER` вызывает физику `TEB_GARDEN` напрямую.
@@ -13,8 +14,8 @@
 * `TEB_MSU_garden_diagnostic_scheme.md` — диагностическая схема сада и внешняя
   модель кровли;
 * `TEB_MSU_source_defects.md` — дефекты исходного TEB;
-* `TEB_MSU_change_history.md` — история изменений (записи 48–71 описывают
-  появление контейнеров и последующую дедупликацию);
+* `TEB_MSU_change_history.md` — история изменений (записи 48–81 описывают
+  появление контейнеров, последующую дедупликацию и вынос форсинга в `FORC`);
 * `TEB_MSU_coupling_checklist.md` — сопряжение с COSMO-TEB: что контейнеры
   означают для хоста.
 
@@ -29,30 +30,32 @@
 * **состояние** (прогностические температуры, влажности, снег) — переносится
   между подшагами и шагами форсинга;
 * **диагностика** (потоки, поглощения, агрегаты города) — считается физикой
-  только для вывода в CSV и накоплений драйвера.
+  только для вывода в CSV и накоплений драйвера;
+* **форсинг подшага** (метеорологические входы хоста и их производные) —
+  обновляется каждый подшаг и только читается физикой.
 
-Раньше все три рода передавались плоскими аргументами: подпись физики росла до
+Раньше все четыре рода передавались плоскими аргументами: подпись физики росла до
 нескольких сотен dummy, а расхождение списков (порядок, тип, ранг) не проверял
-никакой компилятор. Теперь величины сгруппированы в **девять контейнеров**,
+никакой компилятор. Теперь величины сгруппированы в **десять контейнеров**,
 которые создаются один раз на прогон и протягиваются по цепочке вызовов одним
 аргументом каждый.
 
 **Решение.**
 
-* состояние, параметры, опции и диагностика передаются девятью агрегатами
-  `TOPTS, TPARAMS, TSTATE, BOPTS, BPARAMS, BSTATE, TPN, TIR, DMT`;
-* форсинг, часы, индексы ячейки и интерфейс внешнего эмулятора сада/кровли
+* состояние, параметры, опции, диагностика и форсинг подшага передаются десятью
+  агрегатами `TOPTS, TPARAMS, TSTATE, BOPTS, BPARAMS, BSTATE, TPN, TIR, DMT, FORC`;
+* часы, индексы ячейки, координаты и интерфейс внешнего эмулятора сада/кровли
   остаются плоскими аргументами (они нужны вызываемому «как есть» и меняются
   каждый шаг/ячейку);
 * подписи процедур — модульные и сверяются компилятором на каждом вызове.
 
 ---
 
-## 2. Девять контейнеров
+## 2. Десять контейнеров
 
 | имя | тип | файл | состав (полей) | роль |
 | --- | --- | --- | --- | --- |
-| `DMT` | `DIAG_MISC_TEB_t` | `src_struct/modd_diag_misc_tebn.F90` | 208 | диагностика: потоки, поглощения, агрегаты города, снег, сад/кровля (вывод CSV) |
+| `DMT` | `DIAG_MISC_TEB_t` | `src_struct/modd_diag_misc_tebn.F90` | 207 | диагностика: потоки, поглощения, агрегаты города, снег, сад/кровля (вывод CSV) |
 | `TOPTS` | `TEB_OPTIONS_t` | `src_struct/modd_teb_optionn.F90` | 22 param + 2 work + 3 reserved | опции TEB (схемы, флаги, тип сада/кровли) |
 | `TPARAMS` | `TEB_PARAMS_t` | `src_struct/modd_teb_paramsn.F90` | 38 param + 4 flux | статические параметры TEB (геометрия, материалы, антропогенные потоки) |
 | `TSTATE` | `TEB_t` | `src_struct/modd_tebn.F90` | 10 state + 1 reserved | прогностическое состояние TEB (крыша, дорога, стены, каньон, снег) |
@@ -61,8 +64,10 @@
 | `BSTATE` | `BEM_t` | `src_struct/modd_bemn.F90` | 9 state + 8 work + 2 reserved | состояние BEM (температуры пола/массы, окна, HVAC-аккумуляторы) |
 | `TPN` | `TEB_PANEL_t` | `src_struct/modd_teb_paneln.F90` | 4 param + 1 state | солнечные панели (доля, альбедо, КПД, температура) |
 | `TIR` | `TEB_IRRIG_t` | `src_struct/modd_teb_irrign.F90` | 6 param + 13 reserved | ирригация дороги (окно полива) |
+| `FORC` | `TEB_FORCING_t` | `src_struct/modd_teb_forcingn.F90` | 22 work | форсинг подшага: 14 сырых величин хоста + 8 производных (давление и функции Экнера, плотность, скорость ветра, солнечное время и положение солнца, прямая/рассеянная SW) |
 
-Итого **376 полей** в девяти контейнерах. Категории (`param`/`flux`/`state`/
+Итого **397 полей** в десяти контейнерах (207 `DMT` + 190 в девяти типах стенда
+`container_fields_inventory.py`). Категории (`param`/`flux`/`state`/
 `work`/`reserved`) — контракт из `python_tests/container_fields_inventory.py`;
 `DMT` отслеживается отдельным стендом `python_tests/check_diag_container.py`.
 
@@ -82,22 +87,25 @@ TYPE(BEM_t),          SAVE :: BSTATE    ! state of BEM
 TYPE(TEB_PANEL_t),    SAVE :: TPN       ! solar panels
 TYPE(TEB_IRRIG_t),    SAVE :: TIR       ! irrigation
 TYPE(DIAG_MISC_TEB_t),SAVE :: DMT       ! diagnostics
+TYPE(TEB_FORCING_t),  SAVE :: FORC      ! atmospheric forcing of the sub-step
 ```
 
 Процедуры слоя:
 
 | процедура | действие |
 | --- | --- |
-| `TEB_HOST_ENSURE(KNVEC, KROOF, KROAD, KWALL, KFLOOR)` | ленивая аллокация всех девяти контейнеров (один раз на поток/прогон) |
+| `TEB_HOST_ENSURE(KNVEC, KROOF, KROAD, KWALL, KFLOOR)` | ленивая аллокация всех десяти контейнеров (один раз на поток/прогон) |
 | `TEB_FILL_PARAMS(KSTART, KEND, …)` | запись конфигурации неймлиста в `TOPTS/TPARAMS/BOPTS/BPARAMS/TPN/TIR` (только окно `KSTART:KEND`) |
 | `TEB_FILL_DERIVED(KSTART, KEND, …)` | производные статические параметры (геометрия, СВФ, морфология BEM, оптика окон) |
+| `TEB_FILL_FORCING(KSTART, KEND, …)` | форсинг подшага: сырые величины хоста и производные (`FORC`) |
 | `TEB_BIND_STATE(KSTART, KEND, …)` | привязка указателей `TSTATE`/`BSTATE` к окну хоста `teb_*` |
 | `TEB_UNBIND_STATE(KSTART, KEND, …)` | отвязка указателей после шага |
 | `TEB_HOST_FINAL` | деаллокация всех контейнеров (конец прогона) |
 
 **Аллокация.** `TEB_HOST_ENSURE` вызывает `ALLOC_TEB_STRUCT` (для `TOPTS`,
 `TSTATE`, `BOPTS`, `BSTATE`, `TPN`, `TIR`), `ALLOC_TEB_PARAMS` (`TPARAMS`),
-`ALLOC_BEM_PARAMS` (`BPARAMS`) и `DIAG_MISC_TEB_ALLOC` (`DMT`). `TPARAMS`/`BPARAMS` вынесены из
+`ALLOC_BEM_PARAMS` (`BPARAMS`), `DIAG_MISC_TEB_ALLOC` (`DMT`) и
+`ALLOC_TEB_FORCING` (`FORC`). `TPARAMS`/`BPARAMS` вынесены из
 `TEB_t`/`BEM_t`, чтобы состояние держало только прогностику, а статика жила
 отдельно и передавалась явными аргументами `TPARAMS`/`BPARAMS`.
 
@@ -122,12 +130,14 @@ run_teb_offline
       → TEB_HOST_ENSURE      аллокация 9 контейнеров (первый вызов)
       → TEB_FILL_PARAMS      TOPTS/TPARAMS/BOPTS/BPARAMS/TPN/TIR ← неймлист
       → TEB_FILL_DERIVED     производная статика (морфология, оптика окон)
+      → TEB_FILL_FORCING     FORC ← форсинг подшага (сырые + производные)
       → TEB_BIND_STATE       TSTATE/BSTATE ⇒ окно teb_* (указатели)
-      → CALL_DRIVER (57 dummy)  [по ячейке]          src_driver/call_driver.F90
-          → TEB_GARDEN (65 аргументов)               src_teb/teb_garden.F90
+      → CALL_DRIVER (44 dummy)  [по ячейке]          src_driver/call_driver.F90
+          → TEB_GARDEN (46 аргументов)               src_teb/teb_garden.F90
               читает/пишет TOPTS/TPARAMS/TSTATE/BOPTS/BPARAMS/BSTATE/TPN/TIR/DMT
+              читает FORC
       → TEB_UNBIND_STATE     отвязка TSTATE/BSTATE
-      → TEB_LOG_EMIT         строка CSV из DMT + состояния
+      → TEB_LOG_EMIT         строка CSV из DMT + состояния + FORC
   → TEB_HOST_FINAL           деаллокация (конец прогона)
 ```
 
@@ -142,9 +152,10 @@ run_teb_offline
 | статика `TOPTS/TPARAMS/BOPTS/BPARAMS/TPN/TIR` | `TEB_FILL_PARAMS`/`TEB_FILL_DERIVED` в `teb_interface` → `CALL_DRIVER` → `TEB_GARDEN` | слой `TEB_HOST` (один раз на окно) | физика (`TEB_GARDEN` и её подпрограммы) |
 | состояние `TSTATE/BSTATE` | `TEB_BIND_STATE` ⇒ окно хоста → `CALL_DRIVER` → `TEB_GARDEN` | физика | физика и `TEB_LOG_EMIT` |
 | диагностика `DMT` | `TEB_HOST_ENSURE` (аллокация) → `CALL_DRIVER` → `TEB_GARDEN` | физика (`TEB_GARDEN` и её подпрограммы) | `TEB_LOG_EMIT` (CSV), `CALL_DRIVER` (агрегаты) |
+| форсинг `FORC` | `ALLOC_TEB_FORCING` ⇒ `TEB_FILL_FORCING` (раз на подшаг) → `CALL_DRIVER` → `TEB_GARDEN` | слой `TEB_HOST` | физика (`TEB_GARDEN` и её подпрограммы), `TEB_LOG_EMIT` (колонки `P_CANYON`, `SOLAR_*`) |
 
-`TEB_GARDEN` получает все девять контейнеров; `TPARAMS` объявлен `INTENT(IN)`
-(только чтение), остальные восемь — `INTENT(INOUT)`.
+`TEB_GARDEN` получает все десять контейнеров; `TPARAMS` и `FORC` объявлены
+`INTENT(IN)` (только чтение), остальные восемь — `INTENT(INOUT)`.
 
 
 ---
@@ -263,24 +274,61 @@ HVAC-уставки (`XTCOOL_TARGET`, `XTHEAT_TARGET`, `XCAP_SYS_HEAT`, `XCOP_RA
 
 ---
 
+### 5.10 `FORC` — форсинг подшага (`TEB_FORCING_t`, 22 work)
+
+Контейнер, который заполняет **слой** (`TEB_FILL_FORCING`) и читают только
+физика и вывод. Он заменил 19 отдельных аргументов, несших те же величины от
+`CALL_DRIVER` до `TEB_GARDEN`, и снял с драйвера чтение глобальных массивов
+`MODD_FORC_ATM`.
+
+| группа | поля | источник |
+| --- | --- | --- |
+| сырые | `XU`, `XV`, `XTA`, `XQA`, `XPS`, `XZS`, `XRAIN`, `XSNOW`, `XLW`, `XDIR_SW`, `XSCA_SW`, `XZREF`, `XUREF`, `XCO2` | аргументы `teb_interface` (окно `KSTART:KEND`) |
+| производные | `XPA`, `XEXNS`, `XEXNA`, `XRHOA`, `XVMOD`, `XTSUN`, `XZENITH`, `XAZIM` | `TEB_FILL_FORCING` |
+
+* `XDIR_SW`/`XSCA_SW` — **после** коррекции горизонта (`ZCOEF`) и разбиения по
+  околосолнечной модели (`CIRCUMSOLAR_RAD`): это те величины, которые
+  потребляет физика, а не сырые `swdir_s`/`swdifd_s` хоста.
+* `XQA` — **удельная** влажность в кг/кг (это `qv` хоста и `PQA` физики); её
+  нельзя путать с `MODD_FORC_ATM%XQA` в кг/м³, которым пользуется ридер
+  offline-драйвера.
+* `XZS` в offline-хосте не задаётся (`XUNDEF`): запасное значение давления
+  `101325·(1−0.0065·XZS/288.15)^5.31` сохраняет историческое поведение.
+* `XCO2` хостом не задаётся — ноль, как и прежде.
+* Формулы, их порядок и подстановки `XUNDEF` — дословно из прежнего блока
+  `CALL_DRIVER`, включая порядок «плотность и давление форсинга считаются до
+  подстановки запасного давления».
+
+**Мост `XZREF`/`XUREF`.** `OL_TIME_INTERP_ATM` строит плотность своей
+атмосферы по `XZREF` модуля `MODD_FORC_ATM`, а хост переводит абсолютную
+влажность форсинга через неё (`qv = XQA/XRHOA`, `rho = XRHOA`). Раньше эти два
+поля обновлял `CALL_DRIVER`; теперь он копирует их из контейнера
+(`XZREF(1:1) = FORC%XZREF(icell:icell)`), иначе влажность и плотность хоста
+застывают на `XUNDEF` (поймано первым прогоном A/B).
+
+
+---
+
 ## 6. Подписи цепочки
 
 | процедура | файл | аргументы |
 | --- | --- | --- |
 | `teb_interface` | `src_api/sfc_teb.F90` | **154** (стык с coupled-моделью: числовые массивы + выходные скаляры `teb_wind_canyon`/`teb_sobs`/`teb_thbs`/`teb_runoff_*`) |
-| `CALL_DRIVER` | `src_driver/call_driver.F90` | **57** dummy = 28 transient + 20 host-emulator + 9 container |
-| `TEB_GARDEN` | `src_teb/teb_garden.F90` | **65** = 2 индекса + 9 контейнеров + 6 флагов/строк + 27 форсинг/коэффициенты + 2 (KDAY, PTIME) + 19 эмулятор |
+| `CALL_DRIVER` | `src_driver/call_driver.F90` | **44** dummy = 14 transient + 20 host-emulator + 10 container |
+| `TEB_GARDEN` | `src_teb/teb_garden.F90` | **46** = 2 индекса + 10 контейнеров + 5 флагов/строк + 4 коэффициента связи + 1 шероховатость + 1 `KSW` + 2 (`PH_TRAFFIC`, `PTSTEP`) + 2 (`KDAY`, `PTIME`) + 19 эмулятор |
 
 `CALL_DRIVER` — процедура модуля `MODI_CALL_DRIVER`: подпись сверяется
-компилятором на каждом вызове. Девять dummy-контейнеров —
-`DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR`; 28 transient — форсинг, часы,
-индексы ячейки; 20 host-emulator — интерфейс внешнего эмулятора сада/кровли
-(`ZZ0_GR_EXT`…`ZRUNOFF_GD_EXT`), который остаётся плоским, потому что меняется
-каждый шаг и принадлежит хосту, а не модели.
+компилятором на каждом вызове. Десять dummy-контейнеров —
+`DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, FORC`; 14 transient — часы,
+индексы ячейки, координаты и городская доля; 20 host-emulator — интерфейс внешнего
+эмулятора сада/кровли (`ZZ0_GR_EXT`…`ZRUNOFF_GD_EXT`), который остаётся плоским,
+потому что меняется каждый шаг и принадлежит хосту, а не модели.
 
-Шесть флагов/строк `TEB_GARDEN` (`OGREENROOF_EXT`, `HIMPLICIT_WIND`, `PBEM_AC`,
-`PTSUN`, `HSNOW_ROOF`, `HSNOW_ROAD`) — опции/параметры вызова, не вынесенные в
+Пять флагов/строк `TEB_GARDEN` (`OGREENROOF_EXT`, `HIMPLICIT_WIND`, `PBEM_AC`,
+`HSNOW_ROOF`, `HSNOW_ROAD`) — опции/параметры вызова, не вынесенные в
 контейнеры: они передаются из `CALL_DRIVER` фактическими аргументами.
+`KSW` (число спектральных полос) остаётся аргументом: он ограничивает цикл по
+единственной полосе `PDIR_SW`/`PSCA_SW`.
 
 ---
 
@@ -290,7 +338,7 @@ HVAC-уставки (`XTCOOL_TARGET`, `XTHEAT_TARGET`, `XCAP_SYS_HEAT`, `XCOP_RA
 | --- | --- |
 | `python_tests/check_diag_container.py` | три списка полей `DMT` (тип, `NULLIFY`, `ALLOCATE`, `DEALLOCATE`): 207/207/207, включая компоненты записи `TEB_CBS_BRANCH_t` для обоих экземпляров (`CAN`, `ATM`); расхождение — ошибка |
 | `python_tests/check_diag_producers.py` | производитель каждого поля `DMT` (плоского и двухуровневого `CAN%…`/`ATM%…`): прямое присваивание или `INTENT(OUT/INOUT)` (легаси `!OUT`) dummy; `= XUNDEF` производителем не считается; `XIRRIG_GARDEN` — `reserved` |
-| `python_tests/container_fields_inventory.py` | категории полей восьми контейнеров (`param`/`flux`/`state`/`work`/`reserved`/`dead`); `--enforce-param` — `param`/`flux` пишет только слой `TEB_HOST` |
+| `python_tests/container_fields_inventory.py` | категории полей девяти типов (`param`/`flux`/`state`/`work`/`reserved`/`dead`), включая `FORC` (22 `work`), и сверка контракта в обе стороны: необъявленное поле — `UNCLASSIFIED`, объявленное, но не упомянутое нигде — `dead`, исчезнувшее из кода — `STALE TABLE`; `--strict` — `dead` как ошибка, `--enforce-param` — `param`/`flux` пишет только драйвер или слой `TEB_HOST`. Сейчас `RESULT: OK` во всех трёх режимах (27/11/42/5/19/40/5/19/22 поля) |
 | `python_tests/call_signature_inventory.py` | подпись `CALL_DRIVER`: классы `transient`/`container`/`host-emulator`/`deferred`/`violation`; `--strict --expect N` |
 | `python_tests/container_ab_compare.py` | два бинарника на кейсе `tests/CAPITOUL`: побитовое сравнение CSV поле-в-поле, заголовок, число строк, SHA-256 |
 | `python_tests/container_ab_matrix.py` | то же по матрице конфигураций словника (BEM, режимы сада и кровли, панели, CBS); физика — по именам колонок, `RUNOFF_*` и `EMU_*` — против отдельных файлов кандидата |
@@ -329,10 +377,16 @@ python python_tests/container_ab_matrix.py
 | Step G | `CALL_DRIVER` вызывает `TEB_GARDEN` напрямую; `TEB_GARDEN_STRUCT` и `modi_teb_garden_struct.f90` удалены; `Makefile` очищен |
 
 Итоговые счётчики: `TEB_GARDEN_STRUCT` был 411 → 326 → 304 → 83 → 68 аргументов
-и затем удалён; `TEB_GARDEN` — **65** аргументов; `CALL_DRIVER` — **57** dummy
-(9 контейнеров); `teb_interface` — **154** (стык с coupled-моделью сохранён).
-`DMT` вырос до **208** полей, после удаления незаполняемых `XSOBS`/`XTHBS`/`XALB_TH`
+и затем удалён; `TEB_GARDEN` — **46** аргументов (было 65); `CALL_DRIVER` — **44**
+dummy (было 57; 10 контейнеров); `teb_interface` — **154** (стык с coupled-моделью
+сохранён). `DMT` вырос до **208** полей, после удаления незаполняемых `XSOBS`/`XTHBS`/`XALB_TH`
 (см. `TEB_MSU_change_history.md`, §5.6, N3) — **205**, после объединения диагностик
 ветвей CBS-схемы в запись `TEB_CBS_BRANCH_t` — **207**. Вся дедупликация побитово
 идентична эталону: полный A/B (18 000 шагов) — `IDENTICAL`, SHA-256 CSV `30499e1f…`.
+
+| шаг | результат |
+| --- | --- |
+| Step H1 | форсинг подшага — в контейнере `FORC` (`TEB_FORCING_t`, 22 поля): `TEB_FILL_FORCING` в `TEB_HOST`, `CALL_DRIVER` 57 → 44 (19 плоских dummy → `FORC`) |
+| Step H2 | `TEB_GARDEN` принимает `FORC` (65 → 46); `PSW_BANDS` (мёртвый) удалён |
+| Step H3 | `teb_log` читает `FORC%XPS`/`XZENITH`/`XAZIM`; `MODD_FORC_ATM` остаётся только у хоста (мост `XZREF`/`XUREF`) |
 

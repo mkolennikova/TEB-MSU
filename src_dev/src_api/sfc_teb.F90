@@ -15,7 +15,7 @@ MODULE sfc_teb
 !* variable when an identifier is misspelled.
 USE MODI_CALL_DRIVER, ONLY : CALL_DRIVER
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
-USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_HOST_ENSURE, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, DMT, TEB_BIND_STATE, TEB_UNBIND_STATE
+USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_FILL_FORCING, TEB_HOST_ENSURE, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, DMT, FORC, TEB_BIND_STATE, TEB_UNBIND_STATE
 USE TEB_LOG,  ONLY : TEB_LOG_SET_FILTER, TEB_LOG_AT_CADENCE, TEB_LOG_EMIT
 IMPLICIT NONE
 
@@ -306,6 +306,14 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                   urb_hcap_rd, urb_hcap_rf, urb_hcap_wl, &
                   urb_hcon_rd, urb_hcon_rf, urb_hcon_wl, &
                   ahf_traffic, teb_fai)
+    !MV202610 forcing of the sub-step: raw values and the derived quantities
+    !* (pressure/Exner at the forcing level, density, wind speed, solar time and
+    !* sun position, circumsolar partition of the shortwave) are computed once,
+    !* for the window, before the per-cell loop
+    CALL TEB_FILL_FORCING (ivstart, ivend, teb_year, teb_month, teb_day, teb_hour_seconds(1), &
+                 lon_teb, lat_teb, u, v, t, qv, ps, &
+                 prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, &
+                 lwd_s, swdir_s, swdifd_s, hlev_teb, hlev_teb)
     CALL TEB_BIND_STATE (ivstart, ivend, &
                  teb_ti_bld, &
                  teb_twin2, &
@@ -340,9 +348,8 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                   teb_tmass)
 	DO i = ivstart, ivend
 		CALL CALL_DRIVER (ntstep, i, iblock, dt, teb_year, teb_month, teb_day, teb_hour, teb_min, &
-                 teb_sec, teb_hour_seconds(1), sa_uc(i), lon_teb(i), lat_teb(i), hlev_teb(i), &
-                 u(i), v(i), t(i), qv(i), ps(i), prr_con(i), prs_con(i), prr_gsp(i), &
-                 prs_gsp(i), prg_gsp(i), lwd_s(i), swdir_s(i), swdifd_s(i), teb_z0_gr(i), &
+                 teb_sec, teb_hour_seconds(1), sa_uc(i), lon_teb(i), lat_teb(i), FORC, &
+                 teb_z0_gr(i), &
                  teb_alb_gr(i), teb_emis_gr(i), teb_ts_gr(i), teb_qs_gr(i), teb_shfl_gr(i), &
                  teb_lhfl_gr(i), teb_qvfl_gr(i), teb_runoff_gr(i), teb_z0_gd(i), &
                  teb_alb_gd(i), teb_emis_gd(i), teb_ts_gd(i), teb_qs_gd(i), teb_shfl_gd(i), &
@@ -395,7 +402,7 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
     teb_runoff_roof(1:nvec) = DMT%XRUNOFF_ROOF(1:nvec)
     !MV202610 universal output: one row per selected cell, at the output cadence
     IF (TEB_LOG_AT_CADENCE()) THEN
-       CALL TEB_LOG_EMIT(iblock, DMT, TOPTS, TSTATE, BSTATE, teb_year, teb_month, teb_day, teb_hour_seconds, &
+       CALL TEB_LOG_EMIT(iblock, DMT, TOPTS, TSTATE, BSTATE, FORC, teb_year, teb_month, teb_day, teb_hour_seconds, &
             teb_tch_gd, &
             teb_tcm_gd, &
             t, &
