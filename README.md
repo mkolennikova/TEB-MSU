@@ -4,7 +4,7 @@
 [![Python](https://img.shields.io/badge/Python-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-CeCILL--C-blue.svg)](https://cecill.info/licences/Licence_CeCILL-C_V1-en.html)
 
-<p align="center">
+<p align="left">
   <img src="img/TEB-MSU_logo_v3.png" alt="TEB-MSU logo" width="260">
 </p>
 
