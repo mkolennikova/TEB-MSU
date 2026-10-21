@@ -45,6 +45,7 @@ USE MODI_SUNPOS,          ONLY : SUNPOS
 USE MODI_CIRCUMSOLAR_RAD, ONLY : CIRCUMSOLAR_RAD
 USE MODD_CSTS,            ONLY : XRD, XRV, XCPD, XP00, XG, XPI
 USE MODD_SURF_PAR,        ONLY : XUNDEF
+USE MODD_TEB_EXT_SURF_n,  ONLY : TEB_EXT_SURF_t, ALLOC_TEB_EXT_SURF, DEALLOC_TEB_EXT_SURF
 IMPLICIT NONE
 !
 !
@@ -63,8 +64,9 @@ TYPE(TEB_PANEL_t),    SAVE :: TPN       ! solar panels
 TYPE(TEB_IRRIG_t),    SAVE :: TIR       ! irrigation
 TYPE(DIAG_MISC_TEB_t),SAVE :: DMT       ! diagnostics
 TYPE(TEB_FORCING_t),  SAVE :: FORC      ! atmospheric forcing of the sub-step
+TYPE(TEB_EXT_SURF_t), SAVE :: EXT       ! external garden / greenroof surface (host -> TEB)
 LOGICAL,              SAVE :: LTEB_HOST_ALLOC = .FALSE.
-!$OMP THREADPRIVATE(TOPTS,TPARAMS,TSTATE,BOPTS,BPARAMS,BSTATE,FORC,TPN,TIR,DMT,LTEB_HOST_ALLOC)
+!$OMP THREADPRIVATE(TOPTS,TPARAMS,TSTATE,BOPTS,BPARAMS,BSTATE,FORC,EXT,TPN,TIR,DMT,LTEB_HOST_ALLOC)
 !
 CONTAINS
 
@@ -483,6 +485,52 @@ END SUBROUTINE TEB_FILL_FORCING
 !
 !
 !------------------------------------------------------------------------------
+!*      1.4  FILL THE EXTERNAL GARDEN / GREENROOF CONTAINER OF THE SUB-STEP
+!------------------------------------------------------------------------------
+SUBROUTINE TEB_FILL_EXT (KSTART, KEND, PDT, &
+                         PZ0_GR, PALB_GR, PEMIS_GR, PTSRAD_GR, PQV_GR, PH_GR, PLE_GR, PEVAP_GR, PRUNOFF_GR, &
+                         PZ0_GD, PALB_GD, PEMIS_GD, PTSRAD_GD, PQV_GD, PH_GD, PLE_GD, PEVAP_GD, PRUNOFF_GD)
+!!****  *TEB_FILL_EXT* - fill the external garden / greenroof container
+!!
+!!    The surface state and fluxes that the host computed for the external
+!!    garden and greenroof are copied into the container once per sub-step,
+!!    before the per-cell loop. The two runoffs are converted from the
+!!    accumulated amount of the host (kg/m2 over the step) into the flux of the
+!!    model (kg/m2/s) with the same division by PDT that CALL_DRIVER used to do;
+!!    the container therefore carries the ready-to-use fluxes.
+!!
+INTEGER,            INTENT(IN) :: KSTART, KEND   ! window of the block
+REAL,               INTENT(IN) :: PDT            ! integration time step (s)
+REAL, DIMENSION(:), INTENT(IN) :: PZ0_GR, PALB_GR, PEMIS_GR, PTSRAD_GR, PQV_GR
+REAL, DIMENSION(:), INTENT(IN) :: PH_GR, PLE_GR, PEVAP_GR, PRUNOFF_GR
+REAL, DIMENSION(:), INTENT(IN) :: PZ0_GD, PALB_GD, PEMIS_GD, PTSRAD_GD, PQV_GD
+REAL, DIMENSION(:), INTENT(IN) :: PH_GD, PLE_GD, PEVAP_GD, PRUNOFF_GD
+!
+EXT%XZ0_GR(KSTART:KEND)     = PZ0_GR(KSTART:KEND)
+EXT%XALB_GR(KSTART:KEND)    = PALB_GR(KSTART:KEND)
+EXT%XEMIS_GR(KSTART:KEND)   = PEMIS_GR(KSTART:KEND)
+EXT%XTSRAD_GR(KSTART:KEND)  = PTSRAD_GR(KSTART:KEND)
+EXT%XQV_GR(KSTART:KEND)     = PQV_GR(KSTART:KEND)
+EXT%XH_GR(KSTART:KEND)      = PH_GR(KSTART:KEND)
+EXT%XLE_GR(KSTART:KEND)     = PLE_GR(KSTART:KEND)
+EXT%XEVAP_GR(KSTART:KEND)   = PEVAP_GR(KSTART:KEND)
+EXT%XRUNOFF_GR(KSTART:KEND) = PRUNOFF_GR(KSTART:KEND) / PDT
+!
+EXT%XZ0_GD(KSTART:KEND)     = PZ0_GD(KSTART:KEND)
+EXT%XALB_GD(KSTART:KEND)    = PALB_GD(KSTART:KEND)
+EXT%XEMIS_GD(KSTART:KEND)   = PEMIS_GD(KSTART:KEND)
+EXT%XTSRAD_GD(KSTART:KEND)  = PTSRAD_GD(KSTART:KEND)
+EXT%XQV_GD(KSTART:KEND)     = PQV_GD(KSTART:KEND)
+EXT%XH_GD(KSTART:KEND)      = PH_GD(KSTART:KEND)
+EXT%XLE_GD(KSTART:KEND)     = PLE_GD(KSTART:KEND)
+EXT%XEVAP_GD(KSTART:KEND)   = PEVAP_GD(KSTART:KEND)
+EXT%XRUNOFF_GD(KSTART:KEND) = PRUNOFF_GD(KSTART:KEND) / PDT
+!
+END SUBROUTINE TEB_FILL_EXT
+!
+!
+!
+!------------------------------------------------------------------------------
 !*      2.   LAZY ALLOCATION OF THE CONTAINERS (first call, per thread)
 !------------------------------------------------------------------------------
 SUBROUTINE TEB_HOST_ENSURE (KNVEC, KROOF, KROAD, KWALL, KFLOOR)
@@ -500,6 +548,7 @@ IF (.NOT. LTEB_HOST_ALLOC) THEN
    CALL ALLOC_BEM_PARAMS(BPARAMS, KFLOOR)
    CALL DIAG_MISC_TEB_ALLOC(DMT, KNVEC)
    CALL ALLOC_TEB_FORCING(FORC, KNVEC)
+   CALL ALLOC_TEB_EXT_SURF(EXT, KNVEC)
    LTEB_HOST_ALLOC = .TRUE.
 END IF
 !
@@ -517,6 +566,7 @@ IF (LTEB_HOST_ALLOC) THEN
    CALL DEALLOC_BEM_PARAMS(BPARAMS)
    CALL DIAG_MISC_TEB_DEALLOC(DMT)
    CALL DEALLOC_TEB_FORCING(FORC)
+   CALL DEALLOC_TEB_EXT_SURF(EXT)
    LTEB_HOST_ALLOC = .FALSE.
 END IF
 !

@@ -25,11 +25,8 @@ USE MODI_URB_AERO_PARAMS, ONLY : URB_AERO_PARAMS
 IMPLICIT NONE
 CONTAINS
 SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, IMIN, ISEC, &
-                 ZTIME, FR_URB, ZLON, ZLAT, FORC, ZZ0_GR_EXT, ZALB_GR_EXT, &
-                 ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, ZH_GR_EXT, ZLE_GR_EXT, ZEVAP_GR_EXT, &
-                 ZRUNOFF_GR_EXT, ZZ0_GD_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, &
-                 ZQV_GD_EXT, ZH_GD_EXT, ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, &
-                 ZRUNOFF_GD_EXT, DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, &
+                 ZTIME, FR_URB, ZLON, ZLAT, FORC, EXT, ZCH_GD, ZCD_GD, &
+                 DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, &
                  BSTATE, TPN, TIR)
 							
 ! ======================================================================
@@ -72,6 +69,7 @@ USE MODD_SURF_ATM, ONLY: XCISMIN, XVMODMIN, LALDTHRES, XRIMAX
 USE MODD_SURF_PAR, ONLY: XUNDEF
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 USE MODD_TEB_FORCING_n,  ONLY : TEB_FORCING_t
+USE MODD_TEB_EXT_SURF_n, ONLY : TEB_EXT_SURF_t
 USE MODD_FORC_ATM,       ONLY : XZREF, XUREF
 USE MODD_TYPE_DATE_SURF
 USE MODE_THERMOS
@@ -137,29 +135,11 @@ TYPE(TEB_FORCING_t), INTENT(IN)   :: FORC              !IN atmospheric forcing o
 ! Wind calculation
 													   ! 0 - default; 1 - Wang scheme
 
-! Input parameters for Greenroof from TERRA
-REAL,DIMENSION(1)                 :: ZZ0_GR_EXT        !IN greenroof roughness length (external model)
-REAL,DIMENSION(1)                 :: ZALB_GR_EXT       !IN green roof albedo
-REAL,DIMENSION(1)                 :: ZEMIS_GR_EXT      !IN green roof emissivity 
-REAL,DIMENSION(1)                 :: ZTSRAD_GR_EXT     !IN greenroof radiative surface temp. (snow free)
-REAL,DIMENSION(1)                 :: ZQV_GR_EXT        !IN greenroof specific humidity (external model)
-REAL,DIMENSION(1)                 :: ZH_GR_EXT         !IN sensible heat flux over greenroofs 
-REAL,DIMENSION(1)                 :: ZLE_GR_EXT        !IN latent heat flux over greenroofs 
-REAL,DIMENSION(1)                 :: ZEVAP_GR_EXT      !IN total evaporation over greenroofs (kg/m2/s)
-REAL,DIMENSION(1)                 :: ZRUNOFF_GR_EXT    !IN greenroof surface runoff
-
-! Input parameters for Garden from TERRA           
-REAL,DIMENSION(1)                 :: ZZ0_GD_EXT        !IN garden roughness length (external model)
-REAL,DIMENSION(1)                 :: ZALB_GD_EXT       !IN garden albedo (external model)
-REAL,DIMENSION(1)                 :: ZEMIS_GD_EXT      !IN garden emissivity (external model)
-REAL,DIMENSION(1)                 :: ZTSRAD_GD_EXT     !IN garden radiative surface temp. (snow free) (external model)
-REAL,DIMENSION(1)                 :: ZQV_GD_EXT        !IN garden specific humidity (external model)
-REAL,DIMENSION(1)                 :: ZH_GD_EXT         !IN sensible heat flux over garden (external model)
-REAL,DIMENSION(1)                 :: ZLE_GD_EXT        !IN latent heat flux over garden (external model)
-REAL,DIMENSION(1)                 :: ZEVAP_GD_EXT      !IN total evaporation over garden (kg/m2/s) (external model)
+! external garden / greenroof surface state and fluxes of the host (TEB_EXT_SURF_t);
+!* the garden conductances ZCH_GD/ZCD_GD flow the other way (TEB -> host) and stay flat
+TYPE(TEB_EXT_SURF_t), INTENT(IN) :: EXT
 REAL,DIMENSION(1)                 :: ZCH_GD            !OUT garden transfer coefficient for heat (external model)
 REAL,DIMENSION(1)                 :: ZCD_GD            !OUT garden  surf. exchange coefficient (external model)
-REAL,DIMENSION(1)                 :: ZRUNOFF_GD_EXT    !IN garden surface runoff (external model)
 
 ! (P-C4) solar-panel and road-irrigation inputs moved into TPN/TIR by TEB_FILL_PARAMS
 
@@ -666,21 +646,15 @@ XRIMAX = 0.2 ! Maximum richardson number for exchange coefficients computations
 ! -----------------------------------------------------------
 !
 
-IF (TOPTS%LGREENROOF_EXT) THEN
-  ZRUNOFF_GR_EXT  = ZRUNOFF_GR_EXT / dt
-ENDIF
-IF (TOPTS%CTYPE_GARDEN == 'EXT' .OR. TOPTS%CTYPE_GARDEN == 'EXT_NEU') THEN
-  ZRUNOFF_GD_EXT    = ZRUNOFF_GD_EXT / dt
-ENDIF	
 
 !MV202609 garden roughness of an EXTERNAL garden
 !* for the external garden the coefficients of URBAN_DRAG are computed with the
-!* roughness of the host (teb_z0_gd, argument ZZ0_GD_EXT); a non-physical value
+!* roughness of the host (teb_z0_gd, container EXT%XZ0_GD); a non-physical value
 !* would silently give wrong coefficients and a wrong teb_tch_gd/teb_tcm_gd to
 !* the host (see the garden diagnostic scheme, section 9)
 IF (TOPTS%LGARDEN .AND. (TOPTS%CTYPE_GARDEN == 'EXT' .OR. TOPTS%CTYPE_GARDEN == 'EXT_NEU')) THEN
-  IF (ZZ0_GD_EXT(1) <= 0. .OR. ZZ0_GD_EXT(1) >= XUNDEF) THEN
-    WRITE(*,*) 'ERROR in CALL_DRIVER: garden type ', TRIM(TOPTS%CTYPE_GARDEN), ' but ZZ0_GD_EXT = ', ZZ0_GD_EXT(1), ' m'
+  IF (EXT%XZ0_GD(icell) <= 0. .OR. EXT%XZ0_GD(icell) >= XUNDEF) THEN
+    WRITE(*,*) 'ERROR in CALL_DRIVER: garden type ', TRIM(TOPTS%CTYPE_GARDEN), ' but ZZ0_GD_EXT = ', EXT%XZ0_GD(icell), ' m'
     WRITE(*,*) '   an external garden needs the garden roughness of the host (teb_z0_gd)'
     STOP 1
   ENDIF
@@ -778,13 +752,10 @@ TOPTS%XTSTEP = XTSTEP_SURF
 
 DMT%XZ0_TOWN = TPARAMS%XZ0_TOWN(icell:icell)   ! town roughness length
 CALL TEB_GARDEN (icell, iblock, TOPTS, TSTATE, BOPTS, BSTATE, TPN, TIR, DMT, &
-                 TOPTS%LGREENROOF_EXT, HIMPLICIT_WIND, BOPTS%LBEM_AC, FORC, HSNOW_ROOF, &
+                 TOPTS%LGREENROOF_EXT, HIMPLICIT_WIND, BOPTS%LBEM_AC, FORC, EXT, HSNOW_ROOF, &
                  HSNOW_ROAD, ZPEW_A_COEF, ZPEW_B_COEF, ZPEW_A_COEF_LOWCAN, ZPEW_B_COEF_LOWCAN, &
-                 ZZ0_GD_EXT, KSW, ZH_TRAFFIC_NOW_CAN, XTSTEP_SURF, IDAY, ZTIME_BEG, ZZ0_GR_EXT, &
-                 ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, ZH_GR_EXT, ZLE_GR_EXT, &
-                 ZEVAP_GR_EXT, ZRUNOFF_GR_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, &
-                 ZQV_GD_EXT, ZH_GD_EXT, ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, &
-                 ZRUNOFF_GD_EXT, TPARAMS, BPARAMS)
+                 KSW, ZH_TRAFFIC_NOW_CAN, XTSTEP_SURF, IDAY, ZTIME_BEG, &
+                 ZCH_GD, ZCD_GD, TPARAMS, BPARAMS)
     BSTATE%XTI_BLD(icell)               = BSTATE%XTI_BLD(icell)
     BSTATE%XQI_BLD(icell)               = BSTATE%XQI_BLD(icell)
     BSTATE%XT_WIN1(icell)               = BSTATE%XT_WIN1(icell)
@@ -838,7 +809,7 @@ DMT%XHSNOW_TOWN(1:1)   = (DMT%XSNOWD_ROOF(1) * TPARAMS%XBLD(icell:icell) * DMT%X
 !Albedo of Green garden and Green roofs is manualy added: 0.15. Fix later!
 ZALB_AVE_TWN = TPARAMS%XBLD(icell:icell) * (1.- TPARAMS%XGREENROOF(icell:icell)) * (1-DMT%XPDN_RF(1)) * TPARAMS%XALB_ROOF(icell:icell) * (1.-TPN%XFRAC_PANEL(1))                    &
                   + TPARAMS%XBLD(icell:icell) * (1.-TPARAMS%XGREENROOF(icell:icell)) * DMT%XPDN_RF(1) * TSTATE%TSNOW_ROOF%ALB(icell) * (1.-TPN%XFRAC_PANEL(1))                  &
-                  + TPARAMS%XBLD(icell:icell) *     TPARAMS%XGREENROOF(icell:icell)               * ZALB_GR_EXT * (1.-TPN%XFRAC_PANEL(1))                     &
+                  + TPARAMS%XBLD(icell:icell) *     TPARAMS%XGREENROOF(icell:icell)               * EXT%XALB_GR(icell) * (1.-TPN%XFRAC_PANEL(1))                     &
                   + TPARAMS%XBLD(icell:icell) * TPN%XALB_PANEL(1) * TPN%XFRAC_PANEL(1)                                            &
                   + TPARAMS%XROAD(icell:icell) * ( TPARAMS%XSVF_ROAD(icell:icell) * (1-DMT%XPDN_RD(1)) * TPARAMS%XALB_ROAD(icell:icell)                                    &
                   + TPARAMS%XSVF_ROAD(icell:icell) * DMT%XPDN_RD(1) * TSTATE%TSNOW_ROAD%ALB(icell))                                               &

@@ -4,12 +4,9 @@
 !SFX_LIC for details. version 1.
 !     #########
     SUBROUTINE TEB_GARDEN (icell, iblock, TOPTS, TSTATE, BOPTS, BSTATE, TPN, TIR, DMT, &
-      OGREENROOF_EXT, HIMPLICIT_WIND, PBEM_AC, FORC, HSNOW_ROOF, HSNOW_ROAD, PPEW_A_COEF, &
-      PPEW_B_COEF, PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, KSW, PH_TRAFFIC, &
-      PTSTEP, KDAY, PTIME, PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PQV_GR_EXT, &
-      PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT, PRUNOFF_GR_EXT, PALB_GD_EXT, PEMIS_GD_EXT, &
-      PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT, PLE_GD_EXT, PEVAP_GD_EXT, PCH_GD, PCD_GD, &
-      PRUNOFF_GD_EXT, TPARAMS, BPARAMS)
+      OGREENROOF_EXT, HIMPLICIT_WIND, PBEM_AC, FORC, EXT, HSNOW_ROOF, HSNOW_ROAD, PPEW_A_COEF, &
+      PPEW_B_COEF, PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, KSW, PH_TRAFFIC, PTSTEP, KDAY, PTIME, &
+      PCH_GD, PCD_GD, TPARAMS, BPARAMS)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN*  
@@ -57,6 +54,7 @@ USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_TEB_PANEL_n, ONLY : TEB_PANEL_t
 USE MODD_TEB_IRRIG_n, ONLY : TEB_IRRIG_t
 USE MODD_TEB_FORCING_n, ONLY : TEB_FORCING_t
+USE MODD_TEB_EXT_SURF_n, ONLY : TEB_EXT_SURF_t
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 !
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
@@ -111,6 +109,7 @@ TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 															! 'NEW' = Taylor serie, order 1
 !  
 
+TYPE(TEB_EXT_SURF_t), INTENT(IN)    :: EXT                ! external garden/greenroof surface (host -> TEB)
 TYPE(TEB_FORCING_t),  INTENT(IN)    :: FORC               ! atmospheric forcing of the sub-step
 LOGICAL,INTENT(IN)                  :: PBEM_AC            ! Flag to use air conditioners
  CHARACTER(LEN=*)    , INTENT(IN)    :: HSNOW_ROOF         ! snow roof scheme 'NONE', 'D95 ', '1-L '
@@ -120,32 +119,14 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PPEW_A_COEF        ! implicit coefficient
 REAL, DIMENSION(:)  , INTENT(IN)    :: PPEW_B_COEF        ! for wind coupling
 REAL, DIMENSION(:)  , INTENT(IN)    :: PPEW_A_COEF_LOWCAN ! implicit coefficients for wind coupling
 REAL, DIMENSION(:)  , INTENT(IN)    :: PPEW_B_COEF_LOWCAN ! between low canyon wind and road
-REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GARDEN_EXT     ! garden roughness length (external model)
 INTEGER,              INTENT(IN)    :: KSW                ! number of short-wave spectral bands
                                                           ! (radian form N, clockwise)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PH_TRAFFIC         ! anthropogenic sensible heat fluxes due to traffic
 REAL                , INTENT(IN)    :: PTSTEP             ! time step
 !
-REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GR_EXT         ! green roof roughness length (external model)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GR_EXT        ! green roof albedo
-REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GR_EXT       ! green roof emissivity 
-REAL, DIMENSION(:)  , INTENT(IN)    :: PTSRAD_GR_EXT      ! greenroof radiative surface temp. (snow free)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PQV_GR_EXT         ! greenroof specific humidity (external model)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PH_GR_EXT          ! sensible heat flux over greenroofs 
-REAL, DIMENSION(:)  , INTENT(IN)    :: PLE_GR_EXT         ! latent heat flux over greenroofs 
-REAL, DIMENSION(:)  , INTENT(IN)    :: PEVAP_GR_EXT       ! total evaporation over greenroofs (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PRUNOFF_GR_EXT     ! greenroof surface runoff
 ! COSMO + TEB GARDEN
-REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GD_EXT        ! garden albedo (external model)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GD_EXT       ! garden emissivity  (external model)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PTSRAD_GD_EXT      ! garden radiative surface temp. (snow free) (external model)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PQV_GD_EXT         ! garden specific humidity (external model)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PH_GD_EXT          ! sensible heat flux over garden (external model) 
-REAL, DIMENSION(:)  , INTENT(IN)    :: PLE_GD_EXT         ! latent heat flux over garden (external model)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PEVAP_GD_EXT       ! total evaporation over garden (kg/m2/s) (external model)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_GD             ! drag coeifficient for heat
 REAL, DIMENSION(:)  , INTENT(INOUT)   :: PCD_GD             ! garden  surf. exchange coefficient
-REAL, DIMENSION(:)  , INTENT(IN)    :: PRUNOFF_GD_EXT     ! garden surface runoff (external model)
 
 
 
@@ -599,13 +580,13 @@ IF (TOPTS%LGARDEN) THEN
                         ZTSRAD_GD, ZEMIS_GD, ZALB_GD,       &
                         PTA=TSTATE%XT_CANYON(icell:icell)                       )
   ELSE
-    ZTSRAD_GD = PTSRAD_GD_EXT
+    ZTSRAD_GD = EXT%XTSRAD_GD
   ENDIF	
     !* the albedo and the emissivity come from the namelist
     !* (urb_alb_gdn / urb_emis_gdn) in EVERY mode, so that the radiation
     !* budget of TEB and the internal proxy (GARDEN) use the same values
-    ZALB_GD  = PALB_GD_EXT
-    ZEMIS_GD = PEMIS_GD_EXT
+    ZALB_GD  = EXT%XALB_GD
+    ZEMIS_GD = EXT%XEMIS_GD
 ENDIF
 
 !
@@ -620,12 +601,12 @@ IF (TOPTS%LGREENROOF) THEN
                            ZTSRAD_GR, ZEMIS_GR, ZALB_GR,        &
                            PTA=FORC%XTA                              )
   ELSE
-    ZTSRAD_GR = PTSRAD_GR_EXT
+    ZTSRAD_GR = EXT%XTSRAD_GR
   ENDIF	
 
     !* albedo and emissivity from the namelist (urb_alb_grf / urb_emis_grf)
-    ZALB_GR  = PALB_GR_EXT
-    ZEMIS_GR = PEMIS_GR_EXT
+    ZALB_GR  = EXT%XALB_GR
+    ZEMIS_GR = EXT%XEMIS_GR
 ENDIF
 !
 !-------------------------------------------------------------------------------
@@ -728,7 +709,7 @@ ENDIF
   CALL TEB  (icell, iblock, TOPTS, TSTATE, BOPTS, BSTATE, TIR, DMT, HIMPLICIT_WIND, PBEM_AC,     &
              FORC%XTSUN, TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1), TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1),       &
              TPARAMS%XBLD_HEIGHT(icell:icell)/2, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,              &
-             PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PZ0_GR_EXT, FORC%XPS, FORC%XPA, FORC%XEXNS, FORC%XEXNA, FORC%XTA, FORC%XQA, FORC%XRHOA, FORC%XLW, &
+             PPEW_B_COEF_LOWCAN, EXT%XZ0_GD, EXT%XZ0_GR, FORC%XPS, FORC%XPA, FORC%XEXNS, FORC%XEXNA, FORC%XTA, FORC%XQA, FORC%XRHOA, FORC%XLW, &
              FORC%XRAIN, FORC%XSNOW, FORC%XZREF, FORC%XUREF, FORC%XVMOD, PH_TRAFFIC, TPARAMS%XLE_TRAFFIC(icell:icell), PTSTEP,       &
              ZDF_RF, DMT%XPDN_RF(1:1), ZDF_RD, DMT%XPDN_RD(1:1), ZQSAT_RF, ZQSAT_RD, ZDELT_RF,         &
              ZDELT_RD, ZTSRAD_GD, ZQV_GD, PLEW_RF, ZUW_GR, PLEW_RD, PLE_WL_A,              &
@@ -970,7 +951,7 @@ IF (TOPTS%LGARDEN) THEN
   !* its fluxes and its conductance come from the coupling interface, so the call is
   !* skipped and the coupling quantities are built in the ELSE branch below
   IF (TOPTS%CTYPE_GARDEN /= 'EXT' .AND. TOPTS%CTYPE_GARDEN /= 'EXT_NEU') THEN
-    CALL GARDEN_CBS(TOPTS%CTYPE_GARDEN, TPARAMS%XBLD_HEIGHT(icell:icell)/2, TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1), PZ0_GARDEN_EXT, &
+    CALL GARDEN_CBS(TOPTS%CTYPE_GARDEN, TPARAMS%XBLD_HEIGHT(icell:icell)/2, TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1), EXT%XZ0_GD, &
 !MV202609 garden thermal roughness (z0h)
 !* z0/z0h ratio of the garden: the scalar (thermal) coefficient of the diagnostic
 !* balance is built from it (single value of TOPTS, the same one that URBAN_DRAG
@@ -981,7 +962,7 @@ IF (TOPTS%LGARDEN) THEN
 !* 'PROXY_OLD' has a single flux which is reported in both branches
     FORC%XUREF, FORC%XVMOD, FORC%XTA, FORC%XQA,                                                     &
     ZTAU, ( TOPTS%LCBS_SCHEME .AND. TOPTS%CTYPE_GARDEN == 'PROXY_NEW' ),           &
-    PALB_GD_EXT, PEMIS_GD_EXT, FORC%XRHOA, FORC%XPS, ZREC_SW_GD, ZREC_LW_GD,             &
+    EXT%XALB_GD, EXT%XEMIS_GD, FORC%XRHOA, FORC%XPS, ZREC_SW_GD, ZREC_LW_GD,             &
     ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,                                          &
     ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, DMT%CAN%PAC_GARDEN(1:1), ZQSAT_GD, ZTSRAD_GD,      &
     ZDRAIN_GD, ZIRRIG_GD,                              &
@@ -1009,7 +990,7 @@ IF (TOPTS%LGARDEN) THEN
     WHERE (PCD_GD(:) > 0. .AND. PCD_GD(:) < XUNDEF)
       ZUW_GD(:) = - PCD_GD(:) * DMT%XWIND_CANYON(1:1)**2
     ELSEWHERE
-      PCD_GD(:) = GARDEN_PCD_NEUTRAL(TPARAMS%XBLD_HEIGHT(icell:icell)/2, PZ0_GARDEN_EXT(:))
+      PCD_GD(:) = GARDEN_PCD_NEUTRAL(TPARAMS%XBLD_HEIGHT(icell:icell)/2, EXT%XZ0_GD(:))
       ZUW_GD(:) = - PCD_GD(:) * DMT%XWIND_CANYON(1:1)**2
     END WHERE
     ZGFLUX_GD(:) = 0.
@@ -1033,12 +1014,12 @@ IF (TOPTS%LGARDEN) THEN
 !* OGARDEN_EXT branch (as in COSMO-TEB)
   !
   IF (TOPTS%CTYPE_GARDEN == 'EXT' .OR. TOPTS%CTYPE_GARDEN == 'EXT_NEU') THEN
-    ZH_GD(:) = PH_GD_EXT(:)
-    ZLE_GD(:) = PLE_GD_EXT(:)
-    ZEVAP_GD(:) = PEVAP_GD_EXT(:)
-    ZRUNOFF_GD(:) = PRUNOFF_GD_EXT(:)
-    ZQV_GD(:) = PQV_GD_EXT(:)
-    ZHU_AGG_GD(:) = PQV_GD_EXT(:)/ZQSAT_GD(:)
+    ZH_GD(:) = EXT%XH_GD(:)
+    ZLE_GD(:) = EXT%XLE_GD(:)
+    ZEVAP_GD(:) = EXT%XEVAP_GD(:)
+    ZRUNOFF_GD(:) = EXT%XRUNOFF_GD(:)
+    ZQV_GD(:) = EXT%XQV_GD(:)
+    ZHU_AGG_GD(:) = EXT%XQV_GD(:)/ZQSAT_GD(:)
     ZHU_AGG_GD(:) = MIN(ZHU_AGG_GD(:), 1.)
     ZHU_AGG_GD(:) = MAX(ZHU_AGG_GD(:), 0.01)
     ! COSMO+TEB GARDEN
@@ -1095,7 +1076,7 @@ IF (TOPTS%LGREENROOF) THEN
     CALL GREENROOF(TOPTS%CTYPE_GREENROOF, HIMPLICIT_WIND, TOPTS%TTIME, FORC%XTSUN, PPEW_A_COEF, PPEW_B_COEF,  &
     ZPET_A_COEF, ZPEQ_A_COEF, ZPET_B_COEF, ZPEQ_B_COEF, PTSTEP, FORC%XZREF,  &
     FORC%XUREF, FORC%XTA, FORC%XQA, FORC%XEXNS, FORC%XEXNA,FORC%XRHOA, FORC%XCO2, FORC%XPS, FORC%XRAIN, FORC%XSNOW, FORC%XZENITH,  &
-    ZREC_SW_RF, ZREC_LW_RF, FORC%XVMOD, PALB_GR_EXT, PEMIS_GR_EXT, PZ0_GR_EXT,  &
+    ZREC_SW_RF, ZREC_LW_RF, FORC%XVMOD, EXT%XALB_GR, EXT%XEMIS_GR, EXT%XZ0_GR,  &
 !MV202609 greenroof thermal roughness (z0h)
 !* z0/z0h ratio of the greenroof: the scalar (thermal) coefficient of the
 !* diagnostic balance is built from it (single value of TOPTS, the same one
@@ -1120,10 +1101,10 @@ IF (TOPTS%LGREENROOF) THEN
     WHERE (DMT%XPCD_GREENROOF_ATM(:) > 0. .AND. DMT%XPCD_GREENROOF_ATM(:) < XUNDEF)
       ZUW_GR(:) = - DMT%XPCD_GREENROOF_ATM(:) * FORC%XVMOD(:)**2
     ELSEWHERE
-      DMT%XPCD_GREENROOF_ATM(:) = GARDEN_PCD_NEUTRAL(FORC%XUREF(:), PZ0_GR_EXT(:))
+      DMT%XPCD_GREENROOF_ATM(:) = GARDEN_PCD_NEUTRAL(FORC%XUREF(:), EXT%XZ0_GR(:))
       ZUW_GR(:) = - DMT%XPCD_GREENROOF_ATM(:) * FORC%XVMOD(:)**2
     END WHERE
-    ZHU_AGG_GR(:) = PQV_GR_EXT(:)/ZQSAT_GR(:)
+    ZHU_AGG_GR(:) = EXT%XQV_GR(:)/ZQSAT_GR(:)
     ZHU_AGG_GR(:) = MIN(ZHU_AGG_GR(:), 1.)
     ZHU_AGG_GR(:) = MAX(ZHU_AGG_GR(:), 0.01)
     DMT%XPAC_GREENROOF(:)     = 0.      ! no implicit coupling of an external surface (as in COSMO-TEB)
@@ -1143,10 +1124,10 @@ IF (TOPTS%LGREENROOF) THEN
   !
   IF (OGREENROOF_EXT .OR. TOPTS%CTYPE_GREENROOF == 'EXT' .OR. &
       TOPTS%CTYPE_GREENROOF == 'EXT_NEU') THEN
-    ZH_GR(:) = PH_GR_EXT(:)
-    ZLE_GR(:) = PLE_GR_EXT(:)
-    ZEVAP_GR(:) = PEVAP_GR_EXT(:)
-    ZRUNOFF_GR(:) = PRUNOFF_GR_EXT(:)
+    ZH_GR(:) = EXT%XH_GR(:)
+    ZLE_GR(:) = EXT%XLE_GR(:)
+    ZEVAP_GR(:) = EXT%XEVAP_GR(:)
+    ZRUNOFF_GR(:) = EXT%XRUNOFF_GR(:)
     ZRN_GR(:) =  DMT%XABS_SW_GREENROOF(:) + DMT%XABS_LW_GREENROOF(:)
   ENDIF
 ELSE

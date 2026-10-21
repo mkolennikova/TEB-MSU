@@ -197,7 +197,7 @@ END IF
 !
 END SUBROUTINE TEB_LOG_FINAL
 !
-SUBROUTINE TEB_LOG_ROW (DMT, TOPTS, TSTATE, BSTATE, FORC, KICELL, teb_year, teb_month, teb_day, teb_hour_seconds, teb_tch_gd, teb_tcm_gd, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, CHDR, COUT, KNCOL, CNAME)
+SUBROUTINE TEB_LOG_ROW (DMT, TOPTS, TSTATE, BSTATE, FORC, KICELL, teb_year, teb_month, teb_day, teb_hour_seconds, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, CHDR, COUT, KNCOL, CNAME)
 !
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 TYPE(TEB_OPTIONS_t), INTENT(IN) :: TOPTS
@@ -207,8 +207,6 @@ TYPE(TEB_FORCING_t), INTENT(IN) :: FORC
 INTEGER, INTENT(IN) :: KICELL   ! index of the cell in the window
 INTEGER, INTENT(IN) :: teb_year, teb_month, teb_day
 REAL, DIMENSION(:), INTENT(IN) :: teb_hour_seconds
-REAL, DIMENSION(:), INTENT(IN) :: teb_tch_gd
-REAL, DIMENSION(:), INTENT(IN) :: teb_tcm_gd
 REAL, DIMENSION(:), INTENT(IN) :: t
 REAL, DIMENSION(:), INTENT(IN) :: qv
 REAL, DIMENSION(:), INTENT(IN) :: ps
@@ -392,7 +390,7 @@ SUBROUTINE CSV_APPEND(line, value)
 END SUBROUTINE CSV_APPEND
 !
 
-SUBROUTINE TEB_LOG_EMIT (KIBLOCK, DMT, TOPTS, TSTATE, BSTATE, FORC, teb_year, teb_month, teb_day, teb_hour_seconds, teb_tch_gd, teb_tcm_gd, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s)
+SUBROUTINE TEB_LOG_EMIT (KIBLOCK, DMT, TOPTS, TSTATE, BSTATE, FORC, teb_year, teb_month, teb_day, teb_hour_seconds, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s)
 !
 !* The universal output row: the TEB diagnostics of one cell (TEB_LOG_ROW)
 !* followed by the solar geometry and the atmospheric forcing of the step.
@@ -405,8 +403,6 @@ TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 TYPE(TEB_FORCING_t), INTENT(IN) :: FORC
 INTEGER, INTENT(IN) :: teb_year, teb_month, teb_day
 REAL, DIMENSION(:), INTENT(IN) :: teb_hour_seconds
-REAL, DIMENSION(:), INTENT(IN) :: teb_tch_gd
-REAL, DIMENSION(:), INTENT(IN) :: teb_tcm_gd
 REAL, DIMENSION(:), INTENT(IN) :: t
 REAL, DIMENSION(:), INTENT(IN) :: qv
 REAL, DIMENSION(:), INTENT(IN) :: ps
@@ -432,7 +428,7 @@ DO J = 1, SIZE(TEB_LOG_BLOCK)
    IF (TEB_LOG_BLOCK(J) /= KIBLOCK) CYCLE
    KNCOL = 0
    CHDR  = 'time'
-   CALL TEB_LOG_ROW(DMT, TOPTS, TSTATE, BSTATE, FORC, TEB_LOG_POINT(J), teb_year, teb_month, teb_day, teb_hour_seconds, teb_tch_gd, teb_tcm_gd, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, CHDR, COUT, KNCOL, CNAME)
+   CALL TEB_LOG_ROW(DMT, TOPTS, TSTATE, BSTATE, FORC, TEB_LOG_POINT(J), teb_year, teb_month, teb_day, teb_hour_seconds, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, CHDR, COUT, KNCOL, CNAME)
    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SOLAR_ZENITH', FORC%XZENITH(1) * 180. / XPI)
    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SOLAR_ELEV', 90. - FORC%XZENITH(1) * 180. / XPI)
    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SOLAR_AZIM', MOD(FORC%XAZIM(1) * 180. / XPI + 360., 360.))

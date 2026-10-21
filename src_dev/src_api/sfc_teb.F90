@@ -15,7 +15,7 @@ MODULE sfc_teb
 !* variable when an identifier is misspelled.
 USE MODI_CALL_DRIVER, ONLY : CALL_DRIVER
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
-USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_FILL_FORCING, TEB_HOST_ENSURE, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, DMT, FORC, TEB_BIND_STATE, TEB_UNBIND_STATE
+USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_FILL_FORCING, TEB_FILL_EXT, TEB_HOST_ENSURE, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, DMT, FORC, EXT, TEB_BIND_STATE, TEB_UNBIND_STATE
 USE TEB_LOG,  ONLY : TEB_LOG_SET_FILTER, TEB_LOG_AT_CADENCE, TEB_LOG_EMIT
 IMPLICIT NONE
 
@@ -314,6 +314,14 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                  lon_teb, lat_teb, u, v, t, qv, ps, &
                  prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, &
                  lwd_s, swdir_s, swdifd_s, hlev_teb, hlev_teb)
+    !MV202611 external garden / greenroof: the host-provided surface state and
+    !* fluxes are copied into the container once per sub-step (the two runoffs
+    !* are converted here from kg/m2 to kg/m2/s with the same /dt as before)
+    CALL TEB_FILL_EXT (ivstart, ivend, dt, &
+                 teb_z0_gr, teb_alb_gr, teb_emis_gr, teb_ts_gr, teb_qs_gr, &
+                 teb_shfl_gr, teb_lhfl_gr, teb_qvfl_gr, teb_runoff_gr, &
+                 teb_z0_gd, teb_alb_gd, teb_emis_gd, teb_ts_gd, teb_qs_gd, &
+                 teb_shfl_gd, teb_lhfl_gd, teb_qvfl_gd, teb_runoff_gd)
     CALL TEB_BIND_STATE (ivstart, ivend, &
                  teb_ti_bld, &
                  teb_twin2, &
@@ -348,13 +356,9 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                   teb_tmass)
 	DO i = ivstart, ivend
 		CALL CALL_DRIVER (ntstep, i, iblock, dt, teb_year, teb_month, teb_day, teb_hour, teb_min, &
-                 teb_sec, teb_hour_seconds(1), sa_uc(i), lon_teb(i), lat_teb(i), FORC, &
-                 teb_z0_gr(i), &
-                 teb_alb_gr(i), teb_emis_gr(i), teb_ts_gr(i), teb_qs_gr(i), teb_shfl_gr(i), &
-                 teb_lhfl_gr(i), teb_qvfl_gr(i), teb_runoff_gr(i), teb_z0_gd(i), &
-                 teb_alb_gd(i), teb_emis_gd(i), teb_ts_gd(i), teb_qs_gd(i), teb_shfl_gd(i), &
-                 teb_lhfl_gd(i), teb_qvfl_gd(i), teb_tch_gd(i), teb_tcm_gd(i), &
-                 teb_runoff_gd(i), DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR)
+                 teb_sec, teb_hour_seconds(1), sa_uc(i), lon_teb(i), lat_teb(i), FORC, EXT, &
+                 teb_tch_gd(i), teb_tcm_gd(i), &
+                 DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR)
 	END DO
 	
     CALL TEB_UNBIND_STATE (ivstart, ivend, &
@@ -403,8 +407,6 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
     !MV202610 universal output: one row per selected cell, at the output cadence
     IF (TEB_LOG_AT_CADENCE()) THEN
        CALL TEB_LOG_EMIT(iblock, DMT, TOPTS, TSTATE, BSTATE, FORC, teb_year, teb_month, teb_day, teb_hour_seconds, &
-            teb_tch_gd, &
-            teb_tcm_gd, &
             t, &
             qv, &
             ps, &

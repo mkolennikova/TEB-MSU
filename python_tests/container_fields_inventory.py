@@ -71,6 +71,7 @@ TYPES = [
     ('TEB_PANEL_t', 'src_struct/modd_teb_paneln.F90', 'TPN'),
     ('TEB_IRRIG_t', 'src_struct/modd_teb_irrign.F90', 'TIR'),
     ('TEB_FORCING_t', 'src_struct/modd_teb_forcingn.F90', 'FORC'),
+    ('TEB_EXT_SURF_t', 'src_struct/modd_teb_ext_surfn.F90', 'EXT'),
 ]
 
 #: the contract: category of every live field (dead fields must NOT be listed)
@@ -160,6 +161,16 @@ CATEGORY = {
             'XRAIN', 'XSNOW', 'XLW', 'XDIR_SW', 'XSCA_SW', 'XZREF', 'XUREF', 'XCO2',
             # derived once per sub-step by TEB_FILL_FORCING
             'XPA', 'XEXNS', 'XEXNA', 'XRHOA', 'XVMOD', 'XTSUN', 'XZENITH', 'XAZIM',
+        },
+    },
+    'TEB_EXT_SURF_t': {
+        'work': {
+            # external greenroof (host -> TEB)
+            'XZ0_GR', 'XALB_GR', 'XEMIS_GR', 'XTSRAD_GR', 'XQV_GR',
+            'XH_GR', 'XLE_GR', 'XEVAP_GR', 'XRUNOFF_GR',
+            # external garden (host -> TEB)
+            'XZ0_GD', 'XALB_GD', 'XEMIS_GD', 'XTSRAD_GD', 'XQV_GD',
+            'XH_GD', 'XLE_GD', 'XEVAP_GD', 'XRUNOFF_GD',
         },
     },
 }
