@@ -17,6 +17,7 @@ deviate, explain why in the commit message.
 | `TEB_MSU_variables_description.md` (+ `.xlsx`) | namelist entries and output columns (English) | physics and formula derivations |
 | `TEB_MSU_CBS_scheme_T_CAN_reformulation.md` | the **current** state of the CBS scheme: concept, mathematics, implementation, properties, limitations, invariants | history, versions, rejected variants, run numbers |
 | `TEB_MSU_garden_diagnostic_scheme.md` | the **current** state of the diagnostic garden scheme (same structure) | the same |
+| `TEB_MSU_MRT_pedestrian_scheme.md` | the **current** state of the pedestrian mean radiant temperature on the road: geometry, radiative components, parameters, diagnostics, invariants | the same |
 | `TEB_MSU_containers.md` | the **current** state of the diagnostics container `DIAG_MISC_TEB_t`: the type, ownership, composition, how to add a diagnostic, checks | history, versions, run numbers |
 | `TEB_MSU_source_defects.md` | defects of the **original** model (D1–D10; found and fixed) and the inherited diagnostic items deliberately left unfixed (§3) | defects of the driver, of the benches, of our own changes |
 | `TEB_MSU_change_history.md` | commit-referenced history (registry `№1…№N`), rejected variants, measurement protocols, defects outside the original model (I1–I4), numerical defects of our own changes (N1–N2), open items (C2, C3, C5) | the description of the current scheme |
@@ -85,7 +86,7 @@ deviate, explain why in the commit message.
 | defects of the driver, the forcing reader, the benches | `I1…I4` |
 | numerical defects of our own changes | `N1`, `N2` |
 | known but unfixed items | `C1…C6` |
-| bench checks | `B1…B6`, `Z1…Z4`, `S1…S4`, `T1…T5`, `T-a…T-f`, `G1…G14`, `H1…H6`, `I1…I9` |
+| bench checks | `B1…B6`, `Z1…Z4`, `S1…S4`, `T1…T5`, `T-a…T-f`, `G1…G14`, `H1…H6`, `I1…I9`, `M1…M13` |
 
 * Every version and every mode in the table "version / mode → commits" must have a
   commit. A new mode without a history entry is a documentation error.

@@ -647,10 +647,36 @@ DO JJ=1,SIZE(TPARAMS%XROAD)
 ! solar radiation absorbed by roofs
 !
   DMT%XABS_SW_ROOF     (JJ) = ZABS_DIR_SW_RF     (JJ) + ZABS_SCA_SW_RF     (JJ)
+!MV202610 pedestrian mean radiant temperature on the roof (MRT)
+!* incident (NOT absorbed) shortwave components at roof level: the roof is not
+!* shadowed by the canyon and sees no wall reflection, so the components are the
+!* incoming ones reduced by the solar-panel coverage; the total is their sum
+!* (equal to XABS_SW_ROOF/(1-albedo))
+  DMT%XSW_DIR_ROOF     (JJ) = ZDIR_SW(JJ) * (1. - PFRAC_PANEL(JJ))
+  DMT%XSW_SKY_ROOF     (JJ) = ZSCA_SW(JJ) * (1. - PFRAC_PANEL(JJ))
+  DMT%XSW_TOT_ROOF     (JJ) = DMT%XSW_DIR_ROOF(JJ) + DMT%XSW_SKY_ROOF(JJ)
 !
 ! solar radiation absorbed by roads
 !
   DMT%XABS_SW_ROAD     (JJ) = ZABS_DIR_SW_RD     (JJ) + ZABS_SCA_SW_RD     (JJ)
+!
+!MV202610 pedestrian mean radiant temperature on the road (MRT)
+!* incident (NOT absorbed) shortwave components at road level: the pedestrian
+!* budget needs the beam (with its own projection factor) and the wall reflection
+!* separately, while XABS_SW_ROAD alone only gives their sum times (1-albedo).
+!* Both are per m2 of snow-free road; the wall part follows from
+!*   XSW_DIR_ROAD + XSCA_SW_RD + XSW_WALL_ROAD = XABS_SW_ROAD/(1-XALB_ROAD)
+!* (XSCA_SW_RD is the diffuse sky part of the road, XSVF_ROAD*XSCA_SW)
+!
+  DMT%XSW_DIR_ROAD     (JJ) = ZDIR_SW_RD     (JJ)
+  DMT%XSW_SKY_ROAD     (JJ) = ZSCA_SW_RD     (JJ)
+  DMT%XSUN_FRAC_ROAD   (JJ) = 0.
+  IF (ZDIR_SW(JJ) > 0.) DMT%XSUN_FRAC_ROAD(JJ) = MIN(1., ZDIR_SW_RD(JJ)/ZDIR_SW(JJ))
+  DMT%XSW_WALL_ROAD    (JJ) = 0.
+  IF (TPARAMS%XALB_ROAD(JJ) < 1.) THEN
+    DMT%XSW_WALL_ROAD  (JJ) = MAX(0., DMT%XABS_SW_ROAD(JJ)/(1.-TPARAMS%XALB_ROAD(JJ))   &
+                                      - ZDIR_SW_RD(JJ) - ZSCA_SW_RD(JJ))
+  ENDIF
 !
 ! solar radiation absorbed by GARDEN areas
 !
@@ -680,6 +706,10 @@ DO JJ=1,SIZE(TPARAMS%XROAD)
 !              -------------------------------------------------------
 !
   PREC_SW_RD      (JJ) = DMT%XABS_SW_ROAD      (JJ)/(1.-TPARAMS%XALB_ROAD   (JJ))
+!MV202610 pedestrian mean radiant temperature on the road (MRT): the total
+!* incident shortwave of the snow-free road (direct + diffuse sky + walls), the
+!* quantity the pedestrian road-reflection term and python_tests/check_mrt.py use
+  DMT%XSW_TOT_ROAD(JJ) = PREC_SW_RD      (JJ)
 !
   PREC_SW_SN_RD   (JJ) = DMT%XABS_SW_SNOW_ROAD (JJ)/(1.-TSTATE%TSNOW_ROAD%ALB(JJ))
 !

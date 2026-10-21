@@ -465,6 +465,41 @@ The driver therefore
 activated (`teb_lsolar_panel = .TRUE.`). The set of columns therefore depends on the
 model options of the run.
 
+<!-- MV202610 pedestrian mean radiant temperature on the road -->
+### Pedestrian mean radiant temperature (`MRT_*`, `SW_*_ROAD`, `SUN_FRAC_ROAD`)
+
+Mean radiant temperature of a person standing on the road of the canyon (canyon
+axis, 1.1 m above the road). Pure diagnostic: it feeds no budget and changes no
+other column. The scheme is described in `TEB_MSU_MRT_pedestrian_scheme.md`.
+
+| Variable | Dimension | Comment |
+|:---------|:----------|:--------|
+| `MRT_ROAD` | K | MRT of a pedestrian "smeared" over the road width: the direct beam is weighted by the sunlit area fraction of the road (consistent with the other road-area-averaged diagnostics) |
+| `MRT_ROAD_SUN` | K | The same for a pedestrian standing in the sunlit part (full beam), i.e. the upper bound of the thermal stress; equals `MRT_ROAD` when no beam reaches the road |
+| `SW_DIR_ROAD` | W/m² | Direct shortwave reaching the road (a road-area average for `teb_hroad_dir = 'UNIF'`) |
+| `SW_SKY_ROAD` | W/m² | Diffuse sky shortwave reaching the road |
+| `SW_WALL_ROAD` | W/m² | Shortwave reflected by the walls onto the road |
+| `SW_TOT_ROAD` | W/m² | Total shortwave incident on the snow-free road, `SW_DIR_ROAD + SW_SKY_ROAD + SW_WALL_ROAD` |
+| `SUN_FRAC_ROAD` | - | Sunlit area fraction of the road (0 at night) |
+| `MRT_F_SKY`, `MRT_F_WALL`, `MRT_F_ROAD` | - | View factors of the pedestrian (sky, walls, road; they sum to one) |
+| `MRT_SW_DIR`, `MRT_SW_SKY`, `MRT_SW_WALL`, `MRT_SW_ROAD` | W/m² | Shortwave absorbed by the body (after the body absorptivity `0.70`) |
+| `MRT_LW_SKY`, `MRT_LW_WALL`, `MRT_LW_ROAD` | W/m² | Longwave absorbed by the body (after the body emissivity `0.97`) |
+| `MRT_ROOF` | K | The same MRT for a pedestrian standing on the **roof** (comparison): only the sky and the roof surface, `F_sky = F_roof = 0.5`, no walls, no canyon shadow |
+| `SW_DIR_ROOF` | W/m² | Direct shortwave reaching the roof (reduced by the solar-panel coverage, not shadowed by the canyon) |
+| `SW_SKY_ROOF` | W/m² | Diffuse sky shortwave reaching the roof |
+| `SW_TOT_ROOF` | W/m² | Total shortwave incident on the snow-free roof, `SW_DIR_ROOF + SW_SKY_ROOF` |
+
+`MRT_ROAD`, `MRT_ROAD_SUN`, `MRT_ROOF`, the four `SW_*_ROAD` and three
+`SW_*_ROOF` columns and `SUN_FRAC_ROAD` are the working set (the invariants of
+the scheme document and the bench `python_tests/check_mrt.py`); the `MRT_F_*`,
+`MRT_SW_*` and `MRT_LW_*` columns are debug outputs of the scheme and may be
+removed later:
+
+```bash
+python python_tests/check_mrt.py <output>/TEB_output_b1_c1.csv \
+    --param-nml <parameter namelist of the run>
+```
+
 <!-- MV202609 solar position diagnostics -->
 ### Solar position (`SOLAR_*` columns)
 

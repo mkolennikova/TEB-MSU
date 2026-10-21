@@ -286,6 +286,40 @@ TYPE DIAG_MISC_TEB_t
   REAL, POINTER, DIMENSION(:)   :: XWSTOWN                          ! teb_wstown - OUT town water content (m H2O)
   REAL, POINTER, DIMENSION(:)   :: XWSTOWN_NOW                      ! teb_wstown_now - OUT town water content (m H2O) at previous time-step
   REAL, POINTER, DIMENSION(:)   :: XZZ0H_GREENROOF_ATM              ! teb_zz0h_greenroof_atm (CSV ZZ0H_GREENROOF_ATM) - OUT greenroof roughness length for heat (atm.)
+
+!MV202610 pedestrian mean radiant temperature on the road (MRT)
+!* URBAN_SOLAR_ABS exposes the two incident shortwave components that the
+!* pedestrian budget needs (the absorbed XABS_SW_ROAD alone cannot be split into
+!* the beam and the wall reflection), URBAN_MRT assembles the MRT of a person
+!* standing on the road at the canyon axis (z = 1.1 m). The MRT_* components are
+!* debug outputs: MRT_ROAD, MRT_ROAD_SUN and the two SW_*_ROAD fields are the
+!* quantities the invariants and python_tests/check_mrt.py are built on.
+  REAL, POINTER, DIMENSION(:)   :: XSW_DIR_ROAD                     ! SW_DIR_ROAD (CSV SW_DIR_ROAD) - direct shortwave reaching the snow-free road (W/m2 road)
+  REAL, POINTER, DIMENSION(:)   :: XSW_SKY_ROAD                     ! SW_SKY_ROAD (CSV SW_SKY_ROAD) - diffuse sky shortwave reaching the snow-free road (W/m2 road)
+  REAL, POINTER, DIMENSION(:)   :: XSW_WALL_ROAD                    ! SW_WALL_ROAD (CSV SW_WALL_ROAD) - shortwave reflected by the walls onto the road (W/m2 road)
+  REAL, POINTER, DIMENSION(:)   :: XSW_TOT_ROAD                     ! SW_TOT_ROAD (CSV SW_TOT_ROAD) - total shortwave incident on the snow-free road (W/m2 road)
+  REAL, POINTER, DIMENSION(:)   :: XSUN_FRAC_ROAD                   ! SUN_FRAC_ROAD (CSV SUN_FRAC_ROAD) - sunlit area fraction of the road (-)
+  REAL, POINTER, DIMENSION(:)   :: XMRT                            ! MRT_ROAD (CSV MRT_ROAD) - mean radiant temperature of a pedestrian on the road, sunlit fraction weighted (K)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_SUN                        ! MRT_ROAD_SUN (CSV MRT_ROAD_SUN) - the same for a pedestrian standing in the sunlit part (K)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_F_SKY                      ! MRT_F_SKY (CSV MRT_F_SKY) - sky view factor of the pedestrian (-)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_F_WALL                     ! MRT_F_WALL (CSV MRT_F_WALL) - walls view factor of the pedestrian (-)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_F_ROAD                     ! MRT_F_ROAD (CSV MRT_F_ROAD) - road view factor of the pedestrian (-)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_SW_DIR                     ! MRT_SW_DIR (CSV MRT_SW_DIR) - beam absorbed by the body (W/m2 body)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_SW_SKY                     ! MRT_SW_SKY (CSV MRT_SW_SKY) - diffuse sky shortwave absorbed by the body (W/m2 body)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_SW_WALL                    ! MRT_SW_WALL (CSV MRT_SW_WALL) - wall-reflected shortwave absorbed by the body (W/m2 body)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_SW_ROAD                    ! MRT_SW_ROAD (CSV MRT_SW_ROAD) - road-reflected shortwave absorbed by the body (W/m2 body)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_LW_SKY                     ! MRT_LW_SKY (CSV MRT_LW_SKY) - sky longwave absorbed by the body (W/m2 body)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_LW_WALL                    ! MRT_LW_WALL (CSV MRT_LW_WALL) - wall longwave absorbed by the body (W/m2 body)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_LW_ROAD                    ! MRT_LW_ROAD (CSV MRT_LW_ROAD) - road longwave absorbed by the body (W/m2 body)
+!MV202610 pedestrian mean radiant temperature on the roof (MRT)
+!* the same budget for a person standing on the roof: the roof is a flat
+!* infinite surface, so there are no walls (F_sky = F_roof = 0.5) and the roof is
+!* never shadowed by the canyon; the three incident shortwave components are
+!* exported by URBAN_SOLAR_ABS like the road ones
+  REAL, POINTER, DIMENSION(:)   :: XSW_DIR_ROOF                     ! SW_DIR_ROOF (CSV SW_DIR_ROOF) - direct shortwave reaching the roof (W/m2 roof)
+  REAL, POINTER, DIMENSION(:)   :: XSW_SKY_ROOF                     ! SW_SKY_ROOF (CSV SW_SKY_ROOF) - diffuse sky shortwave reaching the roof (W/m2 roof)
+  REAL, POINTER, DIMENSION(:)   :: XSW_TOT_ROOF                     ! SW_TOT_ROOF (CSV SW_TOT_ROOF) - total shortwave incident on the snow-free roof (W/m2 roof)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_ROOF                        ! MRT_ROOF (CSV MRT_ROOF) - mean radiant temperature of a pedestrian on the roof (K)
 END TYPE DIAG_MISC_TEB_t
 
 TYPE DIAG_MISC_TEB_NP_t
@@ -482,6 +516,29 @@ IF (LHOOK) CALL DR_HOOK("MODD_DIAG_MISC_TEB_N:DIAG_MISC_TEB_INIT",0,ZHOOK_HANDLE
   NULLIFY(YDIAG_MISC_TEB%XTCOOL_TARGET)
   NULLIFY(YDIAG_MISC_TEB%XTHEAT_TARGET)
   NULLIFY(YDIAG_MISC_TEB%XQIN)
+!MV202610 pedestrian mean radiant temperature on the road (MRT)
+  NULLIFY(YDIAG_MISC_TEB%XSW_DIR_ROAD)
+  NULLIFY(YDIAG_MISC_TEB%XSW_SKY_ROAD)
+  NULLIFY(YDIAG_MISC_TEB%XSW_WALL_ROAD)
+  NULLIFY(YDIAG_MISC_TEB%XSW_TOT_ROAD)
+  NULLIFY(YDIAG_MISC_TEB%XSUN_FRAC_ROAD)
+  NULLIFY(YDIAG_MISC_TEB%XMRT)
+  NULLIFY(YDIAG_MISC_TEB%XMRT_SUN)
+  NULLIFY(YDIAG_MISC_TEB%XMRT_F_SKY)
+  NULLIFY(YDIAG_MISC_TEB%XMRT_F_WALL)
+  NULLIFY(YDIAG_MISC_TEB%XMRT_F_ROAD)
+  NULLIFY(YDIAG_MISC_TEB%XMRT_SW_DIR)
+  NULLIFY(YDIAG_MISC_TEB%XMRT_SW_SKY)
+  NULLIFY(YDIAG_MISC_TEB%XMRT_SW_WALL)
+  NULLIFY(YDIAG_MISC_TEB%XMRT_SW_ROAD)
+  NULLIFY(YDIAG_MISC_TEB%XMRT_LW_SKY)
+  NULLIFY(YDIAG_MISC_TEB%XMRT_LW_WALL)
+  NULLIFY(YDIAG_MISC_TEB%XMRT_LW_ROAD)
+!MV202610 pedestrian mean radiant temperature on the roof (MRT)
+  NULLIFY(YDIAG_MISC_TEB%XSW_DIR_ROOF)
+  NULLIFY(YDIAG_MISC_TEB%XSW_SKY_ROOF)
+  NULLIFY(YDIAG_MISC_TEB%XSW_TOT_ROOF)
+  NULLIFY(YDIAG_MISC_TEB%XMRT_ROOF)
 IF (LHOOK) CALL DR_HOOK("MODD_DIAG_MISC_TEB_N:DIAG_MISC_TEB_INIT",1,ZHOOK_HANDLE)
 END SUBROUTINE DIAG_MISC_TEB_INIT
 SUBROUTINE INIT_CBS_BRANCH(YBRANCH)

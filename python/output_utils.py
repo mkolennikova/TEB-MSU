@@ -248,6 +248,71 @@ def _forcing_frame(df, forcing_df=None):
     return None
 
 
+def _mrt_subplot(df):
+    """Panel config for the pedestrian MRT curves, or None when the output has none.
+
+    The `src_dev` tree writes the mean radiant temperature of a pedestrian on the
+    road and on the roof (`MRT_ROAD`, `MRT_ROAD_SUN`, `MRT_ROOF`, see
+    `docs/TEB_MSU_MRT_pedestrian_scheme.md`); the control tree and older outputs do
+    not. The panel shows the canyon air temperature next to the two radiant
+    temperatures, so that the air/radiant contrast of the two locations is visible.
+    """
+    if df is None:
+        return None
+    names = [c for c in ('MRT_ROAD', 'MRT_ROOF')
+             if c in df.columns and not df[c].isna().all()]
+    if not names:
+        return None
+
+    variables, labels, colors = [], [], []
+    if 'T_CANYON' in df.columns and not df['T_CANYON'].isna().all():
+        variables.append('T_CANYON')
+        labels.append('T_CANYON')
+        colors.append('#377eb8')
+    titles = {'MRT_ROAD': 'MRT_ROAD (pedestrian on the road)',
+              'MRT_ROOF': 'MRT_ROOF (pedestrian on the roof)'}
+    palette = {'MRT_ROAD': '#e41a1c', 'MRT_ROOF': '#ff7f00'}
+    for name in names:
+        variables.append(name)
+        labels.append(titles[name])
+        colors.append(palette[name])
+
+    return {
+        'variables': variables,
+        'title': 'Mean Radiant Temperature (pedestrian)',
+        'ylabel': 'Temperature (K)',
+        'labels': labels,
+        'colors': colors,
+        'forcing': [{'column': 'Forc_TA', 'label': 'FORC_TA'}],
+    }
+
+
+def _with_mrt_subplot(subplots_config, df):
+    """Append the pedestrian-MRT panel to a subplot config when the data has MRT.
+
+    The panel is inserted after the 'Temperatures' panel (or appended when there
+    is no such panel) and only once: a caller whose config already draws one of
+    the MRT columns keeps its own layout. Without MRT columns in `df` the config
+    is returned unchanged, so the control tree and older outputs keep the usual
+    set of panels.
+    """
+    panel = _mrt_subplot(df)
+    if panel is None:
+        return subplots_config
+    # 'T_CANYON' is also drawn in the Temperatures panel: only the MRT curves
+    # themselves decide whether the caller has already configured this panel
+    mrt_vars = [var for var in panel['variables'] if var.startswith('MRT_')]
+    if any(var in config.get('variables', [])
+           for config in subplots_config for var in mrt_vars):
+        return subplots_config
+
+    configs = list(subplots_config)
+    position = next((idx + 1 for idx, config in enumerate(configs)
+                     if config.get('title') == 'Temperatures'), len(configs))
+    configs.insert(position, panel)
+    return configs
+
+
 def preview_output_mpl(df, subplots_config=None, figsize=(10, 18), 
                        save_path=None, dpi=300, start=None, end=None,
                        forcing_df=None, forcing_color='black',
@@ -281,7 +346,16 @@ def preview_output_mpl(df, subplots_config=None, figsize=(10, 18),
         Colour of the forcing curves (default 'black').
     forcing_linewidth : float, optional
         Line width of the forcing curves (default 1.5).
-    
+
+    Notes
+    -----
+    When `df` carries the pedestrian mean radiant temperature written by the
+    `src_dev` tree (`MRT_ROAD`, `MRT_ROOF`), a separate panel with `T_CANYON` and
+    the two MRT curves is added after the *Temperatures* panel (the forcing air
+    temperature is overlaid as on the other temperature panels). Outputs without
+    those columns - the control tree and older runs - keep the default set of
+    panels, so the figure is unchanged for them.
+
     Returns:
     --------
     fig : matplotlib.figure.Figure
@@ -297,7 +371,10 @@ def preview_output_mpl(df, subplots_config=None, figsize=(10, 18),
     
     if subplots_config is None:
         subplots_config = DEFAULT_SUBPLOTS_CONFIG
-    
+
+    # Pedestrian MRT panel: added only when the output carries the MRT columns
+    subplots_config = _with_mrt_subplot(subplots_config, df_plot)
+
     n_rows = len(subplots_config)
     fig, axes = plt.subplots(n_rows, 1, figsize=figsize, sharex=True)
     
@@ -429,7 +506,16 @@ def preview_output_plotly(df, subplots_config=None, save_path=None, height=None,
         Colour of the forcing curves (default 'black').
     forcing_linewidth : float, optional
         Line width of the forcing curves (default 1.5).
-    
+
+    Notes
+    -----
+    When `df` carries the pedestrian mean radiant temperature written by the
+    `src_dev` tree (`MRT_ROAD`, `MRT_ROOF`), a separate panel with `T_CANYON` and
+    the two MRT curves is added after the *Temperatures* panel (the forcing air
+    temperature is overlaid as on the other temperature panels). Outputs without
+    those columns - the control tree and older runs - keep the default set of
+    panels, so the figure is unchanged for them.
+
     Returns:
     --------
     fig : plotly.graph_objects.Figure
@@ -446,9 +532,12 @@ def preview_output_plotly(df, subplots_config=None, save_path=None, height=None,
     
     if subplots_config is None:
         subplots_config = DEFAULT_SUBPLOTS_CONFIG
-    
+
+    # Pedestrian MRT panel: added only when the output carries the MRT columns
+    subplots_config = _with_mrt_subplot(subplots_config, df_plot)
+
     n_rows = len(subplots_config)
-    
+
     # Forcing overlay: an explicit forcing_df, otherwise the 'Forc_*' columns of df
     forcing_source = _forcing_frame(df, forcing_df)
     forcing_plot = _filter_df_by_time(forcing_source, start, end) if forcing_source is not None else None
