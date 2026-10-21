@@ -123,10 +123,6 @@ DEALLOCATE(B%XCOP_RAT)      ! Rated COP of the cooling system
 DEALLOCATE(B%XT_WIN1)       ! outdoor window temperature [K]
 DEALLOCATE(B%XALB_WIN)      ! window albedo
 DEALLOCATE(B%XABS_WIN)      ! window absortance
-DEALLOCATE(B%XT_SIZE_MAX)   ! Maximum outdoor air temperature for
-                             ! HVAC sizing [K]
-DEALLOCATE(B%XT_SIZE_MIN)   ! Minimum outdoor air temperature for
-                             ! HVAC sizing [K]
 DEALLOCATE(B%XUGG_WIN)      ! Window glass-to-glass U-factor [K m W-2]
 DEALLOCATE(B%LSHADE)        ! flag to activate shading devices -> LOGICAL in the code
 DEALLOCATE(B%XSHADE)        ! flag to activate shading devices -> REAL for i/o 0. or 1.
@@ -224,10 +220,6 @@ DEALLOCATE(T%XH_INDUSTRY)   ! anthropogenic sensible
 DEALLOCATE(T%XLE_INDUSTRY)  ! anthropogenic latent
 !                                                  ! heat fluxes due to factories     (W/m2)
 !
-! temperatures for boundary conditions
-!
-DEALLOCATE(T%XTI_ROAD)      ! road interior temperature        (K)
-!
 ! Prognostic variables:
 !
 DEALLOCATE(T%XWS_ROOF)      ! roof water reservoir             (kg/m2)
@@ -236,19 +228,6 @@ DEALLOCATE(T%XT_ROOF)       ! roof layer temperatures          (K)
 DEALLOCATE(T%XT_ROAD)       ! road layer temperatures          (K)
 DEALLOCATE(T%XT_WALL_A)     ! wall layer temperatures          (K)
 DEALLOCATE(T%XT_WALL_B)     ! wall layer temperatures          (K)
-!
-DEALLOCATE(T%XAC_ROOF)      ! roof aerodynamic conductance     ()
-DEALLOCATE(T%XAC_ROAD)      ! road aerodynamic conductance     ()
-DEALLOCATE(T%XAC_WALL)      ! wall aerodynamic conductance     ()
-DEALLOCATE(T%XAC_TOP)       ! top  aerodynamic conductance     ()
-DEALLOCATE(T%XAC_ROOF_WAT)  ! water aerodynamic conductance    ()
-DEALLOCATE(T%XAC_ROAD_WAT)  ! water aerodynamic conductance    ()
-!
-DEALLOCATE(T%XQSAT_ROOF)    ! humidity of saturation for roofs (kg/kg)
-DEALLOCATE(T%XQSAT_ROAD)    ! humidity of saturation for roads (kg/kg)
-!
-DEALLOCATE(T%XDELT_ROOF)    ! humidity of saturation for roofs (-)
-DEALLOCATE(T%XDELT_ROAD)    ! humidity of saturation for roads (-)
 !
 ! Semi-prognostic variables:
 !

@@ -137,10 +137,6 @@ ALLOCATE(B%XCOP_RAT(1))      ! Rated COP of the cooling system
 ALLOCATE(B%XT_WIN1(1))       ! outdoor window temperature [K]
 ALLOCATE(B%XALB_WIN(1))      ! window albedo
 ALLOCATE(B%XABS_WIN(1))      ! window absortance
-ALLOCATE(B%XT_SIZE_MAX(1))   ! Maximum outdoor air temperature for
-                             ! HVAC sizing [K]
-ALLOCATE(B%XT_SIZE_MIN(1))   ! Minimum outdoor air temperature for
-                             ! HVAC sizing [K]
 ALLOCATE(B%XUGG_WIN(1))      ! Window glass-to-glass U-factor [K m W-2]
 ALLOCATE(B%LSHADE(1))        ! flag to activate shading devices -> LOGICAL in the code
 ALLOCATE(B%XSHADE(1))        ! flag to activate shading devices -> REAL for i/o 0. or 1.
@@ -238,10 +234,6 @@ ALLOCATE(T%XH_INDUSTRY(1))   ! anthropogenic sensible
 ALLOCATE(T%XLE_INDUSTRY(1))  ! anthropogenic latent
 !                                                  ! heat fluxes due to factories     (W/m2)
 !
-! temperatures for boundary conditions
-!
-ALLOCATE(T%XTI_ROAD(1))      ! road interior temperature        (K)
-!
 ! Prognostic variables:
 !
 ALLOCATE(T%XWS_ROOF(1))      ! roof water reservoir             (kg/m2)
@@ -250,19 +242,6 @@ ALLOCATE(T%XT_ROOF(1,KROOF_LAYER))       ! roof layer temperatures          (K)
 ALLOCATE(T%XT_ROAD(1,KROAD_LAYER))       ! road layer temperatures          (K)
 ALLOCATE(T%XT_WALL_A(1,KWALL_LAYER))     ! wall layer temperatures          (K)
 ALLOCATE(T%XT_WALL_B(1,KWALL_LAYER))     ! wall layer temperatures          (K)
-!
-ALLOCATE(T%XAC_ROOF(1))      ! roof aerodynamic conductance     ()
-ALLOCATE(T%XAC_ROAD(1))      ! road aerodynamic conductance     ()
-ALLOCATE(T%XAC_WALL(1))      ! wall aerodynamic conductance     ()
-ALLOCATE(T%XAC_TOP(1))       ! top  aerodynamic conductance     ()
-ALLOCATE(T%XAC_ROOF_WAT(1))  ! water aerodynamic conductance    ()
-ALLOCATE(T%XAC_ROAD_WAT(1))  ! water aerodynamic conductance    ()
-!
-ALLOCATE(T%XQSAT_ROOF(1))    ! humidity of saturation for roofs (kg/kg)
-ALLOCATE(T%XQSAT_ROAD(1))    ! humidity of saturation for roads (kg/kg)
-!
-ALLOCATE(T%XDELT_ROOF(1))    ! humidity of saturation for roofs (-)
-ALLOCATE(T%XDELT_ROAD(1))    ! humidity of saturation for roads (-)
 !
 ! Semi-prognostic variables:
 !

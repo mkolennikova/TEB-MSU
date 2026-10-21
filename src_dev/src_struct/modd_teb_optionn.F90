@@ -46,6 +46,12 @@ IMPLICIT NONE
 
 
 TYPE TEB_OPTIONS_t
+!* CONTRACT (checked by python_tests/container_fields_inventory.py):
+!*   param    - switches, types and parameters of the namelist, set once by the
+!*              driver (LCANOPY ... NWALL_LAYER, XZ0_O_Z0H_*, LCBS_SCHEME)
+!*   work     - updated on every step by the driver (TTIME, XTSTEP)
+!*   reserved - SURFEX interface kept for future features, unused in TEB-MSU
+!*              (CBLD_ATYPE, CTREE, LHYDRO)
 ! TEB scheme option
 !
   LOGICAL                        :: LCANOPY      ! T: SBL scheme within the canopy
@@ -126,18 +132,6 @@ TYPE TEB_OPTIONS_t
   REAL                           :: XTAU_HW_THRESH ! H/W giving tau = 0.5       (-)
   REAL                           :: XTAU_HW_WIDTH  ! width of the tanh relaxation (-)
 ! 
-! type of initialization of vegetation: from cover types (ecoclimap) or parameters prescribed
-!
-  LOGICAL                        :: LECOCLIMAP   ! T: parameters computed from ecoclimap
-!                                                ! F: they are read in the file
-!
-! General surface: 
-!
-  REAL, POINTER, DIMENSION(:)   :: XZS           ! orography                        (m)
-  REAL, POINTER, DIMENSION(:,:) :: XCOVER        ! fraction of each ecosystem       (-)
-  LOGICAL, POINTER, DIMENSION(:):: LCOVER        ! GCOVER(i)=T --> ith cover field is not 0.
-  INTEGER                       :: NTEB_PATCH    ! number of TEB patches
-  REAL, POINTER, DIMENSION(:,:) :: XTEB_PATCH    ! fraction of each TEB patch
 !
 ! Number of layers
 !
@@ -153,7 +147,6 @@ TYPE TEB_OPTIONS_t
 !
   REAL                          :: XTSTEP        ! time step for TEB
 !
-  REAL                          :: XOUT_TSTEP    ! TEB output writing time step
 !
 END TYPE TEB_OPTIONS_t
 
@@ -171,10 +164,6 @@ SUBROUTINE TEB_OPTIONS_INIT(YTEB_OPTIONS)
 TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: YTEB_OPTIONS
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 IF (LHOOK) CALL DR_HOOK("MODD_TEB_N:TEB_OPTIONS_INIT",0,ZHOOK_HANDLE)
-  NULLIFY(YTEB_OPTIONS%XZS)
-  NULLIFY(YTEB_OPTIONS%XCOVER)
-  NULLIFY(YTEB_OPTIONS%LCOVER)
-  NULLIFY(YTEB_OPTIONS%XTEB_PATCH)
 YTEB_OPTIONS%LCANOPY=.FALSE.
 YTEB_OPTIONS%LGARDEN=.FALSE.
 YTEB_OPTIONS%CROAD_DIR=' '
@@ -196,13 +185,10 @@ YTEB_OPTIONS%LSOLAR_PANEL=.FALSE.
 YTEB_OPTIONS%LCBS_SCHEME=.FALSE.
 YTEB_OPTIONS%XTAU_HW_THRESH=0.5
 YTEB_OPTIONS%XTAU_HW_WIDTH=0.25
-YTEB_OPTIONS%LECOCLIMAP=.FALSE.
-YTEB_OPTIONS%NTEB_PATCH=0
 YTEB_OPTIONS%NROOF_LAYER=0
 YTEB_OPTIONS%NROAD_LAYER=0
 YTEB_OPTIONS%NWALL_LAYER=0
 YTEB_OPTIONS%XTSTEP=0.
-YTEB_OPTIONS%XOUT_TSTEP=0.
 IF (LHOOK) CALL DR_HOOK("MODD_TEB_N:TEB_OPTIONS_INIT",1,ZHOOK_HANDLE)
 END SUBROUTINE TEB_OPTIONS_INIT
 

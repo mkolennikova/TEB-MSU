@@ -38,6 +38,10 @@ USE PARKIND1  ,ONLY : JPRB
 IMPLICIT NONE
 
 TYPE TEB_IRRIG_t
+!* CONTRACT (checked by python_tests/container_fields_inventory.py):
+!*   param    - road irrigation (LPAR_RD_IRRIG, XRD_*), set from the namelist
+!*   reserved - garden and greenroof irrigation (LTEB_IRRIG, LPAR_{GD,GR}_IRRIG,
+!*              X{GD,GR}_*): not used in TEB-MSU
 !
   LOGICAL                        :: LTEB_IRRIG        ! flag to use irrigation for gardens or greenroofs
   LOGICAL                        :: LPAR_GD_IRRIG     ! flag to use prescribed irrigation for gardens

@@ -46,6 +46,11 @@ IMPLICIT NONE
 !--------------------------------------------------------------------------
 !
 TYPE BEM_t
+!* CONTRACT (checked by python_tests/container_fields_inventory.py):
+!*   param - static parameters of the building: floor material, HVAC setpoints and
+!*           capacities, windows, indoor geometry and view factors
+!*   state - indoor air and surfaces, shading and natural ventilation flags
+!*   work  - XAUX_MAX, XT_ADP (helpers of the autosize / coil calculations)
 !
 ! Floor parameters
 !
@@ -97,10 +102,6 @@ TYPE BEM_t
   REAL, POINTER, DIMENSION(:)   :: XT_WIN1       ! outdoor window temperature [K]
   REAL, POINTER, DIMENSION(:)   :: XALB_WIN      ! window albedo
   REAL, POINTER, DIMENSION(:)   :: XABS_WIN      ! window absortance
-  REAL, POINTER, DIMENSION(:)   :: XT_SIZE_MAX   ! Maximum outdoor air temperature for
-                                                 ! HVAC sizing [K]
-  REAL, POINTER, DIMENSION(:)   :: XT_SIZE_MIN   ! Minimum outdoor air temperature for
-                                                 ! HVAC sizing [K]
   REAL, POINTER, DIMENSION(:)   :: XUGG_WIN      ! Window glass-to-glass U-factor [K m W-2]
   LOGICAL, POINTER, DIMENSION(:):: LSHADE        ! flag to activate shading devices -> LOGICAL in the code
   REAL,    POINTER, DIMENSION(:):: XSHADE        ! flag to activate shading devices -> REAL for i/o 0. or 1.
@@ -182,8 +183,6 @@ IF (LHOOK) CALL DR_HOOK("MODD_BEM_N:BEM_INIT",0,ZHOOK_HANDLE)
   NULLIFY(YBEM%XT_WIN1)
   NULLIFY(YBEM%XALB_WIN)
   NULLIFY(YBEM%XABS_WIN)
-  NULLIFY(YBEM%XT_SIZE_MAX)
-  NULLIFY(YBEM%XT_SIZE_MIN)
   NULLIFY(YBEM%XUGG_WIN)
   NULLIFY(YBEM%LSHAD_DAY)
   NULLIFY(YBEM%LNATVENT_NIGHT)

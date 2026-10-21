@@ -241,6 +241,7 @@ CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_TOWN', DMT%XH_TOWN(1))
 | `python_tests/check_diag_container.py` | четыре списка полей контейнера (тип, `NULLIFY`, `ALLOCATE`, `DEALLOCATE`): расхождение аллокации/деаллокации — ошибка, пропавший `NULLIFY` — предупреждение; ключи `--strict`, `--json`, `--tree` |
 | `python_tests/container_ab_compare.py` | два бинарника на одном кейсе: побитовое сравнение `TEB_output.csv` поле-в-поле (как текст), заголовок, число строк, SHA-256; `--steps N` — короткий прогон, `--golden` — список колонок эталона |
 | `python_tests/diag_container_inventory.py` | инвентарь объявлений драйвера и контракт CSV: сколько колонок и чем каждая питается (замкнутость «источников ↔ колонок») |
+| `python_tests/container_fields_inventory.py` | поля соседних контейнеров (`TEB_OPTIONS_t`, `TEB_t`, `BEM_OPTIONS_t`, `BEM_t`, `TEB_PANEL_t`, `TEB_IRRIG_t`): категория `param`/`flux`/`state`/`work`/`reserved`/`dead`, число обращений и файлы-писатели; падает на неклассифицированном поле, `--strict` делает ошибкой оставшиеся мёртвые поля |
 
 ```powershell
 python python_tests/check_diag_container.py
@@ -252,6 +253,37 @@ python python_tests/container_ab_compare.py --ref-exe build/TEB_offline_dev_ref.
 Референсный кейс — `tests/CAPITOUL` (18 000 шагов, 111 колонок в его
 конфигурации). Критерий приёмки любой правки диагностик: **побитовое совпадение**
 CSV (равные SHA-256) при полном прогоне и `RESULT: OK` стража.
+
+### 8.1 Смежные контейнеры и их контракт
+
+Шесть типов, через которые проходит та же цепочка вызовов (`TEB_OPTIONS_t`,
+`TEB_t`, `BEM_OPTIONS_t`, `BEM_t`, `TEB_PANEL_t`, `TEB_IRRIG_t`), следуют одному
+контракту; он объявлен в шапке каждого типа и проверяется стендом
+`python_tests/container_fields_inventory.py`:
+
+| категория | смысл | кто пишет |
+| --- | --- | --- |
+| `param` | конфигурация и статика: ключи неймлиста, геометрия, материалы, параметры BEM | драйвер, один раз на прогон |
+| `flux` | антропогенные потоки из неймлиста (`XH_/XLE_TRAFFIC`, `XH_/XLE_INDUSTRY`) | драйвер, один раз на прогон |
+| `state` | прогностическое состояние, переносимое между подшагами | физика |
+| `work` | часы и рабочая память (`TTIME`, `XTSTEP`, `XAUX_MAX`, `XT_ADP`) | драйвер и физика |
+| `reserved` | не используется в TEB-MSU, оставлено как задел SURFEX | — |
+| `dead` | не используется и подлежит удалению | — |
+
+| тип | `param` | `flux` | `state` | `work` | `reserved` |
+| --- | --- | --- | --- | --- | --- |
+| `TEB_OPTIONS_t` | 19 | — | — | 2 | 3 |
+| `TEB_t` | 37 | 4 | 10 | — | 1 |
+| `BEM_OPTIONS_t` | 4 | — | — | — | — |
+| `BEM_t` | 45 | — | 12 | 2 | — |
+| `TEB_PANEL_t` | 4 | — | 1 | — | — |
+| `TEB_IRRIG_t` | 6 | — | — | — | 13 |
+
+**Проверка контракта.** Поле категории `param`/`flux`/`work` не должно
+присваиваться вне `run_teb_offline.F90`: сейчас стенд сообщает **122** таких поля —
+весь блок копирования «аргумент → контейнер» в `TEB_GARDEN_STRUCT`. Ключ
+`--enforce-param` делает их ошибкой; после переноса неймлиста в контейнеры список
+должен стать пустым.
 
 ---
 

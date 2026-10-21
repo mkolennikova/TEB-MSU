@@ -44,6 +44,14 @@ IMPLICIT NONE
 !--------------------------------------------------------------------------
 
 TYPE TEB_t
+!* CONTRACT (checked by python_tests/container_fields_inventory.py):
+!*   param    - static surface parameters, set once by the driver: geometry,
+!*              sky view factors, z0/zd, roof/road/wall materials, residential use
+!*   flux     - anthropogenic fluxes from the namelist (XH_/XLE_TRAFFIC,
+!*              XH_/XLE_INDUSTRY), set once per run
+!*   state    - prognostic state carried across sub-steps (XWS_*, XT_ROOF/ROAD/WALL_*,
+!*              TSNOW_ROOF/ROAD, XT_CANYON, XQ_CANYON)
+!*   reserved - TSNOW_GARDEN (garden snow is not used in TEB-MSU)
 ! TEB scheme option
 !
 ! Geometric Parameters:
@@ -112,10 +120,6 @@ TYPE TEB_t
   REAL, POINTER, DIMENSION(:)   :: XLE_INDUSTRY  ! anthropogenic latent
 !                                                  ! heat fluxes due to factories     (W/m2)
 !
-! temperatures for boundary conditions
-!
-  REAL, POINTER, DIMENSION(:)   :: XTI_ROAD      ! road interior temperature        (K)
-!
 ! Prognostic variables:
 !
   REAL, POINTER, DIMENSION(:)   :: XWS_ROOF      ! roof water reservoir             (kg/m2)
@@ -124,19 +128,6 @@ TYPE TEB_t
   REAL, POINTER, DIMENSION(:,:) :: XT_ROAD       ! road layer temperatures          (K)
   REAL, POINTER, DIMENSION(:,:) :: XT_WALL_A     ! wall layer temperatures          (K)
   REAL, POINTER, DIMENSION(:,:) :: XT_WALL_B     ! wall layer temperatures          (K)
-!
-  REAL, POINTER, DIMENSION(:)   :: XAC_ROOF      ! roof aerodynamic conductance     ()
-  REAL, POINTER, DIMENSION(:)   :: XAC_ROAD      ! road aerodynamic conductance     ()
-  REAL, POINTER, DIMENSION(:)   :: XAC_WALL      ! wall aerodynamic conductance     ()
-  REAL, POINTER, DIMENSION(:)   :: XAC_TOP       ! top  aerodynamic conductance     ()
-  REAL, POINTER, DIMENSION(:)   :: XAC_ROOF_WAT  ! water aerodynamic conductance    ()
-  REAL, POINTER, DIMENSION(:)   :: XAC_ROAD_WAT  ! water aerodynamic conductance    ()
-!
-  REAL, POINTER, DIMENSION(:)   :: XQSAT_ROOF    ! humidity of saturation for roofs (kg/kg)
-  REAL, POINTER, DIMENSION(:)   :: XQSAT_ROAD    ! humidity of saturation for roads (kg/kg)
-!
-  REAL, POINTER, DIMENSION(:)   :: XDELT_ROOF    ! humidity of saturation for roofs (-)
-  REAL, POINTER, DIMENSION(:)   :: XDELT_ROAD    ! humidity of saturation for roads (-)
 !
 ! Semi-prognostic variables:
 !
@@ -221,23 +212,12 @@ IF (LHOOK) CALL DR_HOOK("MODD_TEB_N:TEB_INIT",0,ZHOOK_HANDLE)
   NULLIFY(YTEB%XLE_TRAFFIC)
   NULLIFY(YTEB%XH_INDUSTRY)
   NULLIFY(YTEB%XLE_INDUSTRY)
-  NULLIFY(YTEB%XTI_ROAD)
   NULLIFY(YTEB%XWS_ROOF)
   NULLIFY(YTEB%XWS_ROAD)
   NULLIFY(YTEB%XT_ROOF)
   NULLIFY(YTEB%XT_ROAD)
   NULLIFY(YTEB%XT_WALL_A)
   NULLIFY(YTEB%XT_WALL_B)
-  NULLIFY(YTEB%XAC_ROOF)
-  NULLIFY(YTEB%XAC_ROAD)
-  NULLIFY(YTEB%XAC_WALL)
-  NULLIFY(YTEB%XAC_TOP)
-  NULLIFY(YTEB%XAC_ROOF_WAT)
-  NULLIFY(YTEB%XAC_ROAD_WAT)
-  NULLIFY(YTEB%XQSAT_ROOF)
-  NULLIFY(YTEB%XQSAT_ROAD)
-  NULLIFY(YTEB%XDELT_ROOF)
-  NULLIFY(YTEB%XDELT_ROAD)
   NULLIFY(YTEB%XT_CANYON)
   NULLIFY(YTEB%XQ_CANYON)
   NULLIFY(YTEB%XROUGH_ROOF)

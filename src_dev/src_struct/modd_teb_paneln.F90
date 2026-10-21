@@ -38,6 +38,9 @@ USE PARKIND1  ,ONLY : JPRB
 IMPLICIT NONE
 
 TYPE TEB_PANEL_t
+!* CONTRACT (checked by python_tests/container_fields_inventory.py):
+!*   param - panel emissivity, albedo, efficiency and roof fraction (namelist)
+!*   state - XTHER_PRODC_DAY, the daily integral of the thermal production
 !
   REAL,    POINTER, DIMENSION(:) :: XEMIS_PANEL       ! emissivity of solar panels               (-)
   REAL,    POINTER, DIMENSION(:) :: XALB_PANEL        ! albedo of soolar panels                  (-)

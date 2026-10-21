@@ -44,6 +44,8 @@ USE PARKIND1  ,ONLY : JPRB
 IMPLICIT NONE
 
 TYPE BEM_OPTIONS_t
+!* CONTRACT (checked by python_tests/container_fields_inventory.py):
+!*   param - number of floor layers and the BEM options, set once by the driver
 ! BLD scheme option
 !
 ! Number of layers
