@@ -44,8 +44,17 @@ MODEL_DIR = HERE.parent
 #: bookkeeping files of every type: a reference there does not count as a use
 BOOKKEEPING = {'alloc_teb_struct.F90', 'dealloc_teb_struct.F90'}
 
-#: the owner of the param / flux / work fields: the driver sets them once
-OWNER = 'run_teb_offline.F90'
+#: the owner of the param / flux fields: the driver fills them once
+OWNERS = {'run_teb_offline.F90', 'call_driver.F90',
+          # these four fill their own local scratch container (morphology, window optics)
+          'bem_morpho_struct.F90', 'bem_morpho.F90',
+          'window_data_struct.F90', 'window_data.F90'}
+
+#: containers still owned by the physics (their arguments are not moved yet)
+OWNER_BY_TYPE = {
+    'TEB_PANEL_t': OWNERS | {'teb_garden_struct.F90'},
+    'TEB_IRRIG_t': OWNERS | {'teb_garden_struct.F90'},
+}
 
 #: type -> (module file, code prefix)
 TYPES = [
@@ -176,6 +185,7 @@ def scan(field: str, prefix: str, src: dict, own_module: str) -> tuple:
     for name, text in src.items():
         if name == own_module or name in BOOKKEEPING:
             continue
+        text = re.sub(r'![^\n]*', '', text)      # comments are not assignments
         found = use.findall(text)
         if found:
             refs += len(found)
@@ -238,8 +248,9 @@ def main() -> int:
                 cat = 'UNCLASSIFIED'
             rows.append((typ, field, cat, refs, ','.join(sorted(set(writers))), comment))
             counts[typ][cat] = counts[typ].get(cat, 0) + 1
-            if cat in ('param', 'flux', 'work'):
-                stray = sorted({w for w in writers if w != OWNER})
+            if cat in ('param', 'flux'):
+                stray = sorted({w for w in writers
+                                if w not in OWNER_BY_TYPE.get(typ, OWNERS)})
                 if stray:
                     violations.append((typ, field, cat, ','.join(stray)))
 
@@ -268,7 +279,11 @@ def main() -> int:
         for typ, field, _c, refs, writers, _cmt in sel:
             out.append(f'| `{typ}` | `{field}` | {refs} | {writers or "-"} |')
     out += ['', '## Contract: assignments outside the owner', '',
-            f'`param`, `flux` and `work` fields are written once by `{OWNER}`; an assignment'
+            '`param` and `flux` fields are written once by the driver (`run_teb_offline`'
+            ' and its per-column routine `call_driver`, which derives the geometry, the'
+            ' morphology and the window optics); an assignment'
+            ' elsewhere is a leftover of the copy block of the physics. `work` fields are'
+            ' recomputed by the physics by definition and are not checked.'
             ' elsewhere is a leftover of the copy block of the physics (removed by the'
             ' namelist-container step).', '']
     if violations:
@@ -292,7 +307,7 @@ def main() -> int:
     if dead:
         print('  dead to remove: ' + ', '.join(f'{t}:{f}' for t, f in dead))
     if violations:
-        print(f'  contract: {len(violations)} param/flux/work fields assigned outside {OWNER}:')
+        print(f'  contract: {len(violations)} param/flux/work fields assigned outside the driver:')
         for typ, field, cat, files in violations[:8]:
             print(f'    {typ}:{field} ({cat}) <- {files}')
         if len(violations) > 8:

@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 !   ##########################################################################
-    SUBROUTINE DEALLOC_TEB_STRUCT(TOP,TP,T,BOP,BP,B,TPN,TIR)
+    SUBROUTINE DEALLOC_TEB_STRUCT(TOP,T,BOP,B,TPN,TIR)
 !   ##########################################################################
 !
 !!****  *DEALLOC_TEB_STRUCT*
@@ -59,10 +59,8 @@ IMPLICIT NONE
 !
 !
 TYPE(TEB_OPTIONS_t),   INTENT(INOUT) :: TOP
-TYPE(TEB_PARAMS_t),    INTENT(INOUT) :: TP
 TYPE(TEB_t),           INTENT(INOUT) :: T
 TYPE(BEM_OPTIONS_t),   INTENT(INOUT) :: BOP
-TYPE(BEM_PARAMS_t),    INTENT(INOUT) :: BP
 TYPE(BEM_t),           INTENT(INOUT) :: B
 TYPE(TEB_PANEL_t),     INTENT(INOUT) :: TPN
 TYPE(TEB_IRRIG_t),     INTENT(INOUT) :: TIR
@@ -79,16 +77,9 @@ TYPE(TEB_IRRIG_t),     INTENT(INOUT) :: TIR
 !
 ! Floor parameters
 !
-DEALLOCATE(BP%XHC_FLOOR) ! floor layers heat capacity        (J/K/m3)
-DEALLOCATE(BP%XTC_FLOOR) ! floor layers thermal conductivity (W/K/m)
-DEALLOCATE(BP%XD_FLOOR ) ! depth of floor layers             (m)
 !
 ! HVAC parameters
 !
-DEALLOCATE(BP%XTCOOL_TARGET) ! cooling setpoint of indoor air
-DEALLOCATE(BP%XTHEAT_TARGET) ! heating setpoint of indoor air
-DEALLOCATE(BP%XF_WASTE_CAN ) ! fraction of waste heat released into the canyon
-DEALLOCATE(BP%XEFF_HEAT    ) ! efficiency of the heating system
 !
 ! Indoor parameters
 !
@@ -96,26 +87,13 @@ DEALLOCATE(B%XTI_BLD)                    ! building interior temperature    (K)
 DEALLOCATE(B%XT_FLOOR ) ! floor layer temperatures         (K)
 DEALLOCATE(B%XT_MASS  ) ! Air cooled building internal th. mass temperature (K)
 !
-DEALLOCATE(BP%XQIN)           ! internal heat gains [W m-2(floor)]
-DEALLOCATE(BP%XQIN_FRAD)      ! radiant fraction of internal heat gains
-DEALLOCATE(BP%XSHGC)          ! solar heat gain coef. of windows
-DEALLOCATE(BP%XSHGC_SH)       ! solar heat gain coef. of windows + shading
-DEALLOCATE(BP%XU_WIN)         ! window U-factor [K m W-2]
 DEALLOCATE(B%XTRAN_WIN)      ! window transmittance (-)
-DEALLOCATE(BP%XGR)            ! glazing ratio
-DEALLOCATE(BP%XFLOOR_HEIGHT)  ! building floor height [m]
-DEALLOCATE(BP%XINF)           ! infiltration/ventilation flow rate [AC/H]
 !
 ! New parameters
 !
-DEALLOCATE(BP%XF_WATER_COND) ! fraction of evaporation for condensers (cooling system)
 DEALLOCATE(B%XAUX_MAX)      ! Auxiliar variable for autosize calcs
-DEALLOCATE(BP%XQIN_FLAT)     ! Latent franction of internal heat gains
-DEALLOCATE(BP%XHR_TARGET)    ! Relative humidity setpoint
 DEALLOCATE(B%XT_WIN2)       ! Indoor window temperature [K]
 DEALLOCATE(B%XQI_BLD)       ! Indoor air specific humidity [kg kg-1]
-DEALLOCATE(BP%XV_VENT)       ! Ventilation flow rate [AC/H]
-DEALLOCATE(BP%XCAP_SYS_HEAT) ! Capacity of the heating system 
                              ! [W m-2(bld)]
 DEALLOCATE(B%XCAP_SYS_RAT)  ! Rated capacity of the cooling system
                              ! [W m-2(bld)]
@@ -123,38 +101,18 @@ DEALLOCATE(B%XT_ADP)        ! Apparatus dewpoint temperature of the
                              ! cooling coil [K]
 DEALLOCATE(B%XM_SYS_RAT)    ! Rated HVAC mass flow rate 
                              ! [kg s-1 m-2(bld)]
-DEALLOCATE(BP%XCOP_RAT)      ! Rated COP of the cooling system
 DEALLOCATE(B%XT_WIN1)       ! outdoor window temperature [K]
 DEALLOCATE(B%XALB_WIN)      ! window albedo
 DEALLOCATE(B%XABS_WIN)      ! window absortance
 DEALLOCATE(B%XUGG_WIN)      ! Window glass-to-glass U-factor [K m W-2]
 DEALLOCATE(B%LSHADE)        ! flag to activate shading devices -> LOGICAL in the code
 DEALLOCATE(B%XSHADE)        ! flag to activate shading devices -> REAL for i/o 0. or 1.
-DEALLOCATE(BP%CNATVENT)      ! flag to activate natural ventilation 'NONE', 'MANU', 'AUTO'
 DEALLOCATE(B%XNATVENT)      ! flag to describe surventilation system for i/o 
                              ! 0 for NONE, 1 for MANU and 2 for AUTO
 DEALLOCATE(B%LSHAD_DAY)     !Has shading been necessary this day ?
 DEALLOCATE(B%LNATVENT_NIGHT)!Has nocturnal surventilation been necessary and possible this night ?
   !
   !indoor relative surfaces and view factors
-DEALLOCATE(BP%XN_FLOOR)        ! Number of floors     
-DEALLOCATE(BP%XGLAZ_O_BLD)     ! Window area [m2_win/m2_bld]
-DEALLOCATE(BP%XMASS_O_BLD)     ! Mass area [m2_mass/m2_bld]
-DEALLOCATE(BP%XFLOOR_HW_RATIO) ! H/W ratio of 1 floor level
-DEALLOCATE(BP%XF_FLOOR_MASS)   ! View factor floor-mass
-DEALLOCATE(BP%XF_FLOOR_WALL)   ! View factor floor-wall
-DEALLOCATE(BP%XF_FLOOR_WIN)    ! View factor floor-window
-DEALLOCATE(BP%XF_FLOOR_ROOF)   ! View factor floor-roof
-DEALLOCATE(BP%XF_WALL_FLOOR)   ! View factor wall-floor
-DEALLOCATE(BP%XF_WALL_MASS)    ! View factor wall-mass
-DEALLOCATE(BP%XF_WALL_WIN)     ! View factor wall-win
-DEALLOCATE(BP%XF_WIN_FLOOR)    ! View factor win-floor
-DEALLOCATE(BP%XF_WIN_MASS)     ! View factor win-mass
-DEALLOCATE(BP%XF_WIN_WALL)     ! View factor win-wall
-DEALLOCATE(BP%XF_WIN_WIN)      ! indoor View factor win-win
-DEALLOCATE(BP%XF_MASS_FLOOR)   ! View factor mass-floor
-DEALLOCATE(BP%XF_MASS_WALL)    ! View factor mass-wall
-DEALLOCATE(BP%XF_MASS_WIN)     ! View factor mass-window
 !
 ! Static parameters of the building (component P)
 !
@@ -165,66 +123,27 @@ DEALLOCATE(BP%XF_MASS_WIN)     ! View factor mass-window
 !
 ! Geometric Parameters:
 !
-DEALLOCATE(TP%XROAD_DIR)     ! Road direction (deg from North, clockwise)
-DEALLOCATE(TP%XGARDEN)       ! fraction of veg in the streets   (-)
-DEALLOCATE(TP%XGREENROOF)    ! fraction of greenroofs on roofs  (-)
-DEALLOCATE(TP%XBLD)          ! fraction of buildings            (-)
-DEALLOCATE(TP%XROAD)         ! fraction of roads                (-)
-DEALLOCATE(TP%XCAN_HW_RATIO) ! canyon    h/W                    (-)
-DEALLOCATE(TP%XBLD_HEIGHT)   ! buildings height 'h'             (m)
-DEALLOCATE(TP%XWALL_O_HOR)   ! wall surf. / hor. surf.          (-)
-DEALLOCATE(TP%XROAD_O_GRND)  ! road surf. / (road + garden surf.) (-)
-DEALLOCATE(TP%XGARDEN_O_GRND)! gard. surf. / (road + garden surf.)(-)
-DEALLOCATE(TP%XWALL_O_GRND)  ! wall surf. / (road + garden surf.) (-)
-DEALLOCATE(TP%XWALL_O_BLD)   ! wall surf. / bld surf. (-)
-DEALLOCATE(TP%XZ0_TOWN)      ! roughness length for momentum    (m)
 !MV202609 z0 and zd to namelist
-DEALLOCATE(TP%XZD_TOWN)      ! displacement height of the town  (m)
-DEALLOCATE(TP%XSVF_ROAD)     ! road sky view factor             (-)
-DEALLOCATE(TP%XSVF_GARDEN)   ! green area sky view factor       (-)
-DEALLOCATE(TP%XSVF_WALL)     ! wall sky view factor             (-)
 !
 ! Roof parameters
 !
-DEALLOCATE(TP%XALB_ROOF)     ! roof albedo                      (-)
-DEALLOCATE(TP%XEMIS_ROOF)    ! roof emissivity                  (-)
-DEALLOCATE(TP%XHC_ROOF)      ! roof layers heat capacity        (J/K/m3)
-DEALLOCATE(TP%XTC_ROOF)      ! roof layers thermal conductivity (W/K/m)
-DEALLOCATE(TP%XD_ROOF)       ! depth of roof layers             (m)
-DEALLOCATE(TP%XROUGH_ROOF)   ! roof roughness coef
 !
 !
 ! Road parameters
 !
-DEALLOCATE(TP%XALB_ROAD)     ! road albedo                      (-)
-DEALLOCATE(TP%XEMIS_ROAD)    ! road emissivity                  (-)
-DEALLOCATE(TP%XHC_ROAD)      ! road layers heat capacity        (J/K/m3)
-DEALLOCATE(TP%XTC_ROAD)      ! road layers thermal conductivity (W/K/m)
-DEALLOCATE(TP%XD_ROAD)       ! depth of road layers             (m)
 !
 ! Wall parameters
 !
-DEALLOCATE(TP%XALB_WALL)     ! wall albedo                      (-)
-DEALLOCATE(TP%XEMIS_WALL)    ! wall emissivity                  (-)
-DEALLOCATE(TP%XHC_WALL)      ! wall layers heat capacity        (J/K/m3)
-DEALLOCATE(TP%XTC_WALL)      ! wall layers thermal conductivity (W/K/m)
-DEALLOCATE(TP%XD_WALL)       ! depth of wall layers             (m)
-DEALLOCATE(TP%XROUGH_WALL)   ! wall roughness coef
 !
 ! Building's use type
 !
-DEALLOCATE(TP%XRESIDENTIAL)  ! fraction of Residential use      (-)
   
 !
 ! anthropogenic fluxes
 !
-DEALLOCATE(TP%XH_TRAFFIC)    ! anthropogenic sensible
 !                                                  ! heat fluxes due to traffic       (W/m2)
-DEALLOCATE(TP%XLE_TRAFFIC)   ! anthropogenic latent
 !                                                  ! heat fluxes due to traffic       (W/m2)
-DEALLOCATE(TP%XH_INDUSTRY)   ! anthropogenic sensible                   
 !                                                  ! heat fluxes due to factories     (W/m2)
-DEALLOCATE(TP%XLE_INDUSTRY)  ! anthropogenic latent
 !                                                  ! heat fluxes due to factories     (W/m2)
 !
 ! Prognostic variables:

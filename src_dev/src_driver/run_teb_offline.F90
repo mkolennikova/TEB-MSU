@@ -3,6 +3,10 @@ PROGRAM run_teb_offline
 USE sfc_teb,        ONLY : teb_interface
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 USE MODI_DIAG_MISC_TEB_UTIL, ONLY : DIAG_MISC_TEB_ALLOC, DIAG_MISC_TEB_DEALLOC
+USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t, TEB_OPTIONS_INIT
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t, ALLOC_TEB_PARAMS, DEALLOC_TEB_PARAMS
+USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t, BEM_OPTIONS_INIT
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t, ALLOC_BEM_PARAMS, DEALLOC_BEM_PARAMS
 USE MODI_OL_READ_ATM
 USE MODI_OL_TIME_INTERP_ATM
 USE MODD_SURF_PAR, ONLY: XUNDEF, teb_snow_check
@@ -417,6 +421,10 @@ CHARACTER(LEN=4096) :: hdr_line                ! header line, built by CSV_ADD (
 CHARACTER(LEN=4096) :: out_line                ! one data row of the CSV
 CHARACTER(LEN=32) :: time_buf                  ! timestamp buffer (ISO 8601)
 TYPE(DIAG_MISC_TEB_t) :: DMT   ! diagnostics container, owned by this driver
+TYPE(TEB_OPTIONS_t) :: TOP
+TYPE(TEB_PARAMS_t)  :: TP
+TYPE(BEM_OPTIONS_t) :: BOP
+TYPE(BEM_PARAMS_t)  :: BP
 REAL :: forc_wind                              ! forcing wind speed       (m/s)
 REAL :: forc_dir                               ! forcing wind direction   (deg from North)
 ! -----------------------------------------------------------                        
@@ -1134,6 +1142,29 @@ END IF
 !* it is allocated once for the whole run and threaded through TEB_INTERFACE
 !* and CALL_DRIVER; the fields it carries are read for the CSV output.
 CALL DIAG_MISC_TEB_ALLOC(DMT, nvec)
+!
+! Static parameters and options: filled once from the namelist
+!
+CALL TEB_OPTIONS_INIT(TOP)
+CALL BEM_OPTIONS_INIT(BOP)
+CALL ALLOC_TEB_PARAMS(TP, teb_nroof_layer, teb_nroad_layer, teb_nwall_layer)
+CALL ALLOC_BEM_PARAMS(BP, teb_nfloor_layer)
+BOP%CCOOL_COIL = teb_itype_bem_cool
+BOP%CHEAT_COIL = teb_itype_bem_heat
+BP%CNATVENT = teb_itype_natvent
+TOP%LGARDEN = teb_lgarden
+TOP%CROAD_DIR = teb_hroad_dir
+TOP%CWALL_OPT = teb_wall_opt
+TOP%CBEM = teb_itype_bem
+TOP%LGREENROOF = teb_lgreenroof
+TOP%CTYPE_GARDEN = teb_type_garden
+TOP%CTYPE_GREENROOF = teb_type_greenroof
+TOP%LSOLAR_PANEL = teb_lsolar_panel
+TOP%LCBS_SCHEME = teb_lcbs_scheme
+TOP%XTAU_HW_THRESH = teb_tau_hw_thresh
+TOP%XTAU_HW_WIDTH = teb_tau_hw_width
+TOP%XZ0_O_Z0H_GD = urb_z0_o_z0h_gdn
+TOP%XZ0_O_Z0H_GR = urb_z0_o_z0h_grf
 
 INB_ATM = forc_step / dt
 
@@ -1231,7 +1262,7 @@ DO nstep= 1,nsteps - 1
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 !MV202609 greenroof diagnostics
 !MV202609 greenroof-to-atm exchange diagnostics
-                          DMT)
+                          DMT, TOP, TP, BOP, BP)
 !MV202609 garden emulation (teb_type_garden = 'EXT')
 !* the external garden model: TEB has just used the garden state prescribed at
 !* the previous sub-step; the emulator now updates the state and the fluxes for
@@ -1454,6 +1485,8 @@ CLOSE(fu_out)
 ! --------------------------------------------------------------------------------------
 !
 !MV202609 release the diagnostics container
+CALL DEALLOC_BEM_PARAMS(BP)
+CALL DEALLOC_TEB_PARAMS(TP)
 CALL DIAG_MISC_TEB_DEALLOC(DMT)
 
 CONTAINS

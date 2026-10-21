@@ -7,7 +7,7 @@ MODULE MODI_DEALLOC_TEB_STRUCT
 INTERFACE
 !
 !   ##########################################################################
-    SUBROUTINE DEALLOC_TEB_STRUCT(TOP,TP,T,BOP,BP,B,TPN,TIR)
+    SUBROUTINE DEALLOC_TEB_STRUCT(TOP,T,BOP,B,TPN,TIR)
 !   ##########################################################################
 !
 !
@@ -26,10 +26,8 @@ USE MODD_TEB_IRRIG_n, ONLY : TEB_IRRIG_t
 IMPLICIT NONE
 !
 TYPE(TEB_OPTIONS_t),   INTENT(INOUT) :: TOP
-TYPE(TEB_PARAMS_t),    INTENT(INOUT) :: TP
 TYPE(TEB_t),           INTENT(INOUT) :: T
 TYPE(BEM_OPTIONS_t),   INTENT(INOUT) :: BOP
-TYPE(BEM_PARAMS_t),    INTENT(INOUT) :: BP
 TYPE(BEM_t),           INTENT(INOUT) :: B
 TYPE(TEB_PANEL_t),     INTENT(INOUT) :: TPN
 TYPE(TEB_IRRIG_t),     INTENT(INOUT) :: TIR

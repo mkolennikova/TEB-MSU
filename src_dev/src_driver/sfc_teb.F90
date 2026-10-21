@@ -73,7 +73,15 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 !MV202609 greenroof diagnostics
 !MV202609 greenroof-to-atm exchange diagnostics
-                          DMT)
+                          DMT, TOP, TP, BOP, BP)
+USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
+USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
+TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
+TYPE(TEB_PARAMS_t),  INTENT(INOUT) :: TP
+TYPE(BEM_OPTIONS_t), INTENT(INOUT) :: BOP
+TYPE(BEM_PARAMS_t),  INTENT(INOUT) :: BP
 
 !-------------------------------------------------------------------------------
 ! Declarations
@@ -337,7 +345,7 @@ TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT   ! diagnostics container (owned by 
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 !MV202609 greenroof diagnostics
 !MV202609 greenroof-to-atm exchange diagnostics
-                          DMT)
+                          DMT, TOP, TP, BOP, BP)
 	END DO
 	
 END SUBROUTINE teb_interface

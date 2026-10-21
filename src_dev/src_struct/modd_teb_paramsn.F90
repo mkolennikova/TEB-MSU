@@ -159,5 +159,93 @@ IF (LHOOK) CALL DR_HOOK("MODD_TEB_PARAMS_n:TEB_PARAMS_INIT",0,ZHOOK_HANDLE)
 IF (LHOOK) CALL DR_HOOK("MODD_TEB_PARAMS_n:TEB_PARAMS_INIT",1,ZHOOK_HANDLE)
 END SUBROUTINE TEB_PARAMS_INIT
 
+SUBROUTINE ALLOC_TEB_PARAMS(YTEB_PARAMS, KROOF_LAYER, KROAD_LAYER, KWALL_LAYER)
+TYPE(TEB_PARAMS_t), INTENT(INOUT) :: YTEB_PARAMS
+INTEGER, INTENT(IN) :: KROOF_LAYER, KROAD_LAYER, KWALL_LAYER
+CALL TEB_PARAMS_INIT(YTEB_PARAMS)
+ALLOCATE(YTEB_PARAMS%XROAD_DIR(1))     ! Road direction (deg from North, clockwise)
+ALLOCATE(YTEB_PARAMS%XGARDEN(1))       ! fraction of veg in the streets   (-)
+ALLOCATE(YTEB_PARAMS%XGREENROOF(1))    ! fraction of greenroofs on roofs  (-)
+ALLOCATE(YTEB_PARAMS%XBLD(1))          ! fraction of buildings            (-)
+ALLOCATE(YTEB_PARAMS%XROAD(1))         ! fraction of roads                (-)
+ALLOCATE(YTEB_PARAMS%XCAN_HW_RATIO(1)) ! canyon    h/W                    (-)
+ALLOCATE(YTEB_PARAMS%XBLD_HEIGHT(1))   ! buildings height 'h'             (m)
+ALLOCATE(YTEB_PARAMS%XWALL_O_HOR(1))   ! wall surf. / hor. surf.          (-)
+ALLOCATE(YTEB_PARAMS%XROAD_O_GRND(1))  ! road surf. / (road + garden surf.) (-)
+ALLOCATE(YTEB_PARAMS%XGARDEN_O_GRND(1))! gard. surf. / (road + garden surf.)(-)
+ALLOCATE(YTEB_PARAMS%XWALL_O_GRND(1))  ! wall surf. / (road + garden surf.) (-)
+ALLOCATE(YTEB_PARAMS%XWALL_O_BLD(1))   ! wall surf. / bld surf. (-)
+ALLOCATE(YTEB_PARAMS%XZ0_TOWN(1))      ! roughness length for momentum    (m)
+ALLOCATE(YTEB_PARAMS%XZD_TOWN(1))      ! displacement height of the town  (m)
+ALLOCATE(YTEB_PARAMS%XSVF_ROAD(1))     ! road sky view factor             (-)
+ALLOCATE(YTEB_PARAMS%XSVF_GARDEN(1))   ! green area sky view factor       (-)
+ALLOCATE(YTEB_PARAMS%XSVF_WALL(1))     ! wall sky view factor             (-)
+ALLOCATE(YTEB_PARAMS%XALB_ROOF(1))     ! roof albedo                      (-)
+ALLOCATE(YTEB_PARAMS%XEMIS_ROOF(1))    ! roof emissivity                  (-)
+ALLOCATE(YTEB_PARAMS%XHC_ROOF(1,KROOF_LAYER))      ! roof layers heat capacity        (J/K/m3)
+ALLOCATE(YTEB_PARAMS%XTC_ROOF(1,KROOF_LAYER))      ! roof layers thermal conductivity (W/K/m)
+ALLOCATE(YTEB_PARAMS%XD_ROOF(1,KROOF_LAYER))       ! depth of roof layers             (m)
+ALLOCATE(YTEB_PARAMS%XROUGH_ROOF(1))   ! roof roughness coef
+ALLOCATE(YTEB_PARAMS%XALB_ROAD(1))     ! road albedo                      (-)
+ALLOCATE(YTEB_PARAMS%XEMIS_ROAD(1))    ! road emissivity                  (-)
+ALLOCATE(YTEB_PARAMS%XHC_ROAD(1,KROAD_LAYER))      ! road layers heat capacity        (J/K/m3)
+ALLOCATE(YTEB_PARAMS%XTC_ROAD(1,KROAD_LAYER))      ! road layers thermal conductivity (W/K/m)
+ALLOCATE(YTEB_PARAMS%XD_ROAD(1,KROAD_LAYER))       ! depth of road layers             (m)
+ALLOCATE(YTEB_PARAMS%XALB_WALL(1))     ! wall albedo                      (-)
+ALLOCATE(YTEB_PARAMS%XEMIS_WALL(1))    ! wall emissivity                  (-)
+ALLOCATE(YTEB_PARAMS%XHC_WALL(1,KWALL_LAYER))      ! wall layers heat capacity        (J/K/m3)
+ALLOCATE(YTEB_PARAMS%XTC_WALL(1,KWALL_LAYER))      ! wall layers thermal conductivity (W/K/m)
+ALLOCATE(YTEB_PARAMS%XD_WALL(1,KWALL_LAYER))       ! depth of wall layers             (m)
+ALLOCATE(YTEB_PARAMS%XROUGH_WALL(1))   ! wall roughness coef
+ALLOCATE(YTEB_PARAMS%XRESIDENTIAL(1))  ! fraction of Residential use      (-)
+ALLOCATE(YTEB_PARAMS%XH_TRAFFIC(1))    ! anthropogenic sensible
+ALLOCATE(YTEB_PARAMS%XLE_TRAFFIC(1))   ! anthropogenic latent
+ALLOCATE(YTEB_PARAMS%XH_INDUSTRY(1))   ! anthropogenic sensible
+ALLOCATE(YTEB_PARAMS%XLE_INDUSTRY(1))  ! anthropogenic latent
+END SUBROUTINE ALLOC_TEB_PARAMS
+
+SUBROUTINE DEALLOC_TEB_PARAMS(YTEB_PARAMS)
+TYPE(TEB_PARAMS_t), INTENT(INOUT) :: YTEB_PARAMS
+DEALLOCATE(YTEB_PARAMS%XROAD_DIR)     ! Road direction (deg from North, clockwise)
+DEALLOCATE(YTEB_PARAMS%XGARDEN)       ! fraction of veg in the streets   (-)
+DEALLOCATE(YTEB_PARAMS%XGREENROOF)    ! fraction of greenroofs on roofs  (-)
+DEALLOCATE(YTEB_PARAMS%XBLD)          ! fraction of buildings            (-)
+DEALLOCATE(YTEB_PARAMS%XROAD)         ! fraction of roads                (-)
+DEALLOCATE(YTEB_PARAMS%XCAN_HW_RATIO) ! canyon    h/W                    (-)
+DEALLOCATE(YTEB_PARAMS%XBLD_HEIGHT)   ! buildings height 'h'             (m)
+DEALLOCATE(YTEB_PARAMS%XWALL_O_HOR)   ! wall surf. / hor. surf.          (-)
+DEALLOCATE(YTEB_PARAMS%XROAD_O_GRND)  ! road surf. / (road + garden surf.) (-)
+DEALLOCATE(YTEB_PARAMS%XGARDEN_O_GRND)! gard. surf. / (road + garden surf.)(-)
+DEALLOCATE(YTEB_PARAMS%XWALL_O_GRND)  ! wall surf. / (road + garden surf.) (-)
+DEALLOCATE(YTEB_PARAMS%XWALL_O_BLD)   ! wall surf. / bld surf. (-)
+DEALLOCATE(YTEB_PARAMS%XZ0_TOWN)      ! roughness length for momentum    (m)
+DEALLOCATE(YTEB_PARAMS%XZD_TOWN)      ! displacement height of the town  (m)
+DEALLOCATE(YTEB_PARAMS%XSVF_ROAD)     ! road sky view factor             (-)
+DEALLOCATE(YTEB_PARAMS%XSVF_GARDEN)   ! green area sky view factor       (-)
+DEALLOCATE(YTEB_PARAMS%XSVF_WALL)     ! wall sky view factor             (-)
+DEALLOCATE(YTEB_PARAMS%XALB_ROOF)     ! roof albedo                      (-)
+DEALLOCATE(YTEB_PARAMS%XEMIS_ROOF)    ! roof emissivity                  (-)
+DEALLOCATE(YTEB_PARAMS%XHC_ROOF)      ! roof layers heat capacity        (J/K/m3)
+DEALLOCATE(YTEB_PARAMS%XTC_ROOF)      ! roof layers thermal conductivity (W/K/m)
+DEALLOCATE(YTEB_PARAMS%XD_ROOF)       ! depth of roof layers             (m)
+DEALLOCATE(YTEB_PARAMS%XROUGH_ROOF)   ! roof roughness coef
+DEALLOCATE(YTEB_PARAMS%XALB_ROAD)     ! road albedo                      (-)
+DEALLOCATE(YTEB_PARAMS%XEMIS_ROAD)    ! road emissivity                  (-)
+DEALLOCATE(YTEB_PARAMS%XHC_ROAD)      ! road layers heat capacity        (J/K/m3)
+DEALLOCATE(YTEB_PARAMS%XTC_ROAD)      ! road layers thermal conductivity (W/K/m)
+DEALLOCATE(YTEB_PARAMS%XD_ROAD)       ! depth of road layers             (m)
+DEALLOCATE(YTEB_PARAMS%XALB_WALL)     ! wall albedo                      (-)
+DEALLOCATE(YTEB_PARAMS%XEMIS_WALL)    ! wall emissivity                  (-)
+DEALLOCATE(YTEB_PARAMS%XHC_WALL)      ! wall layers heat capacity        (J/K/m3)
+DEALLOCATE(YTEB_PARAMS%XTC_WALL)      ! wall layers thermal conductivity (W/K/m)
+DEALLOCATE(YTEB_PARAMS%XD_WALL)       ! depth of wall layers             (m)
+DEALLOCATE(YTEB_PARAMS%XROUGH_WALL)   ! wall roughness coef
+DEALLOCATE(YTEB_PARAMS%XRESIDENTIAL)  ! fraction of Residential use      (-)
+DEALLOCATE(YTEB_PARAMS%XH_TRAFFIC)    ! anthropogenic sensible
+DEALLOCATE(YTEB_PARAMS%XLE_TRAFFIC)   ! anthropogenic latent
+DEALLOCATE(YTEB_PARAMS%XH_INDUSTRY)   ! anthropogenic sensible
+DEALLOCATE(YTEB_PARAMS%XLE_INDUSTRY)  ! anthropogenic latent
+END SUBROUTINE DEALLOC_TEB_PARAMS
+
 END MODULE MODD_TEB_PARAMS_n
 

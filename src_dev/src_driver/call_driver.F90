@@ -56,7 +56,7 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 !MV202609 greenroof diagnostics
 !MV202609 greenroof-to-atm exchange diagnostics
-                          DMT)
+                          DMT, TOP, TP, BOP, BP)
 							
 ! ======================================================================
 ! 
@@ -154,7 +154,15 @@ USE MODD_FORC_ATM, ONLY: CSV         ,&! name of all scalar variables
                          XPET_B_COEF ,&
                          XPEQ_B_COEF
 !
+USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
+USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
+USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
 IMPLICIT NONE
+TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
+TYPE(TEB_PARAMS_t),  INTENT(INOUT) :: TP
+TYPE(BEM_OPTIONS_t), INTENT(INOUT) :: BOP
+TYPE(BEM_PARAMS_t),  INTENT(INOUT) :: BP
 ! ---------------------------------------------------------------
 ! Declaration of variables 
 ! ---------------------------------------------------------------
@@ -1336,138 +1344,204 @@ ENDIF
 !*****************************************************************************
 
 
-CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, TYPE_GARDEN, TYPE_GREENROOF, LGREENROOF, LGREENROOF_EXT, LSOLAR_PANEL,                &
-                     HZ0H, HIMPLICIT_WIND, HROAD_DIR, HWALL_OPT, TPTIME,      &
-                     LBEM_AC, XTSUN, ZT_CANYON, ZQ_CANYON, DMT%XWIND_CANYON(1:1),                  &
-                     ZT_LOWCAN, ZQ_LOWCAN, ZU_LOWCAN, ZZ_LOWCAN,              &
-                     ZTI_BLD,                                                 &
-                     ZT_ROOF, ZT_ROAD, ZT_WALL_A, ZT_WALL_B,                  &
-                     ZWS_ROOF,ZWS_ROAD,                                       &
-                     HSNOW_ROOF,                                              &
-                     ZWSNOW_ROOF, ZTSNOW_ROOF, ZRSNOW_ROOF, ZASNOW_ROOF,      &
-                     ZTSSNOW_ROOF, ZESNOW_ROOF,                               &
-                     HSNOW_ROAD,                                              &
-                     ZWSNOW_ROAD, ZTSNOW_ROAD, ZRSNOW_ROAD, ZASNOW_ROAD,      &
-                     ZTSSNOW_ROAD, ZESNOW_ROAD,                               &
-                     ZPEW_A_COEF, ZPEW_B_COEF,                                &
-                     ZPEW_A_COEF_LOWCAN, ZPEW_B_COEF_LOWCAN, ZZ0_GD_EXT,      &
-                     XPS, XPA, ZEXNS, ZEXNA,                                  &
-                     XTA, ZQA_KGKG, XRHOA, XCO2,                              &
-                     XLW, ZTDIR_SW, ZTSCA_SW, XSW_BANDS, KSW,                 &
-                     XZENITH, XAZIM,                                          &
-                     XRAIN, XSNOW,                                            &
-                     ZZREF, ZZREF, ZVMOD,                                     &
-                     ZH_TRAFFIC_NOW_CAN, ZLE_TRAFFIC, ZH_INDUSTRY, ZLE_INDUSTRY,      &
-                     XTSTEP_SURF,                                             &
-                     ZZ0U,                                                     &
-                     ZBLD,ZGARDEN,ZROAD_DIR,ZROAD,ZFRAC_GR,                   &
-                     ZBLD_HEIGHT,ZWALL_O_HOR,ZCAN_HW_RATIO,                   &
-                     ZROAD_O_GRND, ZGARDEN_O_GRND, ZWALL_O_GRND,              &
-                     ZALB_ROOF, ZEMIS_ROOF,                                   &
-                     ZHC_ROOF,ZTC_ROOF,ZD_ROOF,                               &
-                     ZALB_ROAD, ZEMIS_ROAD, ZSVF_ROAD,                        &
-                     ZHC_ROAD,ZTC_ROAD,ZD_ROAD,                               &
-                     ZALB_WALL, ZEMIS_WALL, ZSVF_WALL,                        &
-                     ZSVF_GARDEN,                                             &
-                     ZHC_WALL,ZTC_WALL,ZD_WALL,                               &
-                     ZRN_ROOF, ZH_ROOF, ZLE_ROOF, ZLEW_ROOF, ZGFLUX_ROOF,     &
-                     DMT%XRUNOFF_ROOF(1:1),                                            &
-                     ZRN_ROAD, ZH_ROAD, ZLE_ROAD, ZLEW_ROAD, ZGFLUX_ROAD,     &
-                     DMT%XRUNOFF_ROAD(1:1),                                            &
-                     ZRN_WALL_A, ZH_WALL_A, ZLE_WALL_A, ZGFLUX_WALL_A,        &
-                     ZRN_WALL_B, ZH_WALL_B, ZLE_WALL_B, ZGFLUX_WALL_B,        &
-                     ZRN_STRLROOF,ZH_STRLROOF,ZLE_STRLROOF, ZGFLUX_STRLROOF,  &
-                     ZRUNOFF_STRLROOF,                                        &
-                     ZRN_BLT,ZH_BLT,ZLE_BLT, ZGFLUX_BLT,                      &
-                     ZRNSNOW_ROOF, ZHSNOW_ROOF, ZLESNOW_ROOF, ZGSNOW_ROOF,    &
-                     ZMELT_ROOF,                                              &
-                     ZRNSNOW_ROAD, ZHSNOW_ROAD, ZLESNOW_ROAD, ZGSNOW_ROAD,    &
-                     ZMELT_ROAD,                                              &
-                     ZRN_GRND, ZH_GRND, ZLE_GRND, ZGFLUX_GRND,                &
-                     DMT%XRN_TOWN(1:1), DMT%XH_TOWN(1:1), DMT%XLE_TOWN(1:1), DMT%XGFLUX_TOWN(1:1), DMT%XQVFL(1:1),    &
-                     DMT%XRUNOFF_TOWN(1:1), ZSFCO2,                                    &
-                     ZUW_GRND, ZUW_ROOF, ZDUWDU_GRND, ZDUWDU_ROOF,            & 
-                     DMT%XUSTAR_TOWN(1:1), ZCD, ZCDN, DMT%XTCH_TOWN(1:1), ZRI_TOWN,              &
-                     DMT%XTSTOWN_S(1:1), ZEMIS_TOWN, ZDIR_ALB_TOWN, ZSCA_ALB_TOWN,      &
-                     DMT%XALB_SO(1:1), ZSW_UP_SO, ZRESA_TOWN, DMT%XDQS_TOWN(1:1), ZQF_TOWN, ZQF_BLD,  &
-                     ZFLX_BLD, DMT%XAC_RF(1:1), DMT%XAC_RD(1:1), DMT%XAC_WL(1:1), ZAC_GARDEN, ZAC_GREENROOF,           &
-                     ZAC_ROAD_WAT, ZAC_GARDEN_WAT, ZAC_GREENROOF_WAT,         &
-                     ZABS_SW_ROOF,ZABS_LW_ROOF,                               &
-                     ZABS_SW_SNOW_ROOF,ZABS_LW_SNOW_ROOF,                     &
-                     ZABS_SW_ROAD,ZABS_LW_ROAD,                               &
-                     ZABS_SW_SNOW_ROAD,ZABS_LW_SNOW_ROAD,                     &
-                     ZABS_SW_WALL_A,ZABS_LW_WALL_A,                           &
-                     ZABS_SW_WALL_B,ZABS_LW_WALL_B,                           &
-                     ZABS_SW_PANEL,ZABS_LW_PANEL,                             &
-                     DMT%XSOBS(1:1),DMT%XTHBS(1:1),                           &
-                     ZABS_SW_GREENROOF,ZABS_LW_GREENROOF,                     &
-                     ZG_GREENROOF_ROOF,    &
-                     CCOOL_COIL, ZF_WATER_COND, CHEAT_COIL,  &
-                     HNATVENT, ZNATVENT, IDAY, ZAUX_MAX, ZT_FLOOR,            &
-                     ZT_MASS, ZH_BLD_COOL, ZT_BLD_COOL, ZH_BLD_HEAT,          &
-                     ZLE_BLD_COOL, ZLE_BLD_HEAT, DMT%XH_WASTE(1:1), DMT%XLE_WASTE(1:1),         &
-                     ZF_WASTE_CAN, DMT%XHVAC_COOL(1:1), DMT%XHVAC_HEAT(1:1), ZQIN, ZQIN_FRAD,   &
-                     ZQIN_FLAT, ZGR, ZEFF_HEAT, ZINF,                         &
-                     ZTCOOL_TARGET, ZTHEAT_TARGET, ZHR_TARGET, ZT_WIN2,       &
-                     ZQI_BLD, ZV_VENT, ZCAP_SYS_HEAT, ZCAP_SYS_RAT, ZT_ADP,   &
-                     ZM_SYS_RAT, ZCOP_RAT, ZCAP_SYS, ZM_SYS, ZCOP, ZQ_SYS,    &
-                     ZT_SYS, ZTR_SW_WIN, ZFAN_POWER, ZHC_FLOOR, ZTC_FLOOR,    &
-                     ZD_FLOOR, ZT_WIN1, ZABS_SW_WIN, ZABS_LW_WIN, ZSHGC,      &
-                     ZSHGC_SH, ZUGG_WIN, ZALB_WIN, ZABS_WIN, ZEMIT_LW_FAC,    &
-                     ZEMIT_LW_GRND, ZT_RAD_IND, ZREF_SW_GRND, ZREF_SW_FAC,    &
-                     ZHU_BLD, ZTIME_BEG, LSHADE, ZSHADE, GSHAD_DAY,           &
-                     GNATVENT_NIGHT,                                          &
-                     CBEM,                                                    &
-                     ZN_FLOOR, ZWALL_O_BLD, ZGLAZ_O_BLD, ZMASS_O_BLD,         &
-                     ZFLOOR_HW_RATIO, ZF_FLOOR_MASS, ZF_FLOOR_WALL,           &
-                     ZF_FLOOR_WIN, ZF_FLOOR_ROOF, ZF_WALL_FLOOR, ZF_WALL_MASS,&
-                     ZF_WALL_WIN, ZF_WIN_FLOOR, ZF_WIN_MASS, ZF_WIN_WALL,     &
-                     ZF_MASS_FLOOR, ZF_MASS_WALL, ZF_MASS_WIN, LCANOPY,       &
-                     ZTRAN_WIN, CCH_BEM, ZROUGH_ROOF, ZROUGH_WALL, ZF_WIN_WIN,&
-                     LPAR_RD_IRRIG, ZRD_START_MONTH, ZRD_END_MONTH,           &
-                     ZRD_START_HOUR, ZRD_END_HOUR, ZRD_24H_IRRIG, ZIRRIG_ROAD,&
-                     ZEMIS_PANEL, ZALB_PANEL, ZEFF_PANEL, ZFRAC_PANEL,        &
-                     ZRESIDENTIAL,                                            &
-                     ZTHER_PROD_PANEL, ZPHOT_PROD_PANEL, ZPROD_PANEL,         &
-                     ZTHER_PROD_BLD  , ZPHOT_PROD_BLD  , DMT%XSOLAR_PROD(1:1)  ,         &
-                     ZTHER_PRODC_DAY, ZH_PANEL, ZRN_PANEL,                    &
-                     ZDT_RES, ZDT_OFF,                                        &
-                     ZCUR_TCOOL_TARGET, ZCUR_THEAT_TARGET, ZCUR_QIN ,         &
-					 ZDN_RF, ZDN_RD, ZMELT_BLT, ZSNOWD_RF, ZSNOWD_RD, ZLW_UP, &
-					 ZZ0_GR_EXT, ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, ZH_GR_EXT, ZLE_GR_EXT, ZEVAP_GR_EXT,   &
-					 ZRUNOFF_GR_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, &
-					 ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, ZRUNOFF_GD_EXT, DMT%XTCH_RD(1:1),    &
-					 DMT%XTCH_RF(1:1), DMT%XTCH_WL(1:1), DMT%XTCH_TOP(1:1), DMT%XAC_TOP(1:1), ZILMO_ROAD_CAN, ZILMO_ROOF_EXCH,&
-                     ZILMO_TOP_EXCH, DMT%XCD_GARDEN_ATM(1:1), DMT%XCH_GARDEN_ATM(1:1), ZZDU			 ,                         &
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-                          DMT%XPCD_ROAD_CAN(1:1), DMT%XPCDN_ROAD_CAN(1:1), DMT%XPRI_ROAD_CAN(1:1), DMT%XZZ0H_ROAD_CAN(1:1), &
-                          DMT%XPAC_ROAD_ATM(1:1), DMT%XPCH_ROAD_ATM(1:1), DMT%XPCD_ROAD_ATM(1:1), DMT%XPCDN_ROAD_ATM(1:1), &
-                          DMT%XPRI_ROAD_ATM(1:1), DMT%XZZ0H_ROAD_ATM(1:1), DMT%XPCDN_GARDEN_CAN(1:1), DMT%XPRI_GARDEN_CAN(1:1), &
-                          DMT%XZZ0H_GARDEN_CAN(1:1), DMT%XPAC_GARDEN_ATM(1:1), DMT%XPCDN_GARDEN_ATM(1:1), DMT%XPRI_GARDEN_ATM(1:1), DMT%XZZ0H_GARDEN_ATM(1:1), &
-                          DMT%XPH_ROAD_CAN(1:1), DMT%XPLE_ROAD_CAN(1:1), DMT%XPH_ROAD_ATM(1:1), DMT%XPLE_ROAD_ATM(1:1), &
-!MV202609 CBS scheme of the road (revision: three-temperature construction)
-                          DMT%XPT_CAN0(1:1), DMT%XPT_CAN1(1:1), DMT%XPPHI_CAN1(1:1), &
-!MV202609 CBS scheme of the road (revision: puddle diagnostics)
-                          ZAC_ROAD_ATM_WAT, DMT%XLE_ROAD_WAT(1:1), DMT%XLE_ROAD_SNOW(1:1), &
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-                          DMT%XLE_ROOF_WAT(1:1), DMT%XLE_ROOF_SNOW(1:1), &
-!MV202609 CBS scheme of the road
-                          LCBS_SCHEME, XTAU_HW_THRESH, XTAU_HW_WIDTH, &
-!MV202609 garden thermal roughness (z0h)
-                          XZ0_O_Z0H_GD, &
-!MV202609 greenroof model type and thermal roughness
-                          XZ0_O_Z0H_GR, &
-!MV202609 garden diagnostics
-                     DMT%XTS_GARDEN(1:1), DMT%XRN_GARDEN(1:1), DMT%XH_GARDEN(1:1), DMT%XLE_GARDEN(1:1),       &
-                     DMT%XEVAP_GARDEN(1:1), DMT%XQSAT_GARDEN(1:1), DMT%XPHU_GARDEN(1:1), &
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-                     DMT%XH_GARDEN_CAN(1:1), DMT%XH_GARDEN_ATM(1:1), DMT%XLE_GARDEN_CAN(1:1), DMT%XLE_GARDEN_ATM(1:1), &
-!MV202609 greenroof diagnostics
-                      DMT%XTS_GREENROOF(1:1), DMT%XRN_GREENROOF(1:1), DMT%XH_GREENROOF(1:1), DMT%XLE_GREENROOF(1:1), &
-                      DMT%XEVAP_GREENROOF(1:1), DMT%XQSAT_GREENROOF(1:1), DMT%XPHU_GREENROOF(1:1), &
-!MV202609 greenroof-to-atm exchange diagnostics
-                      DMT%XPAC_GREENROOF_ATM(1:1), DMT%XPCD_GREENROOF_ATM(1:1), DMT%XPCDN_GREENROOF_ATM(1:1), DMT%XPCH_GREENROOF_ATM(1:1), &
-                      DMT%XPRI_GREENROOF_ATM(1:1), DMT%XZZ0H_GREENROOF_ATM(1:1), DMT)
+!
+! Static parameters of the surface and of the building: the containers come from
+! the driver; the values computed above are written into them.
+!
+BOP%NFLOOR_LAYER = SIZE(ZT_FLOOR,2)
+BOP%CCOOL_COIL = CCOOL_COIL
+BOP%CHEAT_COIL = CHEAT_COIL
+BOP%LAUTOSIZE = .FALSE.
+BP%XTCOOL_TARGET = ZTCOOL_TARGET
+BP%XTHEAT_TARGET = ZTHEAT_TARGET
+BP%XF_WASTE_CAN = ZF_WASTE_CAN
+BP%XEFF_HEAT = ZEFF_HEAT
+BP%XQIN = ZQIN
+BP%XQIN_FRAD = ZQIN_FRAD
+BP%XSHGC = ZSHGC
+BP%XSHGC_SH = ZSHGC_SH
+BP%XGR = ZGR
+BP%XINF = ZINF
+BP%XF_WATER_COND = ZF_WATER_COND
+BP%XQIN_FLAT = ZQIN_FLAT
+BP%XHR_TARGET = ZHR_TARGET
+BP%XV_VENT = ZV_VENT
+BP%XCAP_SYS_HEAT = ZCAP_SYS_HEAT
+BP%XCOP_RAT = ZCOP_RAT
+BP%CNATVENT = HNATVENT
+BP%XN_FLOOR = ZN_FLOOR
+BP%XGLAZ_O_BLD = ZGLAZ_O_BLD
+BP%XMASS_O_BLD = ZMASS_O_BLD
+BP%XFLOOR_HW_RATIO = ZFLOOR_HW_RATIO
+BP%XF_FLOOR_MASS = ZF_FLOOR_MASS
+BP%XF_FLOOR_WALL = ZF_FLOOR_WALL
+BP%XF_FLOOR_WIN = ZF_FLOOR_WIN
+BP%XF_FLOOR_ROOF = ZF_FLOOR_ROOF
+BP%XF_WALL_FLOOR = ZF_WALL_FLOOR
+BP%XF_WALL_MASS = ZF_WALL_MASS
+BP%XF_WALL_WIN = ZF_WALL_WIN
+BP%XF_WIN_FLOOR = ZF_WIN_FLOOR
+BP%XF_WIN_MASS = ZF_WIN_MASS
+BP%XF_WIN_WALL = ZF_WIN_WALL
+BP%XF_WIN_WIN = ZF_WIN_WIN
+BP%XF_MASS_FLOOR = ZF_MASS_FLOOR
+BP%XF_MASS_WALL = ZF_MASS_WALL
+BP%XF_MASS_WIN = ZF_MASS_WIN
+TOP%LGARDEN = LGARDEN
+TOP%CROAD_DIR = HROAD_DIR
+TOP%CWALL_OPT = HWALL_OPT
+TOP%CZ0H = HZ0H
+TOP%CCH_BEM = CCH_BEM
+TOP%CBEM = CBEM
+TOP%LGREENROOF = LGREENROOF
+TOP%CTYPE_GARDEN = TYPE_GARDEN
+TOP%CTYPE_GREENROOF = TYPE_GREENROOF
+TOP%LSOLAR_PANEL = LSOLAR_PANEL
+TOP%LCBS_SCHEME = LCBS_SCHEME
+TOP%XTAU_HW_THRESH = XTAU_HW_THRESH
+TOP%XTAU_HW_WIDTH = XTAU_HW_WIDTH
+TOP%XZ0_O_Z0H_GD = XZ0_O_Z0H_GD
+TOP%XZ0_O_Z0H_GR = XZ0_O_Z0H_GR
+TOP%NROOF_LAYER = SIZE(ZT_ROOF,2)
+TOP%NROAD_LAYER = SIZE(ZT_ROAD,2)
+TOP%NWALL_LAYER = SIZE(ZT_WALL_A,2)
+TOP%TTIME = TPTIME
+TOP%XTSTEP = XTSTEP_SURF
+TP%XROAD_DIR = ZROAD_DIR
+TP%XGARDEN = ZGARDEN
+TP%XGREENROOF = ZFRAC_GR
+TP%XBLD = ZBLD
+TP%XROAD = ZROAD
+TP%XCAN_HW_RATIO = ZCAN_HW_RATIO
+TP%XBLD_HEIGHT = ZBLD_HEIGHT
+TP%XWALL_O_HOR = ZWALL_O_HOR
+TP%XROAD_O_GRND = ZROAD_O_GRND
+TP%XGARDEN_O_GRND = ZGARDEN_O_GRND
+TP%XWALL_O_GRND = ZWALL_O_GRND
+TP%XWALL_O_BLD = ZWALL_O_BLD
+TP%XZ0_TOWN = ZZ0U
+TP%XZD_TOWN = ZZDU
+TP%XSVF_ROAD = ZSVF_ROAD
+TP%XSVF_GARDEN = ZSVF_GARDEN
+TP%XSVF_WALL = ZSVF_WALL
+TP%XALB_ROOF = ZALB_ROOF
+TP%XEMIS_ROOF = ZEMIS_ROOF
+TP%XHC_ROOF = ZHC_ROOF
+TP%XTC_ROOF = ZTC_ROOF
+TP%XD_ROOF = ZD_ROOF
+TP%XROUGH_ROOF = ZROUGH_ROOF
+TP%XALB_ROAD = ZALB_ROAD
+TP%XEMIS_ROAD = ZEMIS_ROAD
+TP%XHC_ROAD = ZHC_ROAD
+TP%XTC_ROAD = ZTC_ROAD
+TP%XD_ROAD = ZD_ROAD
+TP%XALB_WALL = ZALB_WALL
+TP%XEMIS_WALL = ZEMIS_WALL
+TP%XHC_WALL = ZHC_WALL
+TP%XTC_WALL = ZTC_WALL
+TP%XD_WALL = ZD_WALL
+TP%XROUGH_WALL = ZROUGH_WALL
+TP%XRESIDENTIAL = ZRESIDENTIAL
+TP%XDT_RES = ZDT_RES
+TP%XDT_OFF = ZDT_OFF
+TP%XH_TRAFFIC = ZH_TRAFFIC_NOW_CAN
+TP%XLE_TRAFFIC = ZLE_TRAFFIC
+TP%XH_INDUSTRY = ZH_INDUSTRY
+TP%XLE_INDUSTRY = ZLE_INDUSTRY
+
+BP%XHC_FLOOR(1,:) = ZHC_FLOOR(1,:)
+BP%XTC_FLOOR(1,:) = ZTC_FLOOR(1,:)
+BP%XD_FLOOR(1,:)  = ZD_FLOOR(1,:)
+CALL TEB_GARDEN_STRUCT (icell, iblock, LGREENROOF_EXT, HIMPLICIT_WIND, LBEM_AC, XTSUN, ZT_CANYON, &
+                 ZQ_CANYON, DMT%XWIND_CANYON(1:1), ZT_LOWCAN, ZQ_LOWCAN, &
+                 ZU_LOWCAN, ZZ_LOWCAN, ZTI_BLD, ZT_ROOF, ZT_ROAD, ZT_WALL_A, &
+                 ZT_WALL_B, ZWS_ROOF, ZWS_ROAD, HSNOW_ROOF, ZWSNOW_ROOF, &
+                 ZTSNOW_ROOF, ZRSNOW_ROOF, ZASNOW_ROOF, ZTSSNOW_ROOF, &
+                 ZESNOW_ROOF, HSNOW_ROAD, ZWSNOW_ROAD, ZTSNOW_ROAD, &
+                 ZRSNOW_ROAD, ZASNOW_ROAD, ZTSSNOW_ROAD, ZESNOW_ROAD, &
+                 ZPEW_A_COEF, ZPEW_B_COEF, ZPEW_A_COEF_LOWCAN, &
+                 ZPEW_B_COEF_LOWCAN, ZZ0_GD_EXT, XPS, XPA, ZEXNS, ZEXNA, XTA, &
+                 ZQA_KGKG, XRHOA, XCO2, XLW, ZTDIR_SW, ZTSCA_SW, XSW_BANDS, &
+                 KSW, XZENITH, XAZIM, XRAIN, XSNOW, ZZREF, ZZREF, ZVMOD, &
+                 ZH_TRAFFIC_NOW_CAN, ZLE_TRAFFIC, XTSTEP_SURF, ZRN_ROOF, &
+                 ZH_ROOF, ZLE_ROOF, ZLEW_ROOF, ZGFLUX_ROOF, &
+                 DMT%XRUNOFF_ROOF(1:1), ZRN_ROAD, ZH_ROAD, ZLE_ROAD, &
+                 ZLEW_ROAD, ZGFLUX_ROAD, DMT%XRUNOFF_ROAD(1:1), ZRN_WALL_A, &
+                 ZH_WALL_A, ZLE_WALL_A, ZGFLUX_WALL_A, ZRN_WALL_B, ZH_WALL_B, &
+                 ZLE_WALL_B, ZGFLUX_WALL_B, ZRN_STRLROOF, ZH_STRLROOF, &
+                 ZLE_STRLROOF, ZGFLUX_STRLROOF, ZRUNOFF_STRLROOF, ZRN_BLT, &
+                 ZH_BLT, ZLE_BLT, ZGFLUX_BLT, ZRNSNOW_ROOF, ZHSNOW_ROOF, &
+                 ZLESNOW_ROOF, ZGSNOW_ROOF, ZMELT_ROOF, ZRNSNOW_ROAD, &
+                 ZHSNOW_ROAD, ZLESNOW_ROAD, ZGSNOW_ROAD, ZMELT_ROAD, &
+                 ZRN_GRND, ZH_GRND, ZLE_GRND, ZGFLUX_GRND, DMT%XRN_TOWN(1:1), &
+                 DMT%XH_TOWN(1:1), DMT%XLE_TOWN(1:1), DMT%XGFLUX_TOWN(1:1), &
+                 DMT%XQVFL(1:1), DMT%XRUNOFF_TOWN(1:1), ZSFCO2, ZUW_GRND, &
+                 ZUW_ROOF, ZDUWDU_GRND, ZDUWDU_ROOF, DMT%XUSTAR_TOWN(1:1), &
+                 ZCD, ZCDN, DMT%XTCH_TOWN(1:1), ZRI_TOWN, DMT%XTSTOWN_S(1:1), &
+                 ZEMIS_TOWN, ZDIR_ALB_TOWN, ZSCA_ALB_TOWN, DMT%XALB_SO(1:1), &
+                 ZSW_UP_SO, ZRESA_TOWN, DMT%XDQS_TOWN(1:1), ZQF_TOWN, &
+                 ZQF_BLD, ZFLX_BLD, DMT%XAC_RF(1:1), DMT%XAC_RD(1:1), &
+                 DMT%XAC_WL(1:1), ZAC_GARDEN, ZAC_GREENROOF, ZAC_ROAD_WAT, &
+                 ZAC_GARDEN_WAT, ZAC_GREENROOF_WAT, ZABS_SW_ROOF, &
+                 ZABS_LW_ROOF, ZABS_SW_SNOW_ROOF, ZABS_LW_SNOW_ROOF, &
+                 ZABS_SW_ROAD, ZABS_LW_ROAD, ZABS_SW_SNOW_ROAD, &
+                 ZABS_LW_SNOW_ROAD, ZABS_SW_WALL_A, ZABS_LW_WALL_A, &
+                 ZABS_SW_WALL_B, ZABS_LW_WALL_B, ZABS_SW_PANEL, &
+                 ZABS_LW_PANEL, DMT%XSOBS(1:1), DMT%XTHBS(1:1), &
+                 ZABS_SW_GREENROOF, ZABS_LW_GREENROOF, ZG_GREENROOF_ROOF, &
+                 ZNATVENT, IDAY, ZAUX_MAX, ZT_FLOOR, ZT_MASS, ZH_BLD_COOL, &
+                 ZT_BLD_COOL, ZH_BLD_HEAT, ZLE_BLD_COOL, ZLE_BLD_HEAT, &
+                 DMT%XH_WASTE(1:1), DMT%XLE_WASTE(1:1), DMT%XHVAC_COOL(1:1), &
+                 DMT%XHVAC_HEAT(1:1), ZT_WIN2, ZQI_BLD, ZCAP_SYS_RAT, ZT_ADP, &
+                 ZM_SYS_RAT, ZCAP_SYS, ZM_SYS, ZCOP, ZQ_SYS, ZT_SYS, &
+                 ZTR_SW_WIN, ZFAN_POWER, ZHC_FLOOR, ZTC_FLOOR, ZD_FLOOR, &
+                 ZT_WIN1, ZABS_SW_WIN, ZABS_LW_WIN, ZUGG_WIN, ZALB_WIN, &
+                 ZABS_WIN, ZEMIT_LW_FAC, ZEMIT_LW_GRND, ZT_RAD_IND, &
+                 ZREF_SW_GRND, ZREF_SW_FAC, ZHU_BLD, ZTIME_BEG, LSHADE, &
+                 ZSHADE, GSHAD_DAY, GNATVENT_NIGHT, LCANOPY, ZTRAN_WIN, &
+                 LPAR_RD_IRRIG, ZRD_START_MONTH, ZRD_END_MONTH, &
+                 ZRD_START_HOUR, ZRD_END_HOUR, ZRD_24H_IRRIG, ZIRRIG_ROAD, &
+                 ZEMIS_PANEL, ZALB_PANEL, ZEFF_PANEL, ZFRAC_PANEL, &
+                 ZTHER_PROD_PANEL, ZPHOT_PROD_PANEL, ZPROD_PANEL, &
+                 ZTHER_PROD_BLD, ZPHOT_PROD_BLD, DMT%XSOLAR_PROD(1:1), &
+                 ZTHER_PRODC_DAY, ZH_PANEL, ZRN_PANEL, ZCUR_TCOOL_TARGET, &
+                 ZCUR_THEAT_TARGET, ZCUR_QIN, ZDN_RF, ZDN_RD, ZMELT_BLT, &
+                 ZSNOWD_RF, ZSNOWD_RD, ZLW_UP, ZZ0_GR_EXT, ZALB_GR_EXT, &
+                 ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, ZH_GR_EXT, &
+                 ZLE_GR_EXT, ZEVAP_GR_EXT, ZRUNOFF_GR_EXT, ZALB_GD_EXT, &
+                 ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, &
+                 ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, ZRUNOFF_GD_EXT, &
+                 DMT%XTCH_RD(1:1), DMT%XTCH_RF(1:1), DMT%XTCH_WL(1:1), &
+                 DMT%XTCH_TOP(1:1), DMT%XAC_TOP(1:1), ZILMO_ROAD_CAN, &
+                 ZILMO_ROOF_EXCH, ZILMO_TOP_EXCH, DMT%XCD_GARDEN_ATM(1:1), &
+                 DMT%XCH_GARDEN_ATM(1:1), DMT%XPCD_ROAD_CAN(1:1), &
+                 DMT%XPCDN_ROAD_CAN(1:1), DMT%XPRI_ROAD_CAN(1:1), &
+                 DMT%XZZ0H_ROAD_CAN(1:1), DMT%XPAC_ROAD_ATM(1:1), &
+                 DMT%XPCH_ROAD_ATM(1:1), DMT%XPCD_ROAD_ATM(1:1), &
+                 DMT%XPCDN_ROAD_ATM(1:1), DMT%XPRI_ROAD_ATM(1:1), &
+                 DMT%XZZ0H_ROAD_ATM(1:1), DMT%XPCDN_GARDEN_CAN(1:1), &
+                 DMT%XPRI_GARDEN_CAN(1:1), DMT%XZZ0H_GARDEN_CAN(1:1), &
+                 DMT%XPAC_GARDEN_ATM(1:1), DMT%XPCDN_GARDEN_ATM(1:1), &
+                 DMT%XPRI_GARDEN_ATM(1:1), DMT%XZZ0H_GARDEN_ATM(1:1), &
+                 DMT%XPH_ROAD_CAN(1:1), DMT%XPLE_ROAD_CAN(1:1), &
+                 DMT%XPH_ROAD_ATM(1:1), DMT%XPLE_ROAD_ATM(1:1), &
+                 DMT%XPT_CAN0(1:1), DMT%XPT_CAN1(1:1), DMT%XPPHI_CAN1(1:1), &
+                 ZAC_ROAD_ATM_WAT, DMT%XLE_ROAD_WAT(1:1), &
+                 DMT%XLE_ROAD_SNOW(1:1), DMT%XLE_ROOF_WAT(1:1), &
+                 DMT%XLE_ROOF_SNOW(1:1), XTAU_HW_THRESH, XTAU_HW_WIDTH, &
+                 DMT%XTS_GARDEN(1:1), DMT%XRN_GARDEN(1:1), &
+                 DMT%XH_GARDEN(1:1), DMT%XLE_GARDEN(1:1), &
+                 DMT%XEVAP_GARDEN(1:1), DMT%XQSAT_GARDEN(1:1), &
+                 DMT%XPHU_GARDEN(1:1), DMT%XH_GARDEN_CAN(1:1), &
+                 DMT%XH_GARDEN_ATM(1:1), DMT%XLE_GARDEN_CAN(1:1), &
+                 DMT%XLE_GARDEN_ATM(1:1), DMT%XTS_GREENROOF(1:1), &
+                 DMT%XRN_GREENROOF(1:1), DMT%XH_GREENROOF(1:1), &
+                 DMT%XLE_GREENROOF(1:1), DMT%XEVAP_GREENROOF(1:1), &
+                 DMT%XQSAT_GREENROOF(1:1), DMT%XPHU_GREENROOF(1:1), &
+                 DMT%XPAC_GREENROOF_ATM(1:1), DMT%XPCD_GREENROOF_ATM(1:1), &
+                 DMT%XPCDN_GREENROOF_ATM(1:1), DMT%XPCH_GREENROOF_ATM(1:1), &
+                 DMT%XPRI_GREENROOF_ATM(1:1), DMT%XZZ0H_GREENROOF_ATM(1:1), &
+                 DMT, TOP, TP, BOP, BP, ZZ0U)
 !*****************************************************************************
 !*****************************************************************************
 !*****************************************************************************
