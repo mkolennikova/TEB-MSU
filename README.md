@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="img/TEB-MSU_logo_v3.png" alt="TEB-MSU logo" width="260">
+</p>
+
 # TEB-MSU: Single-Layer Urban Canopy Model
 
 [![Fortran](https://img.shields.io/badge/Fortran-734f96?logo=fortran&logoColor=white)](https://fortran-lang.org/)
@@ -100,6 +104,7 @@ Both trees share `tests/`, `python/` and `docs/`, are built in the same way
 | `tests/` | Test cases; `tests/CAPITOUL/` is the reference case: `namelist/`, `input/` (ASCII forcing) and `output_ref/` |
 | `build/` | Build output of `make`: `obj_dev/`, `obj_ctrl/`, `logs/` (the `make` logs) and the executables; created automatically and not tracked |
 | `docs/` | Model documentation: the variable description (`TEB_MSU_variables_description.md`), the canyon bypass scheme (`TEB_MSU_CBS_scheme_T_CAN_reformulation.md`), the diagnostic garden and green-roof scheme (`TEB_MSU_garden_diagnostic_scheme.md`), the pedestrian mean radiant temperature on the road (`TEB_MSU_MRT_pedestrian_scheme.md`), the defects of the original TEB found and fixed in TEB-MSU (`TEB_MSU_source_defects.md`), the diagnostics container (`TEB_MSU_containers.md`), the commit-referenced change history (`TEB_MSU_change_history.md`), the coupling checklist (`TEB_MSU_coupling_checklist.md`) and the documentation rules (`TEB_MSU_documentation_rules.md`) |
+| `img/` | Images used by `README.md` and `TEB_sandbox.ipynb`: the project logo `TEB-MSU_logo_v3.png` (the editable design sources are kept outside the repository, see `/logo_design/` in `.gitignore`) |
 | `TEB_sandbox.ipynb` | Step-by-step pipeline notebook: Google Colab and local (Windows) build and run |
 
 The executable is started in the directory of the case, because the driver reads `namelist/` and

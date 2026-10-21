@@ -11,3 +11,4 @@ model_output.log
 python/*/
 python_tests/*/
 .vscode/settings.json
+/logo_design/
