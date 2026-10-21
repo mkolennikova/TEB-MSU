@@ -44,8 +44,9 @@ MODEL_DIR = HERE.parent
 #: bookkeeping files of every type: a reference there does not count as a use
 BOOKKEEPING = {'alloc_teb_struct.F90', 'dealloc_teb_struct.F90'}
 
-#: the owner of the param / flux fields: the driver fills them once
-OWNERS = {'run_teb_offline.F90', 'call_driver.F90',
+#: the owners of the param / flux fields: the driver fills them once, the
+#: container layer (teb_host) and the host interface fill them per window
+OWNERS = {'run_teb_offline.F90', 'call_driver.F90', 'teb_host.F90',
           # these four fill their own local scratch container (morphology, window optics)
           'bem_morpho_struct.F90', 'bem_morpho.F90',
           'window_data_struct.F90', 'window_data.F90'}

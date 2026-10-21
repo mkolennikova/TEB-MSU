@@ -15,6 +15,7 @@ MODULE sfc_teb
 !* variable when an identifier is misspelled.
 USE MODI_CALL_DRIVER, ONLY : CALL_DRIVER
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
+USE TEB_HOST, ONLY : TEB_FILL_PARAMS
 IMPLICIT NONE
 
 PUBLIC :: teb_interface
@@ -295,6 +296,16 @@ TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT   ! diagnostics container (owned by 
 ! Begin Subroutine teb_interface
 !------------------------------------------------------------------------------
     
+    !MV202610 parameter containers are filled here, where the configuration is known
+    CALL TEB_FILL_PARAMS (TOP, TP, BOP, BP, ivstart, &
+                 ivend, teb_itype_bem_cool, teb_itype_bem_heat, teb_tcool_target, teb_theat_target, &
+                 teb_frac_gz, teb_bem_inf, teb_bem_vent, teb_cap_sys_heat, teb_bem_cop, &
+                 teb_itype_natvent, teb_lgarden, teb_hroad_dir, teb_wall_opt, teb_itype_bem, &
+                 teb_lgreenroof, teb_type_garden, teb_type_greenroof, teb_lsolar_panel, teb_lcbs_scheme, &
+                 teb_tau_hw_thresh, teb_tau_hw_width, urb_z0_o_z0h_gdn, urb_z0_o_z0h_grf, teb_road_dir, &
+                 fr_garden, teb_frac_gr, urb_fr_bld, urb_h2w, urb_h_bld, &
+                 urb_alb_rf_so, urb_alb_rd_so, urb_alb_wl_so, urb_alb_rd_th, urb_alb_rf_th, &
+                 urb_alb_wl_th, teb_zresidential, teb_dt_res, teb_dt_off, ahf_industry)
 	DO i = ivstart, ivend
 		!MV202609 fill the one-element carriers of the scalar arguments
 		zemis_road_arg(1) = 1. - urb_alb_rd_th(i)
