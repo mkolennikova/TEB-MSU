@@ -810,7 +810,8 @@ def compare_experiments_mpl(experiments, variables=None, subplots_config=None,
     Notes
     -----
     The colour identifies the experiment in every panel and one legend is placed
-    above the figure (``experiment`` for the usual one-variable panels,
+    in a narrow strip below the bottom panel (``experiment`` for the usual
+    one-variable panels,
     ``experiment · variable`` when a panel carries several variables). A variable
     missing in all runs is shown as an empty panel with a note, so a comparison
     of outputs of different trees (e.g. `src_dev` with the MRT diagnostics and
@@ -858,16 +859,24 @@ def compare_experiments_mpl(experiments, variables=None, subplots_config=None,
 
     axes[-1].set_xlabel('Time')
 
+    # The legend goes in a narrow strip BELOW the bottom panel: it costs one legend
+    # line instead of a wide blank band at the top, so the panels keep almost the
+    # whole figure. The strip is sized from the number of legend rows, and
+    # tight_layout() with a small pad keeps the white margins minimal.
+    n_cols = min(len(labels), 4) if labels else 1
+    legend_rows = int(np.ceil(len(labels) / n_cols)) if labels else 0
+    legend_pt = legend_rows * (9.0 * 1.2 + 4.0)
+    bottom = min(0.4, legend_pt / (figsize[1] * 72.0) + 0.02) if handles else 0.0
     if handles:
-        fig.legend(handles, labels, loc='upper center', ncol=min(len(labels), 4),
-                   fontsize=9, frameon=False, bbox_to_anchor=(0.5, 1.0))
+        fig.legend(handles, labels, loc='lower center', ncol=n_cols, fontsize=9,
+                   frameon=False, bbox_to_anchor=(0.5, 0.0))
+    top = 0.93 if title else 1.0
     if title:
         fig.suptitle(title, fontsize=12)
-    top = 0.90 if title else (0.96 if handles else 1.0)
-    fig.tight_layout(rect=(0, 0, 1, top))
+    fig.tight_layout(rect=(0, bottom, 1, top), pad=0.6)
 
     if save_path:
-        fig.savefig(save_path, dpi=dpi, bbox_inches='tight')
+        fig.savefig(save_path, dpi=dpi, bbox_inches='tight', pad_inches=0.03)
         print(f'Figure saved to: {save_path}')
 
     return fig, axes
@@ -881,9 +890,11 @@ def compare_experiments_plotly(experiments, variables=None, subplots_config=None
     """Interactive comparison of several runs: one panel per variable, shared x axis.
 
     The interactive twin of `compare_experiments_mpl`: the same experiments,
-    variables and panels, the colour identifies the experiment and the dash the
-    variable inside a multi-variable panel. The curves of one experiment form a
-    legend group (a click toggles the whole run), as in `preview_output_plotly`.
+    variables and panels; the colour identifies the experiment, the dash the
+    variable inside a multi-variable panel, and every curve is named
+    ``experiment · variable``, so a legend entry is unambiguous in every panel.
+    The curves of one experiment form a legend group (a click toggles the whole
+    run), as in `preview_output_plotly`.
 
     Parameters
     ----------
@@ -937,7 +948,7 @@ def compare_experiments_plotly(experiments, variables=None, subplots_config=None
                         x=frame.index,
                         y=frame[var],
                         mode='lines',
-                        name=f'{label} · {var}' if multi else label,
+                        name=f'{label} · {var}',
                         legendgroup=label,
                         legendgrouptitle_text=label,
                         line=dict(color=color, dash=dash, width=linewidth)
@@ -995,4 +1006,69 @@ def compare_experiments_plotly(experiments, variables=None, subplots_config=None
         print(f"Figure saved to: {save_path}")
 
     return fig
+
+
+
+def _check_backend(backend):
+    """Normalised figure backend: 'plotly' (default) or 'mpl'."""
+    name = str(backend).strip().lower()
+    if name in ('plotly', 'go', 'interactive'):
+        return 'plotly'
+    if name in ('mpl', 'matplotlib', 'static'):
+        return 'mpl'
+    raise ValueError(f"unknown backend {backend!r}: use 'plotly' (default) or 'mpl'")
+
+
+def preview_output(df, backend='plotly', **kwargs):
+    """Preview figure drawn by the selected backend.
+
+    A single entry point instead of two calls in the caller: ``backend='plotly'``
+    (default) gives the interactive figure of `preview_output_plotly`,
+    ``backend='mpl'`` the static one of `preview_output_mpl` (whose extra
+    arguments, e.g. ``figsize``/``dpi``, are passed through). The two functions
+    are the same figure, so the choice is a run-time option and not a duplicate
+    code path in the notebook.
+
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        Model output (see `read_output`).
+    backend : {'plotly', 'mpl'}, optional
+        Figure engine; 'plotly' is the default ('matplotlib' is accepted for 'mpl').
+    **kwargs
+        Forwarded to the selected function.
+
+    Returns
+    -------
+    plotly.graph_objects.Figure or (matplotlib.figure.Figure, numpy.ndarray)
+    """
+    if _check_backend(backend) == 'mpl':
+        return preview_output_mpl(df, **kwargs)
+    return preview_output_plotly(df, **kwargs)
+
+
+def compare_experiments(experiments, backend='plotly', **kwargs):
+    """Comparison figure of several experiments drawn by the selected backend.
+
+    Same single entry point as `preview_output`: ``backend='plotly'`` (default)
+    calls `compare_experiments_plotly`, ``backend='mpl'`` calls
+    `compare_experiments_mpl`; the arguments (`experiments`, `variables`, `title`,
+    `save_path`, ...) are forwarded unchanged.
+
+    Parameters
+    ----------
+    experiments : dict {label: DataFrame} or list of (label, DataFrame)
+        The runs to compare (see `read_experiments`).
+    backend : {'plotly', 'mpl'}, optional
+        Figure engine; 'plotly' is the default.
+    **kwargs
+        Forwarded to the selected function (e.g. ``variables=['HVAC_COOL']``).
+
+    Returns
+    -------
+    plotly.graph_objects.Figure or (matplotlib.figure.Figure, numpy.ndarray)
+    """
+    if _check_backend(backend) == 'mpl':
+        return compare_experiments_mpl(experiments, **kwargs)
+    return compare_experiments_plotly(experiments, **kwargs)
 
