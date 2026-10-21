@@ -119,6 +119,8 @@ TYPE TEB_OPTIONS_t
 !MV202609 greenroof thermal roughness (z0h): same formulation as the garden,
 !* ratio z0/z0h of the namelist item urb_z0_o_z0h_grf (>= 1, default XZ0_O_Z0H_GR)
   REAL                           :: XZ0_O_Z0H_GR ! greenroof z0/z0h ratio (-)
+!MV202610 external greenroof model (namelist teb_lgreenroof_ext)
+   LOGICAL                        :: LGREENROOF_EXT ! T: the greenroof is an external model
 
 !MV202609 CBS scheme of the road
 ! CBS scheme for the road: the actual road fluxes are the weighted mean of the
@@ -138,6 +140,9 @@ TYPE TEB_OPTIONS_t
   INTEGER                       :: NROOF_LAYER   ! number of layers in roofs
   INTEGER                       :: NROAD_LAYER   ! number of layers in roads
   INTEGER                       :: NWALL_LAYER   ! number of layers in walls
+!MV202610 canyon wind parameterization and the UTC hour of the traffic cycle
+   INTEGER                        :: ITYPE_WIND  ! 0: original, 1: Wang (2012)
+   INTEGER                        :: NUTC_HOUR   ! UTC hour for the traffic daily cycle
 !
 ! Date:
 !
@@ -174,6 +179,7 @@ YTEB_OPTIONS%CCH_BEM=' '
 YTEB_OPTIONS%CBEM=' '
 YTEB_OPTIONS%CTREE=' '
 YTEB_OPTIONS%LGREENROOF=.FALSE.
+YTEB_OPTIONS%LGREENROOF_EXT=.FALSE.
 YTEB_OPTIONS%CTYPE_GARDEN='PROXY_NEW'
 !MV202609 garden thermal roughness (z0h)
 YTEB_OPTIONS%XZ0_O_Z0H_GD=XZ0_O_Z0H_GD
@@ -188,6 +194,8 @@ YTEB_OPTIONS%XTAU_HW_WIDTH=0.25
 YTEB_OPTIONS%NROOF_LAYER=0
 YTEB_OPTIONS%NROAD_LAYER=0
 YTEB_OPTIONS%NWALL_LAYER=0
+YTEB_OPTIONS%ITYPE_WIND=0
+YTEB_OPTIONS%NUTC_HOUR=0
 YTEB_OPTIONS%XTSTEP=0.
 IF (LHOOK) CALL DR_HOOK("MODD_TEB_N:TEB_OPTIONS_INIT",1,ZHOOK_HANDLE)
 END SUBROUTINE TEB_OPTIONS_INIT

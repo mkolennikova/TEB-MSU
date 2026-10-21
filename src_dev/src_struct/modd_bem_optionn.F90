@@ -54,6 +54,7 @@ TYPE BEM_OPTIONS_t
   CHARACTER(LEN=6)              :: CCOOL_COIL    ! type of cooling coil
   CHARACTER(LEN=6)              :: CHEAT_COIL    ! type of heating coil
   LOGICAL                       :: LAUTOSIZE     ! Flag to activate autosize calculations
+   LOGICAL                       :: LBEM_AC       ! T: air conditioners are used
 !
 END TYPE BEM_OPTIONS_t
 !
@@ -74,6 +75,7 @@ YBEM_OPTIONS%NFLOOR_LAYER = 0
 YBEM_OPTIONS%CCOOL_COIL   = '      '
 YBEM_OPTIONS%CHEAT_COIL   = '      '
 YBEM_OPTIONS%LAUTOSIZE    = .FALSE.
+YBEM_OPTIONS%LBEM_AC      = .FALSE.
 IF (LHOOK) CALL DR_HOOK("MODD_BEM_N:BEM_OPTIONS_INIT",1,ZHOOK_HANDLE)
 END SUBROUTINE BEM_OPTIONS_INIT
 

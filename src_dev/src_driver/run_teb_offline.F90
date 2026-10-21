@@ -340,7 +340,6 @@ REAL ,DIMENSION(nvec) :: teb_qcanyon                    !INOUT canyon air humidi
 REAL ,DIMENSION(nvec) :: teb_ti_bld                     !INOUT indoor air temperature   
 REAL ,DIMENSION(nvec) :: teb_qi_bld                     !INOUT Indoor air specific humidity [kg kg-1]     
 REAL ,DIMENSION(nvec, teb_nroof_layer)  :: teb_troof    !INOUT roof layers temperatures
-REAL ,DIMENSION(nvec, teb_nroad_layer)  :: teb_troad_now!INOUT road layers temperatures at previous time-step       
 REAL ,DIMENSION(nvec, teb_nroad_layer)  :: teb_troad    !INOUT road layers temperatures     
 REAL ,DIMENSION(nvec, teb_nwall_layer)  :: teb_twalla   !INOUT wall layers temperatures (wall 'A') 
 REAL ,DIMENSION(nvec, teb_nwall_layer)  :: teb_twallb   !INOUT wall layers temperatures (wall 'B') 
@@ -1224,7 +1223,7 @@ DO nstep= 1,nsteps - 1
 				teb_nfloor_layer, urb_fr_bld, fr_garden, urb_h2w, urb_h_bld, urb_hcap_rd,           &
 				urb_hcap_rf, urb_hcap_wl, urb_hcon_rd, urb_hcon_rf, urb_hcon_wl, urb_alb_rd_so,     &
 				urb_alb_rf_so, urb_alb_wl_so, urb_alb_rd_th, urb_alb_rf_th, urb_alb_wl_th,          &
-				ahf_traffic, ahf_industry, teb_ti_bld, teb_troof, teb_troad_now, teb_troad,         &
+				ahf_traffic, ahf_industry, teb_ti_bld, teb_troof, teb_troad,         &
 				teb_twalla, teb_twallb, teb_tfloor, teb_tmass, teb_qi_bld, teb_tcanyon,             &
 				teb_qcanyon, teb_ws_roof,             &
 				teb_ws_road, teb_wsnow_roof, teb_wsnow_road, teb_tsnow_roof, teb_tsnow_road,        &

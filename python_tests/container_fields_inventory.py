@@ -78,6 +78,7 @@ CATEGORY = {
             'CTYPE_GARDEN', 'XZ0_O_Z0H_GD', 'CTYPE_GREENROOF', 'XZ0_O_Z0H_GR',
             'LCBS_SCHEME', 'XTAU_HW_THRESH', 'XTAU_HW_WIDTH',
             'NROOF_LAYER', 'NROAD_LAYER', 'NWALL_LAYER',
+            'ITYPE_WIND', 'NUTC_HOUR', 'LGREENROOF_EXT',
         },
         'work': {'TTIME', 'XTSTEP'},
         'reserved': {'CBLD_ATYPE', 'CTREE', 'LHYDRO'},
@@ -105,7 +106,7 @@ CATEGORY = {
         'flux': {'XH_TRAFFIC', 'XLE_TRAFFIC', 'XH_INDUSTRY', 'XLE_INDUSTRY'},
     },
     'BEM_OPTIONS_t': {
-        'param': {'NFLOOR_LAYER', 'CCOOL_COIL', 'CHEAT_COIL', 'LAUTOSIZE'},
+        'param': {'NFLOOR_LAYER', 'CCOOL_COIL', 'CHEAT_COIL', 'LAUTOSIZE', 'LBEM_AC'},
     },
     'BEM_t': {
         'state': {

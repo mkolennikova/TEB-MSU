@@ -2071,6 +2071,34 @@ optional нельзя); вызов из `teb_garden.F90` передаёт `OALB_
   (18 000 шагов, BEM) — `IDENTICAL`, SHA-256 CSV `30499e1f…` не изменился;
   `--strict --enforce-param` → `OK`.
 
+### 62. Дедупликация аргументов `CALL_DRIVER` (P-C1a…P-C3, P-C6)
+
+* Новый страж `python_tests/call_signature_inventory.py`: классифицирует каждый dummy
+  `CALL_DRIVER` (`transient`/`container`/`host-emulator`/`deferred`/`violation`);
+  `--strict` падает на нарушении, `--expect N` фиксирует длину. Базово 129 аргументов,
+  56 нарушений.
+* Параметры/опции/BEM ушли из подписи и читаются из контейнеров: `TP` (`XBLD, XGARDEN,
+  XCAN_HW_RATIO, XBLD_HEIGHT, XALB_*, XEMIS_*, XGREENROOF, XROAD_DIR, XRESIDENTIAL,
+  XDT_RES/OFF`), `TOP` (`CBEM, LGARDEN, LGREENROOF, CTYPE_GARDEN, CROAD_DIR, CWALL_OPT,
+  LSOLAR_PANEL, XTAU_HW_*`), `BP/BOP` (`XTCOOL_TARGET, XTHEAT_TARGET, XV_VENT, XINF,
+  XCOP_RAT, XGR, XCAP_SYS_HEAT, CCOOL_COIL, CHEAT_COIL`).
+* Новые поля контейнеров: `BOP%LBEM_AC`, `TOP%ITYPE_WIND`, `TOP%NUTC_HOUR`,
+  `TOP%LGREENROOF_EXT`; `HNATVENT` → `BP%CNATVENT`, `LSHADE` → `BSTATE%LSHADE`;
+  носитель `lshade_arg` в `teb_interface` удалён.
+* Состояние читается/пишется напрямую из `TSTATE`/`BSTATE`; `TEB_BIND_STATE`/
+  `TEB_UNBIND_STATE` дополнены шестью массивами (`teb_tcanyon/qcanyon/ws_road/tfloor/
+  tmass/albwin`). Мёртвые `ZT_ROAD_NOW`/`ZT_ROAD` и массив хоста `teb_troad_now`
+  удалены.
+* `TEB_LOG_EMIT/ROW` принимают `TOP/TSTATE/BSTATE` вместо 10 дублирующих аргументов;
+  эмуляторные `teb_tch_gd/teb_tcm_gd` остаются (интерфейс хоста).
+* Отложено (в страже помечено `deferred`): вывод статики в `CALL_DRIVER`
+  (`ZHC_*_S/ZTC_*_S/ZH_TRAFFIC/ZH_INDUSTRY/ZFAI` + `HZ0_TOWN/HZD_TOWN`, P-C1b) и
+  панели/ирригация, заполняемые `TEB_GARDEN_STRUCT` (P-C4); указатели вместо копий
+  bind (P-C3b) отложены.
+* Итог: `CALL_DRIVER` **129 → 75** аргументов. Проверки пофазно: `build=0`, полный A/B
+  (18 000 шагов, BEM) — `IDENTICAL` (SHA-256 `30499e1f…`), `--strict --enforce-param`
+  → `OK`, новый страж `--strict --expect 75` → `OK`.
+
 ---
 
 ## 5. Неиспользуемые варианты, прочие дефекты и открытые вопросы

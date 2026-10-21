@@ -41,7 +41,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
                  urb_hcon_rf, urb_hcon_wl, urb_alb_rd_so, urb_alb_rf_so, &
                  urb_alb_wl_so, urb_alb_rd_th, urb_alb_rf_th, urb_alb_wl_th, &
                  ahf_traffic, ahf_industry, teb_ti_bld, teb_troof, &
-                 teb_troad_now, teb_troad, teb_twalla, teb_twallb, &
+                 teb_troad, teb_twalla, teb_twallb, &
                  teb_tfloor, teb_tmass, teb_qi_bld, teb_tcanyon, teb_qcanyon, &
                  teb_ws_roof, teb_ws_road, teb_wsnow_roof, teb_wsnow_road, &
                  teb_tsnow_roof, teb_tsnow_road, teb_rsnow_roof, &
@@ -216,8 +216,7 @@ REAL ,DIMENSION(nvec) :: teb_alb_gr
 	REAL ,DIMENSION(nvec) :: teb_rd_irrig_sum
 
 	REAL ,DIMENSION(nvec, 1:teb_nroof_layer) :: teb_troof 
-	REAL ,DIMENSION(nvec, 1:teb_nroad_layer) :: teb_troad_now	
-	REAL ,DIMENSION(nvec, 1:teb_nroad_layer) :: teb_troad
+		REAL ,DIMENSION(nvec, 1:teb_nroad_layer) :: teb_troad
 	REAL ,DIMENSION(nvec, 1:teb_nwall_layer) :: teb_twalla  
 	REAL ,DIMENSION(nvec, 1:teb_nwall_layer) :: teb_twallb  
 	REAL ,DIMENSION(nvec, 1:teb_nfloor_layer) :: teb_tfloor  
@@ -269,16 +268,6 @@ REAL ,DIMENSION(nvec) :: teb_alb_gr
 LOGICAL,              INTENT(IN)  :: teb_lcbs_scheme  ! flag to use the CBS scheme for the road
 REAL,                 INTENT(IN)  :: teb_tau_hw_thresh! H/W giving tau = 0.5 (CBS scheme)
 REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxation (CBS scheme)
-!MV202609 one-element carriers for the scalar arguments of CALL_DRIVER
-!* CALL_DRIVER takes a few arguments as DIMENSION(1) arrays (the downstream
-!* TEB_GARDEN_STRUCT declares them assumed-shape), while teb_interface receives a
-!* plain scalar (teb_lshade) or an expression (1 - thermal albedo). Passing a scalar
-!* to a rank-1 dummy became a compile error once the interface of CALL_DRIVER was
-!* made explicit; the values are carried in one-element arrays, unchanged bit for bit.
-REAL,    DIMENSION(1) :: zemis_road_arg  ! 1 - thermal albedo of the road
-REAL,    DIMENSION(1) :: zemis_roof_arg  ! 1 - thermal albedo of the roof
-REAL,    DIMENSION(1) :: zemis_wall_arg  ! 1 - thermal albedo of the wall
-LOGICAL, DIMENSION(1) :: lshade_arg      ! shadowing flag of the namelist (teb_lshade)
 !MV202610 emulator inputs as individual fields (no structures across the boundary)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_wind_canyon   ! canyon wind (m/s)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_sobs         ! solar radiation absorbed by the ground (W/m2)
@@ -308,7 +297,8 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                  teb_tau_hw_thresh, teb_tau_hw_width, urb_z0_o_z0h_gdn, urb_z0_o_z0h_grf, teb_road_dir, &
                  fr_garden, teb_frac_gr, urb_fr_bld, urb_h2w, urb_h_bld, &
                  urb_alb_rf_so, urb_alb_rd_so, urb_alb_wl_so, urb_alb_rd_th, urb_alb_rf_th, &
-                 urb_alb_wl_th, teb_zresidential, teb_dt_res, teb_dt_off, ahf_industry)
+                 urb_alb_wl_th, teb_zresidential, teb_dt_res, teb_dt_off, ahf_industry, &
+                  teb_itype_wind, teb_utc_hour, teb_lgreenroof_ext, teb_lbem_ac)
     CALL TEB_BIND_STATE (ivstart, ivend, &
                  teb_ti_bld, &
                  teb_twin2, &
@@ -316,8 +306,7 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                  teb_cap_sys_rat, &
                  teb_m_sys_rat, &
                  teb_twin1, &
-                 lshade_arg, &
-                 teb_lshade, &
+                                  teb_lshade, &
                  teb_shad_day, &
                  teb_natvent_night, &
                  teb_ws_roof, &
@@ -336,48 +325,28 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                  teb_rsnow_road, &
                  teb_asnow_road, &
                  teb_esnow_road, &
-                 teb_tssnow_road)
+                 teb_tssnow_road, &
+                  teb_tcanyon, &
+                  teb_qcanyon, &
+                  teb_ws_road, &
+                  teb_tfloor, &
+                  teb_tmass, &
+                  teb_albwin)
 	DO i = ivstart, ivend
-		!MV202609 fill the one-element carriers of the scalar arguments
-		zemis_road_arg(1) = 1. - urb_alb_rd_th(i)
-		zemis_roof_arg(1) = 1. - urb_alb_rf_th(i)
-		zemis_wall_arg(1) = 1. - urb_alb_wl_th(i)
-		lshade_arg(1)     = teb_lshade
 		CALL CALL_DRIVER (ntstep, i, iblock, dt, teb_year, teb_month, teb_day, teb_hour, teb_min, &
-                 teb_sec, teb_hour_seconds(1), sa_uc(i), lon_teb(i), &
-                 lat_teb(i), hlev_teb(i), u(i), v(i), t(i), qv(i), ps(i), &
-                 prr_con(i), prs_con(i), prr_gsp(i), prs_gsp(i), prg_gsp(i), &
-                 lwd_s(i), swdir_s(i), swdifd_s(i), teb_nroof_layer, &
-                 teb_nroad_layer, teb_nwall_layer, teb_nfloor_layer, &
-                 urb_fr_bld(i), fr_garden(i), urb_h2w(i), urb_h_bld(i), &
-                 urb_hcap_rd(i), urb_hcap_rf(i), urb_hcap_wl(i), &
-                 urb_hcon_rd(i), urb_hcon_rf(i), urb_hcon_wl(i), &
-                 urb_alb_rd_so(i), urb_alb_rf_so(i), urb_alb_wl_so(i), &
-                 zemis_road_arg, zemis_roof_arg, zemis_wall_arg, &
-                 ahf_traffic(i), ahf_industry(i), teb_troad_now(i,:), &
-                 teb_troad(i,:), teb_tfloor(i,:), teb_tmass(i,:), &
-                 teb_tcanyon(i), teb_qcanyon(i), teb_ws_road(i), &
-                 teb_albwin(i), teb_itype_bem, teb_lbem_ac, &
-                 teb_itype_natvent, teb_itype_bem_cool, teb_itype_bem_heat, &
-                 teb_frac_gz(i), teb_tcool_target(i), teb_theat_target(i), &
-                 teb_bem_vent(i), teb_bem_inf(i), teb_bem_cop(i), &
-                 teb_cap_sys_rat(i), teb_shad_day(i), teb_natvent_night(i), &
-                 teb_lgreenroof, teb_frac_gr(i), teb_z0_gr(i), teb_alb_gr(i), &
-                 teb_emis_gr(i), teb_ts_gr(i), teb_qs_gr(i), teb_shfl_gr(i), &
-                 teb_lhfl_gr(i), teb_qvfl_gr(i), teb_runoff_gr(i), &
-                 teb_lgarden, teb_z0_gd(i), teb_alb_gd(i), teb_emis_gd(i), &
-                 teb_ts_gd(i), teb_qs_gd(i), teb_shfl_gd(i), teb_lhfl_gd(i), &
-                 teb_qvfl_gd(i), teb_tch_gd(i), teb_tcm_gd(i), &
-                 teb_runoff_gd(i), teb_itype_wind, teb_fai(i,:), &
-                 teb_type_garden, teb_lgreenroof_ext, teb_hroad_dir, &
-                 teb_wall_opt, teb_road_dir(i), teb_zresidential(i), &
-                 teb_dt_res(i), teb_dt_off(i), teb_cap_sys_heat(i), &
-                 teb_lsolar_panel, teb_fr_panel(i), teb_lroad_irrig, &
-                 teb_rd_irrig_start_m(i), teb_rd_irrig_end_m(i), &
-                 teb_rd_irrig_start_h(i), teb_rd_irrig_end_h(i), &
-                 teb_rd_irrig_sum(i), teb_utc_hour, lshade_arg, urb_z0_town, &
-                 urb_zd_town, teb_tau_hw_thresh, teb_tau_hw_width, DMT, TOP, &
-                 TP, BOP, BP, TSTATE, BSTATE, TPN, TIR)
+                 teb_sec, teb_hour_seconds(1), sa_uc(i), lon_teb(i), lat_teb(i), hlev_teb(i), &
+                 u(i), v(i), t(i), qv(i), ps(i), prr_con(i), prs_con(i), prr_gsp(i), &
+                 prs_gsp(i), prg_gsp(i), lwd_s(i), swdir_s(i), swdifd_s(i), urb_hcap_rd(i), &
+                 urb_hcap_rf(i), urb_hcap_wl(i), urb_hcon_rd(i), urb_hcon_rf(i), &
+                 urb_hcon_wl(i), ahf_traffic(i), ahf_industry(i), teb_z0_gr(i), teb_alb_gr(i), &
+                 teb_emis_gr(i), teb_ts_gr(i), teb_qs_gr(i), teb_shfl_gr(i), teb_lhfl_gr(i), &
+                 teb_qvfl_gr(i), teb_runoff_gr(i), teb_z0_gd(i), teb_alb_gd(i), &
+                 teb_emis_gd(i), teb_ts_gd(i), teb_qs_gd(i), teb_shfl_gd(i), teb_lhfl_gd(i), &
+                 teb_qvfl_gd(i), teb_tch_gd(i), teb_tcm_gd(i), teb_runoff_gd(i), teb_fai(i,:), &
+                 teb_fr_panel(i), teb_lroad_irrig, teb_rd_irrig_start_m(i), &
+                 teb_rd_irrig_end_m(i), teb_rd_irrig_start_h(i), teb_rd_irrig_end_h(i), &
+                 teb_rd_irrig_sum(i), urb_z0_town, urb_zd_town, DMT, TOP, TP, BOP, BP, TSTATE, &
+                 BSTATE, TPN, TIR)
 	END DO
 	
     CALL TEB_UNBIND_STATE (ivstart, ivend, &
@@ -387,8 +356,7 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                  teb_cap_sys_rat, &
                  teb_m_sys_rat, &
                  teb_twin1, &
-                 lshade_arg, &
-                 teb_lshade, &
+                                  teb_lshade, &
                  teb_shad_day, &
                  teb_natvent_night, &
                  teb_ws_roof, &
@@ -407,7 +375,13 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                  teb_rsnow_road, &
                  teb_asnow_road, &
                  teb_esnow_road, &
-                 teb_tssnow_road)
+                 teb_tssnow_road, &
+                  teb_tcanyon, &
+                  teb_qcanyon, &
+                  teb_ws_road, &
+                  teb_tfloor, &
+                  teb_tmass, &
+                  teb_albwin)
     !MV202610 the emulator of the host reads these as individual fields
     teb_wind_canyon(1:nvec) = DMT%XWIND_CANYON(1:nvec)
     teb_sobs(1:nvec)        = DMT%XSOBS(1:nvec)
@@ -416,19 +390,9 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
     teb_runoff_roof(1:nvec) = DMT%XRUNOFF_ROOF(1:nvec)
     !MV202610 universal output: one row per selected cell, at the output cadence
     IF (TEB_LOG_AT_CADENCE()) THEN
-       CALL TEB_LOG_EMIT(iblock, DMT, teb_year, teb_month, teb_day, teb_hour_seconds, &
-            teb_tcanyon, &
-            teb_ti_bld, &
-            teb_qcanyon, &
-            teb_tsnow_road, &
+       CALL TEB_LOG_EMIT(iblock, DMT, TOP, TSTATE, BSTATE, teb_year, teb_month, teb_day, teb_hour_seconds, &
             teb_tch_gd, &
             teb_tcm_gd, &
-            teb_ws_road, &
-            teb_ws_roof, &
-            teb_wsnow_road, &
-            teb_wsnow_roof, &
-            teb_itype_bem, &
-            teb_lsolar_panel, &
             t, &
             qv, &
             ps, &

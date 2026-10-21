@@ -242,6 +242,7 @@ CALL CSV_ADD(hdr_line, out_line, ncol, col_name, 'H_TOWN', DMT%XH_TOWN(1))
 | `python_tests/container_ab_compare.py` | два бинарника на одном кейсе: побитовое сравнение `TEB_output_b1_c1.csv` поле-в-поле (как текст), заголовок, число строк, SHA-256; `--steps N` — короткий прогон, `--golden` — список колонок эталона |
 | `python_tests/diag_container_inventory.py` | инвентарь объявлений драйвера и контракт CSV: сколько колонок и чем каждая питается (замкнутость «источников ↔ колонок») |
 | `python_tests/container_fields_inventory.py` | поля соседних контейнеров (`TEB_OPTIONS_t`, `TEB_t`, `BEM_OPTIONS_t`, `BEM_t`, `TEB_PANEL_t`, `TEB_IRRIG_t`): категория `param`/`flux`/`state`/`work`/`reserved`/`dead`, число обращений и файлы-писатели; падает на неклассифицированном поле, `--strict` делает ошибкой оставшиеся мёртвые поля |
+| `python_tests/call_signature_inventory.py` | подпись `CALL_DRIVER`: каждый dummy — `transient` (форсинг/время/индексы), `container`, `host-emulator`, `deferred` (с указанием фазы) или `violation`; `--strict` падает на нарушении, `--expect N` фиксирует длину подписи |
 
 ```powershell
 python python_tests/check_diag_container.py
@@ -303,9 +304,11 @@ python python_tests/container_ab_compare.py --ref-exe build/TEB_offline_dev_ref.
 
 **Счётчики подписей.** `TEB_GARDEN_STRUCT` — **304** аргумента (было 411, затем
 326): снято 89 dummy, значения которых уже лежат в контейнерах, и ещё 26 после
-переноса состояния в `TSTATE`/`BSTATE`. `CALL_DRIVER` — **129** аргументов (было
-151/155). `teb_interface` — **155**: dummy-аргументы остаются стыком с
-coupled-моделью и заполняют контейнеры; структуры через границу не проходят.
+переноса состояния в `TSTATE`/`BSTATE`. `CALL_DRIVER` — **75** аргументов (было
+151/155, затем 129): остались транзиентные входы (28), контейнеры (9), интерфейс
+эмулятора (20) и отложенные дубликаты (18, см. страж `call_signature_inventory.py`).
+`teb_interface` — **155**: dummy-аргументы остаются стыком с coupled-моделью и
+заполняют контейнеры; структуры через границу не проходят.
 
 **Слой контейнеров (`TEB_HOST`).** Каталог `src_api` содержит `teb_interface` и модуль
 `TEB_HOST` с `TEB_FILL_PARAMS`: 39 корневых значений конфигурации записываются в

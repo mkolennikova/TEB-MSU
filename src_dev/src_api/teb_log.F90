@@ -18,6 +18,9 @@
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 USE MODD_FORC_ATM,  ONLY : XPS, XZENITH, XAZIM
 USE MODD_CSTS,      ONLY : XPI
+USE MODD_TEB_n,          ONLY : TEB_t
+USE MODD_BEM_n,          ONLY : BEM_t
+USE MODD_TEB_OPTION_n,   ONLY : TEB_OPTIONS_t
 !
 IMPLICIT NONE
 !
@@ -194,24 +197,17 @@ END IF
 !
 END SUBROUTINE TEB_LOG_FINAL
 !
-SUBROUTINE TEB_LOG_ROW (DMT, KICELL, teb_year, teb_month, teb_day, teb_hour_seconds, teb_tcanyon, teb_ti_bld, teb_qcanyon, teb_tsnow_road, teb_tch_gd, teb_tcm_gd, teb_ws_road, teb_ws_roof, teb_wsnow_road, teb_wsnow_roof, teb_itype_bem, teb_lsolar_panel, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, CHDR, COUT, KNCOL, CNAME)
+SUBROUTINE TEB_LOG_ROW (DMT, TOP, TSTATE, BSTATE, KICELL, teb_year, teb_month, teb_day, teb_hour_seconds, teb_tch_gd, teb_tcm_gd, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, CHDR, COUT, KNCOL, CNAME)
 !
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
+TYPE(TEB_OPTIONS_t), INTENT(IN) :: TOP
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 INTEGER, INTENT(IN) :: KICELL   ! index of the cell in the window
 INTEGER, INTENT(IN) :: teb_year, teb_month, teb_day
 REAL, DIMENSION(:), INTENT(IN) :: teb_hour_seconds
-CHARACTER(LEN=*), INTENT(IN) :: teb_itype_bem
-LOGICAL, INTENT(IN) :: teb_lsolar_panel
-REAL, DIMENSION(:), INTENT(IN) :: teb_tcanyon
-REAL, DIMENSION(:), INTENT(IN) :: teb_ti_bld
-REAL, DIMENSION(:), INTENT(IN) :: teb_qcanyon
-REAL, DIMENSION(:,:), INTENT(IN) :: teb_tsnow_road
 REAL, DIMENSION(:), INTENT(IN) :: teb_tch_gd
 REAL, DIMENSION(:), INTENT(IN) :: teb_tcm_gd
-REAL, DIMENSION(:), INTENT(IN) :: teb_ws_road
-REAL, DIMENSION(:), INTENT(IN) :: teb_ws_roof
-REAL, DIMENSION(:,:), INTENT(IN) :: teb_wsnow_road
-REAL, DIMENSION(:,:), INTENT(IN) :: teb_wsnow_roof
 REAL, DIMENSION(:), INTENT(IN) :: t
 REAL, DIMENSION(:), INTENT(IN) :: qv
 REAL, DIMENSION(:), INTENT(IN) :: ps
@@ -243,22 +239,22 @@ WRITE(time_buf,'(I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2,":",I2.2)')           
     CHDR = 'time'
     COUT = TRIM(time_buf)
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_ROOF1', DMT%XTS_ROOF(KICELL))
-    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_CANYON', teb_tcanyon(KICELL))
+    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_CANYON', TSTATE%XT_CANYON(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_ROAD1', DMT%XTS_ROAD(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_WALLA1', DMT%XTS_WALL_A(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_WALLB1', DMT%XTS_WALL_B(KICELL))
-    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'TI_BLD', teb_ti_bld(KICELL))
-    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'Q_CANYON', teb_qcanyon(KICELL))
+    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'TI_BLD', BSTATE%XTI_BLD(KICELL))
+    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'Q_CANYON', TSTATE%XQ_CANYON(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'P_CANYON', XPS(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'U_CANYON', DMT%XWIND_CANYON(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'H_TOWN', DMT%XH_TOWN(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'LE_TOWN', DMT%XLE_TOWN(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'RN_TOWN', DMT%XRN_TOWN(KICELL))
-    IF (teb_itype_bem == 'BEM') THEN
+    IF (TOP%CBEM == 'BEM') THEN
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'HVAC_COOL', DMT%XHVAC_COOL(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'HVAC_HEAT', DMT%XHVAC_HEAT(KICELL))
     END IF
-    IF (teb_lsolar_panel) THEN
+    IF (TOP%LSOLAR_PANEL) THEN
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SOLAR_PROD', DMT%XSOLAR_PROD(KICELL))
     END IF
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'WIND_TOP', DMT%XWIND_TOP(KICELL))
@@ -297,7 +293,7 @@ WRITE(time_buf,'(I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2,":",I2.2)')           
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'PDN_RD', DMT%XPDN_RD(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'LE_ROAD_WAT', DMT%XLE_ROAD_WAT(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'LE_ROAD_SNOW', DMT%XLE_ROAD_SNOW(KICELL))
-    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'WS_ROAD', teb_ws_road(KICELL))
+    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'WS_ROAD', TSTATE%XWS_ROAD(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'AHF_TRAFFIC', DMT%XAHF_TRAFFIC_NOW(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'H_WASTE', DMT%XH_WASTE(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'LE_WASTE', DMT%XLE_WASTE(KICELL))
@@ -305,13 +301,13 @@ WRITE(time_buf,'(I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2,":",I2.2)')           
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_CAN0', DMT%XPT_CAN0(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_CAN1', DMT%XPT_CAN1(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'PHI_CAN1', DMT%XPPHI_CAN1(KICELL))
-    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'WSNOW_RD', teb_wsnow_road(1,1))
-    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'TSNOW_RD', teb_tsnow_road(1,1))
+    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'WSNOW_RD', TSTATE%TSNOW_ROAD%WSNOW(1,1))
+    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'TSNOW_RD', TSTATE%TSNOW_ROAD%T(1,1))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'PDN_RF', DMT%XPDN_RF(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'LE_ROOF_WAT', DMT%XLE_ROOF_WAT(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'LE_ROOF_SNOW', DMT%XLE_ROOF_SNOW(KICELL))
-    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'WS_ROOF', teb_ws_roof(KICELL))
-    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'WSNOW_RF', teb_wsnow_roof(1,1))
+    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'WS_ROOF', TSTATE%XWS_ROOF(KICELL))
+    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'WSNOW_RF', TSTATE%TSNOW_ROOF%WSNOW(1,1))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'TS_GARDEN', DMT%XTS_GARDEN(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'RN_GARDEN', DMT%XRN_GARDEN(KICELL))
     CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'H_GARDEN', DMT%XH_GARDEN(KICELL))
@@ -395,27 +391,20 @@ SUBROUTINE CSV_APPEND(line, value)
 END SUBROUTINE CSV_APPEND
 !
 
-SUBROUTINE TEB_LOG_EMIT (KIBLOCK, DMT, teb_year, teb_month, teb_day, teb_hour_seconds, teb_tcanyon, teb_ti_bld, teb_qcanyon, teb_tsnow_road, teb_tch_gd, teb_tcm_gd, teb_ws_road, teb_ws_roof, teb_wsnow_road, teb_wsnow_roof, teb_itype_bem, teb_lsolar_panel, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s)
+SUBROUTINE TEB_LOG_EMIT (KIBLOCK, DMT, TOP, TSTATE, BSTATE, teb_year, teb_month, teb_day, teb_hour_seconds, teb_tch_gd, teb_tcm_gd, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s)
 !
 !* The universal output row: the TEB diagnostics of one cell (TEB_LOG_ROW)
 !* followed by the solar geometry and the atmospheric forcing of the step.
 !
 INTEGER, INTENT(IN) :: KIBLOCK   ! the block of this call
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
+TYPE(TEB_OPTIONS_t), INTENT(IN) :: TOP
+TYPE(TEB_t), INTENT(INOUT) :: TSTATE
+TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 INTEGER, INTENT(IN) :: teb_year, teb_month, teb_day
 REAL, DIMENSION(:), INTENT(IN) :: teb_hour_seconds
-CHARACTER(LEN=*), INTENT(IN) :: teb_itype_bem
-LOGICAL, INTENT(IN) :: teb_lsolar_panel
-REAL, DIMENSION(:), INTENT(IN) :: teb_tcanyon
-REAL, DIMENSION(:), INTENT(IN) :: teb_ti_bld
-REAL, DIMENSION(:), INTENT(IN) :: teb_qcanyon
-REAL, DIMENSION(:,:), INTENT(IN) :: teb_tsnow_road
 REAL, DIMENSION(:), INTENT(IN) :: teb_tch_gd
 REAL, DIMENSION(:), INTENT(IN) :: teb_tcm_gd
-REAL, DIMENSION(:), INTENT(IN) :: teb_ws_road
-REAL, DIMENSION(:), INTENT(IN) :: teb_ws_roof
-REAL, DIMENSION(:,:), INTENT(IN) :: teb_wsnow_road
-REAL, DIMENSION(:,:), INTENT(IN) :: teb_wsnow_roof
 REAL, DIMENSION(:), INTENT(IN) :: t
 REAL, DIMENSION(:), INTENT(IN) :: qv
 REAL, DIMENSION(:), INTENT(IN) :: ps
@@ -441,7 +430,7 @@ DO J = 1, SIZE(TEB_LOG_BLOCK)
    IF (TEB_LOG_BLOCK(J) /= KIBLOCK) CYCLE
    KNCOL = 0
    CHDR  = 'time'
-   CALL TEB_LOG_ROW(DMT, TEB_LOG_POINT(J), teb_year, teb_month, teb_day, teb_hour_seconds, teb_tcanyon, teb_ti_bld, teb_qcanyon, teb_tsnow_road, teb_tch_gd, teb_tcm_gd, teb_ws_road, teb_ws_roof, teb_wsnow_road, teb_wsnow_roof, teb_itype_bem, teb_lsolar_panel, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, CHDR, COUT, KNCOL, CNAME)
+   CALL TEB_LOG_ROW(DMT, TOP, TSTATE, BSTATE, TEB_LOG_POINT(J), teb_year, teb_month, teb_day, teb_hour_seconds, teb_tch_gd, teb_tcm_gd, t, qv, ps, rho, u, v, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, CHDR, COUT, KNCOL, CNAME)
    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SOLAR_ZENITH', XZENITH(1) * 180. / XPI)
    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SOLAR_ELEV', 90. - XZENITH(1) * 180. / XPI)
    CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SOLAR_AZIM', MOD(XAZIM(1) * 180. / XPI + 360., 360.))
