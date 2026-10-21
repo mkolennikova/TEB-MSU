@@ -690,3 +690,309 @@ def preview_output_plotly(df, subplots_config=None, save_path=None, height=None,
         print(f"Figure saved to: {save_path}")
     
     return fig
+
+
+# ----------------------------------------------------------------------------------
+# Comparison of several experiments
+# ----------------------------------------------------------------------------------
+#: Colours of the experiments: the same colour in every panel identifies the run.
+EXPERIMENT_COLORS = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e', '#e6ab02']
+#: Line styles of the variables inside one panel (a panel usually has one variable).
+VARIABLE_LINESTYLES = ['solid', 'dash', 'dot', 'dashdot']
+#: Default y-label of a variable, by the prefix of its name.
+_YLABEL_PREFIXES = (('MRT_', 'Temperature (K)'),
+                    ('HVAC_', 'Energy (W/m²)'),
+                    ('T_', 'Temperature (K)'),
+                    ('Q_', 'Specific humidity (kg/kg)'),
+                    ('LE_', 'Latent heat flux (W/m²)'),
+                    ('H_', 'Sensible heat flux (W/m²)'),
+                    ('RN_', 'Net radiation (W/m²)'),
+                    ('GFLUX', 'Ground flux (W/m²)'),
+                    ('U_', 'Wind speed (m/s)'),
+                    ('WIND', 'Wind speed (m/s)'))
+
+
+def _default_ylabel(name):
+    """Default axis label of a variable ('' when the name is not recognised)."""
+    for prefix, label in _YLABEL_PREFIXES:
+        if str(name).startswith(prefix):
+            return label
+    return ''
+
+
+def read_experiments(paths, fmt='auto'):
+    """Read several runs into an ordered {label: DataFrame} mapping.
+
+    `paths` is a mapping {label: output directory or CSV path} (or a list of
+    (label, path) pairs); every entry is read with `read_output`, so the
+    per-cell tables, the legacy `TEB_output.csv` and the legacy txt directories
+    are accepted. The order of the mapping is kept: it is the order of the
+    experiments in the comparison plots.
+    """
+    items = paths.items() if isinstance(paths, dict) else paths
+    experiments = {}
+    for label, path in items:
+        frame = read_output(path, fmt=fmt)
+        experiments[str(label)] = frame
+        print(f'{label}: {len(frame)} time steps, {len(frame.columns)} variables [{path}]')
+    if not experiments:
+        raise ValueError('no experiments given')
+    return experiments
+
+
+def _experiment_list(experiments):
+    """[(label, DataFrame)] from a mapping, a list of pairs or a single frame."""
+    if isinstance(experiments, pd.DataFrame):
+        return [('experiment', experiments)]
+    items = experiments.items() if isinstance(experiments, dict) else experiments
+    out = []
+    for item in items:
+        if (isinstance(item, (tuple, list)) and len(item) == 2
+                and isinstance(item[1], pd.DataFrame)):
+            out.append((str(item[0]), item[1]))
+        else:
+            raise TypeError('experiments must be a {label: DataFrame} mapping '
+                            'or a list of (label, DataFrame) pairs')
+    if not out:
+        raise ValueError('no experiments given')
+    return out
+
+
+def _comparison_panels(variables, subplots_config):
+    """Panel list of a comparison: one panel per variable unless a config is given."""
+    if subplots_config is not None:
+        panels = [dict(config) for config in subplots_config]
+        if not panels:
+            raise ValueError('subplots_config is empty')
+        return panels
+    if not variables:
+        raise ValueError('give `variables` (one panel per variable) or `subplots_config`')
+    if isinstance(variables, str):
+        variables = [variables]
+    return [{'variables': [var], 'title': var, 'ylabel': _default_ylabel(var)}
+            for var in variables]
+
+
+
+def compare_experiments_mpl(experiments, variables=None, subplots_config=None,
+                            figsize=None, save_path=None, dpi=300, start=None, end=None,
+                            title=None, linewidth=1.8):
+    """Compare two or more runs with Matplotlib: one panel per variable, shared x axis.
+
+    Parameters
+    ----------
+    experiments : dict {label: DataFrame} or list of (label, DataFrame)
+        The runs to compare, e.g. ``{'CTRL': ctrl_df, 'ALBEDO': alb_df}`` (see
+        `read_experiments`). The order is kept and defines the colours.
+    variables : str or list of str, optional
+        One panel per variable, e.g. ``['HVAC_COOL', 'HVAC_HEAT', 'MRT_ROAD']``.
+        `subplots_config` (the format of `preview_output_mpl`) takes precedence
+        when given.
+    subplots_config : list of dict, optional
+        Custom panels; a panel may hold several variables (the line style then
+        identifies the variable, the colour the experiment).
+    figsize : tuple, optional
+        Figure size; by default the height grows with the number of panels.
+    save_path, dpi : optional
+        Saved figure and its resolution.
+    start, end : optional
+        Time window, as in `preview_output_mpl`.
+    title : str, optional
+        Figure title.
+    linewidth : float, optional
+        Line width of the curves.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+    axes : numpy.ndarray of the panels
+
+    Notes
+    -----
+    The colour identifies the experiment in every panel and one legend is placed
+    above the figure (``experiment`` for the usual one-variable panels,
+    ``experiment · variable`` when a panel carries several variables). A variable
+    missing in all runs is shown as an empty panel with a note, so a comparison
+    of outputs of different trees (e.g. `src_dev` with the MRT diagnostics and
+    `src_ctrl` without them) still draws every requested panel.
+    """
+    runs = _experiment_list(experiments)
+    panels = _comparison_panels(variables, subplots_config)
+    plot_runs = [(label, _filter_df_by_time(frame, start, end)) for label, frame in runs]
+
+    n_rows = len(panels)
+    if figsize is None:
+        figsize = (10, max(3.0, 2.2 * n_rows) + 1.4)
+    fig, axes = plt.subplots(n_rows, 1, figsize=figsize, sharex=True)
+    if n_rows == 1:
+        axes = [axes]
+
+    handles, labels, seen = [], [], set()
+    for row, panel in enumerate(panels):
+        ax = axes[row]
+        panel_vars = panel.get('variables', [])
+        multi = len(panel_vars) > 1
+        plotted = False
+        for i, (label, frame) in enumerate(plot_runs):
+            color = EXPERIMENT_COLORS[i % len(EXPERIMENT_COLORS)]
+            for k, var in enumerate(panel_vars):
+                if var not in frame.columns or frame[var].isna().all():
+                    continue
+                style = VARIABLE_LINESTYLES[k % len(VARIABLE_LINESTYLES)] if multi else '-'
+                line, = ax.plot(frame.index, frame[var], color=color, linestyle=style,
+                                linewidth=linewidth, zorder=2)
+                plotted = True
+                key = (label, var) if multi else label
+                if key not in seen:
+                    seen.add(key)
+                    handles.append(line)
+                    labels.append(f'{label} · {var}' if multi else label)
+        if not plotted:
+            ax.text(0.5, 0.5, 'No data available', ha='center', va='center',
+                    transform=ax.transAxes, fontsize=11, color='gray')
+        ylabel = panel.get('ylabel') or (_default_ylabel(panel_vars[0]) if panel_vars else '')
+        if ylabel:
+            ax.set_ylabel(ylabel)
+        ax.set_title(panel.get('title', ''))
+        ax.grid(True, alpha=0.3)
+
+    axes[-1].set_xlabel('Time')
+
+    if handles:
+        fig.legend(handles, labels, loc='upper center', ncol=min(len(labels), 4),
+                   fontsize=9, frameon=False, bbox_to_anchor=(0.5, 1.0))
+    if title:
+        fig.suptitle(title, fontsize=12)
+    top = 0.90 if title else (0.96 if handles else 1.0)
+    fig.tight_layout(rect=(0, 0, 1, top))
+
+    if save_path:
+        fig.savefig(save_path, dpi=dpi, bbox_inches='tight')
+        print(f'Figure saved to: {save_path}')
+
+    return fig, axes
+
+
+
+def compare_experiments_plotly(experiments, variables=None, subplots_config=None,
+                               title=None, height=None, save_path=None, start=None, end=None,
+                               vertical_spacing=0.07, legend_side='right',
+                               layout_kwargs=None, linewidth=2):
+    """Interactive comparison of several runs: one panel per variable, shared x axis.
+
+    The interactive twin of `compare_experiments_mpl`: the same experiments,
+    variables and panels, the colour identifies the experiment and the dash the
+    variable inside a multi-variable panel. The curves of one experiment form a
+    legend group (a click toggles the whole run), as in `preview_output_plotly`.
+
+    Parameters
+    ----------
+    experiments, variables, subplots_config, title, save_path, start, end
+        As in `compare_experiments_mpl`.
+    height : int, optional
+        Figure height in pixels; by default it grows with the number of panels.
+    vertical_spacing : float, optional
+        Spacing between the panels (default 0.07).
+    legend_side : str, optional
+        'right' (default) or 'left'.
+    layout_kwargs : dict, optional
+        Extra layout parameters of `fig.update_layout`.
+    linewidth : float, optional
+        Line width of the curves.
+
+    Returns
+    -------
+    fig : plotly.graph_objects.Figure
+    """
+    try:
+        import plotly.graph_objects as go
+        from plotly.subplots import make_subplots
+    except ImportError:
+        raise ImportError("Plotly is required for compare_experiments_plotly. "
+                          "Install with: pip install plotly")
+
+    runs = _experiment_list(experiments)
+    panels = _comparison_panels(variables, subplots_config)
+    plot_runs = [(label, _filter_df_by_time(frame, start, end)) for label, frame in runs]
+
+    n_rows = len(panels)
+    if height is None:
+        height = max(500, 240 * n_rows)
+
+    fig = make_subplots(rows=n_rows, cols=1, shared_xaxes=True,
+                        vertical_spacing=vertical_spacing,
+                        subplot_titles=[panel.get('title', '') for panel in panels])
+
+    for row, panel in enumerate(panels, start=1):
+        panel_vars = panel.get('variables', [])
+        multi = len(panel_vars) > 1
+        for i, (label, frame) in enumerate(plot_runs):
+            color = EXPERIMENT_COLORS[i % len(EXPERIMENT_COLORS)]
+            for k, var in enumerate(panel_vars):
+                if var not in frame.columns or frame[var].isna().all():
+                    continue
+                dash = VARIABLE_LINESTYLES[k % len(VARIABLE_LINESTYLES)] if multi else 'solid'
+                fig.add_trace(
+                    go.Scatter(
+                        x=frame.index,
+                        y=frame[var],
+                        mode='lines',
+                        name=f'{label} · {var}' if multi else label,
+                        legendgroup=label,
+                        legendgrouptitle_text=label,
+                        line=dict(color=color, dash=dash, width=linewidth)
+                    ),
+                    row=row, col=1
+                )
+        ylabel = panel.get('ylabel') or (_default_ylabel(panel_vars[0]) if panel_vars else '')
+        if ylabel:
+            fig.update_yaxes(title_text=ylabel, row=row, col=1)
+
+    fig.update_xaxes(title_text='Time', row=n_rows, col=1)
+
+    if legend_side == 'right':
+        legend_x, legend_xanchor = 1.02, 'left'
+    else:
+        legend_x, legend_xanchor = -0.02, 'right'
+
+    layout = {
+        'height': height,
+        'showlegend': True,
+        'legend': dict(
+            orientation='v',
+            yanchor='middle',
+            y=0.5,
+            xanchor=legend_xanchor,
+            x=legend_x,
+            itemclick='toggleothers',
+            itemdoubleclick='toggle',
+            groupclick='toggleitem',
+            font=dict(size=10)
+        ),
+        'hovermode': 'x unified',
+        'margin': dict(
+            l=80 if legend_side == 'left' else 60,
+            r=80 if legend_side == 'right' else 60,
+            t=60,
+            b=60
+        )
+    }
+    if title:
+        layout['title'] = dict(text=title, x=0.5, xanchor='center')
+    if layout_kwargs:
+        layout.update(layout_kwargs)
+    fig.update_layout(**layout)
+
+    if save_path:
+        if save_path.endswith('.html'):
+            fig.write_html(save_path)
+        else:
+            try:
+                fig.write_image(save_path)
+            except Exception as e:
+                print(f"Could not save as image. Saving as HTML instead: {save_path}.html")
+                fig.write_html(save_path + '.html')
+        print(f"Figure saved to: {save_path}")
+
+    return fig
+
