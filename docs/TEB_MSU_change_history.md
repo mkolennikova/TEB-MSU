@@ -2099,6 +2099,73 @@ optional нельзя); вызов из `teb_garden.F90` передаёт `OALB_
   (18 000 шагов, BEM) — `IDENTICAL` (SHA-256 `30499e1f…`), `--strict --enforce-param`
   → `OK`, новый страж `--strict --expect 75` → `OK`.
 
+### 63. P-C1b-0: параметризация z0/zd вынесена в собственный модуль
+
+* `URB_AERO_PARAMS` (z0/zd по Macdonald) и её помощники были внутренними
+  процедурами `MODI_CALL_DRIVER`; они переехали в `src_api/urb_aero_params.F90`,
+  чтобы `TEB_HOST` мог вызывать их из `TEB_FILL_DERIVED`. Чистый перенос, без
+  изменения поведения.
+* Проверено: полный A/B (18 000 шагов) — `IDENTICAL` (SHA-256 `30499e1f…`).
+
+---
+
+### 64. P-C1b-1: `TEB_FILL_DERIVED` вычисляет производные статические параметры
+
+* Новый обработчик `TEB_HOST`: `TEB_FILL_DERIVED(KSTART, KEND, urb_z0_town,
+  urb_zd_town, urb_hcap_rd/rf/wl, urb_hcon_rd/rf/wl, ahf_traffic, fai)` выводит
+  профили слоёв крыши/дороги/стены/пола, геометрические доли, факторы обзора
+  неба, z0/zd (`URB_AERO_PARAMS`), шероховатости, константы BEM и
+  антропогенные потоки и пишет их в `TP`/`BP`/`TOP`/`BOP` до `CALL_DRIVER`.
+* Новые поля контейнера: `TP%XH_TRAFFIC_MEAN` (поток трафика, среднегодовое
+  значение для суточного цикла) и `TP%XFAI` (фронтальный индекс площади,
+  категория `param`).
+* `CALL_DRIVER` пока выводит те же значения (временное дублирование), поэтому
+  вывод не меняется.
+* Проверено: полный A/B — `IDENTICAL` (SHA-256 `30499e1f…`).
+
+---
+
+### 65. P-C1b-2: морфология BEM и оптика окон в `TEB_FILL_DERIVED`
+
+* `TEB_FILL_DERIVED` теперь также вызывает `BEM_MORPHO_STRUCT` и
+  `WINDOW_DATA_STRUCT` и пишет `BP%XN_FLOOR`/`XGLAZ_O_BLD`/`XMASS_O_BLD`/
+  `XFLOOR_HW_RATIO`/`XF_*`, `TP%XWALL_O_BLD` и `BSTATE%XALB_WIN`/`XABS_WIN`/
+  `XUGG_WIN`/`XTRAN_WIN`.
+* `CALL_DRIVER` пока выводит те же значения (временное дублирование).
+* Проверено: полный A/B — `IDENTICAL` (SHA-256 `30499e1f…`).
+
+---
+
+### 66. P-C1b-3: очистка `CALL_DRIVER` от дублирующего вывода статики
+
+* Из `CALL_DRIVER` удалён блок вывода производной статики (~400 строк):
+  слои, геометрия, факторы обзора неба, z0/zd, `BEM_MORPHO_STRUCT`,
+  `WINDOW_DATA_STRUCT`, константы BEM и антропогенные потоки; эти значения
+  заполняются теперь только `TEB_FILL_PARAMS`/`TEB_FILL_DERIVED` в
+  `teb_interface`.
+* Подпись `CALL_DRIVER` сокращена: убраны `urb_hcap_rd/rf/wl`,
+  `urb_hcon_rd/rf/wl`, `ahf_traffic`, `ahf_industry`, `teb_fai`,
+  `urb_z0_town`, `urb_zd_town`; `teb_albwin` снят с `TEB_BIND_STATE`
+  (альбедо окна задаёт `TEB_FILL_DERIVED`).
+
+---
+
+### 67. P-C1b-3: страж подписи и восстановленные локальные значения
+
+* `python_tests/call_signature_inventory.py`: группа `deferred` «статики,
+  выводимой в `CALL_DRIVER` (P-C1b)» удалена из словаря — эти dummy больше не
+  передаются; страж `--strict --expect 64` → `OK` (длина подписи **75 → 64**).
+* При переносе восстановлены два локальных значения, которые оставались в
+  удалённом блоке и не имеют контейнерного носителя: `ZZ_LOWCAN =
+  XBLD_HEIGHT/2` (опорная высота приземного слоя каньона, передаётся в
+  `TEB_GARDEN_STRUCT`) и `XZREF = ZZREF`, `XUREF = ZZREF` (опорные высоты
+  форсинга); без них физика падала по SIGFPE (`surface_cd`, затем
+  `teb_garden`).
+* `ZF_WASTE_CAN(1) = 1.0` ставится в `TEB_FILL_DERIVED` перед
+  `BEM_MORPHO_STRUCT` (раньше задавался только `BP%XF_WASTE_CAN`).
+* Проверено: полный A/B (18 000 шагов) — `IDENTICAL` (SHA-256 `30499e1f…`);
+  страж `--strict --expect 64` → `OK`.
+
 ---
 
 ## 5. Неиспользуемые варианты, прочие дефекты и открытые вопросы

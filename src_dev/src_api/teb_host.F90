@@ -37,6 +37,9 @@ USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 USE MODI_ALLOC_TEB_STRUCT,   ONLY : ALLOC_TEB_STRUCT
 USE MODI_DEALLOC_TEB_STRUCT, ONLY : DEALLOC_TEB_STRUCT
 USE MODI_DIAG_MISC_TEB_UTIL, ONLY : DIAG_MISC_TEB_ALLOC, DIAG_MISC_TEB_DEALLOC
+USE MODI_URB_AERO_PARAMS,   ONLY : URB_AERO_PARAMS
+USE MODI_BEM_MORPHO_STRUCT, ONLY : BEM_MORPHO_STRUCT
+USE MODI_WINDOW_DATA_STRUCT, ONLY : WINDOW_DATA_STRUCT
 IMPLICIT NONE
 !
 !
@@ -159,6 +162,208 @@ END DO
 !
 END SUBROUTINE TEB_FILL_PARAMS
 !
+!------------------------------------------------------------------------------
+!*      1b.  DERIVED STATIC PARAMETERS OF THE URBAN SURFACE
+!------------------------------------------------------------------------------
+SUBROUTINE TEB_FILL_DERIVED (KSTART, KEND, &
+                             urb_z0_town, urb_zd_town, &
+                             urb_hcap_rd, urb_hcap_rf, urb_hcap_wl, &
+                             urb_hcon_rd, urb_hcon_rf, urb_hcon_wl, &
+                             ahf_traffic, fai)
+!
+!* The derived static parameters: the layer profiles of the roof/road/wall/floor,
+!* the geometry fractions, the sky-view factors, z0/zd, the roughness coefficients,
+!* the BEM constants and the anthropogenic fluxes. Everything is written into
+!* TP/BP/TOP/BOP here, so that CALL_DRIVER does not derive statics any more
+!* (P-C1b). Only the window KSTART:KEND is filled.
+!
+INTEGER, INTENT(IN) :: KSTART, KEND
+CHARACTER(LEN=16), INTENT(IN) :: urb_z0_town, urb_zd_town
+REAL, DIMENSION(:), INTENT(IN) :: urb_hcap_rd, urb_hcap_rf, urb_hcap_wl
+REAL, DIMENSION(:), INTENT(IN) :: urb_hcon_rd, urb_hcon_rf, urb_hcon_wl
+REAL, DIMENSION(:), INTENT(IN) :: ahf_traffic
+REAL, DIMENSION(:,:), INTENT(IN) :: fai
+!
+INTEGER :: K
+REAL :: ZROAD, ZWALL_O_HOR, ZTOTS_O_HORS, ZROAD_FRAC, ZWALL_FRAC, ZGARDEN_FRAC
+REAL, DIMENSION(1) :: ZZ0, ZZDU
+REAL, DIMENSION(1) :: ZPFLOOR, ZN_FLOOR, ZWALL_O_BLD, ZGLAZ_O_BLD, ZMASS_O_BLD, ZFLOOR_HW_RATIO
+REAL, DIMENSION(1) :: ZF_FLOOR_MASS, ZF_FLOOR_WALL, ZF_FLOOR_WIN, ZF_FLOOR_ROOF, ZF_WALL_FLOOR
+REAL, DIMENSION(1) :: ZF_WALL_MASS, ZF_WALL_WIN, ZF_WIN_FLOOR, ZF_WIN_MASS, ZF_WIN_WALL
+REAL, DIMENSION(1) :: ZF_MASS_FLOOR, ZF_MASS_WALL, ZF_MASS_WIN, ZF_WASTE_CAN, ZF_WIN_WIN
+REAL, DIMENSION(1) :: ZSHGC, PU_WIN, ZABS_WIN, ZUGG_WIN, ZTRAN_WIN
+!------------------------------------------------------------------------------
+!
+!* BEM constants (single-valued, once per run)
+BP%XQIN          = 5.8
+BP%XQIN_FRAD     = 0.2
+BP%XQIN_FLAT     = 0.2
+BP%XSHGC         = 0.763
+BP%XSHGC_SH      = 0.025
+BP%XF_WATER_COND = 0.
+BP%XF_WASTE_CAN  = 1.0
+BP%XEFF_HEAT     = 0.9
+BP%XHR_TARGET    = 0.5
+TOP%CCH_BEM      = ' '
+BOP%LAUTOSIZE    = .FALSE.
+!MV202609 z0 and zd to namelist
+TOP%CZ0H         = 'MASC95'
+!
+DO K = KSTART, KEND
+!
+!* Roof layers
+    TP%XHC_ROOF(K,1) = urb_hcap_rf(K)
+    TP%XHC_ROOF(K,2) = urb_hcap_rf(K)
+    TP%XHC_ROOF(K,3) = urb_hcap_rf(K)
+    TP%XHC_ROOF(K,4) = 1127845.62
+    TP%XHC_ROOF(K,5) =   52030.
+    TP%XTC_ROOF(K,1) = urb_hcon_rf(K)
+    TP%XTC_ROOF(K,2) = urb_hcon_rf(K)
+    TP%XTC_ROOF(K,3) = urb_hcon_rf(K)
+    TP%XTC_ROOF(K,4) = 0.095454545
+    TP%XTC_ROOF(K,5) = 0.03
+    TP%XD_ROOF(K,1)  = 0.001
+    TP%XD_ROOF(K,2)  = 0.098
+    TP%XD_ROOF(K,3)  = 0.132
+    TP%XD_ROOF(K,4)  = 0.098
+    TP%XD_ROOF(K,5)  = 0.001
+!
+!* Road layers
+    TP%XHC_ROAD(K,1) = urb_hcap_rd(K)
+    TP%XHC_ROAD(K,2) = urb_hcap_rd(K)
+    TP%XHC_ROAD(K,3) = 1989600.
+    TP%XHC_ROAD(K,4) = 1640000.
+    TP%XHC_ROAD(K,5) = 1400000.
+    TP%XTC_ROAD(K,1) = urb_hcon_rd(K)
+    TP%XTC_ROAD(K,2) = urb_hcon_rd(K)
+    TP%XTC_ROAD(K,3) = 1.976584
+    TP%XTC_ROAD(K,4) = 0.5915493
+    TP%XTC_ROAD(K,5) = 0.4000
+    TP%XD_ROAD(K,1)  = 0.001
+    TP%XD_ROAD(K,2)  = 0.045296296
+    TP%XD_ROAD(K,3)  = 0.092592593
+    TP%XD_ROAD(K,4)  = 0.27777778
+    TP%XD_ROAD(K,5)  = 0.83333333
+!
+!* Wall layers
+    TP%XHC_WALL(K,1) = urb_hcap_wl(K)
+    TP%XHC_WALL(K,2) = urb_hcap_wl(K)
+    TP%XHC_WALL(K,3) = urb_hcap_wl(K)
+    TP%XHC_WALL(K,4) = 1127845.6
+    TP%XHC_WALL(K,5) =   52030.
+    TP%XTC_WALL(K,1) = urb_hcon_wl(K)
+    TP%XTC_WALL(K,2) = urb_hcon_wl(K)
+    TP%XTC_WALL(K,3) = urb_hcon_wl(K)
+    TP%XTC_WALL(K,4) = 0.095454545
+    TP%XTC_WALL(K,5) = 0.03
+    TP%XD_WALL(K,1)  = 0.001
+    TP%XD_WALL(K,2)  = 0.098
+    TP%XD_WALL(K,3)  = 0.132
+    TP%XD_WALL(K,4)  = 0.098
+    TP%XD_WALL(K,5)  = 0.001
+!
+!* Floor and internal mass layers
+    BP%XHC_FLOOR(K,1) = 2016000.
+    BP%XHC_FLOOR(K,2) = 2016000.
+    BP%XHC_FLOOR(K,3) = 2016000.
+    BP%XHC_FLOOR(K,4) = 2016000.
+    BP%XHC_FLOOR(K,5) = 2016000.
+    BP%XTC_FLOOR(K,1) = 1.95
+    BP%XTC_FLOOR(K,2) = 1.95
+    BP%XTC_FLOOR(K,3) = 1.95
+    BP%XTC_FLOOR(K,4) = 1.95
+    BP%XTC_FLOOR(K,5) = 1.95
+    BP%XD_FLOOR(K,1)  = 0.001
+    BP%XD_FLOOR(K,2)  = 0.0064074074
+    BP%XD_FLOOR(K,3)  = 0.014814815
+    BP%XD_FLOOR(K,4)  = 0.044444444
+    BP%XD_FLOOR(K,5)  = 0.13333333
+!
+!* roughness coefficients (DOE-2 case)
+    TP%XROUGH_ROOF(K) = 1.52
+    TP%XROUGH_WALL(K) = 1.52
+!
+!* frontal area index and the annual-mean traffic flux
+    TP%XFAI(K,:)            = fai(K,:)
+    TP%XH_TRAFFIC_MEAN(K)   = ahf_traffic(K)
+!
+!* geometry fractions and sky-view factors
+    ZROAD        = 1. - TP%XBLD(K) - TP%XGARDEN(K)
+    ZWALL_O_HOR  = 2. * TP%XCAN_HW_RATIO(K) * (1. - TP%XBLD(K))
+    TP%XSVF_ROAD(K)   = SQRT(TP%XCAN_HW_RATIO(K)**2 + 1.) - TP%XCAN_HW_RATIO(K)
+    TP%XSVF_GARDEN(K) = TP%XSVF_ROAD(K)
+    TP%XSVF_WALL(K)   = 0.5 * (TP%XCAN_HW_RATIO(K) + 1. - SQRT(TP%XCAN_HW_RATIO(K)**2 + 1.)) / TP%XCAN_HW_RATIO(K)
+    ZTOTS_O_HORS  = 1. + ZWALL_O_HOR
+    ZROAD_FRAC    = ZROAD      / ZTOTS_O_HORS
+    ZWALL_FRAC    = ZWALL_O_HOR / ZTOTS_O_HORS
+    ZGARDEN_FRAC  = TP%XGARDEN(K) / ZTOTS_O_HORS
+    TP%XROAD(K)          = ZROAD
+    TP%XWALL_O_HOR(K)    = ZWALL_O_HOR
+    TP%XWALL_O_GRND(K)   = ZWALL_FRAC / (ZROAD_FRAC + ZGARDEN_FRAC)
+    TP%XROAD_O_GRND(K)   = ZROAD / (ZROAD + TP%XGARDEN(K))
+    TP%XGARDEN_O_GRND(K) = TP%XGARDEN(K) / (ZROAD + TP%XGARDEN(K))
+!
+!* BEM morphology (building view factors) and the window optics
+    ZPFLOOR(1) = 3.0
+    IF (ZPFLOOR(1) > TP%XBLD_HEIGHT(K)) ZPFLOOR(1) = TP%XBLD_HEIGHT(K)
+    ZN_FLOOR(1) = FLOAT(NINT(TP%XBLD_HEIGHT(K) / ZPFLOOR(1)))
+    ZF_WASTE_CAN(1) = 1.0
+    CALL BEM_MORPHO_STRUCT(TP%XBLD(K:K), TP%XWALL_O_HOR(K:K), TP%XBLD_HEIGHT(K:K), ZPFLOOR, &
+                           BP%XGR(K:K), ZN_FLOOR, ZWALL_O_BLD, ZGLAZ_O_BLD, ZMASS_O_BLD, &
+                           ZFLOOR_HW_RATIO, ZF_FLOOR_MASS, ZF_FLOOR_WALL, ZF_FLOOR_WIN, &
+                           ZF_FLOOR_ROOF, ZF_WALL_FLOOR, ZF_WALL_MASS, ZF_WALL_WIN, &
+                           ZF_WIN_FLOOR, ZF_WIN_MASS, ZF_WIN_WALL, ZF_MASS_FLOOR, &
+                           ZF_MASS_WALL, ZF_MASS_WIN, ZF_WASTE_CAN, ZF_WIN_WIN)
+    BP%XN_FLOOR(K)        = ZN_FLOOR(1)
+    TP%XWALL_O_BLD(K)     = ZWALL_O_BLD(1)
+    BP%XGLAZ_O_BLD(K)     = ZGLAZ_O_BLD(1)
+    BP%XMASS_O_BLD(K)     = ZMASS_O_BLD(1)
+    BP%XFLOOR_HW_RATIO(K) = ZFLOOR_HW_RATIO(1)
+    BP%XF_FLOOR_MASS(K)   = ZF_FLOOR_MASS(1)
+    BP%XF_FLOOR_WALL(K)   = ZF_FLOOR_WALL(1)
+    BP%XF_FLOOR_WIN(K)    = ZF_FLOOR_WIN(1)
+    BP%XF_FLOOR_ROOF(K)   = ZF_FLOOR_ROOF(1)
+    BP%XF_WALL_FLOOR(K)   = ZF_WALL_FLOOR(1)
+    BP%XF_WALL_MASS(K)    = ZF_WALL_MASS(1)
+    BP%XF_WALL_WIN(K)     = ZF_WALL_WIN(1)
+    BP%XF_WIN_FLOOR(K)    = ZF_WIN_FLOOR(1)
+    BP%XF_WIN_MASS(K)     = ZF_WIN_MASS(1)
+    BP%XF_WIN_WALL(K)     = ZF_WIN_WALL(1)
+    BP%XF_MASS_FLOOR(K)   = ZF_MASS_FLOOR(1)
+    BP%XF_MASS_WALL(K)    = ZF_MASS_WALL(1)
+    BP%XF_MASS_WIN(K)     = ZF_MASS_WIN(1)
+    BP%XF_WIN_WIN(K)      = ZF_WIN_WIN(1)
+    ! BP%XF_WASTE_CAN was set above; BEM_MORPHO_STRUCT passes it through
+    ZSHGC(1)  = 0.763
+    PU_WIN(1) = 2.716
+    CALL WINDOW_DATA_STRUCT(1, ZSHGC, PU_WIN, BSTATE%XALB_WIN(K:K), ZABS_WIN, ZUGG_WIN, ZTRAN_WIN)
+    BSTATE%XABS_WIN(K:K)  = ZABS_WIN
+    BSTATE%XUGG_WIN(K:K)  = ZUGG_WIN
+    BSTATE%XTRAN_WIN(K:K) = ZTRAN_WIN
+!
+!* z0 and zd from the namelist (URB_AERO_PARAMS, moved out of CALL_DRIVER)
+    CALL URB_AERO_PARAMS(urb_z0_town, urb_zd_town, TP%XBLD_HEIGHT(K:K), TP%XBLD(K:K), TP%XFAI(K:K,:), ZZ0, ZZDU)
+    TP%XZ0_TOWN(K) = ZZ0(1)
+    TP%XZD_TOWN(K) = ZZDU(1)
+    IF (TP%XZ0_TOWN(K) <= 0. .OR. TP%XZ0_TOWN(K) > 0.5*TP%XBLD_HEIGHT(K)) THEN
+       WRITE(*,*) 'ERROR in CALL_DRIVER: urb_z0_town = ', TRIM(urb_z0_town), ' -> z0 = ', TP%XZ0_TOWN(K), ' m'
+       WRITE(*,*) '   z0 must be in (0, 0.5*urb_h_bld], urb_h_bld = ', TP%XBLD_HEIGHT(K), ' m'
+       STOP
+    ENDIF
+    IF (TP%XZD_TOWN(K) < 0. .OR. TP%XZD_TOWN(K) >= TP%XBLD_HEIGHT(K)) THEN
+       WRITE(*,*) 'ERROR in CALL_DRIVER: urb_zd_town = ', TRIM(urb_zd_town), ' -> zd = ', TP%XZD_TOWN(K), ' m'
+       WRITE(*,*) '   zd must be in [0, urb_h_bld), urb_h_bld = ', TP%XBLD_HEIGHT(K), ' m'
+       STOP
+    ENDIF
+END DO
+!
+!* anthropogenic latent fluxes are zero in this version
+TP%XLE_TRAFFIC  = 0.0
+TP%XLE_INDUSTRY = 0.0
+!
+END SUBROUTINE TEB_FILL_DERIVED
+!
+!
 !
 !------------------------------------------------------------------------------
 !*      2.   LAZY ALLOCATION OF THE CONTAINERS (first call, per thread)
@@ -198,7 +403,7 @@ END IF
 !
 END SUBROUTINE TEB_HOST_FINAL
 !
-SUBROUTINE TEB_BIND_STATE (KSTART, KEND, teb_ti_bld, teb_twin2, teb_qi_bld, teb_cap_sys_rat, teb_m_sys_rat, teb_twin1, teb_lshade, teb_shad_day, teb_natvent_night, teb_ws_roof, teb_troof, teb_troad, teb_twalla, teb_twallb, teb_wsnow_roof, teb_tsnow_roof, teb_rsnow_roof, teb_asnow_roof, teb_esnow_roof, teb_tssnow_roof, teb_wsnow_road, teb_tsnow_road, teb_rsnow_road, teb_asnow_road, teb_esnow_road, teb_tssnow_road, teb_tcanyon, teb_qcanyon, teb_ws_road, teb_tfloor, teb_tmass, teb_albwin)
+SUBROUTINE TEB_BIND_STATE (KSTART, KEND, teb_ti_bld, teb_twin2, teb_qi_bld, teb_cap_sys_rat, teb_m_sys_rat, teb_twin1, teb_lshade, teb_shad_day, teb_natvent_night, teb_ws_roof, teb_troof, teb_troad, teb_twalla, teb_twallb, teb_wsnow_roof, teb_tsnow_roof, teb_rsnow_roof, teb_asnow_roof, teb_esnow_roof, teb_tssnow_roof, teb_wsnow_road, teb_tsnow_road, teb_rsnow_road, teb_asnow_road, teb_esnow_road, teb_tssnow_road, teb_tcanyon, teb_qcanyon, teb_ws_road, teb_tfloor, teb_tmass)
 !
 INTEGER, INTENT(IN) :: KSTART, KEND
 REAL, DIMENSION(:), INTENT(INOUT) :: teb_ti_bld
@@ -232,7 +437,6 @@ REAL, DIMENSION(:), INTENT(INOUT) :: teb_qcanyon
 REAL, DIMENSION(:), INTENT(INOUT) :: teb_ws_road
 REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_tfloor
 REAL, DIMENSION(:,:), INTENT(INOUT) :: teb_tmass
-REAL, DIMENSION(:), INTENT(INOUT) :: teb_albwin
 !
     BSTATE%XTI_BLD(KSTART:KEND)                    = teb_ti_bld(KSTART:KEND)
     BSTATE%XT_WIN2(KSTART:KEND)                    = teb_twin2(KSTART:KEND)
@@ -265,7 +469,6 @@ REAL, DIMENSION(:), INTENT(INOUT) :: teb_albwin
     TSTATE%XWS_ROAD(KSTART:KEND)                    = teb_ws_road(KSTART:KEND)
     BSTATE%XT_FLOOR(KSTART:KEND,:)                  = teb_tfloor(KSTART:KEND,:)
     BSTATE%XT_MASS(KSTART:KEND,:)                   = teb_tmass(KSTART:KEND,:)
-    BSTATE%XALB_WIN(KSTART:KEND)                    = teb_albwin(KSTART:KEND)
 !
 END SUBROUTINE TEB_BIND_STATE
 !

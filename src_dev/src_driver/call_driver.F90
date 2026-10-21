@@ -21,18 +21,18 @@ USE MODD_TEB_n,           ONLY : TEB_t
 USE MODD_BEM_n,           ONLY : BEM_t
 USE MODD_TEB_PANEL_n,     ONLY : TEB_PANEL_t
 USE MODD_TEB_IRRIG_n,     ONLY : TEB_IRRIG_t
+USE MODI_URB_AERO_PARAMS, ONLY : URB_AERO_PARAMS
 IMPLICIT NONE
 CONTAINS
 SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, IMIN, ISEC, &
                  ZTIME, FR_URB, ZLON, ZLAT, ZZREF, u, v, t, qv, ps, prr_con, prs_con, prr_gsp, &
-                 prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, ZHC_ROAD_S, ZHC_ROOF_S, &
-                 ZHC_WALL_S, ZTC_ROAD_S, ZTC_ROOF_S, ZTC_WALL_S, ZH_TRAFFIC, ZH_INDUSTRY, &
-                 ZZ0_GR_EXT, ZALB_GR_EXT, ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, ZH_GR_EXT, &
-                 ZLE_GR_EXT, ZEVAP_GR_EXT, ZRUNOFF_GR_EXT, ZZ0_GD_EXT, ZALB_GD_EXT, &
-                 ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, ZLE_GD_EXT, ZEVAP_GD_EXT, &
-                 ZCH_GD, ZCD_GD, ZRUNOFF_GD_EXT, ZFAI, ZFRAC_PANEL, LPAR_RD_IRRIG, &
-                 ZRD_START_MONTH, ZRD_END_MONTH, ZRD_START_HOUR, ZRD_END_HOUR, ZRD_24H_IRRIG, &
-                 HZ0_TOWN, HZD_TOWN, DMT, TOP, TP, BOP, BP, TSTATE, BSTATE, TPN, TIR)
+                 prs_gsp, prg_gsp, lwd_s, swdir_s, swdifd_s, ZZ0_GR_EXT, ZALB_GR_EXT, &
+                 ZEMIS_GR_EXT, ZTSRAD_GR_EXT, ZQV_GR_EXT, ZH_GR_EXT, ZLE_GR_EXT, ZEVAP_GR_EXT, &
+                 ZRUNOFF_GR_EXT, ZZ0_GD_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, &
+                 ZQV_GD_EXT, ZH_GD_EXT, ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, &
+                 ZRUNOFF_GD_EXT, ZFRAC_PANEL, LPAR_RD_IRRIG, ZRD_START_MONTH, ZRD_END_MONTH, &
+                 ZRD_START_HOUR, ZRD_END_HOUR, ZRD_24H_IRRIG, DMT, TOP, TP, BOP, BP, TSTATE, &
+                 BSTATE, TPN, TIR)
 							
 ! ======================================================================
 ! 
@@ -178,21 +178,11 @@ REAL,DIMENSION(1)                 :: swdir_s           !IN direct comp. of solar
 REAL,DIMENSION(1)                 :: swdifd_s          !IN diffuse downward comp. of short wave rad. flux
 
 ! Input urban parameters
-REAL,DIMENSION(1)                 :: ZHC_ROAD_S        !IN Heat capacity of road surface  
-REAL,DIMENSION(1)                 :: ZHC_ROOF_S        !IN Heat capacity of roof surface
-REAL,DIMENSION(1)                 :: ZHC_WALL_S        !IN Heat capacity of wall surface  
-REAL,DIMENSION(1)                 :: ZTC_ROAD_S        !IN Thermal conductivity of road surface
-REAL,DIMENSION(1)                 :: ZTC_ROOF_S        !IN Thermal conductivity of roof surface
-REAL,DIMENSION(1)                 :: ZTC_WALL_S        !IN Thermal conductivity of wall surface
-REAL,DIMENSION(1)                 :: ZH_TRAFFIC        !IN heat fluxes due to traffic (mean value) 
-REAL,DIMENSION(1)                 :: ZH_INDUSTRY       !IN heat fluxes due to factories                 
                                                        ! 'UNIF' : uniform roads                       
                                                        ! 'ORIE' : specified road orientation          
                                                        ! 'UNIF' : uniform walls                       
 									                   ! 'TWO ' : 2 opposite  walls
 !MV202609 z0 and zd to namelist
-CHARACTER(LEN=16)                 :: HZ0_TOWN          !IN z0 of the urban surface (0.5 | 0.5m | 0.1H | H/3 | <name>)
-CHARACTER(LEN=16)                 :: HZD_TOWN          !IN displacement height    (same forms as HZ0_TOWN)
 !MV202609 garden thermal roughness (z0h)
 !MV202609 greenroof model type, thermal roughness and surface humidity
 										
@@ -200,7 +190,6 @@ CHARACTER(LEN=16)                 :: HZD_TOWN          !IN displacement height  
 
 ! Wind calculation
 													   ! 0 - default; 1 - Wang scheme
-REAL,DIMENSION(1,1:8)             :: ZFAI              !IN Frontal area index 
 
 ! Input parameters for Greenroof from TERRA
 REAL,DIMENSION(1)                 :: ZZ0_GR_EXT        !IN greenroof roughness length (external model)
@@ -250,7 +239,6 @@ REAL,DIMENSION(1)                 :: ZILMO_ROOF_EXCH        !OUT 1/length of Mon
 REAL,DIMENSION(1)                 :: ZILMO_TOP_EXCH         !OUT 1/length of Monin-Obukov
 REAL,DIMENSION(1)                 :: ZILMO_TOP_FLUX         ! 1/length of Monin-Obukov (from fluxes)
 REAL,DIMENSION(1)                 :: ZLMO_TOP          !OUT 1/length of Monin-Obukov 
-REAL,DIMENSION(1)                 :: ZZ0U              !OUT Roughness length (m)
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !MV202609 CBS scheme of the road (revision: three-temperature construction)
 !MV202609 CBS scheme of the road
@@ -278,20 +266,8 @@ TYPE(TEB_PANEL_t),   INTENT(INOUT) :: TPN
 TYPE(TEB_IRRIG_t),   INTENT(INOUT) :: TIR
 
 ! Canyon geometry                                                                     
-REAL,DIMENSION(1)  :: ZZ0               ! Roughness length (m) for neutral stratification                                                           
-REAL,DIMENSION(1)  :: ZZDU              ! Displacement height (m)                                                          
-REAL,DIMENSION(1)  :: ZWALL_O_HOR       ! Vertical to horizonal surf ratio                 
-REAL,DIMENSION(1)  :: ZROAD             ! fraction of roads                            
-REAL,DIMENSION(1)  :: ZROOF_FRAC        ! roof, wall,                                  
-REAL,DIMENSION(1)  :: ZWALL_FRAC        ! road, and green area                         
-REAL,DIMENSION(1)  :: ZROAD_FRAC        ! fractions                                    
-REAL,DIMENSION(1)  :: ZGARDEN_FRAC      ! fractions 
-REAL,DIMENSION(1)  :: ZWALL_O_GRND      ! Wall to ground surface ratio                 
-REAL,DIMENSION(1)  :: ZROAD_O_GRND      ! Road to ground surface ratio                 
-REAL,DIMENSION(1)  :: ZGARDEN_O_GRND    ! Garden to ground surface ratio
 
 ! Urban options                                                                                                                   
-CHARACTER(LEN=6)   :: HZ0H              ! TEB option for z0h roof & road                  
 CHARACTER(LEN=3)   :: HIMPLICIT_WIND='NEW' ! Implicitation option for wind fluxes
 CHARACTER(LEN=3)   :: HSNOW_ROOF = "1-L"! Option for roof snow                        
 CHARACTER(LEN=3)   :: HSNOW_ROAD = "1-L"! Option for road snow 
@@ -301,15 +277,6 @@ INTEGER            :: NWALL_LAYER       ! number of wall layers
 INTEGER            :: NROOF_LAYER       ! number of roof layers                          
 INTEGER            :: NROAD_LAYER       ! number of road layers                           
 INTEGER            :: NFLOOR_LAYER      ! number of floor layers
-REAL,DIMENSION(:,:), ALLOCATABLE :: ZHC_WALL ! Heat capacity        of wall layers    
-REAL,DIMENSION(:,:), ALLOCATABLE :: ZTC_WALL ! Thermal conductivity of wall layers    
-REAL,DIMENSION(:,:), ALLOCATABLE :: ZD_WALL  ! Thickness            of wall layers    
-REAL,DIMENSION(:,:), ALLOCATABLE :: ZHC_ROOF ! Heat capacity        of roof layers    
-REAL,DIMENSION(:,:), ALLOCATABLE :: ZTC_ROOF ! Thermal conductivity of roof layers    
-REAL,DIMENSION(:,:), ALLOCATABLE :: ZD_ROOF  ! Thickness            of roof layers    
-REAL,DIMENSION(:,:), ALLOCATABLE :: ZHC_ROAD ! Heat capacity        of road layers            
-REAL,DIMENSION(:,:), ALLOCATABLE :: ZTC_ROAD ! Thermal conductivity of road layers    
-REAL,DIMENSION(:,:), ALLOCATABLE :: ZD_ROAD  ! Thickness            of road layers    
 REAL,DIMENSION(1)  :: ZD_WALL_LAYERS         ! Thickness            of 1-4 wall layers                                                        
 REAL,DIMENSION(1)  :: ZD_ROOF_LAYERS         ! Thickness            of 1-4 roof layers                                                        
 
@@ -355,7 +322,6 @@ REAL,DIMENSION(1)  :: ZRI_TOWN          ! Richardson number
 REAL,DIMENSION(1)  :: ZGSNOW_ROAD = 0.0 ! road snow conduction                         
 
 ! Urban fluxes variables                                                              
-REAL,DIMENSION(1)  :: ZTOTS_O_HORS      ! total canyon+roof surf over horizontal surf  
 REAL,DIMENSION(1)  :: ZUW_GRND          ! friction flux over ground                    
 REAL,DIMENSION(1)  :: ZRN_ROOF          ! net radiation over roof                      
 REAL,DIMENSION(1)  :: ZH_ROOF           ! sensible heat flux over roof    
@@ -441,19 +407,13 @@ REAL,DIMENSION(1)  :: ZEMIS_TOWN        ! town equivalent emissivity
 REAL,DIMENSION(1)  :: ZCOEF             ! work array                              
 REAL,DIMENSION(1)  :: ZF1_o_B           ! Coefficient for sky model
 
-REAL,DIMENSION(1)  :: ZSVF_ROAD         ! road sky view factor                           
-REAL,DIMENSION(1)  :: ZSVF_GARDEN       ! garden sky view factor                         
-REAL,DIMENSION(1)  :: ZSVF_WALL         ! wall sky view factor                           
 REAL,DIMENSION(1)  :: ZWAKE             ! reduction of average wind speed                
 REAL,DIMENSION(1)  :: ZGSNOW_ROOF  = 0.0! roof snow conduction                       
 REAL,DIMENSION(1)  :: ZHSNOW_ROOF       
 
 ! Anthropogenic heat fluxes                                                                           
-REAL,DIMENSION(1)  :: ZLE_TRAFFIC       ! heat fluxes due to traffic                                   
-REAL,DIMENSION(1)  :: ZLE_INDUSTRY      ! heat fluxes due to factories
 
 ! New arguments created after BEM                                                                                                                                       ! ||   ||            
-REAL, DIMENSION(1)  :: ZF_WATER_COND     ! fraction of evaporation for the condensers                                             
 REAL, DIMENSION(1)  :: ZNATVENT          ! flag to describe surventilation system for 
                                          ! i/o 0 for NONE, 1 for MANU and 2 for AUTO  
 REAL, DIMENSION(1) :: ZAUX_MAX = 5.      ! Auxiliar variable for autosize calcs (not used)
@@ -467,15 +427,9 @@ REAL, DIMENSION(1) :: ZLE_BLD_HEAT       ! Latent heating energy demand of the b
 !* latent waste heat of the buildings, per horizontal surface area (as the
 !* sensible one DMT%XH_WASTE(1)): it is added to the wall/roof latent fluxes and to the
 !* canyon humidity by URBAN_FLUXES/AVG_URBAN_FLUXES
-REAL, DIMENSION(1) :: ZF_WASTE_CAN       ! fraction of waste heat released into the canyon                                                           
-REAL, DIMENSION(1) :: ZQIN               ! Internal heat gains [W m-2(floor)]         
-REAL, DIMENSION(1) :: ZQIN_FRAD          ! Radiant fraction of internal heat gains    
-REAL, DIMENSION(1) :: ZQIN_FLAT          ! Latent franction of internal heat gains                               
-REAL, DIMENSION(1) :: ZEFF_HEAT          ! Efficiency of the heating system                             
 REAL, DIMENSION(1) :: ZCUR_QIN           ! Internal heat gains [W m-2(floor)]         
 REAL, DIMENSION(1) :: ZCUR_TCOOL_TARGET  ! Cooling setpoint of HVAC system [K]        
 REAL, DIMENSION(1) :: ZCUR_THEAT_TARGET  ! Heating setpoint of HVAC system [K]        
-REAL, DIMENSION(1) :: ZHR_TARGET         ! Relative humidity setpoint                                
 REAL, DIMENSION(1) :: ZCAP_SYS           ! Actual capacity of the cooling system [W m-2(bld)]                                                            
 REAL, DIMENSION(1) :: ZT_ADP             ! Apparatus dewpoint temperature of the cooling coil [K]                                                                                            
 REAL, DIMENSION(1) :: ZM_SYS             ! Actual HVAC mass flow rate [kg s-1 m-2(bld)]                          
@@ -484,18 +438,9 @@ REAL, DIMENSION(1) :: ZQ_SYS             ! Supply air specific humidity [kg kg-1
 REAL, DIMENSION(1) :: ZT_SYS             ! Supply air temperature [K]                 
 REAL, DIMENSION(1) :: ZTR_SW_WIN         ! Solar radiation transmitted throught windows [W m-2(bld)]                       
 REAL, DIMENSION(1) :: ZFAN_POWER         ! HVAC fan power                             
-REAL, DIMENSION(:,:), ALLOCATABLE :: ZHC_FLOOR ! heat capacity for floor layers       
-REAL, DIMENSION(:,:), ALLOCATABLE :: ZTC_FLOOR ! thermal conductivity for floor layers                         
-REAL, DIMENSION(:,:), ALLOCATABLE :: ZD_FLOOR  ! depth of floor layers                
  
 REAL, DIMENSION(1) :: ZABS_SW_WIN        ! window absorbed shortwave radiation [W m-2]
 REAL, DIMENSION(1) :: ZABS_LW_WIN        ! absorbed infrared rad. [W m-2]             
-REAL, DIMENSION(1) :: ZSHGC              ! window solar transmittance                 
-REAL, DIMENSION(1) :: ZSHGC_SH           ! window + shading solar heat gain coef.      
-REAL, DIMENSION(1) :: ZUGG_WIN           ! window glass-to-glass U-factro [W m-2 K-1] 
-REAL, DIMENSION(1) :: PU_WIN             ! window U-factor [K m W-2]                  
-REAL, DIMENSION(1) :: ZABS_WIN           ! window absortance                          
-REAL, DIMENSION(1) :: ZTRAN_WIN          ! window transmittance                       
 
 ! New argument for the UTCI calculation                                               
 REAL, DIMENSION(1)  :: ZEMIT_LW_GRND     ! LW flux emitted by the ground (W/m² ground)
@@ -524,28 +469,7 @@ REAL, DIMENSION(1)  :: ZIRRIG_ROAD       ! road irrigation during current time-s
 ! New arguments for shading, schedule or natural ventilation                          
 REAL,   DIMENSION(1) :: ZSHADE            ! flag to activate shading devices -> REAL for i/o 0. or 1                                                                                                      ! ||   ||
 REAL, DIMENSION(1)  :: ZN_FLOOR          ! Number of floors                           
-REAL, DIMENSION(1)  :: ZWALL_O_BLD       ! Wall area [m2_wall/m2_bld]                 
-REAL, DIMENSION(1)  :: ZGLAZ_O_BLD       ! Window area [m2_win/m2_bld]                
-REAL, DIMENSION(1)  :: ZMASS_O_BLD       ! Mass area [m2_mass/m2_bld]                 
-REAL, DIMENSION(1)  :: ZFLOOR_HW_RATIO   ! H/W ratio of 1 floor level                 
-REAL, DIMENSION(1)  :: ZF_FLOOR_MASS     ! View factor floor-mass                     
-REAL, DIMENSION(1)  :: ZF_FLOOR_WALL     ! View factor floor-wall                     
-REAL, DIMENSION(1)  :: ZF_FLOOR_WIN      ! View factor floor-window                   
-REAL, DIMENSION(1)  :: ZF_FLOOR_ROOF     ! View factor floor-roof                     
-REAL, DIMENSION(1)  :: ZF_WALL_FLOOR     ! View factor wall-floor                     
-REAL, DIMENSION(1)  :: ZF_WALL_MASS      ! View factor wall-mass                      
-REAL, DIMENSION(1)  :: ZF_WALL_WIN       ! View factor wall-win                       
-REAL, DIMENSION(1)  :: ZF_WIN_FLOOR      ! View factor win-floor                      
-REAL, DIMENSION(1)  :: ZF_WIN_MASS       ! View factor win-mass                       
-REAL, DIMENSION(1)  :: ZF_WIN_WALL       ! View factor win-wall                       
-REAL, DIMENSION(1)  :: ZF_MASS_FLOOR     ! View factor mass-floor                     
-REAL, DIMENSION(1)  :: ZF_MASS_WALL      ! View factor mass-wall                      
-REAL, DIMENSION(1)  :: ZF_MASS_WIN       ! View factor mass-window                    
 LOGICAL             :: LCANOPY           ! is canopy active ?                         
-CHARACTER(LEN=5)    :: CCH_BEM           ! TEB option for building outside conv. coef 
-REAL, DIMENSION(1)  :: ZROUGH_ROOF       ! roof roughness coef.                       
-REAL, DIMENSION(1)  :: ZROUGH_WALL       ! wall roughness coef.                       
-REAL, DIMENSION(1)  :: ZF_WIN_WIN        ! indoor win to win view factor             
 
 !                                                                                    
 !                                                                                     
@@ -566,7 +490,6 @@ REAL, DIMENSION(1)  :: ZF_WIN_WIN        ! indoor win to win view factor
 ! TEB option for z0h roof & road: 'MASC95' : Mascart et al,1995; 
 !                                 'BRUT82' : Brustaert,1982; 
 !                                 'KAND07' : Kanda,2007
-HZ0H = 'MASC95'
 !
 !
 !============================================================
@@ -580,128 +503,14 @@ HZ0H = 'MASC95'
 ! entries urb_z0_town and urb_zd_town: a value in metres, a fraction of the
 ! building height ('<value>H') or 'H/<n>'; a parameterization name is
 ! accepted but not implemented yet
-CALL URB_AERO_PARAMS(HZ0_TOWN, HZD_TOWN, TP%XBLD_HEIGHT(icell:icell), TP%XBLD(icell:icell), ZFAI, ZZ0, ZZDU)
-!MV202609 z0 and zd to namelist
-! sanity checks of the resulting values
-IF (ZZ0(1) <= 0. .OR. ZZ0(1) > 0.5*TP%XBLD_HEIGHT(icell)) THEN
-  WRITE(*,*) 'ERROR in CALL_DRIVER: urb_z0_town = ', TRIM(HZ0_TOWN), ' -> z0 = ', ZZ0(1), ' m'
-  WRITE(*,*) '   z0 must be in (0, 0.5*urb_h_bld], urb_h_bld = ', TP%XBLD_HEIGHT(icell), ' m'
-  STOP
-ENDIF
-!MV202609 z0 and zd to namelist
-IF (ZZDU(1) < 0. .OR. ZZDU(1) >= TP%XBLD_HEIGHT(icell)) THEN
-  WRITE(*,*) 'ERROR in CALL_DRIVER: urb_zd_town = ', TRIM(HZD_TOWN), ' -> zd = ', ZZDU(1), ' m'
-  WRITE(*,*) '   zd must be in [0, urb_h_bld), urb_h_bld = ', TP%XBLD_HEIGHT(icell), ' m'
-  STOP
-ENDIF
 
 !
 !============================================================
 !============================================================
-! Roof
-!============================================================
-!============================================================
-NROOF_LAYER = 5          ! number of roof layers
-ALLOCATE(ZHC_ROOF    (1,NROOF_LAYER)) 
-ALLOCATE(ZTC_ROOF    (1,NROOF_LAYER)) 
-ALLOCATE(ZD_ROOF     (1,NROOF_LAYER)) 
-ZHC_ROOF(1,1) = ZHC_ROOF_S(1)   ! volumetric heat capacity (J m-3 K-1) (external layer)
-ZHC_ROOF(1,2) = ZHC_ROOF_S(1)   ! volumetric heat capacity (J m-3 K-1)
-ZHC_ROOF(1,3) = ZHC_ROOF_S(1)   ! volumetric heat capacity (J m-3 K-1)
-ZHC_ROOF(1,4) = 1127845.62      ! volumetric heat capacity (J m-3 K-1) 
-ZHC_ROOF(1,5) =   52030.        ! volumetric heat capacity (J m-3 K-1) (inner layer)
-ZTC_ROOF(1,1) = ZTC_ROOF_S(1)   ! thermal conductivity (W/m K) (external layer)
-ZTC_ROOF(1,2) = ZTC_ROOF_S(1)   ! thermal conductivity (W/m K)
-ZTC_ROOF(1,3) = ZTC_ROOF_S(1)   ! thermal conductivity (W/m K)
-ZTC_ROOF(1,4) = 0.095454545 ! thermal conductivity (W/m K)
-ZTC_ROOF(1,5) = 0.03        ! thermal conductivity (W/m K) (inner layer)
-ZD_ROOF(1,1)  = 0.001      ! thickcness (m) (external layer)
-ZD_ROOF(1,2)  = 0.098      ! thickcness (m)
-ZD_ROOF(1,3)  = 0.132      ! thickcness (m)
-ZD_ROOF(1,4)  = 0.098      ! thickcness (m)
-ZD_ROOF(1,5)  = 0.001      ! thickcness (m) (inner layer)
-
-!============================================================
-!============================================================
-! Road
-!============================================================
-!============================================================
-NROAD_LAYER = 5          ! number of road layers
-ALLOCATE(ZHC_ROAD    (1,NROAD_LAYER)) 
-ALLOCATE(ZTC_ROAD    (1,NROAD_LAYER)) 
-ALLOCATE(ZD_ROAD     (1,NROAD_LAYER)) 
-ZHC_ROAD(1,1) = ZHC_ROAD_S(1)  ! volumetric heat capacity (J m-3 K-1) (surface layer)
-ZHC_ROAD(1,2) = ZHC_ROAD_S(1)  ! volumetric heat capacity (J m-3 K-1)
-ZHC_ROAD(1,3) = 1989600. ! volumetric heat capacity (J m-3 K-1)
-ZHC_ROAD(1,4) = 1640000. ! volumetric heat capacity (J m-3 K-1)
-ZHC_ROAD(1,5) = 1400000. ! volumetric heat capacity (J m-3 K-1) (deep soil layer)
-ZTC_ROAD(1,1) = ZTC_ROAD_S(1)  ! thermal conductivity (W/m K) (surface layer)
-ZTC_ROAD(1,2) = ZTC_ROAD_S(1)  ! thermal conductivity (W/m K)
-ZTC_ROAD(1,3) = 1.976584 ! thermal conductivity (W/m K)
-ZTC_ROAD(1,4) = 0.5915493! thermal conductivity (W/m K)
-ZTC_ROAD(1,5) = 0.4000   ! thermal conductivity (W/m K) (deep soil layer)
-ZD_ROAD(1,1)  = 0.001       ! thickcness (m) (surface layer)
-ZD_ROAD(1,2)  = 0.045296296 ! thickcness (m)
-ZD_ROAD(1,3)  = 0.092592593 ! thickcness (m)
-ZD_ROAD(1,4)  = 0.27777778  ! thickcness (m)
-ZD_ROAD(1,5)  = 0.83333333  ! thickcness (m) (deep soil layer)
-!============================================================
-!============================================================
-! Wall
-!============================================================
-!============================================================
-NWALL_LAYER = 5         ! number of wall layers
-ALLOCATE(ZHC_WALL    (1,NWALL_LAYER)) 
-ALLOCATE(ZTC_WALL    (1,NWALL_LAYER)) 
-ALLOCATE(ZD_WALL     (1,NWALL_LAYER)) 
-ZHC_WALL(1,1) = ZHC_WALL_S(1)    ! volumetric heat capacity (J m-3 K-1) (external layer)
-ZHC_WALL(1,2) = ZHC_WALL_S(1)    ! volumetric heat capacity (J m-3 K-1) 
-ZHC_WALL(1,3) = ZHC_WALL_S(1)    ! volumetric heat capacity (J m-3 K-1) 
-ZHC_WALL(1,4) = 1127845.6   ! volumetric heat capacity (J m-3 K-1) 
-ZHC_WALL(1,5) =   52030.    ! volumetric heat capacity (J m-3 K-1) (inner layer)
-ZTC_WALL(1,1) = ZTC_WALL_S(1)    ! thermal conductivity (W/m K) (external layer)
-ZTC_WALL(1,2) = ZTC_WALL_S(1)    ! thermal conductivity (W/m K)
-ZTC_WALL(1,3) = ZTC_WALL_S(1)    ! thermal conductivity (W/m K)
-ZTC_WALL(1,4) = 0.095454545 ! thermal conductivity (W/m K)
-ZTC_WALL(1,5) = 0.03        ! thermal conductivity (W/m K) (inner layer)
-ZD_WALL(1,1)  = 0.001       ! thickcness (m) (external layer)
-ZD_WALL(1,2)  = 0.098       ! thickcness (m)
-ZD_WALL(1,3)  = 0.132       ! thickcness (m)
-ZD_WALL(1,4)  = 0.098       ! thickcness (m)
-ZD_WALL(1,5)  = 0.001       ! thickcness (m) (inner layer)
-!============================================================
-!============================================================
-! Floor and internal mass
-!============================================================
-!============================================================
-NFLOOR_LAYER = 5         ! number of floor layers
-ALLOCATE(ZHC_FLOOR   (1,NFLOOR_LAYER)) 
-ALLOCATE(ZTC_FLOOR   (1,NFLOOR_LAYER)) 
-ALLOCATE(ZD_FLOOR    (1,NFLOOR_LAYER))  
-ZHC_FLOOR(1,1) = 2016000. ! volumetric heat capacity (J m-3 K-1) (upper layer)
-ZHC_FLOOR(1,2) = 2016000. ! volumetric heat capacity (J m-3 K-1)
-ZHC_FLOOR(1,3) = 2016000. ! volumetric heat capacity (J m-3 K-1)
-ZHC_FLOOR(1,4) = 2016000. ! volumetric heat capacity (J m-3 K-1)
-ZHC_FLOOR(1,5) = 2016000. ! volumetric heat capacity (J m-3 K-1) (lower layer)
-ZTC_FLOOR(1,1) = 1.95     ! thermal conductivity (W/m K) (upper layer)
-ZTC_FLOOR(1,2) = 1.95     ! thermal conductivity (W/m K)
-ZTC_FLOOR(1,3) = 1.95     ! thermal conductivity (W/m K)
-ZTC_FLOOR(1,4) = 1.95     ! thermal conductivity (W/m K)
-ZTC_FLOOR(1,5) = 1.95     ! thermal conductivity (W/m K) (lower layer)
-ZD_FLOOR(1,1)  = 0.001        ! thickcness (m) (upper layer)
-ZD_FLOOR(1,2)  = 0.0064074074 ! thickcness (m)
-ZD_FLOOR(1,3)  = 0.014814815  ! thickcness (m)
-ZD_FLOOR(1,4)  = 0.044444444  ! thickcness (m)
-ZD_FLOOR(1,5)  = 0.13333333   ! thickcness (m) (lower layer)
 
 ! 
 !============================================================
 !============================================================
-!* anthropogenic heat fluxes
-!============================================================
-!============================================================
-ZLE_TRAFFIC  = 0.0  ! heat fluxes due to traffic
-ZLE_INDUSTRY = 0.0  ! heat fluxes due to factories
 ! 
 !============================================================
 !============================================================
@@ -722,40 +531,30 @@ ZEFF_PANEL  = 0.14     ! Efficiency of solar panel [-]
 !=============================================================
 !
 PFLOOR_HEIGHT = 3.0     ! Floor height (m)
-ZQIN          = 5.8     ! Internal heat gains [W m-2(floor)]
-ZQIN_FRAD     = 0.2     ! Radiant fraction of internal heat gains
-ZQIN_FLAT     = 0.2     ! Latent franction of internal heat gains
 !
 !=============================================================
 ! windows
 !=============================================================
 !
-ZSHGC         = 0.763   ! window solar transmittance
-PU_WIN        = 2.716   ! window glass-to-glass U-factor [W m-2 K-1]
 !
 !=============================================================
 ! Shading devices
 !=============================================================
 !
-ZSHGC_SH      = 0.025   ! window + shading solar heat gain coef.
 !
 !=============================================================
 ! HVAC system
 !=============================================================
 !
-ZF_WATER_COND = 0.      ! fraction of evaporation for the condensers
-ZF_WASTE_CAN  = 1.0     ! fraction of waste heat released into the canyon
 !
 !=============================================================
 ! Internal target temperatures
 !=============================================================
-ZHR_TARGET    = 0.5     ! Relative humidity setpoint
 !
 !=============================================================
 ! Heating system
 !=============================================================
 !
-ZEFF_HEAT     = 0.9     ! Efficiency of the heating system
 !
 !=============================================================
 ! Cooling system
@@ -766,9 +565,6 @@ ZT_ADP        = 285.66  ! Apparatus dewpoint temperature of the
 ! convection coefficients option
 !=============================================================
 !
-CCH_BEM       = ' ' ! TEB option for building outside conv. coef : '   ', 'DOE-2'
-ZROUGH_ROOF   = 1.52    ! roof roughness coef. in case DOE-2
-ZROUGH_WALL   = 1.52    ! wall roughness coef. in case DOE-2
 !
 !===========================================================================
 !===========================================================================
@@ -798,18 +594,6 @@ ZROUGH_WALL   = 1.52    ! wall roughness coef. in case DOE-2
 !===========================================================================
 !===========================================================================
 !===========================================================================
-IF (ntstep == 1) THEN
-	ZZ0U = ZZ0
-ELSE
-    ZZ0U = ZZ0
-	!IF (ZILMO_TOP_FLUX(1) < 0.) THEN
-	!	ZZ0U = ZZ0 * (1 + 1.15 * ((TP%XBLD_HEIGHT(icell:icell) / -ZILMO_TOP_FLUX)**(1./3.)))
-	!ELSE
-	!	ZZ0U = ZZ0 / (1 + 8.13 * (TP%XBLD_HEIGHT(icell:icell) / ZILMO_TOP_FLUX))
-	!ENDIF	
-ENDIF
-!ZZ0U = MIN(ZZ0U,ZZ0 * 5.)
-!ZZ0U = MAX(ZZ0U,ZZ0 * 0.2)
 
 IF (ntstep == 1) THEN
 
@@ -828,15 +612,15 @@ IF (ntstep == 1) THEN
 	DMT%XQSTOWN_S(1:1)     = qv
 	
 	! Roof properties
-	ZD_ROOF_LAYERS = ZD_ROOF(1,4) + ZD_ROOF(1,3) + ZD_ROOF(1,2) + ZD_ROOF(1,1)
+	ZD_ROOF_LAYERS = TP%XD_ROOF(icell,4) + TP%XD_ROOF(icell,3) + TP%XD_ROOF(icell,2) + TP%XD_ROOF(icell,1)
 	TSTATE%XT_ROOF(icell:icell,1) = t(1)  ! roof layers temperatures
 	TSTATE%XT_ROOF(icell:,1) = t  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:icell,2) = BP%XTCOOL_TARGET(icell) - ((BP%XTCOOL_TARGET(icell) - t(1)) * (ZD_ROOF(1,4) + ZD_ROOF(1,3) + ZD_ROOF(1,2)) / ZD_ROOF_LAYERS(1))  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:,2) = BP%XTCOOL_TARGET(icell:icell) - ((BP%XTCOOL_TARGET(icell:icell) - t) * (ZD_ROOF(1,4) + ZD_ROOF(1,3) + ZD_ROOF(1,2)) / ZD_ROOF_LAYERS)  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:icell,3) = BP%XTCOOL_TARGET(icell) - ((BP%XTCOOL_TARGET(icell) - t(1)) * (ZD_ROOF(1,4) + ZD_ROOF(1,3))  / ZD_ROOF_LAYERS(1))  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:,3) = BP%XTCOOL_TARGET(icell:icell) - ((BP%XTCOOL_TARGET(icell:icell) - t) * (ZD_ROOF(1,4) + ZD_ROOF(1,3))  / ZD_ROOF_LAYERS)  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:icell,4) = BP%XTCOOL_TARGET(icell) - ((BP%XTCOOL_TARGET(icell) - t(1)) * ZD_ROOF(1,4)  / ZD_ROOF_LAYERS(1))  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:,4) = BP%XTCOOL_TARGET(icell:icell) - ((BP%XTCOOL_TARGET(icell:icell) - t) * ZD_ROOF(1,4)  / ZD_ROOF_LAYERS)  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:icell,2) = BP%XTCOOL_TARGET(icell) - ((BP%XTCOOL_TARGET(icell) - t(1)) * (TP%XD_ROOF(icell,4) + TP%XD_ROOF(icell,3) + TP%XD_ROOF(icell,2)) / ZD_ROOF_LAYERS(1))  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:,2) = BP%XTCOOL_TARGET(icell:icell) - ((BP%XTCOOL_TARGET(icell:icell) - t) * (TP%XD_ROOF(icell,4) + TP%XD_ROOF(icell,3) + TP%XD_ROOF(icell,2)) / ZD_ROOF_LAYERS)  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:icell,3) = BP%XTCOOL_TARGET(icell) - ((BP%XTCOOL_TARGET(icell) - t(1)) * (TP%XD_ROOF(icell,4) + TP%XD_ROOF(icell,3))  / ZD_ROOF_LAYERS(1))  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:,3) = BP%XTCOOL_TARGET(icell:icell) - ((BP%XTCOOL_TARGET(icell:icell) - t) * (TP%XD_ROOF(icell,4) + TP%XD_ROOF(icell,3))  / ZD_ROOF_LAYERS)  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:icell,4) = BP%XTCOOL_TARGET(icell) - ((BP%XTCOOL_TARGET(icell) - t(1)) * TP%XD_ROOF(icell,4)  / ZD_ROOF_LAYERS(1))  ! roof layers temperatures
+	TSTATE%XT_ROOF(icell:,4) = BP%XTCOOL_TARGET(icell:icell) - ((BP%XTCOOL_TARGET(icell:icell) - t) * TP%XD_ROOF(icell,4)  / ZD_ROOF_LAYERS)  ! roof layers temperatures
 	TSTATE%XT_ROOF(icell:icell,5) = BP%XTCOOL_TARGET(icell)  ! roof layers temperatures
 	TSTATE%XT_ROOF(icell:,5) = BP%XTCOOL_TARGET(icell:icell)  ! roof layers temperatures
 	
@@ -853,15 +637,15 @@ IF (ntstep == 1) THEN
 	TSTATE%XT_ROAD(icell:,5) = t  ! road layers temperatures
 	
 	! Wall properties
-	ZD_WALL_LAYERS = ZD_WALL(1,1) + ZD_WALL(1,2) + ZD_WALL(1,3) + ZD_WALL(1,4)
+	ZD_WALL_LAYERS = TP%XD_WALL(icell,1) + TP%XD_WALL(icell,2) + TP%XD_WALL(icell,3) + TP%XD_WALL(icell,4)
 	TSTATE%XT_WALL_A(icell:icell,1) = t(1)  ! wall layers temperatures
 	TSTATE%XT_WALL_A(icell:,1) = t  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:icell,2) = BP%XTCOOL_TARGET(icell) - ((BP%XTCOOL_TARGET(icell) - t(1)) * (ZD_WALL(1,4) + ZD_WALL(1,3) + ZD_WALL(1,2)) / ZD_WALL_LAYERS(1))  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:,2) = BP%XTCOOL_TARGET(icell:icell) - ((BP%XTCOOL_TARGET(icell:icell) - t) * (ZD_WALL(1,4) + ZD_WALL(1,3) + ZD_WALL(1,2)) / ZD_WALL_LAYERS)  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:icell,3) = BP%XTCOOL_TARGET(icell) - ((BP%XTCOOL_TARGET(icell) - t(1)) * (ZD_WALL(1,4) + ZD_WALL(1,3))  / ZD_WALL_LAYERS(1))  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:,3) = BP%XTCOOL_TARGET(icell:icell) - ((BP%XTCOOL_TARGET(icell:icell) - t) * (ZD_WALL(1,4) + ZD_WALL(1,3))  / ZD_WALL_LAYERS)  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:icell,4) = BP%XTCOOL_TARGET(icell) - ((BP%XTCOOL_TARGET(icell) - t(1)) * ZD_WALL(1,4)  / ZD_WALL_LAYERS(1))  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:,4) = BP%XTCOOL_TARGET(icell:icell) - ((BP%XTCOOL_TARGET(icell:icell) - t) * ZD_WALL(1,4)  / ZD_WALL_LAYERS)  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:icell,2) = BP%XTCOOL_TARGET(icell) - ((BP%XTCOOL_TARGET(icell) - t(1)) * (TP%XD_WALL(icell,4) + TP%XD_WALL(icell,3) + TP%XD_WALL(icell,2)) / ZD_WALL_LAYERS(1))  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:,2) = BP%XTCOOL_TARGET(icell:icell) - ((BP%XTCOOL_TARGET(icell:icell) - t) * (TP%XD_WALL(icell,4) + TP%XD_WALL(icell,3) + TP%XD_WALL(icell,2)) / ZD_WALL_LAYERS)  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:icell,3) = BP%XTCOOL_TARGET(icell) - ((BP%XTCOOL_TARGET(icell) - t(1)) * (TP%XD_WALL(icell,4) + TP%XD_WALL(icell,3))  / ZD_WALL_LAYERS(1))  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:,3) = BP%XTCOOL_TARGET(icell:icell) - ((BP%XTCOOL_TARGET(icell:icell) - t) * (TP%XD_WALL(icell,4) + TP%XD_WALL(icell,3))  / ZD_WALL_LAYERS)  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:icell,4) = BP%XTCOOL_TARGET(icell) - ((BP%XTCOOL_TARGET(icell) - t(1)) * TP%XD_WALL(icell,4)  / ZD_WALL_LAYERS(1))  ! wall layers temperatures
+	TSTATE%XT_WALL_A(icell:,4) = BP%XTCOOL_TARGET(icell:icell) - ((BP%XTCOOL_TARGET(icell:icell) - t) * TP%XD_WALL(icell,4)  / ZD_WALL_LAYERS)  ! wall layers temperatures
 	TSTATE%XT_WALL_A(icell:icell,5) = BP%XTCOOL_TARGET(icell)  ! wall layers temperatures
 	TSTATE%XT_WALL_A(icell:,5) = BP%XTCOOL_TARGET(icell:icell)  ! wall layers temperatures
 	TSTATE%XT_WALL_B(icell:icell,:) = TSTATE%XT_WALL_A(icell:icell,:)      ! wall layers temperatures
@@ -921,7 +705,6 @@ IF (ntstep == 1) THEN
 	BSTATE%XT_WIN1 = t              ! External window temperature
 	BSTATE%XT_WIN2(icell) = BP%XTCOOL_TARGET(icell)  ! Internal window temperature
 	BSTATE%XT_WIN2 = BP%XTCOOL_TARGET(icell:icell)  ! Internal window temperature
-	BSTATE%XALB_WIN(icell:icell)       = XUNDEF
 	ZNATVENT       = 0.           ! flag to describe surventilation system for i/o 
                                        ! 0 for NONE, 1 for MANU and 2 for AUTO
 	!BSTATE%LSHADE(icell:icell)         = .FALSE.      ! Are shading devices being used ?
@@ -956,12 +739,12 @@ IF (ntstep == 1) THEN
 		PRINT*, '    TOP%CROAD_DIR     = ', TOP%CROAD_DIR
 		PRINT*, '    TOP%CWALL_OPT     = ', TOP%CWALL_OPT
 		PRINT*, '  Thermal properties:'
-		PRINT*, '    ZHC_ROAD_S    = ', ZHC_ROAD_S(1)
-		PRINT*, '    ZHC_ROOF_S    = ', ZHC_ROOF_S(1)
-		PRINT*, '    ZHC_WALL_S    = ', ZHC_WALL_S(1)
-		PRINT*, '    ZTC_ROAD_S    = ', ZTC_ROAD_S(1)
-		PRINT*, '    ZTC_ROOF_S    = ', ZTC_ROOF_S(1)
-		PRINT*, '    ZTC_WALL_S    = ', ZTC_WALL_S(1)
+		PRINT*, '    ZHC_ROAD_S    = ', TP%XHC_ROAD(icell,1)
+		PRINT*, '    ZHC_ROOF_S    = ', TP%XHC_ROOF(icell,1)
+		PRINT*, '    ZHC_WALL_S    = ', TP%XHC_WALL(icell,1)
+		PRINT*, '    ZTC_ROAD_S    = ', TP%XTC_ROAD(icell,1)
+		PRINT*, '    ZTC_ROOF_S    = ', TP%XTC_ROOF(icell,1)
+		PRINT*, '    ZTC_WALL_S    = ', TP%XTC_WALL(icell,1)
 		PRINT*, '    TP%XALB_ROAD(icell:icell)     = ', TP%XALB_ROAD(icell)
 		PRINT*, '    TP%XALB_ROOF(icell:icell)     = ', TP%XALB_ROOF(icell)
 		PRINT*, '    TP%XALB_WALL(icell:icell)     = ', TP%XALB_WALL(icell)
@@ -1003,14 +786,14 @@ IF (ntstep == 1) THEN
 		PRINT*, '    ZRD_24H_IRRIG   = ', ZRD_24H_IRRIG(1)
 		PRINT*, '  Wind:'
 		PRINT*, '    TOP%ITYPE_WIND    = ', TOP%ITYPE_WIND
-		PRINT*, '    ZFAI          = ', ZFAI(1,:)
+		PRINT*, '    TP%XFAI(icell:icell,:)          = ', TP%XFAI(icell,:)
 !MV202609 z0 and zd to namelist
 		PRINT*, '  Aerodynamics of the urban surface:'
-		PRINT*, '    urb_z0_town   = ', HZ0_TOWN, ' -> z0   = ', ZZ0(1), ' m'
-		PRINT*, '    urb_zd_town   = ', HZD_TOWN, ' -> zd   = ', ZZDU(1), ' m'
+		PRINT*, '    urb_z0_town   = ', ' -> z0   = ', TP%XZ0_TOWN(icell), ' m'
+		PRINT*, '    urb_zd_town   = ', ' -> zd   = ', TP%XZD_TOWN(icell), ' m'
 		PRINT*, '  Anthropogenic heat:'
-		PRINT*, '    ZH_TRAFFIC    = ', ZH_TRAFFIC(1)
-		PRINT*, '    ZH_INDUSTRY   = ', ZH_INDUSTRY(1)
+		PRINT*, '    TP%XH_TRAFFIC_MEAN(icell:icell)    = ', TP%XH_TRAFFIC_MEAN(icell)
+		PRINT*, '    ZH_INDUSTRY   = ', TP%XH_INDUSTRY(icell)
 		PRINT*, '    TOP%NUTC_HOUR     = ', TOP%NUTC_HOUR
 		PRINT*, '  Shading flag:'
 		PRINT*, '    BSTATE%LSHADE(icell:icell)        = ', BSTATE%LSHADE(icell:icell)
@@ -1093,23 +876,6 @@ CALL SUNPOS(IYEAR, IMONTH, IDAY, ZTIME, ZLON, ZLAT, XTSUN, XZENITH, XAZIM)
 ! Geometric parameters
 ! -----------------------------------------------------------
 !
-ZROAD         = (1. - TP%XBLD(icell:icell) - TP%XGARDEN(icell:icell))
-XZREF         = ZZREF
-XUREF         = ZZREF
-ZWALL_O_HOR   = 2. * TP%XCAN_HW_RATIO(icell:icell) * (1. - TP%XBLD(icell:icell))
-
-ZSVF_ROAD     = (SQRT(TP%XCAN_HW_RATIO(icell:icell)**2+1.) - TP%XCAN_HW_RATIO(icell:icell))
-ZSVF_GARDEN   = ZSVF_ROAD
-ZSVF_WALL     =  0.5*(TP%XCAN_HW_RATIO(icell:icell)+1.-SQRT(TP%XCAN_HW_RATIO(icell:icell)**2+1.))/TP%XCAN_HW_RATIO(icell:icell)
-ZZ_LOWCAN     = TP%XBLD_HEIGHT(icell:icell) / 2
-ZTOTS_O_HORS  = 1. + ZWALL_O_HOR
-ZROOF_FRAC    = TP%XBLD(icell:icell)        / ZTOTS_O_HORS
-ZWALL_FRAC    = ZWALL_O_HOR / ZTOTS_O_HORS
-ZROAD_FRAC    = ZROAD       / ZTOTS_O_HORS
-ZGARDEN_FRAC  = TP%XGARDEN(icell:icell)     / ZTOTS_O_HORS
-ZWALL_O_GRND  = ZWALL_FRAC  / (ZROAD_FRAC+ZGARDEN_FRAC)
-ZROAD_O_GRND   = ZROAD / (ZROAD + TP%XGARDEN(icell:icell))
-ZGARDEN_O_GRND = TP%XGARDEN(icell:icell) / (ZROAD + TP%XGARDEN(icell:icell))
 
 IF (TOP%LGREENROOF_EXT) THEN
   ZRUNOFF_GR_EXT  = ZRUNOFF_GR_EXT / dt
@@ -1131,23 +897,6 @@ IF (TOP%LGARDEN .AND. (TOP%CTYPE_GARDEN == 'EXT' .OR. TOP%CTYPE_GARDEN == 'EXT_N
   ENDIF
 ENDIF
 ! -----------------------------------------------------------
-! BEM characteristics
-! -----------------------------------------------------------
-
-CALL BEM_MORPHO_STRUCT(TP%XBLD(icell:icell), ZWALL_O_HOR, TP%XBLD_HEIGHT(icell:icell), PFLOOR_HEIGHT,                  &
-                      BP%XGR(icell:icell), ZN_FLOOR, ZWALL_O_BLD, ZGLAZ_O_BLD, ZMASS_O_BLD,     &
-                      ZFLOOR_HW_RATIO,                                          &
-                      ZF_FLOOR_MASS, ZF_FLOOR_WALL, ZF_FLOOR_WIN,               &
-                      ZF_FLOOR_ROOF, ZF_WALL_FLOOR, ZF_WALL_MASS,               &
-                      ZF_WALL_WIN, ZF_WIN_FLOOR, ZF_WIN_MASS, ZF_WIN_WALL,      &
-                      ZF_MASS_FLOOR, ZF_MASS_WALL, ZF_MASS_WIN, ZF_WASTE_CAN,   &
-                      ZF_WIN_WIN)
-!
-! -----------------------------------------------------------
-! Window characteristics
-! -----------------------------------------------------------
-!
-CALL WINDOW_DATA_STRUCT(1, ZSHGC, PU_WIN, BSTATE%XALB_WIN(icell:icell), ZABS_WIN, ZUGG_WIN, ZTRAN_WIN)
 
 ! -----------------------------------------------------------
 ! Define Forcing variables
@@ -1158,6 +907,9 @@ DMT%XTS_WALL_A(1:1)  = 0.
 DMT%XTS_WALL_B(1:1)  = 0.
 XTA(:)      = t
 XPS(:)      = ps
+XZREF(:)    = ZZREF
+XUREF(:)    = ZZREF
+
 !XRHOA (:)   = XPS (:) / XRD /  DMT%XTSTOWN_S(1) (:) / ( 1.+((XRV/XRD)-1.)*DMT%XQSTOWN_S(1) (:) )
 XRHOA(:)    = XPS(:) / ( XTA(:)*XRD * ( 1.+((XRV/XRD)-1.)*qv(:) ) + XZREF(:)*XG )
 ZQA_KGKG(:) = qv
@@ -1235,15 +987,15 @@ ZTSCA_SW(:,1) = XSCA_SW(:,1) * (1. - ZF1_o_B)
 ! -----------------------------------------------------------
 ZVMOD = SQRT(XU**2+XV**2)
 ! Wind speed at the top of the canyon (roof level), from the logarithmic
-! profile referenced to the displacement height ZZDU
-DMT%XWIND_TOP(1:1) = ZVMOD * LOG( (        TP%XBLD_HEIGHT(icell:icell) - ZZDU) / ZZ0U)   &
-	/ LOG( (ZZREF + TP%XBLD_HEIGHT(icell:icell) - ZZDU) / ZZ0U)
+! profile referenced to the displacement height TP%XZD_TOWN(icell:icell)
+DMT%XWIND_TOP(1:1) = ZVMOD * LOG( (        TP%XBLD_HEIGHT(icell:icell) - TP%XZD_TOWN(icell:icell)) / TP%XZ0_TOWN(icell:icell))   &
+	/ LOG( (ZZREF + TP%XBLD_HEIGHT(icell:icell) - TP%XZD_TOWN(icell:icell)) / TP%XZ0_TOWN(icell:icell))
 IF (TOP%ITYPE_WIND == 0) THEN
 	ZWAKE = 1. + (2./XPI-1.) * 2. * (TP%XCAN_HW_RATIO(icell:icell)-0.5)
 	ZWAKE = MAX(MIN(ZWAKE,1.),2./XPI)
 	DMT%XWIND_CANYON(1:1) = ZWAKE * EXP(-TP%XCAN_HW_RATIO(icell:icell)/4.) * DMT%XWIND_TOP(1)
 ELSEIF (TOP%ITYPE_WIND == 1) THEN
-	CALL WIND_CALCULATION_WANG(icell, iblock, TP%XBLD_HEIGHT(icell:icell), DMT%XUSTAR_TOWN(1:1), DMT%XWIND_TOP(1:1), XU, XV, ZFAI, ZU_CANYON_WANG)  
+	CALL WIND_CALCULATION_WANG(icell, iblock, TP%XBLD_HEIGHT(icell:icell), DMT%XUSTAR_TOWN(1:1), DMT%XWIND_TOP(1:1), XU, XV, TP%XFAI(icell:icell,:), ZU_CANYON_WANG)  
 	DMT%XWIND_CANYON(1:1) = ZU_CANYON_WANG(5)
 ENDIF
 
@@ -1257,6 +1009,7 @@ DMT%XVCANYON(1:1) = -DMT%XWIND_CANYON(1)*COS(ZDIR*XPII/180)
 ZU_LOWCAN = DMT%XWIND_CANYON(1:1) 
 ZT_LOWCAN = TSTATE%XT_CANYON(icell:icell) 
 ZQ_LOWCAN = TSTATE%XQ_CANYON(icell:icell) 
+ZZ_LOWCAN = TP%XBLD_HEIGHT(icell:icell) / 2 
 
 ZPEW_A_COEF        = 0.
 ZPEW_A_COEF_LOWCAN = 0.
@@ -1266,7 +1019,7 @@ ZPEW_B_COEF_LOWCAN = ZU_LOWCAN
 ! -----------------------------------------------------------
 ! Calculation of Daily Cycle of AHF TRAFFIC
 ! -----------------------------------------------------------	
-CALL H_TRAFFIC_NOW(icell, iblock, ZH_TRAFFIC, IHOUR, IMIN, ISEC, TOP%NUTC_HOUR, DMT%XAHF_TRAFFIC_NOW(1:1)) 
+CALL H_TRAFFIC_NOW(icell, iblock, TP%XH_TRAFFIC_MEAN(icell:icell), IHOUR, IMIN, ISEC, TOP%NUTC_HOUR, DMT%XAHF_TRAFFIC_NOW(1:1)) 
 ZH_TRAFFIC_NOW_CAN = DMT%XAHF_TRAFFIC_NOW(1:1)
 IF (FR_URB(1) >= 0.25) THEN
 	ZH_TRAFFIC_NOW_CAN = ZH_TRAFFIC_NOW_CAN / FR_URB
@@ -1283,74 +1036,14 @@ ENDIF
 
 
 !
-! Static parameters of the surface and of the building: the containers come from
-! the driver; the values computed above are written into them.
 !
 BOP%NFLOOR_LAYER = SIZE(BSTATE%XT_FLOOR,2)
-BOP%LAUTOSIZE = .FALSE.
-BP%XF_WASTE_CAN = ZF_WASTE_CAN
-BP%XEFF_HEAT = ZEFF_HEAT
-BP%XQIN = ZQIN
-BP%XQIN_FRAD = ZQIN_FRAD
-BP%XSHGC = ZSHGC
-BP%XSHGC_SH = ZSHGC_SH
-BP%XF_WATER_COND = ZF_WATER_COND
-BP%XQIN_FLAT = ZQIN_FLAT
-BP%XHR_TARGET = ZHR_TARGET
-BP%XN_FLOOR = ZN_FLOOR
-BP%XGLAZ_O_BLD = ZGLAZ_O_BLD
-BP%XMASS_O_BLD = ZMASS_O_BLD
-BP%XFLOOR_HW_RATIO = ZFLOOR_HW_RATIO
-BP%XF_FLOOR_MASS = ZF_FLOOR_MASS
-BP%XF_FLOOR_WALL = ZF_FLOOR_WALL
-BP%XF_FLOOR_WIN = ZF_FLOOR_WIN
-BP%XF_FLOOR_ROOF = ZF_FLOOR_ROOF
-BP%XF_WALL_FLOOR = ZF_WALL_FLOOR
-BP%XF_WALL_MASS = ZF_WALL_MASS
-BP%XF_WALL_WIN = ZF_WALL_WIN
-BP%XF_WIN_FLOOR = ZF_WIN_FLOOR
-BP%XF_WIN_MASS = ZF_WIN_MASS
-BP%XF_WIN_WALL = ZF_WIN_WALL
-BP%XF_WIN_WIN = ZF_WIN_WIN
-BP%XF_MASS_FLOOR = ZF_MASS_FLOOR
-BP%XF_MASS_WALL = ZF_MASS_WALL
-BP%XF_MASS_WIN = ZF_MASS_WIN
-TOP%CZ0H = HZ0H
-TOP%CCH_BEM = CCH_BEM
 TOP%NROOF_LAYER = SIZE(TSTATE%XT_ROOF,2)
 TOP%NROAD_LAYER = SIZE(TSTATE%XT_ROAD,2)
 TOP%NWALL_LAYER = SIZE(TSTATE%XT_WALL_A,2)
 TOP%TTIME = TPTIME
 TOP%XTSTEP = XTSTEP_SURF
-TP%XROAD = ZROAD
-TP%XWALL_O_HOR = ZWALL_O_HOR
-TP%XROAD_O_GRND = ZROAD_O_GRND
-TP%XGARDEN_O_GRND = ZGARDEN_O_GRND
-TP%XWALL_O_GRND = ZWALL_O_GRND
-TP%XWALL_O_BLD = ZWALL_O_BLD
-TP%XZ0_TOWN = ZZ0U
-TP%XZD_TOWN = ZZDU
-TP%XSVF_ROAD = ZSVF_ROAD
-TP%XSVF_GARDEN = ZSVF_GARDEN
-TP%XSVF_WALL = ZSVF_WALL
-TP%XHC_ROOF = ZHC_ROOF
-TP%XTC_ROOF = ZTC_ROOF
-TP%XD_ROOF = ZD_ROOF
-TP%XROUGH_ROOF = ZROUGH_ROOF
-TP%XHC_ROAD = ZHC_ROAD
-TP%XTC_ROAD = ZTC_ROAD
-TP%XD_ROAD = ZD_ROAD
-TP%XHC_WALL = ZHC_WALL
-TP%XTC_WALL = ZTC_WALL
-TP%XD_WALL = ZD_WALL
-TP%XROUGH_WALL = ZROUGH_WALL
-TP%XH_TRAFFIC = ZH_TRAFFIC_NOW_CAN
-TP%XLE_TRAFFIC = ZLE_TRAFFIC
-TP%XLE_INDUSTRY = ZLE_INDUSTRY
 
-BP%XHC_FLOOR(1,:) = ZHC_FLOOR(1,:)
-BP%XTC_FLOOR(1,:) = ZTC_FLOOR(1,:)
-BP%XD_FLOOR(1,:)  = ZD_FLOOR(1,:)
 CALL TEB_GARDEN_STRUCT (icell, iblock, TOP%LGREENROOF_EXT, HIMPLICIT_WIND, BOP%LBEM_AC, XTSUN, TSTATE%XT_CANYON(icell:icell), &
                  TSTATE%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1), ZT_LOWCAN, ZQ_LOWCAN, &
                  ZU_LOWCAN, ZZ_LOWCAN, TSTATE%XWS_ROAD(icell:icell), HSNOW_ROOF, HSNOW_ROAD, &
@@ -1358,7 +1051,7 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, TOP%LGREENROOF_EXT, HIMPLICIT_WIND, BOP%L
                  ZPEW_B_COEF_LOWCAN, ZZ0_GD_EXT, XPS, XPA, ZEXNS, ZEXNA, XTA, &
                  ZQA_KGKG, XRHOA, XCO2, XLW, ZTDIR_SW, ZTSCA_SW, XSW_BANDS, &
                  KSW, XZENITH, XAZIM, XRAIN, XSNOW, ZZREF, ZZREF, ZVMOD, &
-                 ZH_TRAFFIC_NOW_CAN, ZLE_TRAFFIC, XTSTEP_SURF, ZRN_ROOF, &
+                 ZH_TRAFFIC_NOW_CAN, TP%XLE_TRAFFIC(icell:icell), XTSTEP_SURF, ZRN_ROOF, &
                  ZH_ROOF, ZLE_ROOF, ZLEW_ROOF, ZGFLUX_ROOF, &
                  DMT%XRUNOFF_ROOF(1:1), ZRN_ROAD, ZH_ROAD, ZLE_ROAD, &
                  ZLEW_ROAD, ZGFLUX_ROAD, DMT%XRUNOFF_ROAD(1:1), ZRN_WALL_A, &
@@ -1388,11 +1081,11 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, TOP%LGREENROOF_EXT, HIMPLICIT_WIND, BOP%L
                  ZT_BLD_COOL, ZH_BLD_HEAT, ZLE_BLD_COOL, ZLE_BLD_HEAT, &
                  DMT%XH_WASTE(1:1), DMT%XLE_WASTE(1:1), DMT%XHVAC_COOL(1:1), &
                  DMT%XHVAC_HEAT(1:1), ZT_ADP, ZCAP_SYS, ZM_SYS, ZCOP, ZQ_SYS, &
-                 ZT_SYS, ZTR_SW_WIN, ZFAN_POWER, ZHC_FLOOR, ZTC_FLOOR, &
-                 ZD_FLOOR, ZABS_SW_WIN, ZABS_LW_WIN, ZUGG_WIN, BSTATE%XALB_WIN(icell:icell), &
-                 ZABS_WIN, ZEMIT_LW_FAC, ZEMIT_LW_GRND, ZT_RAD_IND, &
+                 ZT_SYS, ZTR_SW_WIN, ZFAN_POWER, BP%XHC_FLOOR(icell:icell,:), BP%XTC_FLOOR(icell:icell,:), &
+                 BP%XD_FLOOR(icell:icell,:), ZABS_SW_WIN, ZABS_LW_WIN, BSTATE%XUGG_WIN(icell:icell), BSTATE%XALB_WIN(icell:icell), &
+                 BSTATE%XABS_WIN(icell:icell), ZEMIT_LW_FAC, ZEMIT_LW_GRND, ZT_RAD_IND, &
                  ZREF_SW_GRND, ZREF_SW_FAC, ZHU_BLD, ZTIME_BEG, ZSHADE, &
-                 LCANOPY, ZTRAN_WIN, LPAR_RD_IRRIG, ZRD_START_MONTH, &
+                 LCANOPY, BSTATE%XTRAN_WIN(icell:icell), LPAR_RD_IRRIG, ZRD_START_MONTH, &
                  ZRD_END_MONTH, ZRD_START_HOUR, ZRD_END_HOUR, ZRD_24H_IRRIG, &
                  ZIRRIG_ROAD, ZEMIS_PANEL, ZALB_PANEL, ZEFF_PANEL, &
                  ZFRAC_PANEL, ZTHER_PROD_PANEL, ZPHOT_PROD_PANEL, &
@@ -1434,7 +1127,7 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, TOP%LGREENROOF_EXT, HIMPLICIT_WIND, BOP%L
                  DMT%XPHU_GREENROOF(1:1), DMT%XPAC_GREENROOF_ATM(1:1), &
                  DMT%XPCD_GREENROOF_ATM(1:1), DMT%XPCDN_GREENROOF_ATM(1:1), &
                  DMT%XPCH_GREENROOF_ATM(1:1), DMT%XPRI_GREENROOF_ATM(1:1), &
-                 DMT%XZZ0H_GREENROOF_ATM(1:1), DMT, TOP, TP, BOP, BP, ZZ0U, &
+                 DMT%XZZ0H_GREENROOF_ATM(1:1), DMT, TOP, TP, BOP, BP, TP%XZ0_TOWN(icell:icell), &
                  TSTATE, BSTATE, TPN, TIR)
     BSTATE%XTI_BLD(icell)               = BSTATE%XTI_BLD(icell)
     BSTATE%XQI_BLD(icell)               = BSTATE%XQI_BLD(icell)
@@ -1473,17 +1166,17 @@ END IF
 
 DMT%XQSTOWN_S(1:1)    = ZQA_KGKG * ZEXNS / ZEXNA + DMT%XLE_TOWN(1) / (XRHOA * XLVTT * DMT%XTCH_TOWN(1) * ZVMOD)
 
-DMT%XWSTOWN(1:1)      = (TSTATE%XWS_ROOF(icell) * TP%XBLD(icell:icell) + TSTATE%XWS_ROAD(icell:icell) * ZROAD) * 0.001
+DMT%XWSTOWN(1:1)      = (TSTATE%XWS_ROOF(icell) * TP%XBLD(icell:icell) + TSTATE%XWS_ROAD(icell:icell) * TP%XROAD(icell:icell)) * 0.001
 !DMT%XRUNOFF_TOWN(1:1)  = DMT%XRUNOFF_TOWN(1) * dt
 
-DMT%XTSSNOW_TOWN(1:1)  = (TSTATE%TSNOW_ROOF%TS(icell) * TP%XBLD(icell:icell) * ZDN_RF + TSTATE%TSNOW_ROAD%TS(icell) * ZROAD * ZDN_RD) / (TP%XBLD(icell:icell) + ZROAD)
-DMT%XWSNOW_TOWN(1:1)   = (TSTATE%TSNOW_ROOF%WSNOW(icell,1) * TP%XBLD(icell:icell) * ZDN_RF + TSTATE%TSNOW_ROAD%WSNOW(icell,1) * ZROAD * ZDN_RD) / (TP%XBLD(icell:icell) + ZROAD) * 0.001
-DMT%XRSNOW_TOWN(1:1)   = (TSTATE%TSNOW_ROOF%RHO(icell,1) * TP%XBLD(icell:icell) * ZDN_RF + TSTATE%TSNOW_ROAD%RHO(icell,1) * ZROAD * ZDN_RD) / (TP%XBLD(icell:icell) + ZROAD)
-DMT%XSHFL_SNOW(1:1)   = (ZHSNOW_ROOF * TP%XBLD(icell:icell) * ZDN_RF + ZHSNOW_ROAD * ZROAD * ZDN_RD) / (TP%XBLD(icell:icell) + ZROAD)
-DMT%XLHFL_SNOW(1:1)  = (ZLESNOW_ROOF * TP%XBLD(icell:icell) * ZDN_RF + ZLESNOW_ROAD * ZROAD * ZDN_RD) / (TP%XBLD(icell:icell) + ZROAD)
-DMT%XFRSNOW(1:1)      = (ZDN_RF * TP%XBLD(icell:icell) + ZDN_RD * ZROAD) / (TP%XBLD(icell:icell) + ZROAD)
+DMT%XTSSNOW_TOWN(1:1)  = (TSTATE%TSNOW_ROOF%TS(icell) * TP%XBLD(icell:icell) * ZDN_RF + TSTATE%TSNOW_ROAD%TS(icell) * TP%XROAD(icell:icell) * ZDN_RD) / (TP%XBLD(icell:icell) + TP%XROAD(icell:icell))
+DMT%XWSNOW_TOWN(1:1)   = (TSTATE%TSNOW_ROOF%WSNOW(icell,1) * TP%XBLD(icell:icell) * ZDN_RF + TSTATE%TSNOW_ROAD%WSNOW(icell,1) * TP%XROAD(icell:icell) * ZDN_RD) / (TP%XBLD(icell:icell) + TP%XROAD(icell:icell)) * 0.001
+DMT%XRSNOW_TOWN(1:1)   = (TSTATE%TSNOW_ROOF%RHO(icell,1) * TP%XBLD(icell:icell) * ZDN_RF + TSTATE%TSNOW_ROAD%RHO(icell,1) * TP%XROAD(icell:icell) * ZDN_RD) / (TP%XBLD(icell:icell) + TP%XROAD(icell:icell))
+DMT%XSHFL_SNOW(1:1)   = (ZHSNOW_ROOF * TP%XBLD(icell:icell) * ZDN_RF + ZHSNOW_ROAD * TP%XROAD(icell:icell) * ZDN_RD) / (TP%XBLD(icell:icell) + TP%XROAD(icell:icell))
+DMT%XLHFL_SNOW(1:1)  = (ZLESNOW_ROOF * TP%XBLD(icell:icell) * ZDN_RF + ZLESNOW_ROAD * TP%XROAD(icell:icell) * ZDN_RD) / (TP%XBLD(icell:icell) + TP%XROAD(icell:icell))
+DMT%XFRSNOW(1:1)      = (ZDN_RF * TP%XBLD(icell:icell) + ZDN_RD * TP%XROAD(icell:icell)) / (TP%XBLD(icell:icell) + TP%XROAD(icell:icell))
 DMT%XSNOW_MELT(1:1) = ZMELT_BLT * dt
-DMT%XHSNOW_TOWN(1:1)   = (ZSNOWD_RF * TP%XBLD(icell:icell) * ZDN_RF + ZSNOWD_RD * ZROAD * ZDN_RD) / (TP%XBLD(icell:icell) + ZROAD)
+DMT%XHSNOW_TOWN(1:1)   = (ZSNOWD_RF * TP%XBLD(icell:icell) * ZDN_RF + ZSNOWD_RD * TP%XROAD(icell:icell) * ZDN_RD) / (TP%XBLD(icell:icell) + TP%XROAD(icell:icell))
 
 
 !Town area-averaged albedo 
@@ -1492,10 +1185,10 @@ ZALB_AVE_TWN = TP%XBLD(icell:icell) * (1.- TP%XGREENROOF(icell:icell)) * (1-ZDN_
                   + TP%XBLD(icell:icell) * (1.-TP%XGREENROOF(icell:icell)) * ZDN_RF * TSTATE%TSNOW_ROOF%ALB(icell) * (1.-ZFRAC_PANEL)                  &
                   + TP%XBLD(icell:icell) *     TP%XGREENROOF(icell:icell)               * ZALB_GR_EXT * (1.-ZFRAC_PANEL)                     &
                   + TP%XBLD(icell:icell) * ZALB_PANEL *      ZFRAC_PANEL                                            &
-                  + ZROAD * ( ZSVF_ROAD * (1-ZDN_RD) * TP%XALB_ROAD(icell:icell)                                    &
-                  + ZSVF_ROAD * ZDN_RD * TSTATE%TSNOW_ROAD%ALB(icell))                                               &
-                  + TP%XGARDEN(icell:icell) *    ZSVF_GARDEN * 0.15                                                 &
-                  + ZWALL_O_HOR *    ZSVF_WALL         * TP%XALB_WALL(icell:icell)
+                  + TP%XROAD(icell:icell) * ( TP%XSVF_ROAD(icell:icell) * (1-ZDN_RD) * TP%XALB_ROAD(icell:icell)                                    &
+                  + TP%XSVF_ROAD(icell:icell) * ZDN_RD * TSTATE%TSNOW_ROAD%ALB(icell))                                               &
+                  + TP%XGARDEN(icell:icell) *    TP%XSVF_GARDEN(icell:icell) * 0.15                                                 &
+                  + TP%XWALL_O_HOR(icell:icell) *    TP%XSVF_WALL(icell:icell)         * TP%XALB_WALL(icell:icell)
 
 
 DMT%XALB_TH(1:1) = 1 - ZEMIS_TOWN
@@ -1536,8 +1229,8 @@ DMT%XPDN_RF(1:1)           = ZDN_RF
 !* needed to close the water budget of the two reservoirs on every hour (the
 !* runoff is the (only) term that leaves the reservoir without evaporating)
 !
-DMT%XH_ROAD_FR(1:1) = ZH_ROAD*ZROAD
-DMT%XH_WALL_FR(1:1) = ZH_WALL_A*ZWALL_O_HOR
+DMT%XH_ROAD_FR(1:1) = ZH_ROAD*TP%XROAD(icell:icell)
+DMT%XH_WALL_FR(1:1) = ZH_WALL_A*TP%XWALL_O_HOR(icell:icell)
 
 DELTA_TROOF = DMT%XTS_ROOF(1)/ZEXNS - XTA/ZEXNA
 DELTA_TROAD = DMT%XTS_ROAD(1) - TSTATE%XT_CANYON(icell:icell)
@@ -1545,8 +1238,8 @@ DELTA_TWALL = DMT%XTS_WALL_A(1) - TSTATE%XT_CANYON(icell:icell)
 
 ! Calculate Shortwave and Longwave Surface Balance
 ! Forcing for TERRA to use Garden
-ZABS_SW_GRND = ZROAD /(ZROAD + TP%XGARDEN(icell:icell)) * ZABS_SW_ROAD + TP%XGARDEN(icell:icell) /(ZROAD + TP%XGARDEN(icell:icell)) * DMT%XSOBS(1)
-ZABS_LW_GRND = ZROAD /(ZROAD + TP%XGARDEN(icell:icell)) * ZABS_LW_ROAD + TP%XGARDEN(icell:icell) /(ZROAD + TP%XGARDEN(icell:icell)) * DMT%XTHBS(1)
+ZABS_SW_GRND = TP%XROAD(icell:icell) /(TP%XROAD(icell:icell) + TP%XGARDEN(icell:icell)) * ZABS_SW_ROAD + TP%XGARDEN(icell:icell) /(TP%XROAD(icell:icell) + TP%XGARDEN(icell:icell)) * DMT%XSOBS(1)
+ZABS_LW_GRND = TP%XROAD(icell:icell) /(TP%XROAD(icell:icell) + TP%XGARDEN(icell:icell)) * ZABS_LW_ROAD + TP%XGARDEN(icell:icell) /(TP%XROAD(icell:icell) + TP%XGARDEN(icell:icell)) * DMT%XTHBS(1)
 
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* 1/L of the town computed from the fluxes (not exported; distinct from ZILMO_TOP_EXCH
@@ -1561,325 +1254,10 @@ ENDIF
 
 ! --------------------------------------------------------------------------------------
 
-DEALLOCATE(ZHC_WALL) 
-DEALLOCATE(ZTC_WALL) 
-DEALLOCATE(ZD_WALL)
 !DEALLOCATE(TSTATE%XT_WALL_A(icell:icell,:)) 
 !DEALLOCATE(TSTATE%XT_WALL_B(icell:icell,:)) 
-DEALLOCATE(ZHC_ROOF) 
-DEALLOCATE(ZTC_ROOF) 
-DEALLOCATE(ZD_ROOF)
 !DEALLOCATE(TSTATE%XT_ROOF(icell:icell,:)) 
-DEALLOCATE(ZHC_ROAD) 
-DEALLOCATE(ZTC_ROAD) 
-DEALLOCATE(ZD_ROAD) 
 !DEALLOCATE(TSTATE%XT_ROAD(icell:icell,:)) 
-DEALLOCATE(ZHC_FLOOR) 
-DEALLOCATE(ZTC_FLOOR) 
-DEALLOCATE(ZD_FLOOR)
-
-! --------------------------------------------------------------------------------------
-!
-!MV202609 z0 and zd to namelist
-CONTAINS
-
-!MV202609 z0 and zd to namelist
-SUBROUTINE URB_AERO_PARAMS(CZ0, CZD, PBLD_HEIGHT, PBLD_FRAC, PFAI, PZ0, PZD)
-! Aerodynamic parameters of the urban surface: z0 of the town and the
-! displacement height zd. Both are defined by the namelist entries
-! (urb_z0_town, urb_zd_town), each of them accepting (case insensitive):
-!   0.5 | 0.5m  - value in metres
-!   0.1H        - fraction of the building height
-!   H/3         - building height divided by n
-!   <name>      - a named parameterization (see URB_AERO_SCHEME_Z0 and
-!                 URB_AERO_SCHEME_ZD: MACDONALD1998, MACDONALD1998SQ)
-! The two entries are resolved independently, so that zd can be taken from a
-! parameterization ('MACDONALD1998') while z0 is given explicitly ('0.1H'),
-! and vice versa.
-CHARACTER(LEN=*),    INTENT(IN)  :: CZ0, CZD      ! namelist entries
-REAL, DIMENSION(:),  INTENT(IN)  :: PBLD_HEIGHT   ! building height (m)
-REAL, DIMENSION(:),  INTENT(IN)  :: PBLD_FRAC    ! plan area index (-)
-REAL, DIMENSION(:,:),INTENT(IN)  :: PFAI          ! frontal area index (8 dir.)
-REAL, DIMENSION(:),  INTENT(OUT) :: PZ0, PZD      ! resulting z0 and zd (m)
-
-!MV202609 z0 and zd to namelist
-LOGICAL           :: LSCHEME_Z0, LSCHEME_ZD
-INTEGER           :: KERR
-CHARACTER(LEN=16) :: CSCHEME_Z0, CSCHEME_ZD
-
-!MV202609 z0 and zd to namelist
-! z0: explicit value or a parameterization name
-CALL URB_AERO_ONE(CZ0, PBLD_HEIGHT, PZ0, LSCHEME_Z0, CSCHEME_Z0)
-IF (LSCHEME_Z0) THEN
-  CALL URB_AERO_SCHEME_Z0(CSCHEME_Z0, PBLD_HEIGHT, PBLD_FRAC, PFAI, PZ0, KERR)
-  IF (KERR /= 0) CALL URB_AERO_STOP('urb_z0_town', CZ0, CZD)
-ENDIF
-
-!MV202609 z0 and zd to namelist
-! zd: explicit value or a parameterization name
-CALL URB_AERO_ONE(CZD, PBLD_HEIGHT, PZD, LSCHEME_ZD, CSCHEME_ZD)
-IF (LSCHEME_ZD) THEN
-  CALL URB_AERO_SCHEME_ZD(CSCHEME_ZD, PBLD_HEIGHT, PBLD_FRAC, PZD, KERR)
-  IF (KERR /= 0) CALL URB_AERO_STOP('urb_zd_town', CZ0, CZD)
-ENDIF
-END SUBROUTINE URB_AERO_PARAMS
-
-!MV202609 z0 and zd to namelist
-SUBROUTINE URB_AERO_STOP(CNAME, CZ0, CZD)
-! Stops the run with a message about an unknown value or parameterization name
-CHARACTER(LEN=*), INTENT(IN) :: CNAME             ! offending namelist entry
-CHARACTER(LEN=*), INTENT(IN) :: CZ0, CZD          ! both namelist entries
-
-WRITE(*,*) 'ERROR in CALL_DRIVER: cannot interpret the namelist entry '//TRIM(CNAME)
-WRITE(*,*) '   urb_z0_town = ', TRIM(CZ0)
-WRITE(*,*) '   urb_zd_town = ', TRIM(CZD)
-WRITE(*,*) '   accepted forms: <value> (m), <value>m, <value>H, H/<n>'
-WRITE(*,*) '   named parameterizations: MACDONALD1998, MACDONALD1998SQ'
-STOP
-END SUBROUTINE URB_AERO_STOP
-
-!MV202609 z0 and zd to namelist
-SUBROUTINE URB_AERO_ONE(CVALUE, PBLD_HEIGHT, PVALUE, LSCHEME, CSCHEME)
-! Parses one namelist entry of an urban aerodynamic length (see URB_AERO_PARAMS).
-! If the entry is not a number, it is returned as a parameterization name.
-CHARACTER(LEN=*),    INTENT(IN)  :: CVALUE       ! namelist entry
-REAL, DIMENSION(:),  INTENT(IN)  :: PBLD_HEIGHT  ! building height (m)
-REAL, DIMENSION(:),  INTENT(OUT) :: PVALUE       ! resulting length (m)
-LOGICAL,             INTENT(OUT) :: LSCHEME      ! true if CVALUE is a scheme name
-CHARACTER(LEN=16),   INTENT(OUT) :: CSCHEME      ! scheme name (upper case)
-
-INTEGER           :: IJ, ILEN, IOS, ICHR
-REAL              :: ZPVAL
-CHARACTER(LEN=16) :: YSTR, YNUM
-
-YSTR = ADJUSTL(CVALUE)
-ILEN = LEN_TRIM(YSTR)
-DO IJ = 1, ILEN
-  ICHR = ICHAR(YSTR(IJ:IJ))
-  IF (ICHR >= ICHAR('a') .AND. ICHR <= ICHAR('z')) YSTR(IJ:IJ) = CHAR(ICHR - 32)
-ENDDO
-
-LSCHEME = .FALSE.
-CSCHEME = ' '
-IF (ILEN == 0) THEN
-  LSCHEME = .TRUE.
-  RETURN
-ENDIF
-
-! 'H/<n>' - building height divided by n
-IF (ILEN > 2) THEN
-  IF (YSTR(1:2) == 'H/') THEN
-    YNUM = YSTR(3:ILEN)
-    READ(YNUM,*,IOSTAT=IOS) ZPVAL
-    IF (IOS == 0 .AND. ZPVAL /= 0.) THEN
-      PVALUE = PBLD_HEIGHT / ZPVAL
-      RETURN
-    ENDIF
-  ENDIF
-ENDIF
-
-! '<value>H' - fraction of the building height
-IF (ILEN > 1) THEN
-  IF (YSTR(ILEN:ILEN) == 'H') THEN
-    YNUM = YSTR(1:ILEN-1)
-    READ(YNUM,*,IOSTAT=IOS) ZPVAL
-    IF (IOS == 0) THEN
-      PVALUE = ZPVAL * PBLD_HEIGHT
-      RETURN
-    ENDIF
-  ENDIF
-ENDIF
-
-! '<value>m' - value in metres
-IF (ILEN > 1) THEN
-  IF (YSTR(ILEN:ILEN) == 'M') THEN
-    YNUM = YSTR(1:ILEN-1)
-    READ(YNUM,*,IOSTAT=IOS) ZPVAL
-    IF (IOS == 0) THEN
-      PVALUE = ZPVAL
-      RETURN
-    ENDIF
-  ENDIF
-ENDIF
-
-! '<value>' - value in metres
-YNUM = YSTR(1:ILEN)
-READ(YNUM,*,IOSTAT=IOS) ZPVAL
-IF (IOS == 0) THEN
-  PVALUE = ZPVAL
-  RETURN
-ENDIF
-
-! otherwise: a parameterization name
-LSCHEME = .TRUE.
-CSCHEME = YSTR
-END SUBROUTINE URB_AERO_ONE
-
-!MV202609 z0 and zd to namelist
-SUBROUTINE URB_AERO_SCHEME_Z0(CSCHEME, PBLD_HEIGHT, PBLD_FRAC, PFAI, PZ0, KERR)
-! Roughness length z0 from a named parameterization. It uses the building
-! height, the plan area index and the frontal area index. Available schemes:
-!   'MACDONALD1998'   - Macdonald et al. (1998), staggered arrays
-!   'MACDONALD1998SQ' - Macdonald et al. (1998), square arrays
-CHARACTER(LEN=*),    INTENT(IN)  :: CSCHEME
-REAL, DIMENSION(:),  INTENT(IN)  :: PBLD_HEIGHT
-REAL, DIMENSION(:),  INTENT(IN)  :: PBLD_FRAC
-REAL, DIMENSION(:,:),INTENT(IN)  :: PFAI
-REAL, DIMENSION(:),  INTENT(OUT) :: PZ0
-INTEGER,             INTENT(OUT) :: KERR
-
-!MV202609 z0 and zd to namelist
-REAL              :: ZLAMBDA_P, ZLAMBDA_F
-CHARACTER(LEN=16) :: CWHERE
-
-KERR = 1
-PZ0(:) = 0.
-
-!MV202609 z0 and zd to namelist
-! plan area index (building fraction) and frontal area index (mean over the
-! 8 wind directions, i.e. the isotropic variant)
-ZLAMBDA_P = SUM(PBLD_FRAC) / REAL(SIZE(PBLD_FRAC))
-ZLAMBDA_F = SUM(PFAI)      / REAL(SIZE(PFAI))
-
-!MV202609 z0 and zd to namelist
-SELECT CASE (TRIM(CSCHEME))
-CASE ('MACDONALD1998', 'MACDONALD', 'MACDONALD98')
-  CWHERE = 'STAG'
-CASE ('MACDONALD1998SQ', 'MACDONALD98SQ')
-  CWHERE = 'SQUARE'
-CASE DEFAULT
-  CWHERE = ' '
-END SELECT
-
-!MV202609 z0 and zd to namelist
-IF (CWHERE /= ' ') THEN
-  PZ0 = URB_Z0_MACDONALD(PBLD_HEIGHT, ZLAMBDA_P, ZLAMBDA_F, CWHERE)
-  KERR = 0
-ENDIF
-END SUBROUTINE URB_AERO_SCHEME_Z0
-
-!MV202609 z0 and zd to namelist
-SUBROUTINE URB_AERO_SCHEME_ZD(CSCHEME, PBLD_HEIGHT, PBLD_FRAC, PZD, KERR)
-! Displacement height zd from a named parameterization. It uses the building
-! height and the plan area index. Available schemes:
-!   'MACDONALD1998'   - Macdonald et al. (1998), staggered arrays
-!   'MACDONALD1998SQ' - Macdonald et al. (1998), square arrays
-CHARACTER(LEN=*),    INTENT(IN)  :: CSCHEME
-REAL, DIMENSION(:),  INTENT(IN)  :: PBLD_HEIGHT
-REAL, DIMENSION(:),  INTENT(IN)  :: PBLD_FRAC
-REAL, DIMENSION(:),  INTENT(OUT) :: PZD
-INTEGER,             INTENT(OUT) :: KERR
-
-!MV202609 z0 and zd to namelist
-REAL              :: ZLAMBDA_P
-CHARACTER(LEN=16) :: CWHERE
-
-KERR = 1
-PZD(:) = 0.
-
-!MV202609 z0 and zd to namelist
-! plan area index (building fraction)
-ZLAMBDA_P = SUM(PBLD_FRAC) / REAL(SIZE(PBLD_FRAC))
-
-!MV202609 z0 and zd to namelist
-SELECT CASE (TRIM(CSCHEME))
-CASE ('MACDONALD1998', 'MACDONALD', 'MACDONALD98')
-  CWHERE = 'STAG'
-CASE ('MACDONALD1998SQ', 'MACDONALD98SQ')
-  CWHERE = 'SQUARE'
-CASE DEFAULT
-  CWHERE = ' '
-END SELECT
-
-!MV202609 z0 and zd to namelist
-IF (CWHERE /= ' ') THEN
-  PZD = URB_ZD_MACDONALD(PBLD_HEIGHT, ZLAMBDA_P, CWHERE)
-  KERR = 0
-ENDIF
-END SUBROUTINE URB_AERO_SCHEME_ZD
-
-!MV202609 z0 and zd to namelist
-FUNCTION URB_ZD_MACDONALD(PBLD_HEIGHT, PLAMBDA_P, CWHERE) RESULT(PZD)
-! Displacement height after Macdonald et al. (1998), eq. (23):
-!   d/H = 1 + A^(-lambda_p) * (lambda_p - 1)
-! with A = 4.43 for staggered arrays and A = 3.59 for square arrays.
-! DOI 10.1016/S1352-2310(97)00403-2
-REAL, DIMENSION(:), INTENT(IN) :: PBLD_HEIGHT     ! building height (m)
-REAL,             INTENT(IN)   :: PLAMBDA_P       ! plan area index (-)
-CHARACTER(LEN=*), INTENT(IN)   :: CWHERE          ! 'STAG' or 'SQUARE'
-REAL, DIMENSION(SIZE(PBLD_HEIGHT)) :: PZD
-
-!MV202609 z0 and zd to namelist
-REAL :: ZA
-
-ZA = 4.43
-IF (TRIM(CWHERE) == 'SQUARE') ZA = 3.59
-
-!MV202609 z0 and zd to namelist
-! degenerate cases: no buildings, or a fully built-up surface
-IF (PLAMBDA_P <= 0.) THEN
-  PZD(:) = 0.
-  RETURN
-ENDIF
-IF (PLAMBDA_P >= 1.) THEN
-  PZD(:) = PBLD_HEIGHT
-  RETURN
-ENDIF
-
-!MV202609 z0 and zd to namelist
-PZD = PBLD_HEIGHT * (1. + ZA**(-PLAMBDA_P) * (PLAMBDA_P - 1.))
-END FUNCTION URB_ZD_MACDONALD
-
-!MV202609 z0 and zd to namelist
-FUNCTION URB_Z0_MACDONALD(PBLD_HEIGHT, PLAMBDA_P, PLAMBDA_F, CWHERE) RESULT(PZ0)
-! Roughness length after Macdonald et al. (1998), eq. (22):
-!   z0/H = (1 - d/H) * exp( -( 0.5*beta*(Cd/kappa**2)*(1 - d/H)*lambda_f )**(-0.5) )
-! with Cd = 1.2, kappa = 0.4 (von Karman) and beta = 1.0 for staggered arrays
-! or beta = 0.55 for square arrays.
-! DOI 10.1016/S1352-2310(97)00403-2
-REAL, DIMENSION(:), INTENT(IN) :: PBLD_HEIGHT     ! building height (m)
-REAL,             INTENT(IN)   :: PLAMBDA_P       ! plan area index (-)
-REAL,             INTENT(IN)   :: PLAMBDA_F       ! frontal area index (-)
-CHARACTER(LEN=*), INTENT(IN)   :: CWHERE          ! 'STAG' or 'SQUARE'
-REAL, DIMENSION(SIZE(PBLD_HEIGHT)) :: PZ0
-
-!MV202609 z0 and zd to namelist
-REAL :: ZBETA, ZCD, ZKAPPA, ZLAMBDA
-REAL, DIMENSION(SIZE(PBLD_HEIGHT)) :: ZD, ZONE_MINUS_D, ZINNER
-
-ZBETA  = 1.0
-IF (TRIM(CWHERE) == 'SQUARE') ZBETA = 0.55
-ZCD    = 1.2
-ZKAPPA = XKARMAN
-
-!MV202609 z0 and zd to namelist
-! degenerate cases: no buildings or no frontal area -> smooth surface
-IF (PLAMBDA_P <= 0. .OR. PLAMBDA_F <= 0.) THEN
-  PZ0(:) = 1.E-3
-  RETURN
-ENDIF
-ZLAMBDA = MIN(PLAMBDA_P, 0.999)
-
-!MV202609 z0 and zd to namelist
-! displacement height and the factor (1 - d/H)
-ZD           = URB_ZD_MACDONALD(PBLD_HEIGHT, ZLAMBDA, CWHERE)
-ZONE_MINUS_D = 1. - ZD / PBLD_HEIGHT
-IF (MINVAL(ZONE_MINUS_D) <= 0.) THEN
-  PZ0(:) = 1.E-3
-  RETURN
-ENDIF
-
-!MV202609 z0 and zd to namelist
-! inner expression of eq. (22)
-ZINNER = 0.5 * ZBETA * (ZCD / ZKAPPA**2) * ZONE_MINUS_D * PLAMBDA_F
-IF (MINVAL(ZINNER) <= 0.) THEN
-  PZ0(:) = 1.E-3
-  RETURN
-ENDIF
-
-!MV202609 z0 and zd to namelist
-PZ0 = PBLD_HEIGHT * ZONE_MINUS_D * EXP(-(ZINNER**(-0.5)))
-END FUNCTION URB_Z0_MACDONALD
 
 ! --------------------------------------------------------------------------------------
 !

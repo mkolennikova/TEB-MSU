@@ -97,13 +97,15 @@ TYPE TEB_PARAMS_t
 !
 ! anthropogenic fluxes
 !
-  REAL, POINTER, DIMENSION(:)   :: XH_TRAFFIC    ! anthropogenic sensible
-!                                                  ! heat fluxes due to traffic       (W/m2)
   REAL, POINTER, DIMENSION(:)   :: XLE_TRAFFIC   ! anthropogenic latent
 !                                                  ! heat fluxes due to traffic       (W/m2)
   REAL, POINTER, DIMENSION(:)   :: XH_INDUSTRY   ! anthropogenic sensible
 !                                                  ! heat fluxes due to factories     (W/m2)
   REAL, POINTER, DIMENSION(:)   :: XLE_INDUSTRY  ! anthropogenic latent
+!MV202610 annual-mean traffic flux (the daily cycle of CALL_DRIVER reads it)
+  REAL, POINTER, DIMENSION(:)   :: XH_TRAFFIC_MEAN ! annual-mean traffic sensible heat (W/m2)
+!MV202610 frontal area index of the urban surface (8 wind directions)
+  REAL, POINTER, DIMENSION(:,:) :: XFAI        ! frontal area index (-)
 !                                                  ! heat fluxes due to factories     (W/m2)
 !
 END TYPE TEB_PARAMS_t
@@ -150,10 +152,11 @@ IF (LHOOK) CALL DR_HOOK("MODD_TEB_PARAMS_n:TEB_PARAMS_INIT",0,ZHOOK_HANDLE)
   NULLIFY(YTEB_PARAMS%XD_WALL)
   NULLIFY(YTEB_PARAMS%XROUGH_WALL)
   NULLIFY(YTEB_PARAMS%XRESIDENTIAL)
-  NULLIFY(YTEB_PARAMS%XH_TRAFFIC)
   NULLIFY(YTEB_PARAMS%XLE_TRAFFIC)
   NULLIFY(YTEB_PARAMS%XH_INDUSTRY)
   NULLIFY(YTEB_PARAMS%XLE_INDUSTRY)
+  NULLIFY(YTEB_PARAMS%XH_TRAFFIC_MEAN)
+  NULLIFY(YTEB_PARAMS%XFAI)
   YTEB_PARAMS%XDT_RES = 0.
   YTEB_PARAMS%XDT_OFF = 0.
 IF (LHOOK) CALL DR_HOOK("MODD_TEB_PARAMS_n:TEB_PARAMS_INIT",1,ZHOOK_HANDLE)
@@ -198,10 +201,11 @@ ALLOCATE(YTEB_PARAMS%XTC_WALL(1,KWALL_LAYER))      ! wall layers thermal conduct
 ALLOCATE(YTEB_PARAMS%XD_WALL(1,KWALL_LAYER))       ! depth of wall layers             (m)
 ALLOCATE(YTEB_PARAMS%XROUGH_WALL(1))   ! wall roughness coef
 ALLOCATE(YTEB_PARAMS%XRESIDENTIAL(1))  ! fraction of Residential use      (-)
-ALLOCATE(YTEB_PARAMS%XH_TRAFFIC(1))    ! anthropogenic sensible
 ALLOCATE(YTEB_PARAMS%XLE_TRAFFIC(1))   ! anthropogenic latent
 ALLOCATE(YTEB_PARAMS%XH_INDUSTRY(1))   ! anthropogenic sensible
 ALLOCATE(YTEB_PARAMS%XLE_INDUSTRY(1))  ! anthropogenic latent
+ALLOCATE(YTEB_PARAMS%XH_TRAFFIC_MEAN(1)) ! annual-mean traffic sensible heat
+ALLOCATE(YTEB_PARAMS%XFAI(1,8))       ! frontal area index (8 directions)
 END SUBROUTINE ALLOC_TEB_PARAMS
 
 SUBROUTINE DEALLOC_TEB_PARAMS(YTEB_PARAMS)
@@ -241,10 +245,11 @@ DEALLOCATE(YTEB_PARAMS%XTC_WALL)      ! wall layers thermal conductivity (W/K/m)
 DEALLOCATE(YTEB_PARAMS%XD_WALL)       ! depth of wall layers             (m)
 DEALLOCATE(YTEB_PARAMS%XROUGH_WALL)   ! wall roughness coef
 DEALLOCATE(YTEB_PARAMS%XRESIDENTIAL)  ! fraction of Residential use      (-)
-DEALLOCATE(YTEB_PARAMS%XH_TRAFFIC)    ! anthropogenic sensible
 DEALLOCATE(YTEB_PARAMS%XLE_TRAFFIC)   ! anthropogenic latent
 DEALLOCATE(YTEB_PARAMS%XH_INDUSTRY)   ! anthropogenic sensible
 DEALLOCATE(YTEB_PARAMS%XLE_INDUSTRY)  ! anthropogenic latent
+DEALLOCATE(YTEB_PARAMS%XH_TRAFFIC_MEAN)
+DEALLOCATE(YTEB_PARAMS%XFAI)
 END SUBROUTINE DEALLOC_TEB_PARAMS
 
 END MODULE MODD_TEB_PARAMS_n

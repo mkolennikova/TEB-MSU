@@ -15,7 +15,7 @@ MODULE sfc_teb
 !* variable when an identifier is misspelled.
 USE MODI_CALL_DRIVER, ONLY : CALL_DRIVER
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
-USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_HOST_ENSURE, TOP, TP, BOP, BP, TSTATE, BSTATE, TPN, TIR, DMT, TEB_BIND_STATE, TEB_UNBIND_STATE
+USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_HOST_ENSURE, TOP, TP, BOP, BP, TSTATE, BSTATE, TPN, TIR, DMT, TEB_BIND_STATE, TEB_UNBIND_STATE
 USE TEB_LOG,  ONLY : TEB_LOG_SET_FILTER, TEB_LOG_AT_CADENCE, TEB_LOG_EMIT
 IMPLICIT NONE
 
@@ -299,6 +299,11 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                  urb_alb_rf_so, urb_alb_rd_so, urb_alb_wl_so, urb_alb_rd_th, urb_alb_rf_th, &
                  urb_alb_wl_th, teb_zresidential, teb_dt_res, teb_dt_off, ahf_industry, &
                   teb_itype_wind, teb_utc_hour, teb_lgreenroof_ext, teb_lbem_ac)
+    !MV202610 derived statics: layer profiles, geometry, SVF, z0/zd, BEM constants
+    CALL TEB_FILL_DERIVED (ivstart, ivend, urb_z0_town, urb_zd_town, &
+                  urb_hcap_rd, urb_hcap_rf, urb_hcap_wl, &
+                  urb_hcon_rd, urb_hcon_rf, urb_hcon_wl, &
+                  ahf_traffic, teb_fai)
     CALL TEB_BIND_STATE (ivstart, ivend, &
                  teb_ti_bld, &
                  teb_twin2, &
@@ -330,23 +335,19 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                   teb_qcanyon, &
                   teb_ws_road, &
                   teb_tfloor, &
-                  teb_tmass, &
-                  teb_albwin)
+                  teb_tmass)
 	DO i = ivstart, ivend
 		CALL CALL_DRIVER (ntstep, i, iblock, dt, teb_year, teb_month, teb_day, teb_hour, teb_min, &
                  teb_sec, teb_hour_seconds(1), sa_uc(i), lon_teb(i), lat_teb(i), hlev_teb(i), &
                  u(i), v(i), t(i), qv(i), ps(i), prr_con(i), prs_con(i), prr_gsp(i), &
-                 prs_gsp(i), prg_gsp(i), lwd_s(i), swdir_s(i), swdifd_s(i), urb_hcap_rd(i), &
-                 urb_hcap_rf(i), urb_hcap_wl(i), urb_hcon_rd(i), urb_hcon_rf(i), &
-                 urb_hcon_wl(i), ahf_traffic(i), ahf_industry(i), teb_z0_gr(i), teb_alb_gr(i), &
-                 teb_emis_gr(i), teb_ts_gr(i), teb_qs_gr(i), teb_shfl_gr(i), teb_lhfl_gr(i), &
-                 teb_qvfl_gr(i), teb_runoff_gr(i), teb_z0_gd(i), teb_alb_gd(i), &
-                 teb_emis_gd(i), teb_ts_gd(i), teb_qs_gd(i), teb_shfl_gd(i), teb_lhfl_gd(i), &
-                 teb_qvfl_gd(i), teb_tch_gd(i), teb_tcm_gd(i), teb_runoff_gd(i), teb_fai(i,:), &
-                 teb_fr_panel(i), teb_lroad_irrig, teb_rd_irrig_start_m(i), &
+                 prs_gsp(i), prg_gsp(i), lwd_s(i), swdir_s(i), swdifd_s(i), teb_z0_gr(i), &
+                 teb_alb_gr(i), teb_emis_gr(i), teb_ts_gr(i), teb_qs_gr(i), teb_shfl_gr(i), &
+                 teb_lhfl_gr(i), teb_qvfl_gr(i), teb_runoff_gr(i), teb_z0_gd(i), &
+                 teb_alb_gd(i), teb_emis_gd(i), teb_ts_gd(i), teb_qs_gd(i), teb_shfl_gd(i), &
+                 teb_lhfl_gd(i), teb_qvfl_gd(i), teb_tch_gd(i), teb_tcm_gd(i), &
+                 teb_runoff_gd(i), teb_fr_panel(i), teb_lroad_irrig, teb_rd_irrig_start_m(i), &
                  teb_rd_irrig_end_m(i), teb_rd_irrig_start_h(i), teb_rd_irrig_end_h(i), &
-                 teb_rd_irrig_sum(i), urb_z0_town, urb_zd_town, DMT, TOP, TP, BOP, BP, TSTATE, &
-                 BSTATE, TPN, TIR)
+                 teb_rd_irrig_sum(i), DMT, TOP, TP, BOP, BP, TSTATE, BSTATE, TPN, TIR)
 	END DO
 	
     CALL TEB_UNBIND_STATE (ivstart, ivend, &

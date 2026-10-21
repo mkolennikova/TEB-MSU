@@ -65,12 +65,6 @@ HOST_EMULATOR = [
 
 #: debt: still passed, with the phase that removes each group (see the history)
 DEFERRED = {
-    'static parameters derived in CALL_DRIVER (P-C1b)': [
-        'ZHC_ROAD_S', 'ZHC_ROOF_S', 'ZHC_WALL_S',
-        'ZTC_ROAD_S', 'ZTC_ROOF_S', 'ZTC_WALL_S',
-        'ZH_TRAFFIC', 'ZH_INDUSTRY', 'ZFAI',
-        'HZ0_TOWN', 'HZD_TOWN',
-    ],
     'solar panels and irrigation filled by TEB_GARDEN_STRUCT (P-C4)': [
         'ZFRAC_PANEL', 'LPAR_RD_IRRIG',
         'ZRD_START_MONTH', 'ZRD_END_MONTH', 'ZRD_START_HOUR', 'ZRD_END_HOUR',

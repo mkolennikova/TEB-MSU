@@ -101,9 +101,9 @@ CATEGORY = {
             'XALB_ROOF', 'XEMIS_ROOF', 'XHC_ROOF', 'XTC_ROOF', 'XD_ROOF', 'XROUGH_ROOF',
             'XALB_ROAD', 'XEMIS_ROAD', 'XHC_ROAD', 'XTC_ROAD', 'XD_ROAD',
             'XALB_WALL', 'XEMIS_WALL', 'XHC_WALL', 'XTC_WALL', 'XD_WALL', 'XROUGH_WALL',
-            'XRESIDENTIAL', 'XDT_RES', 'XDT_OFF',
+            'XRESIDENTIAL', 'XDT_RES', 'XDT_OFF', 'XFAI',
         },
-        'flux': {'XH_TRAFFIC', 'XLE_TRAFFIC', 'XH_INDUSTRY', 'XLE_INDUSTRY'},
+        'flux': {'XLE_TRAFFIC', 'XH_INDUSTRY', 'XLE_INDUSTRY', 'XH_TRAFFIC_MEAN'},
     },
     'BEM_OPTIONS_t': {
         'param': {'NFLOOR_LAYER', 'CCOOL_COIL', 'CHEAT_COIL', 'LAUTOSIZE', 'LBEM_AC'},
