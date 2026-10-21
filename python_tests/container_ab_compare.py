@@ -82,10 +82,13 @@ def make_short_namelist(src: Path, dst: Path, steps: int) -> Path:
     return dst
 
 
-def run_case(exe: Path, case: Path, namelist: Path, out_dir: Path, timeout=None) -> None:
+def run_case(exe: Path, case: Path, namelist: Path, out_dir: Path, timeout=None,
+             param_nml=None) -> None:
     """Run one executable on the case, with the output written into out_dir."""
     out_dir.mkdir(parents=True, exist_ok=True)
     cmd = [str(exe), '-forcing_nml', str(namelist), '-output', str(out_dir)]
+    if param_nml is not None:
+        cmd += ['-param_nml', str(param_nml)]
     print(f'  run: {exe.name} -> {out_dir}')
     t0 = time.time()
     proc = subprocess.run(cmd, cwd=str(case), capture_output=True, text=True,
@@ -175,6 +178,7 @@ def main(argv=None) -> int:
     ap.add_argument('--new-exe', required=True, help='executable of the changed sources')
     ap.add_argument('--case', default='tests/CAPITOUL', help='case directory (default: tests/CAPITOUL)')
     ap.add_argument('--steps', type=int, default=None, help='run only the first N forcing steps')
+    ap.add_argument('--param-nml', default=None, help='parameter namelist file (passed via -param_nml)')
     ap.add_argument('--out-root', default='python_tests/container_ab', help='root of the run outputs')
     ap.add_argument('--golden', default=None, help='file with the expected CSV header (one column per line)')
     ap.add_argument('--timeout', type=float, default=None, help='seconds allowed per run')
@@ -196,9 +200,11 @@ def main(argv=None) -> int:
             forcing_nml, out_root / f'namelist_forcing_{args.steps}steps.nml', args.steps)
         print(f'short run: nsteps = {args.steps} ({forcing_nml.name})')
 
+    param_nml = (MODEL_DIR / args.param_nml).resolve() if args.param_nml else None
+
     print(f'A/B comparison: {args.case}')
-    run_case(ref_exe, case, forcing_nml, out_root / 'ref', args.timeout)
-    run_case(new_exe, case, forcing_nml, out_root / 'new', args.timeout)
+    run_case(ref_exe, case, forcing_nml, out_root / 'ref', args.timeout, param_nml)
+    run_case(new_exe, case, forcing_nml, out_root / 'new', args.timeout, param_nml)
 
     ref_csv = out_root / 'ref' / 'TEB_output_b1_c1.csv'
     new_csv = out_root / 'new' / 'TEB_output_b1_c1.csv'

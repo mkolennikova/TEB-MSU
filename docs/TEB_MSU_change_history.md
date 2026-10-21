@@ -4,7 +4,7 @@
 прокси-модели сада и сопутствующих правок, **с привязкой к нумерации коммитов**.
 Кроме того, здесь собраны дефекты, не относящиеся к исходной модели: драйвера,
 читалки форсинга и стендов (I1–I4, §5.5), численные дефекты собственных правок
-(N1–N2, §5.6) и найденные, но не исправленные вопросы (C2, C3, C5, §5.7).
+(N1–N3, §5.6) и найденные, но не исправленные вопросы (C2, C3, C5, §5.7).
 Актуальное описание схемы — в `TEB_MSU_CBS_scheme_T_CAN_reformulation.md` и
 `TEB_MSU_garden_diagnostic_scheme.md`; список дефектов исходной модели — в
 `TEB_MSU_source_defects.md`.
@@ -2043,7 +2043,7 @@ optional нельзя); вызов из `teb_garden.F90` передаёт `OALB_
   баннере, строка `TEB diagnostics: verbose ...` и запись в `-help`). По умолчанию
   консоль содержит только вывод хоста: баннер, диагностику неймлистов, прогресс и
   итоговую строку.
-* Итоговый расклад (зафиксирован в `TEB_MSU_diagnostics_container.md`, §8.2):
+* Итоговый расклад (зафиксирован в `TEB_MSU_containers.md`, §8.2):
   баннер/прогресс/итог — драйвер; ошибки и одна строка `Output columns:` — TEB;
   дамп конфигурации — TEB по запросу хоста.
 * Задокументированы две копии CSV-writer: `TEB_LOG:CSV_ADD`/`CSV_APPEND` (файлы
@@ -2165,6 +2165,114 @@ optional нельзя); вызов из `teb_garden.F90` передаёт `OALB_
   `BEM_MORPHO_STRUCT` (раньше задавался только `BP%XF_WASTE_CAN`).
 * Проверено: полный A/B (18 000 шагов) — `IDENTICAL` (SHA-256 `30499e1f…`);
   страж `--strict --expect 64` → `OK`.
+
+---
+
+### 68. E2: copy-out диагностики снят с TEB_GARDEN_STRUCT (потоки + поглощения/BEM)
+
+* TEB_GARDEN_STRUCT (и modi_teb_garden_struct) теряют **76** dummy copy-out и их
+  INTENT(OUT)-объявления; фактические аргументы убраны из вызова CALL_DRIVER.
+* Группа «потоки» (**29**): PQF_BLD, PFLX_BLD, PQF_TOWN, PDQS_TOWN,
+  PH/PRN/PGFLUX/PLE по поверхностям (стены A/B, крыша, стрлкрыша, дорога, BLT),
+  стоки PRUNOFF_TOWN/ROAD/ROOF/STRLROOF, PIRRIG_ROAD.
+* Группа «поглощения/панели/BEM-HVAC/целевые» (**47**): PABS_SW/LW_*,
+  PG_GREENROOF_ROOF, PRN/PH_PANEL, P*PROD_PANEL/BLD, PH/PT/PLE_BLD_*,
+  PH/PLE_WASTE, PHVAC_COOL/HEAT, PCAP_SYS/PM_SYS/PCOP/PQ_SYS/PT_SYS,
+  PTR_SW_WIN/PFAN_POWER, PABS_SW/LW_WIN, PCUR_TCOOL/THEAT_TARGET/PCUR_QIN.
+* Потребители CALL_DRIVER читают DMT напрямую: ZH_ROOF -> DMT%XH_ROOF(1),
+  ZH_WALL_A -> DMT%XH_WALL_A(1), ZABS_SW/LW_ROAD -> DMT%XABS_SW/LW_ROAD(1),
+  DMT%XSOBS/XTHBS -> DMT%XABS_SW/LW_GARDEN(1) (псевдоним поглощения сада:
+  копирование XABS_*_GARDEN -> XSOBS/XTHBS выполнял alias через dummy).
+* TEB_GARDEN_STRUCT -> **83** аргумента; остались форсинг, эмулятор, снеговая ветка
+  (PHSN_RD_*/PLESN_RD_*), состояние/параметры BEM и контейнеры.
+* Проверено: build=0; A/B (50 шагов) — IDENTICAL, SHA-256 CSV 508b1972….
+
+---
+
+### 69. E2 (состояние/параметры) + F: обёртка превращена в чистый форвардер
+
+* Из TEB_GARDEN_STRUCT (и modi) сняты 15 dummy состояния/параметров BEM:
+  PT_FLOOR, PT_MASS, PAUX_MAX, PALB_WIN, PWS_ROAD, PNATVENT, PT_ADP, PUGG_WIN,
+  PABS_WIN, PSHADE, PTRAN_WIN (состояние через BSTATE/TSTATE), PHC_FLOOR,
+  PTC_FLOOR, PD_FLOOR (параметры BP) и «мёртвый» OCANOPY; copy-in/copy-out
+  BSTATE%X* = PT_* / PT_* = BSTATE%X* убраны (в одноклеточном прогоне это
+  самокопирования). В CALL_DRIVER инициализации ZNATVENT/ZSHADE/ZT_ADP/ZAUX_MAX
+  переведены на BSTATE%X* напрямую; LCANOPY удалён.
+* Снеговая ветка: носители PHSN_RD_CAN/ATM, PLESN_RD_CAN/ATM убраны из
+  TEB_GARDEN и читаются/пишутся прямо в DMT%XPHSN_RD_*; HSNOW_ROOF/HSNOW_ROAD
+  переехали в TEB_GARDEN (T%TSNOW_*%SCHEME), XUNDEF-инициализация диагностики
+  (DMT%XLE_ROAD_SNOW … XTS_GARDEN) перенесена из обёртки в TEB_GARDEN.
+* TEB_GARDEN_STRUCT 83 → 68 аргументов (только форсинг, эмулятор, снеговая
+  схема, контейнеры и форвардинг в TEB_GARDEN).
+* Проверено: build=0; A/B (50 шагов) — IDENTICAL, SHA-256 CSV 508b1972….
+
+---
+
+### 70. G: CALL_DRIVER вызывает TEB_GARDEN напрямую; обёртка удалена
+
+* В CALL_DRIVER вызов TEB_GARDEN_STRUCT заменён прямым вызовом TEB_GARDEN
+  (аргументы переупорядочены под его сигнатуру: контейнеры TOP/TSTATE/BOP/
+  BSTATE/TPN/TIR/DMT идут сразу после icell/iblock); USE MODI_TEB_GARDEN.
+* DMT%XZ0_TOWN = TP%XZ0_TOWN(icell:icell) выполняется в CALL_DRIVER; мёртвые
+  dummy XTAU_HW_THRESH/XTAU_HW_WIDTH сняты.
+* Удалены teb_garden_struct.F90 и modi_teb_garden_struct.f90; Makefile очищен
+  от правил/объектов (call_driver.o теперь зависит от modi_teb_garden.o).
+* TEB_GARDEN: 65 аргументов; CALL_DRIVER: 57 dummy, инвентарь — OK.
+* Проверено: build=0; A/B (50 шагов) — IDENTICAL, SHA-256 CSV 508b1972….
+
+---
+
+### 71. H: финальная зачистка и полный A/B
+
+* Три устаревших упоминания TEB_GARDEN_STRUCT в комментариях обновлены
+  (modd_diag_misc_tebn.F90, modi_diag_misc_teb_util.F90, teb_garden.F90): теперь
+  снеговые ветки живут в DMT и читаются/пишутся TEB_GARDEN напрямую; цепочка
+  CALL_DRIVER -> TEB_GARDEN.
+* Полный A/B (18 000 шагов, CAPITOUL) — IDENTICAL, SHA-256 CSV 30499e1f…;
+  страж подписи CALL_DRIVER (57 dummy) — OK.
+
+---
+
+### 72. N3: `teb_sobs`/`teb_thbs` берут поглощённую садом радиацию из `XABS_*_GARDEN`
+
+* Дефект (§5.6, N3): шаг №35 добавил в `DIAG_MISC_TEB_t` поля `XSOBS`/`XTHBS`
+  (и `XALB_TH`) без производителя — только объявление, `NULLIFY`, `ALLOCATE`,
+  `DEALLOCATE`, — а шаг №58 сделал `XSOBS`/`XTHBS` источником выходов
+  `teb_sobs`/`teb_thbs`. Оба выхода были тождественно нулевыми.
+* Следствие: эмулятор внешнего сада получал `thbs = 0`, т.е.
+  `emu_plw = σ·Ts⁴` без встречного излучения; первый же баланс уходил на 3.2 K
+  (`Ts = 278.22` вместо `274.99` K), `H_GARDEN` менял знак, и расхождение через
+  узел каньона давало 56 колонок в `'EXT_NEU'` и 64 в `'EXT'`.
+* Правка: `TEB_INTERFACE` читает `DMT%XABS_SW_GARDEN`/`XABS_LW_GARDEN` — ровно те
+  величины, которые `TEB_GARDEN_STRUCT` копировала в OUT-аргументы `CALL_DRIVER`
+  в origin (`teb_garden_struct.F90:1359-1360`); формулы `TEB_GARDEN` побайтово
+  совпадают с `origin/main` (`1112-1113`).
+* Проверено: дампы входов/выходов `PCD_GARDEN` на первых 8 подшагах — SHA-256
+  совпал; полная матрица (13 конфигураций × 18 000 шагов) — все `IDENTICAL`,
+  включая `garden_ext` и `garden_ext_neu`.
+
+---
+
+### 73. Зачистка мёртвых полей, страж производителей и `compare_emu()`
+
+* Из `DIAG_MISC_TEB_t` удалены `XSOBS`, `XTHBS`, `XALB_TH` (объявление,
+  `NULLIFY`, `ALLOCATE`, `DEALLOCATE`): после №72 у них нет читателей, а
+  производителя не было никогда. `XIRRIG_GARDEN` оставлен как `RESERVED`-задел —
+  полив сада не реализован (`GARDEN_CBS` возвращает `PIRRIG_GARDEN = 0.`).
+* Новый страж `python_tests/check_diag_producers.py`: поле считается
+  произведённым только при прямом присваивании (кроме `= XUNDEF`) или передаче в
+  dummy `INTENT(OUT/INOUT)` (в легаси-объявлениях — маркер `!OUT`) процедуры того
+  же дерева. Проверен инъекцией фиктивного поля (exit 1). На `src_ctrl` он
+  дополнительно показывает шесть полей, мёртвых уже в исходной модели:
+  `XEMIT_LW_FAC`, `XEMIT_LW_GRND`, `XT_RAD_IND`, `XREF_SW_GRND`, `XREF_SW_FAC`,
+  `XHU_BLD` (обёртка копировала их из `DMT` в выходные dummy после того, как
+  посчитала локально).
+* Матрица A/B: добавлены шаг `compare_emu()` (колонки `EMU_*` в кандидате лежат в
+  `TEB_emu.csv` и выпадали из сравнения общих колонок) и конфигурация
+  `garden_ext_neu`.
+* `DMT`: 208 → **205** полей; `check_diag_container.py` — 205/205/205.
+* Проверено: полная матрица (13 конфигураций × 18 000 шагов) — все `IDENTICAL`;
+  оба стража — `OK`.
 
 ---
 
@@ -2291,7 +2399,7 @@ H_ROAD = ρ·cp·A_1(τ)·(T_rd − T_c)      (в стационаре = ρ·cp�
 различаются между прогонами, и рисунки вводили в заблуждение. Кривые τ-прогона
 теперь берутся из него самого.
 
-### 5.6 Численные дефекты собственных правок (N1–N2)
+### 5.6 Численные дефекты собственных правок (N1–N3)
 
 **N1. Первая версия τ-агрегации дороги (№4).**
 
@@ -2351,6 +2459,51 @@ H_ROAD = ρ·cp·A_1(τ)·(T_rd − T_c)      (в стационаре = ρ·cp�
   нулевые, а «грязный» мусор появляется при другом порядке вызовов (другая
   конфигурация/количество слоёв), что и даёт либо искажённые снежные слагаемые, либо
   `NaN` и падение.
+
+**N3. `teb_sobs`/`teb_thbs` читались из незаполняемых полей контейнера (№35, №58;
+найдено при сверке режима `'EXT_NEU'`).**
+
+* **Суть.** Шаг контейнеризации `№35` добавил в `DIAG_MISC_TEB_t` 111 полей из
+  инвентаря переменных offline-драйвера, в том числе `XSOBS` и `XTHBS`
+  («`teb_sobs`/`teb_thbs` — OUT излучение, поглощённое садом»). Для них (и для
+  `XALB_TH`) дифф содержит **только** объявление, `NULLIFY`, `ALLOCATE` и
+  `DEALLOCATE`: производителя не было, потому что в исходной схеме эти величины
+  вычислял сам драйвер и отдавал OUT-аргументами `CALL_DRIVER`, а в контейнере их
+  никогда не хранили. Шаг `№16` подключил **читателя**
+  (`teb_sobs(1:nvec) = DMT%XSOBS(1:nvec)`, `teb_thbs(1:nvec) = DMT%XTHBS(1:nvec)`),
+  и мёртвые поля стали источником данных публичного выхода `TEB_INTERFACE`.
+* **Следствия.** Эмулятор внешнего сада `PCD_GARDEN` строит принимаемую садом
+  радиацию из этих двух величин: `emu_psw = sobs/(1-alb)`,
+  `emu_plw = thbs/emis + σ·Ts⁴`. При `thbs = 0` сад не получал встречного
+  длинноволнового излучения (`emu_plw = σ·Ts⁴ = 402.7 Вт/м²` вместо −316.8),
+  решение баланса на **первом** подшаге уходило на 3.2 K (`Ts = 278.22` вместо
+  `274.99` K), `H_GARDEN` менял знак (−8.53 → +9.33 Вт/м²), и расхождение через узел
+  каньона распространялось на 56 колонок (`T_CANYON` +0.23 K в первой строке, далее
+  ±0.03 K). Режимы `'EXT'` и `'EXT_NEU'` затронуты одинаково (`'EXT'` — 64 колонки).
+* **Исправление.** `TEB_INTERFACE` берёт значение там, где оно уже есть: `TEB_GARDEN`
+  считает `DMT%XABS_SW_GARDEN`/`XABS_LW_GARDEN` (формулы побайтово совпадают с
+  `origin/main`), а в origin `TEB_GARDEN_STRUCT` копировала ровно эти поля в
+  OUT-аргументы `CALL_DRIVER`, ставшие `teb_sobs`/`teb_thbs`
+  (`teb_garden_struct.F90:1359-1360`). Поля `XSOBS`/`XTHBS`/`XALB_TH` удалены
+  (`XALB_TH` = `1 - ZEMIS_TOWN` в исходном драйвере и в новый интерфейс не попал);
+  `XIRRIG_GARDEN` оставлен как помеченный `RESERVED` задел — полив сада не
+  реализован.
+* **Проверка.** Побитовое совпадение входов/выходов `PCD_GARDEN` на первых 8
+  подшагах (равные SHA-256 дампов) и полная матрица A/B: 13 конфигураций ×
+  18 000 шагов — все `IDENTICAL`, включая `garden_ext` (было 64 колонки).
+* **Почему не поймали.** Инвентарь `№35` гарантировал согласованность четырёх
+  списков (объявление / `NULLIFY` / `ALLOCATE` / `DEALLOCATE`), но не наличие
+  производителя; сравнение A/B не покрывало ни `EMU_*` (в кандидате вынесены в
+  `TEB_emu.csv`), ни выходы интерфейса, которых нет в CSV (`teb_sobs`, `teb_thbs`,
+  `teb_albwin`, …). Добавлены страж `check_diag_producers.py` (§7
+  `TEB_MSU_containers.md`) и шаг `compare_emu()` в матрице.
+* **Побочная находка.** Тот же страж показал, что в **исходной** модели (`src_ctrl`,
+  `origin/main`) шесть полей контейнера — `XEMIT_LW_FAC`, `XEMIT_LW_GRND`,
+  `XT_RAD_IND`, `XREF_SW_GRND`, `XREF_SW_FAC`, `XHU_BLD` — тоже никогда не
+  заполняются: обёртка копирует их из `DMT` в выходные dummy уже **после** того, как
+  посчитала локально, т.е. наружу уходили неинициализированные значения. В `src_dev`
+  они передаются в `TEB` напрямую как OUT-аргументы и заполняются; страж помечает их
+  как `original`.
 
 ### 5.7 Найдено, но не исправлено (C2, C3, C5) и статус upstream
 

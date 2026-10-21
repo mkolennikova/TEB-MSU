@@ -4,51 +4,19 @@
 !SFX_LIC for details. version 1.
 !     #########
     SUBROUTINE TEB_GARDEN (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGREENROOF_EXT,      &
-                           HIMPLICIT_WIND, PBEM_AC, PTSUN, PT_CAN, PQ_CAN, PU_CAN, PT_LOWCAN, PQ_LOWCAN,   &
-                           PU_LOWCAN, PZ_LOWCAN, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,    &
+                           HIMPLICIT_WIND, PBEM_AC, PTSUN, HSNOW_ROOF, HSNOW_ROAD, &
+                           PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,    &
                            PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PPS, PPA, PEXNS, PEXNA, PTA, PQA, PRHOA, PCO2,     &
                            PLW_RAD, PDIR_SW, PSCA_SW, PSW_BANDS, KSW, PZENITH, PAZIM, PRR, PSR,   &
-                           PZREF, PUREF, PVMOD, PH_TRAFFIC, PLE_TRAFFIC, PTSTEP, PLEW_RF, PLEW_RD,&
-                           PLE_WL_A, PLE_WL_B, PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF, PMELT_RF,    &
-                           PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RD, PRN_GRND, PH_GRND,     &
+                           PZREF, PUREF, PVMOD, PH_TRAFFIC, PTSTEP,  &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                           PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM,                  &
-                           PLE_GRND, PGFLX_GRND, PRN_TWN, PH_TWN, PLE_TWN, PGFLX_TWN, PEVAP_TWN,  &
-                           PSFCO2, PUW_GRND, PUW_RF, PDUWDU_GRND, PDUWDU_RF,                      &
-                           PUSTAR_TWN, PCD, PCDN, PCH_TWN, PRI_TWN, PTS_TWN, PEMIS_TWN,           &
-                           PDIR_ALB_TWN, PSCA_ALB_TWN, PSO_ALB_TWN, ZSW_UP_SO,PRESA_TWN, PAC_RF,  &
-						   PAC_RD, PAC_WL, PAC_GD,                                                &
-						   PAC_GR, PAC_RD_WAT, PAC_GD_WAT, PAC_GR_WAT, KDAY, PEMIT_LW_FAC,        &
-						   PEMIT_LW_GRND, PT_RAD_IND, PREF_SW_GRND, PREF_SW_FAC, PHU_BLD, PTIME,  &
-						   PPROD_BLD, PDN_RF, PDN_RD, PMELT_BLT, PSNOWD_RF, PSNOWD_RD, PLW_UP,    &
+                           						       KDAY,         &
+						        PTIME,  &
 						   PZ0_GR_EXT, PALB_GR_EXT, PEMIS_GR_EXT, PTSRAD_GR_EXT, PQV_GR_EXT, PH_GR_EXT, PLE_GR_EXT, PEVAP_GR_EXT, PRUNOFF_GR_EXT,     &
 						   PALB_GD_EXT, PEMIS_GD_EXT, PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT,       &
 						   PLE_GD_EXT, PEVAP_GD_EXT,         &
-						   PCH_GD, PCD_GD, PRUNOFF_GD_EXT, PCH_RD, PCH_RF, PCH_WL, PCH_TOP, PAC_TOP,  &
-						   ILMO_ROAD, ILMO_ROOF, ILMO_TOP, PCD_GARDEN_ATM, PCH_GARDEN_ATM,                         &
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-                          PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
-                          PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
-                          PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
-                          ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM,          &
-!MV202609 CBS scheme of the road
-                          PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-                          LE_ROOF_WAT, LE_ROOF_SNOW, &
-!MV202609 CBS scheme of the road (revision: three-temperature construction)
-                          PT_CAN0, PT_CAN1, PPHI_CAN1,                             &
-!MV202609 garden diagnostics
-                          PTSRAD_GARDEN, PRN_GARDEN, PH_GARDEN, PLE_GARDEN,       &
-                          PEVAP_GARDEN, PQSAT_GARDEN, PHU_GARDEN, &
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM, &
-!MV202609 greenroof diagnostics (per m2 of greenroof)
-                          PTSRAD_GREENROOF, PRN_GREENROOF, PH_GREENROOF, PLE_GREENROOF, &
-                          PEVAP_GREENROOF, PQSAT_GREENROOF, PHU_GREENROOF, &
-!MV202609 greenroof-to-atm exchange diagnostics
-                          PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
-                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, TP, BP)
+						   PCH_GD, PCD_GD, PRUNOFF_GD_EXT,       &
+                          TP, BP)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN*  
@@ -151,14 +119,9 @@ TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 
 LOGICAL,INTENT(IN)                  :: PBEM_AC            ! Flag to use air conditioners
 REAL, DIMENSION(:),   INTENT(IN)    :: PTSUN              ! solar time   (s from midnight)
+ CHARACTER(LEN=*)    , INTENT(IN)    :: HSNOW_ROOF         ! snow roof scheme 'NONE', 'D95 ', '1-L '
+ CHARACTER(LEN=*)    , INTENT(IN)    :: HSNOW_ROAD         ! snow road scheme 'NONE', 'D95 ', '1-L '
 !                                                         
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PT_CAN             ! canyon air temperature
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PQ_CAN             ! canyon air specific humidity
-REAL, DIMENSION(:)  , INTENT(IN)    :: PU_CAN             ! canyon hor. wind
-REAL, DIMENSION(:)  , INTENT(IN)    :: PU_LOWCAN          ! wind near the road
-REAL, DIMENSION(:)  , INTENT(IN)    :: PT_LOWCAN          ! temp. near the road
-REAL, DIMENSION(:)  , INTENT(IN)    :: PQ_LOWCAN          ! hum. near the road
-REAL, DIMENSION(:)  , INTENT(IN)    :: PZ_LOWCAN          ! height of atm. var. near the road
 REAL, DIMENSION(:)  , INTENT(IN)    :: PPEW_A_COEF        ! implicit coefficients
 REAL, DIMENSION(:)  , INTENT(IN)    :: PPEW_B_COEF        ! for wind coupling
 REAL, DIMENSION(:)  , INTENT(IN)    :: PPEW_A_COEF_LOWCAN ! implicit coefficients for wind coupling
@@ -184,7 +147,6 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PAZIM              ! solar azimuthal angl
 REAL, DIMENSION(:)  , INTENT(IN)    :: PRR                ! rain rate
 REAL, DIMENSION(:)  , INTENT(IN)    :: PSR                ! snow rate
 REAL, DIMENSION(:)  , INTENT(IN)    :: PH_TRAFFIC         ! anthropogenic sensible heat fluxes due to traffic
-REAL, DIMENSION(:)  , INTENT(IN)    :: PLE_TRAFFIC        ! anthropogenic latent heat fluxes due to traffic
 REAL, DIMENSION(:)  , INTENT(IN)    :: PZREF              ! reference height of the first atm level (temperature)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PUREF              ! reference height of the first atm level (wind)
 REAL                , INTENT(IN)    :: PTSTEP             ! time step
@@ -210,173 +172,76 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_GD             ! drag coeifficient fo
 REAL, DIMENSION(:)  , INTENT(INOUT)   :: PCD_GD             ! garden  surf. exchange coefficient
 REAL, DIMENSION(:)  , INTENT(IN)    :: PRUNOFF_GD_EXT     ! garden surface runoff (external model)
 
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_RD             ! drag coeifficient for heat
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_RF             ! drag coeifficient for heat
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_WL             ! drag coeifficient for heat
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_TOP            ! drag coeifficient for heat
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_TOP            ! drag coeifficient for heat
 
-REAL, DIMENSION(:)  , INTENT(OUT)   :: ILMO_ROAD          ! 1/length of Monin-Obukov
-REAL, DIMENSION(:)  , INTENT(OUT)   :: ILMO_ROOF          ! 1/length of Monin-Obukov
-REAL, DIMENSION(:)  , INTENT(OUT)   :: ILMO_TOP           ! 1/length of Monin-Obukov
 
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLEW_RF          ! latent heat flux over roof (snow)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLEW_RD          ! latent heat flux over road (snow)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_WL_A         ! latent heat flux over wall
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_WL_B         ! latent heat flux over wall
 
 !
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRNSN_RF       ! net radiation over snow
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PHSN_RF        ! sensible heat flux over snow
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLESN_RF       ! latent heat flux over snow
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PGSN_RF        ! flux under the snow
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PMELT_RF         ! snow melt
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRNSN_RD       ! net radiation over snow
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PHSN_RD        ! sensible heat flux over snow
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLESN_RD       ! latent heat flux over snow
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 !* INOUT: the canyon air nodes of TEB_GARDEN2 read these branch diagnostics
 !* (AVG_URBAN_FLUXES) BEFORE the snow scheme of TEB writes them, so they carry the
-!* value of the previous sub-step (they are persistent in DMT, see TEB_GARDEN_STRUCT)
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PHSN_RD_CAN    ! sensible heat flux over snow, snow -> canyon air
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PHSN_RD_ATM    ! sensible heat flux over snow, snow -> forcing level
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PLESN_RD_CAN   ! latent heat flux over snow, snow -> canyon air
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PLESN_RD_ATM   ! latent heat flux over snow, snow -> forcing level
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PGSN_RD        ! flux under the snow
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PMELT_RD       ! snow melt
+!* value of the previous sub-step (they are persistent in DMT)
 !
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GRND          ! net radiation over ground
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GRND           ! sensible heat flux over ground
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GRND          ! latent heat flux over ground
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PGFLX_GRND        ! flux through the ground
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_TWN           ! net radiation over town
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_TWN            ! sensible heat flux over town
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_TWN           ! latent heat flux over town
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PGFLX_TWN         ! flux through the ground
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PEVAP_TWN         ! evaporation flux (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PSFCO2            ! flux of CO2       (m/s*kg_CO2/kg_air)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PUW_GRND          ! momentum flux for ground built surf
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PUW_RF            ! momentum flux for roofs
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PDUWDU_GRND       !
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PDUWDU_RF         !
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PUSTAR_TWN        ! friciton velocity over town
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PCD               ! town averaged drag coefficient
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PCDN              ! town averaged neutral drag coefficient
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_TWN           ! town averaged heat transfer coefficient
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRI_TWN           ! town averaged Richardson number
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PTS_TWN           ! town surface temperature
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PEMIS_TWN         ! town equivalent emissivity
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PDIR_ALB_TWN      ! town equivalent direct albedo
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PSCA_ALB_TWN      ! town equivalent diffuse albedo
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PSO_ALB_TWN       ! town equivalent solar albedo
-REAL, DIMENSION(:)  , INTENT(OUT)   :: ZSW_UP_SO         ! outgoing solar radiation
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRESA_TWN         ! town aerodynamical resistance
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_RF            ! roof conductance
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_RD            ! road conductance
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_WL            ! wall conductance
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GD            ! green area conductance
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GR            ! green roof conductance
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_RD_WAT        ! road conductance for latent heat
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GD_WAT        ! green area conductance for latent heat
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GR_WAT        ! green roof conductance for latent heat
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PDN_RF            ! snow fraction on roofs
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PDN_RD            ! snow fraction on roads
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PMELT_BLT         ! Snow melt for built & impervious part
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PSNOWD_RF         ! snow depth on roofs
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PSNOWD_RD         ! snow depth on roads
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLW_UP            ! upwards longwave radiation
 !
 ! new arguments created after BEM
 !
 INTEGER             , INTENT(IN)    :: KDAY               ! Simulation day
 ! new argument for the UTCI calculation
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PEMIT_LW_GRND     ! LW flux emitted by the ground (W/m2 ground)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PEMIT_LW_FAC      ! LW flux emitted by the facade (W/m2 ground)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_RAD_IND        ! Indoor mean radiant temperature [K]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PREF_SW_GRND      ! total solar rad reflected from ground
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PREF_SW_FAC       ! total solar rad reflected from facade
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_BLD           ! Indoor relative humidity 0 < (-) < 1
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PCD_GARDEN_ATM
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PCH_GARDEN_ATM
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD_CAN   ! road sensible heat flux, road -> canyon air [W m-2]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD_CAN  ! road latent heat flux, road -> canyon air [W m-2]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD_ATM   ! road sensible heat flux, road -> forcing level [W m-2]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD_ATM  ! road latent heat flux, road -> forcing level [W m-2]
 !MV202609 CBS scheme of the road
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_ROAD       ! road sensible heat flux, CBS scheme [W m-2]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_ROAD      ! road latent heat flux, CBS scheme [W m-2]
 !MV202609 CBS scheme of the road (revision: puddle diagnostics)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_ROAD_ATM_WAT ! road water conductance, road -> forcing level (water-limited)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROAD_WAT      ! road latent heat flux of the snow-free road (W/m2 road)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROAD_SNOW     ! road latent heat flux of the snow-covered road (W/m2 road)
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROOF_WAT      ! roof latent heat flux of the snow-free roof (W/m2 roof)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: LE_ROOF_SNOW     ! roof latent heat flux of the snow-covered roof (W/m2 roof)
 !MV202609 CBS scheme of the road (revision: three-temperature construction)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN0       ! canyon air temperature without tau [K]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PT_CAN1       ! free layer (second canopy) air temperature [K]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PPHI_CAN1     ! free layer air temperature / theta* ratio of the MOST profile [-]
 !MV202609 garden diagnostics
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PTSRAD_GARDEN  ! garden surface temperature [K]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PRN_GARDEN     ! net radiation over the garden [W/m2 garden]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN      ! sensible heat flux over the garden [W/m2 garden]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN     ! latent heat flux over the garden [W/m2 garden]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GARDEN   ! total evaporation over the garden [kg/m2/s]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GARDEN   ! garden saturation specific humidity [kg/kg]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GARDEN     ! garden aggregated relative humidity [-]
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 !* potential garden fluxes per m2 of garden (see GARDEN): the flux that the single
 !* garden surface would release if the whole exchange went through the canyon air
 !* (CAN) or directly to the air of the forcing level (ATM). Diagnostics only.
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN_CAN  ! garden sensible heat flux, garden -> canyon air [W m-2]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GARDEN_ATM  ! garden sensible heat flux, garden -> forcing level [W m-2]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN_CAN ! garden latent  heat flux, garden -> canyon air [W m-2]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GARDEN_ATM ! garden latent  heat flux, garden -> forcing level [W m-2]
 !MV202609 greenroof diagnostics
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PTSRAD_GREENROOF ! greenroof surface temperature [K]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PRN_GREENROOF    ! net radiation over the greenroof [W/m2 greenroof]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PH_GREENROOF     ! sensible heat flux over the greenroof [W/m2 greenroof]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PLE_GREENROOF    ! latent heat flux over the greenroof [W/m2 greenroof]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PEVAP_GREENROOF  ! total evaporation over the greenroof [kg/m2/s]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PQSAT_GREENROOF  ! greenroof saturation specific humidity [kg/kg]
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PHU_GREENROOF    ! greenroof aggregated relative humidity [-]
 !MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PAC_GREENROOF_ATM ! greenroof aerodynamical conductance (atm.)
-REAL, DIMENSION(:)  , INTENT(INOUT)    :: PCD_GREENROOF_ATM ! greenroof drag coefficient (atm.)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PCDN_GREENROOF_ATM! greenroof neutral drag coefficient (atm.)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PCH_GREENROOF_ATM ! greenroof drag coefficient for heat (atm.)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: PRI_GREENROOF_ATM ! greenroof Richardson number (atm.)
-REAL, DIMENSION(:)  , INTENT(OUT)    :: ZZ0H_GREENROOF_ATM! greenroof roughness length for heat (atm.)
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_CAN     ! road   drag coefficient (canyon)
-REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_CAN    ! road   neutral drag coefficient (canyon)
-REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_CAN     ! road   Richardson number (canyon)
-REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_ROAD_CAN    ! road   roughness length for heat (canyon)
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM     ! road   aerodynamical conductance (atm.)
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROAD_ATM     ! road   drag coefficient for heat (atm.)
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD_ROAD_ATM     ! road   drag coefficient (atm.)
-REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_ROAD_ATM    ! road   neutral drag coefficient (atm.)
-REAL, DIMENSION(:), INTENT(OUT)   :: PRI_ROAD_ATM     ! road   Richardson number (atm.)
-REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_ROAD_ATM    ! road   roughness length for heat (atm.)
-REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_CAN  ! garden neutral drag coefficient (canyon)
-REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_CAN   ! garden Richardson number (canyon)
-REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_CAN  ! garden roughness length for heat (canyon)
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GARDEN_ATM   ! garden aerodynamical conductance (atm.)
-REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_ATM  ! garden neutral drag coefficient (atm.)
-REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_ATM   ! garden Richardson number (atm.)
-REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (atm.)
 !
 ! new arguments for shading, schedule or natural ventilation
 REAL                , INTENT(IN)     :: PTIME             ! current time since midnight (UTC, s)
 !
 !* arguments for solar panels
 !
-REAL, DIMENSION(:),   INTENT(OUT)     :: PPROD_BLD        ! Averaged     Energy production of solar panel on roofs (W/m2 bld  )
 !
 !*      0.2    Declarations of local variables
 !
 REAL, DIMENSION(SIZE(PTA)) :: ZTA            ! air temperature extrapolated at roof level
 REAL, DIMENSION(SIZE(PTA)) :: ZQA            ! air humidity extrapolated at roof level
+REAL, DIMENSION(SIZE(PTA)) :: PLEW_RF
+REAL, DIMENSION(SIZE(PTA)) :: PLEW_RD
+REAL, DIMENSION(SIZE(PTA)) :: PLE_WL_A
+REAL, DIMENSION(SIZE(PTA)) :: PLE_WL_B
+REAL, DIMENSION(SIZE(PTA)) :: PRNSN_RF
+REAL, DIMENSION(SIZE(PTA)) :: PGSN_RF
+REAL, DIMENSION(SIZE(PTA)) :: PMELT_RF
+REAL, DIMENSION(SIZE(PTA)) :: PRNSN_RD
+REAL, DIMENSION(SIZE(PTA)) :: PGSN_RD
+REAL, DIMENSION(SIZE(PTA)) :: PMELT_RD
+REAL, DIMENSION(SIZE(PTA)) :: PRN_GRND
+REAL, DIMENSION(SIZE(PTA)) :: PH_GRND
+REAL, DIMENSION(SIZE(PTA)) :: PLE_GRND
+REAL, DIMENSION(SIZE(PTA)) :: PGFLX_GRND
+REAL, DIMENSION(SIZE(PTA)) :: PSFCO2
+REAL, DIMENSION(SIZE(PTA)) :: PUW_GRND
+REAL, DIMENSION(SIZE(PTA)) :: PUW_RF
+REAL, DIMENSION(SIZE(PTA)) :: PDUWDU_GRND
+REAL, DIMENSION(SIZE(PTA)) :: PDUWDU_RF
+REAL, DIMENSION(SIZE(PTA)) :: PCD
+REAL, DIMENSION(SIZE(PTA)) :: PCDN
+REAL, DIMENSION(SIZE(PTA)) :: PRI_TWN
+REAL, DIMENSION(SIZE(PTA)) :: PEMIS_TWN
+REAL, DIMENSION(SIZE(PTA)) :: PDIR_ALB_TWN
+REAL, DIMENSION(SIZE(PTA)) :: PSCA_ALB_TWN
+REAL, DIMENSION(SIZE(PTA)) :: ZSW_UP_SO
+REAL, DIMENSION(SIZE(PTA)) :: PRESA_TWN
+REAL, DIMENSION(SIZE(PTA)) :: PAC_GD_WAT
+REAL, DIMENSION(SIZE(PTA)) :: PAC_GR_WAT
+REAL, DIMENSION(SIZE(PTA)) :: PLW_UP
+REAL, DIMENSION(SIZE(PTA)) :: ILMO_ROAD
+REAL, DIMENSION(SIZE(PTA)) :: ILMO_ROOF
+REAL, DIMENSION(SIZE(PTA)) :: ILMO_TOP
 
 ! MT
 REAL, DIMENSION(SIZE(PTA))  :: WSNOW_ROOF_CHECK    ! new snow content to exclude very low snow rate
@@ -560,6 +425,65 @@ IF (LHOOK) CALL DR_HOOK('TEB_GARDEN',0,ZHOOK_HANDLE)
 ZDIR_SW(:) = 0.
 ZSCA_SW(:) = 0.
 !
+! snow scheme names (from the driver)
+T%TSNOW_ROOF%SCHEME = HSNOW_ROOF
+T%TSNOW_ROAD%SCHEME = HSNOW_ROAD
+!
+!MV202609 the diagnostics container (Phase 4b): OUT diagnostics initialised to XUNDEF
+DMT%XLE_ROAD_SNOW                  = XUNDEF
+DMT%XLE_ROAD_WAT                   = XUNDEF
+DMT%XLE_ROOF_SNOW                  = XUNDEF
+DMT%XLE_ROOF_WAT                   = XUNDEF
+DMT%XEVAP_GARDEN                   = XUNDEF
+DMT%XH_GARDEN                      = XUNDEF
+DMT%XH_GARDEN_ATM                  = XUNDEF
+DMT%XH_GARDEN_CAN                  = XUNDEF
+DMT%XLE_GARDEN                     = XUNDEF
+DMT%XLE_GARDEN_ATM                 = XUNDEF
+DMT%XLE_GARDEN_CAN                 = XUNDEF
+DMT%XPHU_GARDEN                    = XUNDEF
+DMT%XQSAT_GARDEN                   = XUNDEF
+DMT%XRN_GARDEN                     = XUNDEF
+DMT%XTS_GARDEN                     = XUNDEF
+DMT%XPAC_GARDEN                    = XUNDEF
+DMT%XUSTAR_TOWN                    = XUNDEF
+DMT%XTCH_TOWN                      = XUNDEF
+DMT%XAC_RF                         = XUNDEF
+DMT%XAC_RD                         = XUNDEF
+DMT%XAC_WL                         = XUNDEF
+DMT%XPAC_ROAD_WAT                  = XUNDEF
+DMT%XPAC_ROAD_ATM_WAT              = XUNDEF
+DMT%XEMIT_LW_GRND                  = XUNDEF
+DMT%XEMIT_LW_FAC                   = XUNDEF
+DMT%XT_RAD_IND                     = XUNDEF
+DMT%XREF_SW_GRND                   = XUNDEF
+DMT%XREF_SW_FAC                    = XUNDEF
+DMT%XHU_BLD                        = XUNDEF
+PCD(:)                             = XUNDEF
+PCDN(:)                            = XUNDEF
+PRI_TWN(:)                         = XUNDEF
+PRESA_TWN(:)                       = XUNDEF
+PLEW_RF(:)                         = XUNDEF
+PLEW_RD(:)                         = XUNDEF
+PLE_WL_A(:)                        = XUNDEF
+PLE_WL_B(:)                        = XUNDEF
+PRNSN_RF(:)                        = XUNDEF
+PRNSN_RD(:)                        = XUNDEF
+PGSN_RF(:)                         = XUNDEF
+PGSN_RD(:)                         = XUNDEF
+PMELT_RF(:)                        = XUNDEF
+PMELT_RD(:)                        = XUNDEF
+PUW_RF(:)                          = XUNDEF
+PDUWDU_RF(:)                       = XUNDEF
+PEMIS_TWN(:)                       = XUNDEF
+PDIR_ALB_TWN(:)                    = XUNDEF
+PSCA_ALB_TWN(:)                    = XUNDEF
+PRN_GRND(:)                        = XUNDEF
+PH_GRND(:)                         = XUNDEF
+PLE_GRND(:)                        = XUNDEF
+PGFLX_GRND(:)                      = XUNDEF
+PSFCO2(:)                          = XUNDEF
+!
 DO JSWB=1,KSW
   DO JJ=1,SIZE(PDIR_SW,1)
     ZDIR_SW(JJ) = ZDIR_SW(JJ) + PDIR_SW(JJ,JSWB)
@@ -598,8 +522,8 @@ ENDDO
 !
 !*      2.1    Snow-covered surfaces relative fractions (at previous time-step)
 !              ----------------------------------------
- CALL SNOW_FRAC_ROAD(T%TSNOW_ROAD%WSNOW(:,1),PSR(:)>0.,PDN_RD,ZDF_RD)
- CALL SNOW_FRAC_ROOF(T%TSNOW_ROOF%WSNOW(:,1),PSR(:)>0.,PDN_RF,ZDF_RF)
+ CALL SNOW_FRAC_ROAD(T%TSNOW_ROAD%WSNOW(:,1),PSR(:)>0.,DMT%XPDN_RD(1:1),ZDF_RD)
+ CALL SNOW_FRAC_ROOF(T%TSNOW_ROOF%WSNOW(:,1),PSR(:)>0.,DMT%XPDN_RF(1:1),ZDF_RF)
 
  ! MT  teb_snow_check = .TRUE. activates the correction of the coupled model
  IF (teb_snow_check) THEN
@@ -638,7 +562,7 @@ IF (teb_snow_check) THEN
      T%TSNOW_ROAD%ALB (:) = XUNDEF
      T%TSNOW_ROAD%EMIS(:) = XUNDEF
      T%TSNOW_ROAD%TS  (:) = XUNDEF
-     PDN_RD = 0.
+     DMT%XPDN_RD(1:1) = 0.
      ZDF_RD = 1.
   END WHERE
   !
@@ -646,7 +570,7 @@ IF (teb_snow_check) THEN
      T%TSNOW_ROOF%ALB (:) = XUNDEF
      T%TSNOW_ROOF%EMIS(:) = XUNDEF
      T%TSNOW_ROOF%TS  (:) = XUNDEF
-     PDN_RF = 0.
+     DMT%XPDN_RF(1:1) = 0.
      ZDF_RF = 1.
   END WHERE
 ENDIF
@@ -698,7 +622,7 @@ IF (TOP%LGARDEN) THEN
     ZTSRAD_GD = XUNDEF
     CALL TEB_VEG_PROPERTIES(PDIR_SW, PSCA_SW, PSW_BANDS, KSW,   &
                         ZTSRAD_GD, ZEMIS_GD, ZALB_GD,       &
-                        PTA=PT_LOWCAN                       )
+                        PTA=T%XT_CANYON(icell:icell)                       )
   ELSE
     ZTSRAD_GD = PTSRAD_GD_EXT
   ENDIF	
@@ -769,12 +693,12 @@ END IF
 !
  CALL URBAN_SOLAR_ABS(TOP, T, B, DMT, ZDIR_SW, ZSCA_SW, PZENITH, PAZIM,  &
                       TPN%XFRAC_PANEL, TPN%XALB_PANEL, ZALB_GD,     &
-                      TP%XSVF_GARDEN, ZALB_GR, PDN_RF, ZDF_RF,       &
-                      PDN_RD, ZDF_RD, ZREC_SW_RD, ZREC_SW_SN_RD,    &
+                      TP%XSVF_GARDEN, ZALB_GR, DMT%XPDN_RF(1:1), ZDF_RF,       &
+                      DMT%XPDN_RD(1:1), ZDF_RD, ZREC_SW_RD, ZREC_SW_SN_RD,    &
                       ZREC_SW_WL_A, ZREC_SW_WL_B, ZREC_SW_GD,       &
                       ZREC_SW_RF, PDIR_ALB_TWN, PSCA_ALB_TWN,       &
-                      PSO_ALB_TWN, ZSW_UP_SO, ZSW_RAD_GD, ZREC_SW_WIN,         &
-					  PREF_SW_GRND, PREF_SW_FAC, ZE_SHADING, B%LSHAD_DAY, GSHADE , TP, BP)
+                      DMT%XALB_SO(1:1), ZSW_UP_SO, ZSW_RAD_GD, ZREC_SW_WIN,         &
+					  DMT%XREF_SW_GRND(1:1), DMT%XREF_SW_FAC(1:1), ZE_SHADING, B%LSHAD_DAY, GSHADE , TP, BP)
 
 !
 !-------------------------------------------------------------------------------
@@ -827,42 +751,42 @@ ENDIF
 !* and by the road energy budget of TEB below)
 !
   CALL TEB  (icell, iblock, TOP, T, BOP, B, TIR, DMT, HIMPLICIT_WIND, PBEM_AC,     &
-             PTSUN, PT_CAN, PQ_CAN, PU_CAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN,       &
-             PZ_LOWCAN, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,              &
+             PTSUN, T%XT_CANYON(icell:icell), T%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1), T%XT_CANYON(icell:icell), T%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1),       &
+             TP%XBLD_HEIGHT(icell:icell)/2, PPEW_A_COEF, PPEW_B_COEF, PPEW_A_COEF_LOWCAN,              &
              PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PZ0_GR_EXT, PPS, PPA, PEXNS, PEXNA, PTA, PQA, PRHOA, PLW_RAD, &
-             PRR, PSR, PZREF, PUREF, PVMOD, PH_TRAFFIC, PLE_TRAFFIC, PTSTEP,       &
-             ZDF_RF, PDN_RF, ZDF_RD, PDN_RD, ZQSAT_RF, ZQSAT_RD, ZDELT_RF,         &
+             PRR, PSR, PZREF, PUREF, PVMOD, PH_TRAFFIC, TP%XLE_TRAFFIC(icell:icell), PTSTEP,       &
+             ZDF_RF, DMT%XPDN_RF(1:1), ZDF_RD, DMT%XPDN_RD(1:1), ZQSAT_RF, ZQSAT_RD, ZDELT_RF,         &
              ZDELT_RD, ZTSRAD_GD, ZQV_GD, PLEW_RF, ZUW_GR, PLEW_RD, PLE_WL_A,              &
-             PLE_WL_B, PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF, PMELT_RF,             &
+             PLE_WL_B, PRNSN_RF, DMT%XH_SNOW_ROOF(1:1), DMT%XLE_SNOW_ROOF(1:1), PGSN_RF, PMELT_RF,             &
              ZRN_GR, ZH_GR, ZLE_GR, ZGFLUX_GR, ZDRAIN_GR, ZTSRAD_GR, ZRUNOFF_GR,              &
-             PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RD, ZUW_RD, PUW_RF,       &
+             PRNSN_RD, DMT%XH_SNOW_ROAD(1:1), DMT%XLE_SNOW_ROAD(1:1), PGSN_RD, PMELT_RD, ZUW_RD, PUW_RF,       &
              ZDUWDU_RD,                                                             &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-             PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM,                  &
-             PDUWDU_RF, PUSTAR_TWN, PCD, PCDN, PCH_TWN, PRI_TWN, PRESA_TWN, &
-             PAC_RF, PAC_RD, PAC_WL, PAC_TOP, PAC_GD, ZAC_RF_WAT, PAC_RD_WAT,      &
+             DMT%XPHSN_RD_CAN, DMT%XPHSN_RD_ATM, DMT%XPLESN_RD_CAN, DMT%XPLESN_RD_ATM,                  &
+             PDUWDU_RF, DMT%XUSTAR_TOWN(1:1), PCD, PCDN, DMT%XTCH_TOWN(1:1), PRI_TWN, PRESA_TWN, &
+             DMT%XAC_RF(1:1), DMT%XAC_RD(1:1), DMT%XAC_WL(1:1), DMT%XAC_TOP(1:1), DMT%XPAC_GARDEN(1:1), ZAC_RF_WAT, DMT%XPAC_ROAD_WAT(1:1),      &
              ZLW_WA_TO_WB, ZLW_WA_TO_R, ZLW_WB_TO_R, ZLW_WA_TO_NR, ZLW_WB_TO_NR,   &
              ZLW_R_TO_WA, ZLW_R_TO_WB, ZLW_G_TO_WA, ZLW_G_TO_WB, ZLW_S_TO_WA,      &
              ZLW_S_TO_WB, ZLW_S_TO_R, ZLW_S_TO_NR, ZLW_NR_TO_WA, ZLW_NR_TO_WB,     &
              ZLW_NR_TO_WIN, ZLW_WA_TO_WIN, ZLW_WB_TO_WIN, ZLW_G_TO_WIN,            &
              ZLW_R_TO_WIN, ZLW_S_TO_WIN, ZLW_WIN_TO_WA, ZLW_WIN_TO_WB,             &
-             ZLW_WIN_TO_R, ZLW_WIN_TO_NR, KDAY, PEMIT_LW_FAC, ZEMIT_LW_RD,         &
-             PT_RAD_IND, PHU_BLD, PTIME, ZE_SHADING, PMELT_BLT, PSNOWD_RF,         &
-			 PSNOWD_RD, PCH_GD, PCD_GD, PCH_RD, PCH_RF, PCH_WL, PCH_TOP, ILMO_ROAD,&
-             ILMO_ROOF, ILMO_TOP, PCD_GARDEN_ATM, PCH_GARDEN_ATM			 ,                         &
+             ZLW_WIN_TO_R, ZLW_WIN_TO_NR, KDAY, DMT%XEMIT_LW_FAC(1:1), ZEMIT_LW_RD,         &
+             DMT%XT_RAD_IND(1:1), DMT%XHU_BLD(1:1), PTIME, ZE_SHADING, DMT%XSNOW_MELT(1:1), DMT%XSNOWD_ROOF(1:1),         &
+			 DMT%XSNOWD_ROAD(1:1), PCH_GD, PCD_GD, DMT%XTCH_RD(1:1), DMT%XTCH_RF(1:1), DMT%XTCH_WL(1:1), DMT%XTCH_TOP(1:1), ILMO_ROAD,&
+             ILMO_ROOF, ILMO_TOP, DMT%XCD_GARDEN_ATM(1:1), DMT%XCH_GARDEN_ATM(1:1)			 ,                         &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
-                          PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
-                          PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
-                          PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
-                          ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
+                          DMT%XPCD_ROAD_CAN(1:1), DMT%XPCDN_ROAD_CAN(1:1), DMT%XPRI_ROAD_CAN(1:1), DMT%XZZ0H_ROAD_CAN(1:1), &
+                          DMT%XPAC_ROAD_ATM(1:1), DMT%XPCH_ROAD_ATM(1:1), DMT%XPCD_ROAD_ATM(1:1), DMT%XPCDN_ROAD_ATM(1:1), &
+                          DMT%XPRI_ROAD_ATM(1:1), DMT%XZZ0H_ROAD_ATM(1:1), DMT%XPCDN_GARDEN_CAN(1:1), DMT%XPRI_GARDEN_CAN(1:1), &
+                          DMT%XZZ0H_GARDEN_CAN(1:1), DMT%XPAC_GARDEN_ATM(1:1), DMT%XPCDN_GARDEN_ATM(1:1), DMT%XPRI_GARDEN_ATM(1:1), DMT%XZZ0H_GARDEN_ATM(1:1), &
 !MV202609 greenroof-to-atm exchange diagnostics
-                          PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
-                          PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, &
-                          PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM,          &
+                          DMT%XPAC_GREENROOF_ATM(1:1), DMT%XPCD_GREENROOF_ATM(1:1), DMT%XPCDN_GREENROOF_ATM(1:1), DMT%XPCH_GREENROOF_ATM(1:1), &
+                          DMT%XPRI_GREENROOF_ATM(1:1), DMT%XZZ0H_GREENROOF_ATM(1:1), &
+                          DMT%XPH_ROAD_CAN(1:1), DMT%XPLE_ROAD_CAN(1:1), DMT%XPH_ROAD_ATM(1:1), DMT%XPLE_ROAD_ATM(1:1),          &
 !MV202609 CBS scheme of the road
-                          ZTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
+                          ZTAU, DMT%XPH_ROAD(1:1), DMT%XPLE_ROAD(1:1), DMT%XPAC_ROAD_ATM_WAT(1:1), DMT%XLE_ROAD_WAT(1:1), DMT%XLE_ROAD_SNOW(1:1), &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-                          LE_ROOF_WAT, LE_ROOF_SNOW, TP, BP)
+                          DMT%XLE_ROOF_WAT(1:1), DMT%XLE_ROOF_SNOW(1:1), TP, BP)
 
 !
 !-------------------------------------------------------------------------------
@@ -877,15 +801,15 @@ IF (TOP%LSOLAR_PANEL) THEN
   ZEMIT_LW_RF =  ZREC_LW_RF   &
      - (        TP%XGREENROOF(:)  *             DMT%XABS_LW_GREENROOF(:)  &
           + (1.-TP%XGREENROOF(:)) * ZDF_RF(:) * DMT%XABS_LW_ROOF(:)       &
-          + (1.-TP%XGREENROOF(:)) * PDN_RF(:) * DMT%XABS_LW_SNOW_ROOF(:) )
+          + (1.-TP%XGREENROOF(:)) * DMT%XPDN_RF(:) * DMT%XABS_LW_SNOW_ROOF(:) )
 
   !
   ! note that, for the time being, one considers that the solar panel 
   ! intercept radiation both above roof and greenroofs (if any)
   CALL SOLAR_PANEL(TPN, DMT, PTSTEP, PTSUN, TP%XRESIDENTIAL, ZEMIT_LW_RF, ZEMIT_LWDN_PANEL, &
-                   PLW_RAD, PTA, BP%XN_FLOOR, PPROD_BLD   )
+                   PLW_RAD, PTA, BP%XN_FLOOR, DMT%XSOLAR_PROD(1:1)   )
 ELSE
-  PPROD_BLD        = XUNDEF  
+  DMT%XSOLAR_PROD(1:1)        = XUNDEF  
 END IF
 !-------------------------------------------------------------------------------
 !
@@ -893,27 +817,27 @@ END IF
 !              -----------
 !
  CALL AVG_URBAN_FLUXES(icell, iblock, TOP, T, B, TPN, DMT,                                               &
-                       PTS_TWN, PEMIS_TWN, PT_CAN, PQ_CAN, PT_LOWCAN, PQ_LOWCAN,          &
-                       ZTA, ZQA, PRHOA, PPS, PH_TRAFFIC,  PLE_TRAFFIC, ZWL_O_GRND,        &
-                       ZESN_RF, ZEMIS_GR, PLW_RAD,  PAC_RF, ZAC_RF_WAT, PAC_WL, PAC_RD,  &
-                       PAC_RD_WAT, PAC_TOP, PAC_GD, ZQSAT_GD, ZHU_AGG_GD,     &
+                       DMT%XTSTOWN_S(1:1), PEMIS_TWN, T%XT_CANYON(icell:icell), T%XQ_CANYON(icell:icell), T%XT_CANYON(icell:icell), T%XQ_CANYON(icell:icell),          &
+                       ZTA, ZQA, PRHOA, PPS, PH_TRAFFIC,  TP%XLE_TRAFFIC(icell:icell), ZWL_O_GRND,        &
+                       ZESN_RF, ZEMIS_GR, PLW_RAD,  DMT%XAC_RF(1:1), ZAC_RF_WAT, DMT%XAC_WL(1:1), DMT%XAC_RD(1:1),  &
+                       DMT%XPAC_ROAD_WAT(1:1), DMT%XAC_TOP(1:1), DMT%XPAC_GARDEN(1:1), ZQSAT_GD, ZHU_AGG_GD,     &
                        ZQSAT_RF, ZQSAT_RD, ZDELT_RF, ZDELT_RD, ZRF_FRAC, ZWL_FRAC,        &
-                       ZRD_FRAC, ZGD_FRAC, ZTOTS_O_HORS, ZDF_RF, PDN_RF, ZDF_RD, PDN_RD,  &
-                       PLE_WL_A, PLE_WL_B, PLEW_RF, PLESN_RF, PLEW_RD, PLESN_RD, PHSN_RD, &
+                       ZRD_FRAC, ZGD_FRAC, ZTOTS_O_HORS, ZDF_RF, DMT%XPDN_RF(1:1), ZDF_RD, DMT%XPDN_RD(1:1),  &
+                       PLE_WL_A, PLE_WL_B, PLEW_RF, DMT%XLE_SNOW_ROOF(1:1), PLEW_RD, DMT%XLE_SNOW_ROAD(1:1), DMT%XH_SNOW_ROAD(1:1), &
                        ZTSRAD_GD, ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD, ZEVAP_GD,             &
 !MV202609 CBS scheme of the garden (atmosphere branch in the free layer)
                        ZPH_GD_ATM, ZPLE_GD_ATM,                                            &
                        ZRUNOFF_GD, ZEVAP_GR, ZRUNOFF_GR, ZDRAIN_GR,                       &
-                       PRN_GRND, PH_GRND, PLE_GRND, PGFLX_GRND, PRN_TWN, PH_TWN, PLE_TWN, &
-                       PGFLX_TWN, PEVAP_TWN, ZEMIT_LW_RD,ZEMIT_LW_GD, PEMIT_LW_GRND, ZEMIS_GD, PLW_UP, &
+                       PRN_GRND, PH_GRND, PLE_GRND, PGFLX_GRND, DMT%XRN_TOWN(1:1), DMT%XH_TOWN(1:1), DMT%XLE_TOWN(1:1), &
+                       DMT%XGFLUX_TOWN(1:1), DMT%XQVFL(1:1), ZEMIT_LW_RD,ZEMIT_LW_GD, DMT%XEMIT_LW_GRND(1:1), ZEMIS_GD, PLW_UP, &
 !MV202609 CBS scheme of the road
                        ZTAU,                                                               &
 !MV202609 CBS scheme of the road (revision: three-temperature construction)
-                       PH_ROAD_ATM, PLE_ROAD_ATM, PCD_ROAD_ATM, ZZ0H_ROAD_ATM,             &
+                       DMT%XPH_ROAD_ATM(1:1), DMT%XPLE_ROAD_ATM(1:1), DMT%XPCD_ROAD_ATM(1:1), DMT%XZZ0H_ROAD_ATM(1:1),             &
                        PZREF, PVMOD,                                                       &
-                       PT_CAN0, PT_CAN1, PPHI_CAN1, ZQ_CAN0, ZQ_CAN1,                       &
+                       DMT%XPT_CAN0(1:1), DMT%XPT_CAN1(1:1), DMT%XPPHI_CAN1(1:1), ZQ_CAN0, ZQ_CAN1,                       &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                       PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM , TP, BP)
+                       DMT%XPHSN_RD_CAN, DMT%XPHSN_RD_ATM, DMT%XPLESN_RD_CAN, DMT%XPLESN_RD_ATM , TP, BP)
 !
 PSFCO2(:) = TP%XGARDEN(:) * ZSFCO2_GD(:) + TP%XBLD(:) * TP%XGREENROOF(:) * ZSFCO2_GR(:) ! no CO2 flux from built and road yet.
 !
@@ -924,36 +848,36 @@ PSFCO2(:) = TP%XGARDEN(:) * ZSFCO2_GD(:) + TP%XBLD(:) * TP%XGREENROOF(:) * ZSFCO
 !* Per-m2-of-garden values of the garden surface (as computed by the garden
 !* model selected with teb_type_garden); they are diagnostics only.
 !
-PTSRAD_GARDEN (:) = ZTSRAD_GD(:)
-PRN_GARDEN    (:) = ZRN_GD(:)
-PH_GARDEN     (:) = ZH_GD(:)
-PLE_GARDEN    (:) = ZLE_GD(:)
-PEVAP_GARDEN  (:) = ZEVAP_GD(:)
-PQSAT_GARDEN  (:) = ZQSAT_GD(:)
+DMT%XTS_GARDEN(:) = ZTSRAD_GD(:)
+DMT%XRN_GARDEN(:) = ZRN_GD(:)
+DMT%XH_GARDEN(:) = ZH_GD(:)
+DMT%XLE_GARDEN(:) = ZLE_GD(:)
+DMT%XEVAP_GARDEN(:) = ZEVAP_GD(:)
+DMT%XQSAT_GARDEN(:) = ZQSAT_GD(:)
 !* the moisture multiplier of the canyon node: unlike the greenroof one below, it is
 !* NOT a diagnostic -- AVG_URBAN_FLUXES uses it for the water budget of the canyon
 !* air (the garden couples back to the canyon air, the greenroof does not)
-PHU_GARDEN    (:) = ZHU_AGG_GD(:)
+DMT%XPHU_GARDEN(:) = ZHU_AGG_GD(:)
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-PH_GARDEN_CAN (:) = ZPH_GD_CAN(:)
-PH_GARDEN_ATM (:) = ZPH_GD_ATM(:)
-PLE_GARDEN_CAN(:) = ZPLE_GD_CAN(:)
-PLE_GARDEN_ATM(:) = ZPLE_GD_ATM(:)
+DMT%XH_GARDEN_CAN(:) = ZPH_GD_CAN(:)
+DMT%XH_GARDEN_ATM(:) = ZPH_GD_ATM(:)
+DMT%XLE_GARDEN_CAN(:) = ZPLE_GD_CAN(:)
+DMT%XLE_GARDEN_ATM(:) = ZPLE_GD_ATM(:)
 !
 !MV202609 greenroof diagnostics (per m2 of greenroof)
 !* Per-m2-of-greenroof values of the greenroof surface (as computed by the
 !* greenroof model selected with teb_type_greenroof); they are diagnostics only.
 !
-PTSRAD_GREENROOF (:) = ZTSRAD_GR(:)
-PRN_GREENROOF    (:) = ZRN_GR(:)
-PH_GREENROOF     (:) = ZH_GR(:)
-PLE_GREENROOF    (:) = ZLE_GR(:)
-PEVAP_GREENROOF  (:) = ZEVAP_GR(:)
-PQSAT_GREENROOF  (:) = ZQSAT_GR(:)
+DMT%XTS_GREENROOF(:) = ZTSRAD_GR(:)
+DMT%XRN_GREENROOF(:) = ZRN_GR(:)
+DMT%XH_GREENROOF(:) = ZH_GR(:)
+DMT%XLE_GREENROOF(:) = ZLE_GR(:)
+DMT%XEVAP_GREENROOF(:) = ZEVAP_GR(:)
+DMT%XQSAT_GREENROOF(:) = ZQSAT_GR(:)
 !* a diagnostic of the aggregated moisture exchange of the roof surface:
 !* it feeds the PHU_GREENROOF column and no budget (the greenroof does not
 !* couple back to the canyon air), unlike the multiplier of the garden
-PHU_GREENROOF    (:) = ZHU_AGG_GR(:)
+DMT%XPHU_GREENROOF(:) = ZHU_AGG_GR(:)
 !
 !-------------------------------------------------------------------------------
 !
@@ -1051,9 +975,9 @@ END IF
 !  canopy may need implicitation if there is a lot a garden in the grid mesh
 !
 ZPET_A_COEF(:) = 0.
-ZPET_B_COEF(:) = PT_LOWCAN(:) / PEXNS(:)
+ZPET_B_COEF(:) = T%XT_CANYON(icell:icell) / PEXNS(:)
 ZPEQ_A_COEF(:) = 0.
-ZPEQ_B_COEF(:) = PQ_LOWCAN(:)
+ZPEQ_B_COEF(:) = T%XQ_CANYON(icell:icell)
 !
 !*      8.2    Call ISBA for green areas
 !              -------------------------
@@ -1065,7 +989,7 @@ IF (TOP%LGARDEN) THEN
   !* its fluxes and its conductance come from the coupling interface, so the call is
   !* skipped and the coupling quantities are built in the ELSE branch below
   IF (TOP%CTYPE_GARDEN /= 'EXT' .AND. TOP%CTYPE_GARDEN /= 'EXT_NEU') THEN
-    CALL GARDEN_CBS(TOP%CTYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GARDEN_EXT, &
+    CALL GARDEN_CBS(TOP%CTYPE_GARDEN, TP%XBLD_HEIGHT(icell:icell)/2, T%XT_CANYON(icell:icell), T%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1), PZ0_GARDEN_EXT, &
 !MV202609 garden thermal roughness (z0h)
 !* z0/z0h ratio of the garden: the scalar (thermal) coefficient of the diagnostic
 !* balance is built from it (single value of TOP, the same one that URBAN_DRAG
@@ -1078,7 +1002,7 @@ IF (TOP%LGARDEN) THEN
     ZTAU, ( TOP%LCBS_SCHEME .AND. TOP%CTYPE_GARDEN == 'PROXY_NEW' ),           &
     PALB_GD_EXT, PEMIS_GD_EXT, PRHOA, PPS, ZREC_SW_GD, ZREC_LW_GD,             &
     ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,                                          &
-    ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,      &
+    ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, DMT%XPAC_GARDEN(1:1), ZQSAT_GD, ZTSRAD_GD,      &
     ZDRAIN_GD, ZIRRIG_GD,                              &
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
     ZPH_GD_CAN, ZPH_GD_ATM, ZPLE_GD_CAN, ZPLE_GD_ATM,                          &
@@ -1102,18 +1026,18 @@ IF (TOP%LGARDEN) THEN
     ZQSAT_GD(:)  = QSAT(ZTSRAD_GD(:), PPS(:))
 !MV202609 friction of the external surfaces (URBAN_DRAG momentum coefficient)
     WHERE (PCD_GD(:) > 0. .AND. PCD_GD(:) < XUNDEF)
-      ZUW_GD(:) = - PCD_GD(:) * PU_LOWCAN(:)**2
+      ZUW_GD(:) = - PCD_GD(:) * DMT%XWIND_CANYON(1:1)**2
     ELSEWHERE
-      PCD_GD(:) = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:))
-      ZUW_GD(:) = - PCD_GD(:) * PU_LOWCAN(:)**2
+      PCD_GD(:) = GARDEN_PCD_NEUTRAL(TP%XBLD_HEIGHT(icell:icell)/2, PZ0_GARDEN_EXT(:))
+      ZUW_GD(:) = - PCD_GD(:) * DMT%XWIND_CANYON(1:1)**2
     END WHERE
     ZGFLUX_GD(:) = 0.
     ZSFCO2_GD(:) = 0.
   END IF
   !
-  !* moisture multiplier of the canyon node (PAC_GD*PHU_AGG_GD*ZGD): returned by
+  !* moisture multiplier of the canyon node (DMT%XPAC_GARDEN(1:1)*PHU_AGG_GD*ZGD): returned by
   !* the call above for an internal garden (the PHU parameter of that model)
-  PAC_GD_WAT(:) = PAC_GD(:)
+  PAC_GD_WAT(:) = DMT%XPAC_GARDEN(:)
   DMT%XABS_SW_GARDEN(:) = (1.-ZALB_GD(:)) * ZREC_SW_GD
   DMT%XABS_LW_GARDEN(:) = ZEMIS_GD(:) * ZREC_LW_GD(:) - XSTEFAN * ZEMIS_GD(:) * ZTSRAD_GD(:)**4
   ZEMIT_LW_GD(:) = XSTEFAN * ZTSRAD_GD(:)**4 + (1 - ZEMIS_GD(:)) / ZEMIS_GD(:) * DMT%XABS_LW_GARDEN(:)
@@ -1158,7 +1082,7 @@ ELSE
   ZTSRAD_GD (:) = XUNDEF
   !
   ZUW_GD     (:) = 0.
-  PAC_GD     (:) = 0.
+  DMT%XPAC_GARDEN(:) = 0.
   PCH_GD(:) = 0.
   PCD_GD(:) = 0.
   ZSFCO2_GD  (:) = 0.
@@ -1198,7 +1122,7 @@ IF (TOP%LGREENROOF) THEN
     TOP%XZ0_O_Z0H_GR,                                      &
     ZRN_GR, ZH_GR, ZLE_GR,               &
     ZGFLUX_GR, ZSFCO2_GR, ZEVAP_GR, ZUW_GR,                             &
-    PAC_GR, ZQSAT_GR, ZTSRAD_GR, ZHU_AGG_GR,                &
+    DMT%XPAC_GREENROOF(1:1), ZQSAT_GR, ZTSRAD_GR, ZHU_AGG_GR,                &
     DMT%XG_GREENROOF_ROOF, ZRUNOFF_GR, ZDRAIN_GR, ZIRRIG_GR )
   ELSE
     !
@@ -1208,20 +1132,20 @@ IF (TOP%LGREENROOF) THEN
     !* above: qsat(Ts), the moisture multiplier (clamp(q_v/qsat), as in COSMO-TEB)
     !* and the friction flux, with the wind of the host (no wind floor). The roof has
     !* a single exchange path, so the friction uses the momentum coefficient of that
-    !* path (PCD_GREENROOF_ATM, from URBAN_DRAG) and its neutral value only when the
+    !* path (DMT%XPCD_GREENROOF_ATM(1:1), from URBAN_DRAG) and its neutral value only when the
     !* coefficient is not available yet (first sub-step of a run)
     ZQSAT_GR(:)   = QSAT(ZTSRAD_GR(:), PPS(:))
 !MV202609 friction of the external surfaces (URBAN_DRAG momentum coefficient)
-    WHERE (PCD_GREENROOF_ATM(:) > 0. .AND. PCD_GREENROOF_ATM(:) < XUNDEF)
-      ZUW_GR(:) = - PCD_GREENROOF_ATM(:) * PVMOD(:)**2
+    WHERE (DMT%XPCD_GREENROOF_ATM(:) > 0. .AND. DMT%XPCD_GREENROOF_ATM(:) < XUNDEF)
+      ZUW_GR(:) = - DMT%XPCD_GREENROOF_ATM(:) * PVMOD(:)**2
     ELSEWHERE
-      PCD_GREENROOF_ATM(:) = GARDEN_PCD_NEUTRAL(PUREF(:), PZ0_GR_EXT(:))
-      ZUW_GR(:) = - PCD_GREENROOF_ATM(:) * PVMOD(:)**2
+      DMT%XPCD_GREENROOF_ATM(:) = GARDEN_PCD_NEUTRAL(PUREF(:), PZ0_GR_EXT(:))
+      ZUW_GR(:) = - DMT%XPCD_GREENROOF_ATM(:) * PVMOD(:)**2
     END WHERE
     ZHU_AGG_GR(:) = PQV_GR_EXT(:)/ZQSAT_GR(:)
     ZHU_AGG_GR(:) = MIN(ZHU_AGG_GR(:), 1.)
     ZHU_AGG_GR(:) = MAX(ZHU_AGG_GR(:), 0.01)
-    PAC_GR(:)     = 0.      ! no implicit coupling of an external surface (as in COSMO-TEB)
+    DMT%XPAC_GREENROOF(:)     = 0.      ! no implicit coupling of an external surface (as in COSMO-TEB)
     ZGFLUX_GR(:)  = 0.
     ZSFCO2_GR(:)  = 0.
     !* the remaining outputs of the greenroof model (no soil, no drainage, no
@@ -1232,7 +1156,7 @@ IF (TOP%LGREENROOF) THEN
   END IF
   !
   !
-  PAC_GR_WAT(:) = PAC_GR(:)
+  PAC_GR_WAT(:) = DMT%XPAC_GREENROOF(:)
   DMT%XABS_SW_GREENROOF(:) = (1.-ZALB_GR(:)) * ZREC_SW_RF
   DMT%XABS_LW_GREENROOF(:) = ZEMIS_GR * ZREC_LW_RF - XSTEFAN * ZEMIS_GR * ZTSRAD_GR**4
   !
@@ -1257,7 +1181,7 @@ ELSE
   ZTSRAD_GR (:) = XUNDEF
   !
   ZUW_GR    (:) = 0.
-  PAC_GR    (:) = 0.
+  DMT%XPAC_GREENROOF(:) = 0.
   ZSFCO2_GR (:) = 0.
   ZQSAT_GR  (:) = XUNDEF
   ZHU_AGG_GR(:) = XUNDEF

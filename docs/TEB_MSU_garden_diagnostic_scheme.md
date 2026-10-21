@@ -10,7 +10,7 @@
   температур каньона (`T_CAN0`, `T_CAN1`, `T_CAN`), с которыми связан сад;
 * `TEB_MSU_source_defects.md` — дефекты исходного TEB, найденные и исправленные
   в ходе работы;
-* `TEB_MSU_diagnostics_container.md` — контейнер диагностик `DIAG_MISC_TEB_t`
+* `TEB_MSU_containers.md` — контейнер диагностик `DIAG_MISC_TEB_t`
   (диагностики сада и кровли — его поля);
 * `TEB_MSU_change_history.md` — история версий схемы и протоколы измерений.
 

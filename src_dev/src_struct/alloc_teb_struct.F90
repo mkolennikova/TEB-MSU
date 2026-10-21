@@ -203,6 +203,7 @@ ALLOCATE(TPN%XALB_PANEL(1))        ! albedo of soolar panels                  (-
 ALLOCATE(TPN%XEFF_PANEL(1))        ! Efficiency coefficient of solar panels   (-)
 ALLOCATE(TPN%XFRAC_PANEL(1))       ! Fraction of SOLAR panels on roofs        (-)
 ALLOCATE(TPN%XTHER_PRODC_DAY(1))   ! Present day integrated thermal production of energy    (J/m2 panel)
+TPN%XTHER_PRODC_DAY = 0.           ! accumulator starts at zero (P-C4: state lives in TPN)
 
 
 !-------------------------------------------------------------------------------

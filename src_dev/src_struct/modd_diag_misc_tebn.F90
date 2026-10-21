@@ -77,15 +77,22 @@ TYPE DIAG_MISC_TEB_t
 !* scheme of TEB (URBAN_SNOW_EVOL, an INTENT(OUT) argument of TEB) and they are
 !* READ by the canyon air nodes (AVG_URBAN_FLUXES, TEB_GARDEN2) of the SAME
 !* sub-step, which runs BEFORE the snow scheme: they are the value of the previous
-!* sub-step, so they must be PERSISTENT. As automatic arrays of TEB_GARDEN_STRUCT
-!* they were read before being written (undefined values, seen only when the road
-!* snow fraction is non-zero; the garbage could also be NaN and trap the run).
+!* sub-step, so they must be PERSISTENT: they live in the DMT container and are
+!* read/written directly by TEB_GARDEN. In the former TEB_GARDEN_STRUCT wrapper
+!* they were automatic arrays read before being written (undefined values, seen
+!* only when the road snow fraction is non-zero; the garbage could also be NaN
+!* and trap the run).
   REAL, POINTER, DIMENSION(:)   :: XPHSN_RD_CAN ! snow -> canyon air sensible heat (W/m2)
   REAL, POINTER, DIMENSION(:)   :: XPHSN_RD_ATM ! snow -> forcing level sensible heat (W/m2)
   REAL, POINTER, DIMENSION(:)   :: XPLESN_RD_CAN ! snow -> canyon air latent heat (W/m2)
   REAL, POINTER, DIMENSION(:)   :: XPLESN_RD_ATM ! snow -> forcing level latent heat (W/m2)
 !
   REAL, POINTER, DIMENSION(:)   :: XRUNOFF_TOWN      ! aggregated water runoff for town      (kg/m2/s)
+!* RESERVED: garden irrigation rate. The proxy garden (GARDEN_CBS / GARDEN_PCD)
+!* returns PIRRIG_GARDEN = 0. and no model fills this field: the pointer is
+!* allocated and NULLIFY-ed but never written or read. It is kept as a
+!* placeholder for a future garden irrigation scheme (the road and greenroof
+!* counterparts, XIRRIG_ROAD / XIRRIG_GREENROOF, are wired end to end).
   REAL, POINTER, DIMENSION(:)   :: XIRRIG_GARDEN     ! summer ground irrigation rate         (kg/m2/s)
   REAL, POINTER, DIMENSION(:)   :: XRUNOFF_ROAD      ! water runoff for roads                (kg/m2/s)
   REAL, POINTER, DIMENSION(:)   :: XIRRIG_ROAD       ! road man-made watering rate           (kg/m2/s)
@@ -212,7 +219,6 @@ TYPE DIAG_MISC_TEB_t
   REAL, POINTER, DIMENSION(:)   :: XAC_TOP                          ! teb_ac_top - OUT Canyon-atm. aerodynamical conductance
   REAL, POINTER, DIMENSION(:)   :: XAC_WL                           ! teb_ac_wl - OUT Wall aerodynamical conductance
   REAL, POINTER, DIMENSION(:)   :: XALB_SO                          ! teb_alb_so - OUT town solar albedo
-  REAL, POINTER, DIMENSION(:)   :: XALB_TH                          ! teb_alb_th - OUT town thermal albedo
   REAL, POINTER, DIMENSION(:)   :: XCD_GARDEN_ATM                   ! teb_cd_garden_atm (CSV PCD_GARDEN_ATM)
   REAL, POINTER, DIMENSION(:)   :: XCH_GARDEN_ATM                   ! teb_ch_garden_atm (CSV PCH_GARDEN_ATM)
   REAL, POINTER, DIMENSION(:)   :: XEVAP_GARDEN                     ! teb_evap_garden (CSV EVAP_GARDEN) - OUT total evaporation over the garden (kg/m2/s)
@@ -253,16 +259,20 @@ TYPE DIAG_MISC_TEB_t
   REAL, POINTER, DIMENSION(:)   :: XH_ROAD_FR                       ! teb_shfl_rd - OUT Sensible heat flux over road
   REAL, POINTER, DIMENSION(:)   :: XH_ROOF_FR                       ! teb_shfl_rf - OUT Sensible heat flux over roof
   REAL, POINTER, DIMENSION(:)   :: XSHFL_SNOW                       ! teb_shfl_snow - OUT sensible heat flux over snow
+  REAL, POINTER, DIMENSION(:)   :: XH_SNOW_ROOF                     ! per-surface snow sensible heat flux over roof (W/m2 roof)
+  REAL, POINTER, DIMENSION(:)   :: XH_SNOW_ROAD                     ! per-surface snow sensible heat flux over road (W/m2 road)
+  REAL, POINTER, DIMENSION(:)   :: XLE_SNOW_ROOF                    ! per-surface snow latent heat flux over roof (W/m2 roof)
+  REAL, POINTER, DIMENSION(:)   :: XLE_SNOW_ROAD                    ! per-surface snow latent heat flux over road (W/m2 road)
+  REAL, POINTER, DIMENSION(:)   :: XSNOWD_ROOF                      ! per-surface roof snow depth (m)
+  REAL, POINTER, DIMENSION(:)   :: XSNOWD_ROAD                      ! per-surface road snow depth (m)
   REAL, POINTER, DIMENSION(:)   :: XH_WALL_FR                       ! teb_shfl_wl - OUT Sensible heat flux over wall
   REAL, POINTER, DIMENSION(:)   :: XSNOW_MELT                       ! teb_snow_melt - OUT Snow melt for built & impervious part (kg/m2)
-  REAL, POINTER, DIMENSION(:)   :: XSOBS                            ! teb_sobs - OUT Shortwave radiation absorbed by garden
   REAL, POINTER, DIMENSION(:)   :: XSOLAR_PROD                      ! teb_solar_prod (CSV SOLAR_PROD) - OUT Averaged Energy production of solar panel on roofs (W/m2 bld  )
   REAL, POINTER, DIMENSION(:)   :: XTCH_RD                          ! teb_tch_rd (CSV PCH_ROAD_CAN) - OUT road transfer coefficient for heat
   REAL, POINTER, DIMENSION(:)   :: XTCH_RF                          ! teb_tch_rf - OUT roof transfer coefficient for heat
   REAL, POINTER, DIMENSION(:)   :: XTCH_TOP                         ! teb_tch_top - OUT between canyon top and atm. transfer coefficient for hea
   REAL, POINTER, DIMENSION(:)   :: XTCH_TOWN                        ! teb_tch_town - OUT Heat exchange coefficient
   REAL, POINTER, DIMENSION(:)   :: XTCH_WL                          ! teb_tch_wl - OUT wall transfer coefficient for heat
-  REAL, POINTER, DIMENSION(:)   :: XTHBS                            ! teb_thbs - OUT Longwave radiation absorbed by garden
   REAL, POINTER, DIMENSION(:)   :: XTS_GARDEN                       ! teb_ts_garden (CSV TS_GARDEN) - OUT garden surface temperature (K)
   REAL, POINTER, DIMENSION(:)   :: XTS_GREENROOF                    ! teb_ts_greenroof (CSV TS_GREENROOF) - OUT greenroof surface temperature (K)
   REAL, POINTER, DIMENSION(:)   :: XTS_ROAD                         ! teb_tsroad (CSV T_ROAD1) - OUT road surface temperature   [K]
@@ -362,7 +372,6 @@ REAL(KIND=JPRB) :: ZHOOK_HANDLE
   NULLIFY(YDIAG_MISC_TEB%XAC_TOP)
   NULLIFY(YDIAG_MISC_TEB%XAC_WL)
   NULLIFY(YDIAG_MISC_TEB%XALB_SO)
-  NULLIFY(YDIAG_MISC_TEB%XALB_TH)
   NULLIFY(YDIAG_MISC_TEB%XCD_GARDEN_ATM)
   NULLIFY(YDIAG_MISC_TEB%XCH_GARDEN_ATM)
   NULLIFY(YDIAG_MISC_TEB%XEVAP_GARDEN)
@@ -403,16 +412,20 @@ REAL(KIND=JPRB) :: ZHOOK_HANDLE
   NULLIFY(YDIAG_MISC_TEB%XH_ROAD_FR)
   NULLIFY(YDIAG_MISC_TEB%XH_ROOF_FR)
   NULLIFY(YDIAG_MISC_TEB%XSHFL_SNOW)
+  NULLIFY(YDIAG_MISC_TEB%XH_SNOW_ROOF)
+  NULLIFY(YDIAG_MISC_TEB%XH_SNOW_ROAD)
+  NULLIFY(YDIAG_MISC_TEB%XLE_SNOW_ROOF)
+  NULLIFY(YDIAG_MISC_TEB%XLE_SNOW_ROAD)
+  NULLIFY(YDIAG_MISC_TEB%XSNOWD_ROOF)
+  NULLIFY(YDIAG_MISC_TEB%XSNOWD_ROAD)
   NULLIFY(YDIAG_MISC_TEB%XH_WALL_FR)
   NULLIFY(YDIAG_MISC_TEB%XSNOW_MELT)
-  NULLIFY(YDIAG_MISC_TEB%XSOBS)
   NULLIFY(YDIAG_MISC_TEB%XSOLAR_PROD)
   NULLIFY(YDIAG_MISC_TEB%XTCH_RD)
   NULLIFY(YDIAG_MISC_TEB%XTCH_RF)
   NULLIFY(YDIAG_MISC_TEB%XTCH_TOP)
   NULLIFY(YDIAG_MISC_TEB%XTCH_TOWN)
   NULLIFY(YDIAG_MISC_TEB%XTCH_WL)
-  NULLIFY(YDIAG_MISC_TEB%XTHBS)
   NULLIFY(YDIAG_MISC_TEB%XTS_GARDEN)
   NULLIFY(YDIAG_MISC_TEB%XTS_GREENROOF)
   NULLIFY(YDIAG_MISC_TEB%XTS_ROAD)

@@ -298,7 +298,9 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                  fr_garden, teb_frac_gr, urb_fr_bld, urb_h2w, urb_h_bld, &
                  urb_alb_rf_so, urb_alb_rd_so, urb_alb_wl_so, urb_alb_rd_th, urb_alb_rf_th, &
                  urb_alb_wl_th, teb_zresidential, teb_dt_res, teb_dt_off, ahf_industry, &
-                  teb_itype_wind, teb_utc_hour, teb_lgreenroof_ext, teb_lbem_ac)
+                  teb_itype_wind, teb_utc_hour, teb_lgreenroof_ext, teb_lbem_ac, &
+                  teb_fr_panel, teb_lroad_irrig, teb_rd_irrig_start_m, teb_rd_irrig_end_m, &
+                  teb_rd_irrig_start_h, teb_rd_irrig_end_h, teb_rd_irrig_sum)
     !MV202610 derived statics: layer profiles, geometry, SVF, z0/zd, BEM constants
     CALL TEB_FILL_DERIVED (ivstart, ivend, urb_z0_town, urb_zd_town, &
                   urb_hcap_rd, urb_hcap_rf, urb_hcap_wl, &
@@ -345,9 +347,7 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                  teb_lhfl_gr(i), teb_qvfl_gr(i), teb_runoff_gr(i), teb_z0_gd(i), &
                  teb_alb_gd(i), teb_emis_gd(i), teb_ts_gd(i), teb_qs_gd(i), teb_shfl_gd(i), &
                  teb_lhfl_gd(i), teb_qvfl_gd(i), teb_tch_gd(i), teb_tcm_gd(i), &
-                 teb_runoff_gd(i), teb_fr_panel(i), teb_lroad_irrig, teb_rd_irrig_start_m(i), &
-                 teb_rd_irrig_end_m(i), teb_rd_irrig_start_h(i), teb_rd_irrig_end_h(i), &
-                 teb_rd_irrig_sum(i), DMT, TOP, TP, BOP, BP, TSTATE, BSTATE, TPN, TIR)
+                 teb_runoff_gd(i), DMT, TOP, TP, BOP, BP, TSTATE, BSTATE, TPN, TIR)
 	END DO
 	
     CALL TEB_UNBIND_STATE (ivstart, ivend, &
@@ -384,9 +384,13 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                   teb_tmass, &
                   teb_albwin)
     !MV202610 the emulator of the host reads these as individual fields
+    !* sobs/thbs are the solar/thermal radiation absorbed by the garden, i.e. the
+    !* XABS_SW_GARDEN/XABS_LW_GARDEN that TEB_GARDEN computes for the sub-step
+    !* (the dedicated XSOBS/XTHBS fields of the container were never filled and
+    !* have been removed; check_diag_producers.py guards against a recurrence)
     teb_wind_canyon(1:nvec) = DMT%XWIND_CANYON(1:nvec)
-    teb_sobs(1:nvec)        = DMT%XSOBS(1:nvec)
-    teb_thbs(1:nvec)        = DMT%XTHBS(1:nvec)
+    teb_sobs(1:nvec)        = DMT%XABS_SW_GARDEN(1:nvec)
+    teb_thbs(1:nvec)        = DMT%XABS_LW_GARDEN(1:nvec)
     teb_runoff_road(1:nvec) = DMT%XRUNOFF_ROAD(1:nvec)
     teb_runoff_roof(1:nvec) = DMT%XRUNOFF_ROOF(1:nvec)
     !MV202610 universal output: one row per selected cell, at the output cadence

@@ -78,7 +78,10 @@ SUBROUTINE TEB_FILL_PARAMS (KSTART, KEND, &
                             urb_alb_rd_so, urb_alb_wl_so, urb_alb_rd_th, urb_alb_rf_th, &
                             urb_alb_wl_th, teb_zresidential, teb_dt_res, teb_dt_off, &
                             ahf_industry, teb_itype_wind, teb_utc_hour, &
-                            teb_lgreenroof_ext, teb_lbem_ac)
+                            teb_lgreenroof_ext, teb_lbem_ac, &
+                            teb_fr_panel, teb_lroad_irrig, teb_rd_irrig_start_m, &
+                            teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
+                            teb_rd_irrig_sum)
 !
 !*       0.1  containers
 !             ----------
@@ -91,7 +94,7 @@ CHARACTER(LEN=*), INTENT(IN) :: teb_itype_bem, teb_hroad_dir, teb_wall_opt
 CHARACTER(LEN=*), INTENT(IN) :: teb_type_garden, teb_type_greenroof
 LOGICAL, INTENT(IN) :: teb_lgarden, teb_lgreenroof, teb_lsolar_panel, teb_lcbs_scheme
 INTEGER, INTENT(IN) :: teb_itype_wind, teb_utc_hour
-LOGICAL, INTENT(IN) :: teb_lgreenroof_ext, teb_lbem_ac
+LOGICAL, INTENT(IN) :: teb_lgreenroof_ext, teb_lbem_ac, teb_lroad_irrig
 REAL, INTENT(IN) :: teb_tau_hw_thresh, teb_tau_hw_width
 REAL, INTENT(IN) :: urb_z0_o_z0h_gdn, urb_z0_o_z0h_grf
 REAL, DIMENSION(:), INTENT(IN) :: teb_tcool_target, teb_theat_target, teb_frac_gz
@@ -101,6 +104,8 @@ REAL, DIMENSION(:), INTENT(IN) :: urb_h2w, urb_h_bld
 REAL, DIMENSION(:), INTENT(IN) :: urb_alb_rf_so, urb_alb_rd_so, urb_alb_wl_so
 REAL, DIMENSION(:), INTENT(IN) :: urb_alb_rd_th, urb_alb_rf_th, urb_alb_wl_th
 REAL, DIMENSION(:), INTENT(IN) :: teb_zresidential, teb_dt_res, teb_dt_off, ahf_industry
+REAL, DIMENSION(:), INTENT(IN) :: teb_fr_panel, teb_rd_irrig_start_m, teb_rd_irrig_end_m
+REAL, DIMENSION(:), INTENT(IN) :: teb_rd_irrig_start_h, teb_rd_irrig_end_h, teb_rd_irrig_sum
 !
 !*       0.3  locals
 !             ------
@@ -157,6 +162,18 @@ DO K = KSTART, KEND
     TP%XDT_RES                 = teb_dt_res(K)
     TP%XDT_OFF                 = teb_dt_off(K)
     TP%XH_INDUSTRY(K)         = ahf_industry(K)
+!
+!* solar panels and road irrigation (P-C4: filled here, not in CALL_DRIVER)
+    TPN%XEMIS_PANEL(K)       = 0.9
+    TPN%XALB_PANEL(K)        = 0.1
+    TPN%XEFF_PANEL(K)        = 0.14
+    TPN%XFRAC_PANEL(K)       = teb_fr_panel(K)
+    TIR%LPAR_RD_IRRIG        = teb_lroad_irrig
+    TIR%XRD_START_MONTH(K)   = teb_rd_irrig_start_m(K)
+    TIR%XRD_END_MONTH(K)     = teb_rd_irrig_end_m(K)
+    TIR%XRD_START_HOUR(K)    = teb_rd_irrig_start_h(K)
+    TIR%XRD_END_HOUR(K)      = teb_rd_irrig_end_h(K)
+    TIR%XRD_24H_IRRIG(K)     = teb_rd_irrig_sum(K)
 !
 END DO
 !

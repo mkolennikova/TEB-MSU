@@ -29,7 +29,7 @@
 !!
 !!    REFERENCE
 !!    ---------
-!!    TEB-MSU: TEB_MSU_diagnostics_container.md, section 8.1 (the contract)
+!!    TEB-MSU: TEB_MSU_containers.md, section 2 (the contract)
 !!
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB

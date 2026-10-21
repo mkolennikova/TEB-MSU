@@ -22,7 +22,7 @@ Usage
 -----
     python python_tests/call_signature_inventory.py
     python python_tests/call_signature_inventory.py --strict
-    python python_tests/call_signature_inventory.py --expect 73
+    python python_tests/call_signature_inventory.py --expect 57
 
 A markdown report is written into ``<out-root>/call_signature.md`` (ignored by
 git). ``--expect N`` additionally fails if the signature length differs from N.
@@ -65,11 +65,6 @@ HOST_EMULATOR = [
 
 #: debt: still passed, with the phase that removes each group (see the history)
 DEFERRED = {
-    'solar panels and irrigation filled by TEB_GARDEN_STRUCT (P-C4)': [
-        'ZFRAC_PANEL', 'LPAR_RD_IRRIG',
-        'ZRD_START_MONTH', 'ZRD_END_MONTH', 'ZRD_START_HOUR', 'ZRD_END_HOUR',
-        'ZRD_24H_IRRIG',
-    ],
 }
 
 CONTAINER_SET = set(CONTAINERS)
