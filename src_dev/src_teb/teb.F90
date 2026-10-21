@@ -351,7 +351,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PAC_RF      ! roof conductance
 REAL, DIMENSION(:), INTENT(INOUT) :: PAC_RD      ! road conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_WL      ! wall conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_TOP       ! top conductance
-REAL, DIMENSION(:), INTENT(IN)    :: PAC_GARDEN    ! garden conductance
+REAL, DIMENSION(:), INTENT(INOUT)    :: PAC_GARDEN    ! garden conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_RF_WAT  ! roof water conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_RD_WAT  ! roof water conductance
 !

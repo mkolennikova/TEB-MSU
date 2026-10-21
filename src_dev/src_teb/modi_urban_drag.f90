@@ -87,7 +87,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PAC_WALL       ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_CAN       ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_WAT   ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_TOP        ! aerodynamical conductance
-REAL, DIMENSION(:), INTENT(IN)    :: PAC_GARDEN_CAN     ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(INOUT)    :: PAC_GARDEN_CAN     ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI            ! Town Richardson number
 REAL, DIMENSION(:), INTENT(OUT)   :: PUW_ROAD       ! Momentum flux for roads
 REAL, DIMENSION(:), INTENT(OUT)   :: PUW_ROOF       ! Momentum flux for roofs

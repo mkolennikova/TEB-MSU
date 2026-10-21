@@ -436,23 +436,23 @@ DMT%XLE_ROOF_SNOW                  = XUNDEF
 DMT%XLE_ROOF_WAT                   = XUNDEF
 DMT%XEVAP_GARDEN                   = XUNDEF
 DMT%XH_GARDEN                      = XUNDEF
-DMT%XH_GARDEN_ATM                  = XUNDEF
-DMT%XH_GARDEN_CAN                  = XUNDEF
+DMT%ATM%H_GARDEN                  = XUNDEF
+DMT%CAN%H_GARDEN                  = XUNDEF
 DMT%XLE_GARDEN                     = XUNDEF
-DMT%XLE_GARDEN_ATM                 = XUNDEF
-DMT%XLE_GARDEN_CAN                 = XUNDEF
+DMT%ATM%LE_GARDEN                 = XUNDEF
+DMT%CAN%LE_GARDEN                 = XUNDEF
 DMT%XPHU_GARDEN                    = XUNDEF
 DMT%XQSAT_GARDEN                   = XUNDEF
 DMT%XRN_GARDEN                     = XUNDEF
 DMT%XTS_GARDEN                     = XUNDEF
-DMT%XPAC_GARDEN                    = XUNDEF
+DMT%CAN%PAC_GARDEN                    = XUNDEF
 DMT%XUSTAR_TOWN                    = XUNDEF
 DMT%XTCH_TOWN                      = XUNDEF
 DMT%XAC_RF                         = XUNDEF
-DMT%XAC_RD                         = XUNDEF
+DMT%CAN%PAC_ROAD                         = XUNDEF
 DMT%XAC_WL                         = XUNDEF
-DMT%XPAC_ROAD_WAT                  = XUNDEF
-DMT%XPAC_ROAD_ATM_WAT              = XUNDEF
+DMT%CAN%PAC_ROAD_WAT                  = XUNDEF
+DMT%ATM%PAC_ROAD_WAT              = XUNDEF
 DMT%XEMIT_LW_GRND                  = XUNDEF
 DMT%XEMIT_LW_FAC                   = XUNDEF
 DMT%XT_RAD_IND                     = XUNDEF
@@ -762,9 +762,9 @@ ENDIF
              PRNSN_RD, DMT%XH_SNOW_ROAD(1:1), DMT%XLE_SNOW_ROAD(1:1), PGSN_RD, PMELT_RD, ZUW_RD, PUW_RF,       &
              ZDUWDU_RD,                                                             &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-             DMT%XPHSN_RD_CAN, DMT%XPHSN_RD_ATM, DMT%XPLESN_RD_CAN, DMT%XPLESN_RD_ATM,                  &
+             DMT%CAN%PHSN_RD, DMT%ATM%PHSN_RD, DMT%CAN%PLESN_RD, DMT%ATM%PLESN_RD,                  &
              PDUWDU_RF, DMT%XUSTAR_TOWN(1:1), PCD, PCDN, DMT%XTCH_TOWN(1:1), PRI_TWN, PRESA_TWN, &
-             DMT%XAC_RF(1:1), DMT%XAC_RD(1:1), DMT%XAC_WL(1:1), DMT%XAC_TOP(1:1), DMT%XPAC_GARDEN(1:1), ZAC_RF_WAT, DMT%XPAC_ROAD_WAT(1:1),      &
+             DMT%XAC_RF(1:1), DMT%CAN%PAC_ROAD(1:1), DMT%XAC_WL(1:1), DMT%XAC_TOP(1:1), DMT%CAN%PAC_GARDEN(1:1), ZAC_RF_WAT, DMT%CAN%PAC_ROAD_WAT(1:1),      &
              ZLW_WA_TO_WB, ZLW_WA_TO_R, ZLW_WB_TO_R, ZLW_WA_TO_NR, ZLW_WB_TO_NR,   &
              ZLW_R_TO_WA, ZLW_R_TO_WB, ZLW_G_TO_WA, ZLW_G_TO_WB, ZLW_S_TO_WA,      &
              ZLW_S_TO_WB, ZLW_S_TO_R, ZLW_S_TO_NR, ZLW_NR_TO_WA, ZLW_NR_TO_WB,     &
@@ -772,21 +772,27 @@ ENDIF
              ZLW_R_TO_WIN, ZLW_S_TO_WIN, ZLW_WIN_TO_WA, ZLW_WIN_TO_WB,             &
              ZLW_WIN_TO_R, ZLW_WIN_TO_NR, KDAY, DMT%XEMIT_LW_FAC(1:1), ZEMIT_LW_RD,         &
              DMT%XT_RAD_IND(1:1), DMT%XHU_BLD(1:1), PTIME, ZE_SHADING, DMT%XSNOW_MELT(1:1), DMT%XSNOWD_ROOF(1:1),         &
-			 DMT%XSNOWD_ROAD(1:1), PCH_GD, PCD_GD, DMT%XTCH_RD(1:1), DMT%XTCH_RF(1:1), DMT%XTCH_WL(1:1), DMT%XTCH_TOP(1:1), ILMO_ROAD,&
-             ILMO_ROOF, ILMO_TOP, DMT%XCD_GARDEN_ATM(1:1), DMT%XCH_GARDEN_ATM(1:1)			 ,                         &
+			 DMT%XSNOWD_ROAD(1:1), PCH_GD, PCD_GD, DMT%CAN%PCH_ROAD(1:1), DMT%XTCH_RF(1:1), DMT%XTCH_WL(1:1), DMT%XTCH_TOP(1:1), ILMO_ROAD,&
+             ILMO_ROOF, ILMO_TOP, DMT%ATM%PCD_GARDEN(1:1), DMT%ATM%PCH_GARDEN(1:1)			 ,                         &
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
-                          DMT%XPCD_ROAD_CAN(1:1), DMT%XPCDN_ROAD_CAN(1:1), DMT%XPRI_ROAD_CAN(1:1), DMT%XZZ0H_ROAD_CAN(1:1), &
-                          DMT%XPAC_ROAD_ATM(1:1), DMT%XPCH_ROAD_ATM(1:1), DMT%XPCD_ROAD_ATM(1:1), DMT%XPCDN_ROAD_ATM(1:1), &
-                          DMT%XPRI_ROAD_ATM(1:1), DMT%XZZ0H_ROAD_ATM(1:1), DMT%XPCDN_GARDEN_CAN(1:1), DMT%XPRI_GARDEN_CAN(1:1), &
-                          DMT%XZZ0H_GARDEN_CAN(1:1), DMT%XPAC_GARDEN_ATM(1:1), DMT%XPCDN_GARDEN_ATM(1:1), DMT%XPRI_GARDEN_ATM(1:1), DMT%XZZ0H_GARDEN_ATM(1:1), &
+                          DMT%CAN%PCD_ROAD(1:1), DMT%CAN%PCDN_ROAD(1:1), DMT%CAN%PRI_ROAD(1:1), DMT%CAN%ZZ0H_ROAD(1:1), &
+                          DMT%ATM%PAC_ROAD(1:1), DMT%ATM%PCH_ROAD(1:1), DMT%ATM%PCD_ROAD(1:1), DMT%ATM%PCDN_ROAD(1:1), &
+                          DMT%ATM%PRI_ROAD(1:1), DMT%ATM%ZZ0H_ROAD(1:1), DMT%CAN%PCDN_GARDEN(1:1), DMT%CAN%PRI_GARDEN(1:1), &
+                          DMT%CAN%ZZ0H_GARDEN(1:1), DMT%ATM%PAC_GARDEN(1:1), DMT%ATM%PCDN_GARDEN(1:1), DMT%ATM%PRI_GARDEN(1:1), DMT%ATM%ZZ0H_GARDEN(1:1), &
 !MV202609 greenroof-to-atm exchange diagnostics
                           DMT%XPAC_GREENROOF_ATM(1:1), DMT%XPCD_GREENROOF_ATM(1:1), DMT%XPCDN_GREENROOF_ATM(1:1), DMT%XPCH_GREENROOF_ATM(1:1), &
                           DMT%XPRI_GREENROOF_ATM(1:1), DMT%XZZ0H_GREENROOF_ATM(1:1), &
-                          DMT%XPH_ROAD_CAN(1:1), DMT%XPLE_ROAD_CAN(1:1), DMT%XPH_ROAD_ATM(1:1), DMT%XPLE_ROAD_ATM(1:1),          &
+                          DMT%CAN%PH_ROAD(1:1), DMT%CAN%PLE_ROAD(1:1), DMT%ATM%PH_ROAD(1:1), DMT%ATM%PLE_ROAD(1:1),          &
 !MV202609 CBS scheme of the road
-                          ZTAU, DMT%XPH_ROAD(1:1), DMT%XPLE_ROAD(1:1), DMT%XPAC_ROAD_ATM_WAT(1:1), DMT%XLE_ROAD_WAT(1:1), DMT%XLE_ROAD_SNOW(1:1), &
+                          ZTAU, DMT%XPH_ROAD(1:1), DMT%XPLE_ROAD(1:1), DMT%ATM%PAC_ROAD_WAT(1:1), DMT%XLE_ROAD_WAT(1:1), DMT%XLE_ROAD_SNOW(1:1), &
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                           DMT%XLE_ROOF_WAT(1:1), DMT%XLE_ROOF_SNOW(1:1), TPARAMS, BPARAMS)
+!
+!* canyon-path coefficients of the garden, as handed to the host through the
+!* interface (teb_tcm_gd / teb_tch_gd): stored after URBAN_DRAG has written them
+!* inside TEB, so that the diagnostic container holds both branches of the scheme
+DMT%CAN%PCD_GARDEN(:) = PCD_GD(:)
+DMT%CAN%PCH_GARDEN(:) = PCH_GD(:)
 
 !
 !-------------------------------------------------------------------------------
@@ -819,8 +825,8 @@ END IF
  CALL AVG_URBAN_FLUXES(icell, iblock, TOPTS, TSTATE, BSTATE, TPN, DMT,                                               &
                        DMT%XTSTOWN_S(1:1), PEMIS_TWN, TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell), TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell),          &
                        ZTA, ZQA, PRHOA, PPS, PH_TRAFFIC,  TPARAMS%XLE_TRAFFIC(icell:icell), ZWL_O_GRND,        &
-                       ZESN_RF, ZEMIS_GR, PLW_RAD,  DMT%XAC_RF(1:1), ZAC_RF_WAT, DMT%XAC_WL(1:1), DMT%XAC_RD(1:1),  &
-                       DMT%XPAC_ROAD_WAT(1:1), DMT%XAC_TOP(1:1), DMT%XPAC_GARDEN(1:1), ZQSAT_GD, ZHU_AGG_GD,     &
+                       ZESN_RF, ZEMIS_GR, PLW_RAD,  DMT%XAC_RF(1:1), ZAC_RF_WAT, DMT%XAC_WL(1:1), DMT%CAN%PAC_ROAD(1:1),  &
+                       DMT%CAN%PAC_ROAD_WAT(1:1), DMT%XAC_TOP(1:1), DMT%CAN%PAC_GARDEN(1:1), ZQSAT_GD, ZHU_AGG_GD,     &
                        ZQSAT_RF, ZQSAT_RD, ZDELT_RF, ZDELT_RD, ZRF_FRAC, ZWL_FRAC,        &
                        ZRD_FRAC, ZGD_FRAC, ZTOTS_O_HORS, ZDF_RF, DMT%XPDN_RF(1:1), ZDF_RD, DMT%XPDN_RD(1:1),  &
                        PLE_WL_A, PLE_WL_B, PLEW_RF, DMT%XLE_SNOW_ROOF(1:1), PLEW_RD, DMT%XLE_SNOW_ROAD(1:1), DMT%XH_SNOW_ROAD(1:1), &
@@ -833,11 +839,11 @@ END IF
 !MV202609 CBS scheme of the road
                        ZTAU,                                                               &
 !MV202609 CBS scheme of the road (revision: three-temperature construction)
-                       DMT%XPH_ROAD_ATM(1:1), DMT%XPLE_ROAD_ATM(1:1), DMT%XPCD_ROAD_ATM(1:1), DMT%XZZ0H_ROAD_ATM(1:1),             &
+                       DMT%ATM%PH_ROAD(1:1), DMT%ATM%PLE_ROAD(1:1), DMT%ATM%PCD_ROAD(1:1), DMT%ATM%ZZ0H_ROAD(1:1),             &
                        PZREF, PVMOD,                                                       &
                        DMT%XPT_CAN0(1:1), DMT%XPT_CAN1(1:1), DMT%XPPHI_CAN1(1:1), ZQ_CAN0, ZQ_CAN1,                       &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                       DMT%XPHSN_RD_CAN, DMT%XPHSN_RD_ATM, DMT%XPLESN_RD_CAN, DMT%XPLESN_RD_ATM , TPARAMS, BPARAMS)
+                       DMT%CAN%PHSN_RD, DMT%ATM%PHSN_RD, DMT%CAN%PLESN_RD, DMT%ATM%PLESN_RD , TPARAMS, BPARAMS)
 !
 PSFCO2(:) = TPARAMS%XGARDEN(:) * ZSFCO2_GD(:) + TPARAMS%XBLD(:) * TPARAMS%XGREENROOF(:) * ZSFCO2_GR(:) ! no CO2 flux from built and road yet.
 !
@@ -859,10 +865,10 @@ DMT%XQSAT_GARDEN(:) = ZQSAT_GD(:)
 !* air (the garden couples back to the canyon air, the greenroof does not)
 DMT%XPHU_GARDEN(:) = ZHU_AGG_GD(:)
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-DMT%XH_GARDEN_CAN(:) = ZPH_GD_CAN(:)
-DMT%XH_GARDEN_ATM(:) = ZPH_GD_ATM(:)
-DMT%XLE_GARDEN_CAN(:) = ZPLE_GD_CAN(:)
-DMT%XLE_GARDEN_ATM(:) = ZPLE_GD_ATM(:)
+DMT%CAN%H_GARDEN(:) = ZPH_GD_CAN(:)
+DMT%ATM%H_GARDEN(:) = ZPH_GD_ATM(:)
+DMT%CAN%LE_GARDEN(:) = ZPLE_GD_CAN(:)
+DMT%ATM%LE_GARDEN(:) = ZPLE_GD_ATM(:)
 !
 !MV202609 greenroof diagnostics (per m2 of greenroof)
 !* Per-m2-of-greenroof values of the greenroof surface (as computed by the
@@ -1002,7 +1008,7 @@ IF (TOPTS%LGARDEN) THEN
     ZTAU, ( TOPTS%LCBS_SCHEME .AND. TOPTS%CTYPE_GARDEN == 'PROXY_NEW' ),           &
     PALB_GD_EXT, PEMIS_GD_EXT, PRHOA, PPS, ZREC_SW_GD, ZREC_LW_GD,             &
     ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,                                          &
-    ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, DMT%XPAC_GARDEN(1:1), ZQSAT_GD, ZTSRAD_GD,      &
+    ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, DMT%CAN%PAC_GARDEN(1:1), ZQSAT_GD, ZTSRAD_GD,      &
     ZDRAIN_GD, ZIRRIG_GD,                              &
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
     ZPH_GD_CAN, ZPH_GD_ATM, ZPLE_GD_CAN, ZPLE_GD_ATM,                          &
@@ -1035,9 +1041,9 @@ IF (TOPTS%LGARDEN) THEN
     ZSFCO2_GD(:) = 0.
   END IF
   !
-  !* moisture multiplier of the canyon node (DMT%XPAC_GARDEN(1:1)*PHU_AGG_GD*ZGD): returned by
+  !* moisture multiplier of the canyon node (DMT%CAN%PAC_GARDEN(1:1)*PHU_AGG_GD*ZGD): returned by
   !* the call above for an internal garden (the PHU parameter of that model)
-  PAC_GD_WAT(:) = DMT%XPAC_GARDEN(:)
+  PAC_GD_WAT(:) = DMT%CAN%PAC_GARDEN(:)
   DMT%XABS_SW_GARDEN(:) = (1.-ZALB_GD(:)) * ZREC_SW_GD
   DMT%XABS_LW_GARDEN(:) = ZEMIS_GD(:) * ZREC_LW_GD(:) - XSTEFAN * ZEMIS_GD(:) * ZTSRAD_GD(:)**4
   ZEMIT_LW_GD(:) = XSTEFAN * ZTSRAD_GD(:)**4 + (1 - ZEMIS_GD(:)) / ZEMIS_GD(:) * DMT%XABS_LW_GARDEN(:)
@@ -1082,7 +1088,7 @@ ELSE
   ZTSRAD_GD (:) = XUNDEF
   !
   ZUW_GD     (:) = 0.
-  DMT%XPAC_GARDEN(:) = 0.
+  DMT%CAN%PAC_GARDEN(:) = 0.
   PCH_GD(:) = 0.
   PCD_GD(:) = 0.
   ZSFCO2_GD  (:) = 0.

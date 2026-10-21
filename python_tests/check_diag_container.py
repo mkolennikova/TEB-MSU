@@ -17,6 +17,13 @@ missing from the type is a compile error at best. All of them are silent in
 Fortran, and the container refactor adds dozens of fields by hand, so the check
 is run before and after every step of the refactor.
 
+The CBS branch diagnostics are a single record `TEB_CBS_BRANCH_t` used twice
+(`CAN` = canyon air, `ATM` = forcing level): its components are declared once and
+their lifecycle lives in `INIT_CBS_BRANCH`/`ALLOC_CBS_BRANCH`/`DEALLOC_CBS_BRANCH`
+of `MODI_DIAG_MISC_TEB_UTIL`. The check expands them into `<INSTANCE>%<COMPONENT>`
+names and also fails when the driver never calls a helper for one of the instances
+or when a component is missing from a helper body.
+
 Usage
 -----
     python python_tests/check_diag_container.py              # src_dev
@@ -55,6 +62,20 @@ FILES = {
     'dealloc': 'src_struct/modi_diag_misc_teb_util.F90',
 }
 
+#: nested record shared by the two CBS exchange paths and its two instances
+BRANCH_TYPE = 'TEB_CBS_BRANCH_t'
+BRANCH_INSTANCES = ('CAN', 'ATM')
+#: one lifecycle helper per list, each acting on one instance (`YBRANCH`); the
+#: checks below expand them into `<INSTANCE>%<COMPONENT>` names
+BRANCH_HELPERS = {'nullify': 'INIT_CBS_BRANCH',
+                  'alloc': 'ALLOC_CBS_BRANCH',
+                  'dealloc': 'DEALLOC_CBS_BRANCH'}
+
+RE_BRANCH_TYPE = re.compile(r'^\s*TYPE\s+' + BRANCH_TYPE + r'\b', re.I)
+RE_END_TYPE = re.compile(r'^\s*END\s*TYPE\b', re.I)
+RE_BRANCH_COMPONENT = re.compile(r'^\s*REAL[^!\n]*?::\s*(\w+)', re.I)
+RE_BRANCH_REF = re.compile(r'\bYBRANCH%(\w+)', re.I)
+
 
 def _resolve(tree: Path, key: str) -> Path:
     """Path of one list; the allocation lists moved in Phase 4b (dev only)."""
@@ -73,11 +94,60 @@ def _read(tree: Path, rel: str) -> list:
     return path.read_text(encoding='utf-8', errors='ignore').splitlines()
 
 
+def _branch_components(type_lines: list) -> list:
+    """Components of the nested `TEB_CBS_BRANCH_t` record (empty when absent)."""
+    out, inside = [], False
+    for line in type_lines:
+        if not inside:
+            if RE_BRANCH_TYPE.match(line):
+                inside = True
+            continue
+        if RE_END_TYPE.match(line):
+            break
+        m = RE_BRANCH_COMPONENT.match(line)
+        if m:
+            out.append(m.group(1))
+    return out
+
+
+def _helper_body(util_lines: list, name: str) -> list:
+    """Lines of one lifecycle helper of the nested record."""
+    start = next((i for i, l in enumerate(util_lines)
+                  if re.match(r'\s*SUBROUTINE\s+' + name + r'\b', l, re.I)), None)
+    if start is None:
+        return []
+    end = next((i for i in range(start, len(util_lines))
+                if re.match(r'\s*END\s+SUBROUTINE\b', util_lines[i], re.I)), len(util_lines))
+    return util_lines[start:end + 1]
+
+
+def _branch_lists(util_lines: list, components: list) -> dict:
+    """Expand the lifecycle helpers into `<INSTANCE>%<COMPONENT>` names.
+
+    A helper covers an instance only when the driver calls it for that instance; a
+    missing call leaves the whole instance out of the list and `compare()` reports
+    it as missing. A component missing from a helper body is reported the same way.
+    """
+    out = {}
+    for key, helper in BRANCH_HELPERS.items():
+        handled = {m.group(1) for l in _helper_body(util_lines, helper)
+                   for m in [RE_BRANCH_REF.search(l)] if m}
+        names = []
+        for inst in BRANCH_INSTANCES:
+            called = any(re.search(r'CALL\s+' + helper + r'\s*\(\s*YDIAG_MISC_TEB%'
+                                   + inst + r'\b', l, re.I) for l in util_lines)
+            if called:
+                names += [f'{inst}%{c}' for c in components if c in handled]
+        out[key] = names
+    return out
+
+
 def collect(tree: Path) -> dict:
     """Return the four field lists of the tree (order of appearance)."""
     type_lines = _read(tree, FILES['type'])
     alloc_lines = _read(tree, str(_resolve(tree, 'alloc').relative_to(tree)))
     dealloc_lines = _read(tree, str(_resolve(tree, 'dealloc').relative_to(tree)))
+    util_lines = _read(tree, FILES['alloc'])
 
     fields = [m.group(1) for m in (RE_TYPE.match(l) for l in type_lines) if m]
 
@@ -93,6 +163,15 @@ def collect(tree: Path) -> dict:
 
     allocated = [m.group(1) for m in (RE_ALLOC.search(l) for l in alloc_lines) if m]
     deallocated = [m.group(1) for m in (RE_DEALLOC.search(l) for l in dealloc_lines) if m]
+
+    # the nested record used twice by the CBS scheme: one logical field per instance
+    components = _branch_components(type_lines)
+    if components:
+        fields += [f'{inst}%{c}' for inst in BRANCH_INSTANCES for c in components]
+        branch = _branch_lists(type_lines + util_lines, components)
+        nullified += branch['nullify']
+        allocated += branch['alloc']
+        deallocated += branch['dealloc']
 
     return {'tree': str(tree), 'type': fields, 'nullify': nullified,
             'alloc': allocated, 'dealloc': deallocated}

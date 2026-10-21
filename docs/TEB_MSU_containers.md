@@ -151,15 +151,16 @@ run_teb_offline
 
 ## 5. Контейнеры в деталях
 
-### 5.1 `DMT` — диагностика (`DIAG_MISC_TEB_t`, 205 полей)
+### 5.1 `DMT` — диагностика (`DIAG_MISC_TEB_t`, 207 полей)
 
 Единственный контейнер, который заполняет **физика** и читает **вывод**.
 Поля — `REAL, POINTER, DIMENSION(:)`; длина задаётся при аллокации (`KNVEC`,
 в offline-драйвере 1). Состав: поля SURFEX (`XH_WALL_A`, `XRN_ROOF`, `XGFLUX_*`,
-`XHVAC_*`) и поля TEB-MSU (CBS-диагностики дороги, сад/кровля, снежная ветка).
+`XHVAC_*`), поля TEB-MSU (CBS-диагностики дороги, сад/кровля, снежная ветка) и
+запись диагностик ветвей CBS-схемы, использованная дважды (см. ниже).
 
 * аллокация — `DIAG_MISC_TEB_ALLOC(DMT, KNVEC)` (в `TEB_HOST_ENSURE`);
-* `NULLIFY`/`ALLOCATE`/`DEALLOCATE` — три зеркальных списка (205/205/205),
+* `NULLIFY`/`ALLOCATE`/`DEALLOCATE` — три зеркальных списка (207/207/207),
   проверяются стендом `check_diag_container.py`;
 * у каждого поля есть **производитель** — прямое присваивание либо dummy
   `INTENT(OUT/INOUT)` (в легаси-объявлениях — маркер `!OUT`); это проверяет
@@ -167,10 +168,42 @@ run_teb_offline
   (`reserved`: полив сада не реализован, `GARDEN_CBS` возвращает `PIRRIG_GARDEN = 0.`);
 * `XUNDEF`-инициализация 15 полей (выходные диагностики, читаемые до записи)
   перенесена из обёртки в `TEB_GARDEN`;
-* снежная ветка `XPHSN_RD_CAN/ATM`, `XPLESN_RD_CAN/ATM` — персистентна: физика
-  читает/пишет `DMT` напрямую (носители-автоматы обёртки удалены);
 * агрегаты города (`H_TOWN`, `LE_TOWN`, `RUNOFF_*`, `HSNOW_TOWN` и др.) считает
   `CALL_DRIVER` из величин физики.
+
+**Ветви CBS-схемы (`TEB_CBS_BRANCH_t`).** Схема обменивает дорогу, сад и снег на
+дороге с двумя резервуарами воздуха — воздухом каньона (`CAN`) и уровнем
+форсинга (`ATM`). Обе ветви несут один и тот же набор величин, поэтому он
+объявлен **одной записью** и использован в `DMT` дважды: `DMT%CAN%…` и
+`DMT%ATM%…` (тот же приём, что `TSTATE%TSNOW_ROOF%T`).
+
+| компонент | что это | колонки CSV (`CAN` / `ATM`) |
+| --- | --- | --- |
+| `PCD_ROAD`, `PCDN_ROAD`, `PRI_ROAD`, `ZZ0H_ROAD` | коэффициенты обмена дороги | `PCD_ROAD_CAN`/`_ATM`, `PCDN_…`, `PRI_…`, `ZZ0H_…` |
+| `PAC_ROAD`, `PAC_ROAD_WAT`, `PCH_ROAD` | проводимости дороги (сухая, водная, тепло) | `PAC_ROAD_CAN`/`PAC_ROAD_ATM`, `PAC_ROAD_WAT`/`PAC_ROAD_ATM_WAT`, `PCH_ROAD_CAN`/`PCH_ROAD_ATM` |
+| `PH_ROAD`, `PLE_ROAD` | потоки дороги в ветвь | `H_ROAD_CAN`/`_ATM`, `LE_ROAD_CAN`/`_ATM` |
+| `PCD_GARDEN`, `PCH_GARDEN`, `PCDN_GARDEN`, `PRI_GARDEN`, `ZZ0H_GARDEN`, `PAC_GARDEN` | коэффициенты и проводимости сада | `PCD_GARDEN_CAN`/`_ATM`, `PCH_…`, `PCDN_…`, `PRI_…`, `ZZ0H_…`, `PAC_GARDEN`/`PAC_GARDEN_ATM` |
+| `H_GARDEN`, `LE_GARDEN` | потоки сада в ветвь | `H_GARDEN_CAN`/`_ATM`, `LE_GARDEN_CAN`/`_ATM` |
+| `PHSN_RD`, `PLESN_RD` | снег на дороге → ветвь | не выводятся |
+
+Жизненный цикл записи — при ней самой: `INIT_CBS_BRANCH` (`NULLIFY`),
+`ALLOC_CBS_BRANCH` и `DEALLOC_CBS_BRANCH` (в `MODD_DIAG_MISC_TEB_n`) действуют
+на один экземпляр и вызываются для `CAN` и `ATM` из `DIAG_MISC_TEB_INIT` /
+`DIAG_MISC_TEB_ALLOC` / `DIAG_MISC_TEB_DEALLOC`.
+
+Две оговорки:
+
+* `PHSN_RD`/`PLESN_RD` **персистентны**: узлы каньона читают их в начале
+  подшага, а `URBAN_SNOW_EVOL` пишет в конце, т.е. это значение
+  **предыдущего** подшага;
+* в режимах `PROXY_*` модель сада возвращает одну проводимость, и она попадает
+  в `CAN%PAC_GARDEN` (колонка `PAC_GARDEN`), а `ATM%PAC_GARDEN` остаётся
+  `XUNDEF`; в `EXT`/`EXT_NEU` заполняются обе ветви (`URBAN_DRAG`).
+
+Шесть полей с суффиксом `_ATM` остаются плоскими — `PAC_GREENROOF_ATM`,
+`PCD_GREENROOF_ATM`, `PCDN_GREENROOF_ATM`, `PCH_GREENROOF_ATM`,
+`PRI_GREENROOF_ATM`, `ZZ0H_GREENROOF_ATM`: у зелёной кровли ветвей нет, она
+обменивается только с уровнем форсинга.
 
 ### 5.2 `TOPTS` — опции TEB (`TEB_OPTIONS_t`, 22 param + 2 work + 3 reserved)
 
@@ -255,8 +288,8 @@ HVAC-уставки (`XTCOOL_TARGET`, `XTHEAT_TARGET`, `XCAP_SYS_HEAT`, `XCOP_RA
 
 | стенд | что проверяет |
 | --- | --- |
-| `python_tests/check_diag_container.py` | три списка полей `DMT` (тип, `NULLIFY`, `ALLOCATE`, `DEALLOCATE`): 205/205/205, расхождение — ошибка |
-| `python_tests/check_diag_producers.py` | производитель каждого поля `DMT`: прямое присваивание или `INTENT(OUT/INOUT)` (легаси `!OUT`) dummy; `= XUNDEF` производителем не считается; `XIRRIG_GARDEN` — `reserved` |
+| `python_tests/check_diag_container.py` | три списка полей `DMT` (тип, `NULLIFY`, `ALLOCATE`, `DEALLOCATE`): 207/207/207, включая компоненты записи `TEB_CBS_BRANCH_t` для обоих экземпляров (`CAN`, `ATM`); расхождение — ошибка |
+| `python_tests/check_diag_producers.py` | производитель каждого поля `DMT` (плоского и двухуровневого `CAN%…`/`ATM%…`): прямое присваивание или `INTENT(OUT/INOUT)` (легаси `!OUT`) dummy; `= XUNDEF` производителем не считается; `XIRRIG_GARDEN` — `reserved` |
 | `python_tests/container_fields_inventory.py` | категории полей восьми контейнеров (`param`/`flux`/`state`/`work`/`reserved`/`dead`); `--enforce-param` — `param`/`flux` пишет только слой `TEB_HOST` |
 | `python_tests/call_signature_inventory.py` | подпись `CALL_DRIVER`: классы `transient`/`container`/`host-emulator`/`deferred`/`violation`; `--strict --expect N` |
 | `python_tests/container_ab_compare.py` | два бинарника на кейсе `tests/CAPITOUL`: побитовое сравнение CSV поле-в-поле, заголовок, число строк, SHA-256 |
@@ -298,7 +331,8 @@ python python_tests/container_ab_matrix.py
 Итоговые счётчики: `TEB_GARDEN_STRUCT` был 411 → 326 → 304 → 83 → 68 аргументов
 и затем удалён; `TEB_GARDEN` — **65** аргументов; `CALL_DRIVER` — **57** dummy
 (9 контейнеров); `teb_interface` — **154** (стык с coupled-моделью сохранён).
-`DMT` вырос до **208** полей, а после удаления незаполняемых `XSOBS`/`XTHBS`/`XALB_TH`
-(см. `TEB_MSU_change_history.md`, §5.6, N3) — **205**. Вся дедупликация побитово
+`DMT` вырос до **208** полей, после удаления незаполняемых `XSOBS`/`XTHBS`/`XALB_TH`
+(см. `TEB_MSU_change_history.md`, §5.6, N3) — **205**, после объединения диагностик
+ветвей CBS-схемы в запись `TEB_CBS_BRANCH_t` — **207**. Вся дедупликация побитово
 идентична эталону: полный A/B (18 000 шагов) — `IDENTICAL`, SHA-256 CSV `30499e1f…`.
 

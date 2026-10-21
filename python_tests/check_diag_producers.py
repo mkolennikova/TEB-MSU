@@ -18,6 +18,10 @@ A field is considered produced when it is
   * passed as an actual argument whose dummy is `INTENT(OUT)`/`INTENT(INOUT)`
     (positional or keyword form) of a routine defined in the same tree.
 
+The CBS branch diagnostics are one record `TEB_CBS_BRANCH_t` used twice (`CAN`
+and `ATM`), so a reference such as `DMT%CAN%PCD_ROAD` is the field
+`CAN%PCD_ROAD`; it is produced exactly like a flat field.
+
 Fields that are deliberately left without a producer are listed in `ALLOWED`
 with the reason; everything else is an error.
 
@@ -45,8 +49,17 @@ TYPE_FILE = 'src_struct/modd_diag_misc_tebn.F90'
 RE_FIELD = re.compile(r'^\s*REAL\s*,\s*POINTER\s*,\s*DIMENSION\(:\)\s*::\s*(X\w+)', re.I)
 #: a direct assignment; `= XUNDEF` is only a guard against reading garbage, not a
 #: producer, so it does not count
-RE_ASSIGN = re.compile(r'\bDMT%(\w+)\s*(?:\([^)]*\))?\s*=(?!=)\s*(?!XUNDEF\b)', re.I)
-RE_ASSOC = re.compile(r'\bDMT%(\w+)\s*=>')
+RE_ASSIGN = re.compile(r'\bDMT%(?:(CAN|ATM)%|)(\w+)\s*(?:\([^)]*\))?\s*=(?!=)\s*(?!XUNDEF\b)', re.I)
+RE_ASSOC = re.compile(r'\bDMT%(?:(CAN|ATM)%|)(\w+)\s*=>', re.I)
+#: any reference to a container field, flat (`DMT%XFOO`) or nested (`DMT%CAN%FOO`)
+RE_DMT = re.compile(r'\bDMT%(?:(CAN|ATM)%|)(\w+)', re.I)
+
+#: nested record shared by the two CBS exchange paths (see the container guard)
+BRANCH_TYPE = 'TEB_CBS_BRANCH_t'
+BRANCH_INSTANCES = ('CAN', 'ATM')
+RE_BRANCH_TYPE = re.compile(r'^\s*TYPE\s+' + BRANCH_TYPE + r'\b', re.I)
+RE_END_TYPE = re.compile(r'^\s*END\s*TYPE\b', re.I)
+RE_BRANCH_COMPONENT = re.compile(r'^\s*REAL[^!\n]*?::\s*(\w+)', re.I)
 RE_SUB = re.compile(r'\s*(?:SUBROUTINE|FUNCTION)\s+(\w+)\s*(?:\((.*)\))?\s*$', re.I)
 RE_END_SUB = re.compile(r'\s*END\s+(?:SUBROUTINE|FUNCTION)\b', re.I)
 RE_INTENT = re.compile(r'INTENT\s*\(\s*(OUT|INOUT)\s*\)', re.I)
@@ -120,15 +133,37 @@ def _name(decl: str) -> str:
     return m.group(1).upper() if m else ''
 
 
+def _key(match) -> str:
+    """Canonical field key: `XFOO` for a flat field, `CAN%FOO` for a nested one."""
+    inst, name = match.group(1), match.group(2)
+    return f'{inst.upper()}%{name.upper()}' if inst else name.upper()
+
+
+def _branch_components(type_lines: list) -> list:
+    """Components of the nested `TEB_CBS_BRANCH_t` record (empty when absent)."""
+    out, inside = [], False
+    for line in type_lines:
+        if not inside:
+            if RE_BRANCH_TYPE.match(line):
+                inside = True
+            continue
+        if RE_END_TYPE.match(line):
+            break
+        m = RE_BRANCH_COMPONENT.match(line)
+        if m:
+            out.append(m.group(1))
+    return out
+
+
 def collect(tree: Path) -> dict:
     """Return the fields, their producers and the reads that were seen."""
     type_path = tree / TYPE_FILE
     if not type_path.is_file():
         sys.exit(f'ERROR: file not found: {type_path}')
-    fields = [m.group(1) for m in
-              (RE_FIELD.match(l) for l in
-               type_path.read_text(encoding='utf-8', errors='ignore').splitlines())
-              if m]
+    type_lines = type_path.read_text(encoding='utf-8', errors='ignore').splitlines()
+    fields = [m.group(1) for m in (RE_FIELD.match(l) for l in type_lines) if m]
+    components = _branch_components(type_lines)
+    fields += [f'{inst}%{c}' for inst in BRANCH_INSTANCES for c in components]
 
     dummies, out_dummies = {}, {}
     current = None
@@ -151,9 +186,9 @@ def collect(tree: Path) -> dict:
     for path in files:
         for _, st, _ in statements(path):
             for m in RE_ASSIGN.finditer(st):
-                assigned.add(m.group(1))
+                assigned.add(_key(m))
             for m in RE_ASSOC.finditer(st):
-                assigned.add(m.group(1))
+                assigned.add(_key(m))
             mc = RE_CALL.match(st)
             if not mc:
                 continue
@@ -164,10 +199,10 @@ def collect(tree: Path) -> dict:
                     dummy, value = kw.group(1).upper(), kw.group(2)
                 else:
                     dummy, value = None, arg
-                mm = re.match(r'DMT%(\w+)', value)
+                mm = RE_DMT.match(value)
                 if not mm:
                     continue
-                field = mm.group(1)
+                field = _key(mm)
                 if dummy is None:
                     guess = dummies.get(callee)
                     if guess is None or pos >= len(guess):
