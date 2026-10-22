@@ -3,7 +3,7 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt
 !SFX_LIC for details. version 1.
 !   ##########################################################################
-    SUBROUTINE URBAN_MRT(KICELL, KIBLOCK, FORC, TPARAMS, TSTATE, DMT, EXT)
+    SUBROUTINE URBAN_MRT(KICELL, KIBLOCK, FORC, TPARAMS, TSTATE, DMT, EXT, CBODY)
 !   ##########################################################################
 !
 !!****  *URBAN_MRT*
@@ -29,9 +29,12 @@
 !!**  METHOD
 !!    ------
 !
-!     Body = sphere (globe-like): F_sky + F_wall + F_road = 1 over the 4 pi,
-!     the beam projection factor is 0.25, the diffuse (sky, wall reflection,
-!     road reflection and longwave) one is the view factor itself.
+!     Body = sphere (globe-like) or a standing person, selected by CBODY:
+!     the view factors (F_sky + F_wall + F_road = 1 over the 4 pi) are those of the
+!     sphere in both cases, only the projection factor of the DIRECT BEAM differs
+!     (0.25 for the sphere, the Fanger projected area factor of a standing person
+!     for 'PERSON', see below). The diffuse (sky, wall reflection, road
+!     reflection and longwave) terms use the view factor itself.
 !
 !       T_mrt = [ ( alpha_k * sum(I_i) + eps_p * sum(L_i) ) / (eps_p * sigma) ]^(1/4)
 !
@@ -73,7 +76,7 @@
 !*       0.     DECLARATIONS
 !               ------------
 !
-USE MODD_CSTS,            ONLY : XSTEFAN
+USE MODD_CSTS,            ONLY : XSTEFAN, XPI
 USE MODD_SURF_PAR,        ONLY : XUNDEF
 USE MODD_TEB_n,           ONLY : TEB_t
 USE MODD_TEB_PARAMS_n,    ONLY : TEB_PARAMS_t
@@ -94,24 +97,63 @@ TYPE(TEB_PARAMS_t),    INTENT(IN)    :: TPARAMS  ! static parameters of TEB (geo
 TYPE(TEB_t),           INTENT(IN)    :: TSTATE   ! state of TEB (snow on the road)
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT      ! diagnostics container
 TYPE(TEB_EXT_SURF_t),  INTENT(IN)    :: EXT      ! external surfaces (unused, symmetry with the physics calls)
+!MV202610 body model of the beam projection factor: 'SPHERE' (default) or 'PERSON'
+!* (standing person); the argument is optional, so a call without it keeps the
+!* globe-like definition of the scheme
+CHARACTER(LEN=*),      INTENT(IN), OPTIONAL :: CBODY
 !
 !*      0.2    declarations of local variables
 !
 !MV202610 pedestrian constants (see the scheme document)
-REAL, PARAMETER :: XZ_PED     = 1.1     ! height of the centre of the pedestrian (m)
-REAL, PARAMETER :: XABS_BODY  = 0.70    ! shortwave absorption of the body (-)
-REAL, PARAMETER :: XEMIS_BODY = 0.97    ! longwave emissivity of the body (-)
-REAL, PARAMETER :: XF_DIR     = 0.25    ! projected area factor of a sphere for the beam (-)
-REAL, PARAMETER :: XCOSZ_MIN  = 0.02    ! lower bound of cos(zenith) (88.9 deg)
+REAL, PARAMETER :: XZ_PED      = 1.1    ! height of the centre of the pedestrian (m)
+REAL, PARAMETER :: XABS_BODY   = 0.70   ! shortwave absorption of the body (-)
+REAL, PARAMETER :: XEMIS_BODY  = 0.97   ! longwave emissivity of the body (-)
+REAL, PARAMETER :: XCOSZ_MIN   = 0.02   ! lower bound of cos(zenith) (88.9 deg)
+!MV202610 projection factor of the direct beam: body = sphere or standing person
+!* sphere: 0.25 (the projected area of a sphere is a quarter of its surface);
+!* person: f_p = 0.308*cos(elev*(1 - elev^2/48402)) with the solar elevation in
+!* degrees - the projected area factor of a STANDING person (Fanger, 1970, after
+!* Underwood & Ward, 1966), in the form used by RayMan and by the MRT chain of
+!* PyBiometeo (mrt_utils.calcsolarfv). 0.308 is the value at the horizon and the
+!* fitted argument keeps 0.08 at the zenith (the top view of a standing body);
+!* only the beam uses it, the diffuse and longwave view factors stay spherical.
+REAL, PARAMETER :: XF_DIR_SPHERE = 0.25   ! projected area factor of a sphere (-)
+REAL, PARAMETER :: XF_PERSON_A   = 0.308  ! projection factor of a standing person at the horizon (-)
+REAL, PARAMETER :: XF_PERSON_C   = 48402. ! fitted constant of the projection factor (deg^2)
 !
 REAL :: ZH_CAN, ZA_RATIO, ZA_EFF, ZPSI, ZB, ZSKY, ZROAD, ZWALL
 REAL :: ZCOSZ, ZSUNLIT, ZIDIR, ZIDIR_SUN, ZISKY, ZIWALL, ZSW_REF, ZIROAD
 REAL :: ZPDN, ZALB_RD, ZALB_SN, ZEMIS_RD, ZEMIS_SN, ZEMIS_WL
 REAL :: ZT_ROAD, ZT_SNOW, ZL_SKY, ZL_WALL, ZL_ROAD
 REAL :: ZQ_SW, ZQ_SW_SUN, ZQ_LW, ZQ_TOT
+REAL :: ZFDIR, ZELEV
+CHARACTER(LEN=16) :: YBODY
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('URBAN_MRT',0,ZHOOK_HANDLE)
+!
+!*       0.3    BODY MODEL: PROJECTION FACTOR OF THE DIRECT BEAM
+!               ----------------------------------------------
+!
+!MV202610 two variants, selected by the optional CBODY ('SPHERE' is the default,
+!* so a call without the argument reproduces the globe-like definition):
+!*   'SPHERE' - projected area factor 0.25, independent of the sun position;
+!*   'PERSON' - projected area factor of a standing person as a function of the
+!*              solar elevation:  f_p = 0.308*cos(elev*(1 - elev^2/48402)),
+!*              elev in degrees (Fanger 1970, after Underwood & Ward 1966; the
+!*              form used by RayMan and by PyBiometeo mrt_utils.calcsolarfv).
+!* Only the beam uses it: the diffuse and longwave view factors stay spherical.
+!
+YBODY = 'SPHERE'
+IF (PRESENT(CBODY)) YBODY = ADJUSTL(CBODY)
+IF (YBODY(1:1) == 'P' .OR. YBODY(1:1) == 'p') THEN
+  !* standing person: the elevation is measured from the horizon and is kept in
+  !* [0, 90] for definiteness (at night the beam term is skipped anyway)
+  ZELEV = MAX(0., MIN(90., 90. - FORC%XZENITH(KICELL)*180./XPI))
+  ZFDIR = XF_PERSON_A * COS( (ZELEV*(1. - ZELEV**2/XF_PERSON_C)) * XPI/180. )
+ELSE
+  ZFDIR = XF_DIR_SPHERE
+ENDIF
 !
 !*       1.     GEOMETRY: VIEW FACTORS OF THE PEDESTRIAN
 !               --------------------------------------
@@ -183,7 +225,7 @@ ZCOSZ     = COS(FORC%XZENITH(KICELL))
 ZIDIR     = 0.
 ZIDIR_SUN = 0.
 IF (DMT%XSW_DIR_ROAD(KICELL) > 0. .AND. ZCOSZ > 0.) THEN
-  ZIDIR   = XF_DIR * DMT%XSW_DIR_ROAD(KICELL) / MAX(ZCOSZ,XCOSZ_MIN)
+  ZIDIR   = ZFDIR * DMT%XSW_DIR_ROAD(KICELL) / MAX(ZCOSZ,XCOSZ_MIN)
   ZSUNLIT = MIN(1., MAX(DMT%XSUN_FRAC_ROAD(KICELL),0.))
   IF (ZSUNLIT > 0.) ZIDIR_SUN = ZIDIR / ZSUNLIT
 ENDIF
@@ -252,7 +294,7 @@ IF (LHOOK) CALL DR_HOOK('URBAN_MRT',1,ZHOOK_HANDLE)
 END SUBROUTINE URBAN_MRT
 
 !   ##########################################################################
-    SUBROUTINE URBAN_MRT_ROOF(KICELL, KIBLOCK, FORC, TPARAMS, TSTATE, DMT, EXT)
+    SUBROUTINE URBAN_MRT_ROOF(KICELL, KIBLOCK, FORC, TPARAMS, TSTATE, DMT, EXT, CBODY)
 !   ##########################################################################
 !
 !!****  *URBAN_MRT_ROOF*
@@ -298,7 +340,7 @@ END SUBROUTINE URBAN_MRT
 !*       0.     DECLARATIONS
 !               ------------
 !
-USE MODD_CSTS,            ONLY : XSTEFAN
+USE MODD_CSTS,            ONLY : XSTEFAN, XPI
 USE MODD_SURF_PAR,        ONLY : XUNDEF
 USE MODD_TEB_n,           ONLY : TEB_t
 USE MODD_TEB_PARAMS_n,    ONLY : TEB_PARAMS_t
@@ -319,23 +361,43 @@ TYPE(TEB_PARAMS_t),    INTENT(IN)    :: TPARAMS  ! static parameters of TEB (roo
 TYPE(TEB_t),           INTENT(IN)    :: TSTATE   ! state of TEB (snow on the roof)
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT      ! diagnostics container
 TYPE(TEB_EXT_SURF_t),  INTENT(IN)    :: EXT      ! external surfaces (unused, symmetry with the physics calls)
+!MV202610 body model of the beam projection factor: 'SPHERE' (default) or 'PERSON'
+CHARACTER(LEN=*),      INTENT(IN), OPTIONAL :: CBODY
 !
 !*      0.2    declarations of local variables
 !
 !MV202610 pedestrian constants (the same as in URBAN_MRT) and the roof geometry
 REAL, PARAMETER :: XABS_BODY  = 0.70    ! shortwave absorption of the body (-)
 REAL, PARAMETER :: XEMIS_BODY = 0.97    ! longwave emissivity of the body (-)
-REAL, PARAMETER :: XF_DIR     = 0.25    ! projected area factor of a sphere for the beam (-)
 REAL, PARAMETER :: XCOSZ_MIN  = 0.02    ! lower bound of cos(zenith) (88.9 deg)
 REAL, PARAMETER :: XF_SKY     = 0.5     ! sky view factor on a flat infinite roof (-)
 REAL, PARAMETER :: XF_ROOF    = 0.5     ! roof view factor on a flat infinite roof (-)
+!MV202610 projection factor of the direct beam (see URBAN_MRT for the references)
+REAL, PARAMETER :: XF_DIR_SPHERE = 0.25   ! projected area factor of a sphere (-)
+REAL, PARAMETER :: XF_PERSON_A   = 0.308  ! projection factor of a standing person at the horizon (-)
+REAL, PARAMETER :: XF_PERSON_C   = 48402. ! fitted constant of the projection factor (deg^2)
 !
 REAL :: ZCOSZ, ZIDIR, ZISKY, ZIROOF
 REAL :: ZPDN, ZALB_RF, ZALB_SN, ZEMIS_RF, ZEMIS_SN, ZT_ROOF, ZT_SNOW
 REAL :: ZL_SKY, ZL_ROOF, ZQ_SW, ZQ_LW, ZQ_TOT
+REAL :: ZFDIR, ZELEV
+CHARACTER(LEN=16) :: YBODY
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('URBAN_MRT_ROOF',0,ZHOOK_HANDLE)
+!
+!*       0.3    BODY MODEL: PROJECTION FACTOR OF THE DIRECT BEAM
+!               ----------------------------------------------
+!
+!MV202610 the same two variants as in URBAN_MRT: 'SPHERE' (default) or 'PERSON'
+YBODY = 'SPHERE'
+IF (PRESENT(CBODY)) YBODY = ADJUSTL(CBODY)
+IF (YBODY(1:1) == 'P' .OR. YBODY(1:1) == 'p') THEN
+  ZELEV = MAX(0., MIN(90., 90. - FORC%XZENITH(KICELL)*180./XPI))
+  ZFDIR = XF_PERSON_A * COS( (ZELEV*(1. - ZELEV**2/XF_PERSON_C)) * XPI/180. )
+ELSE
+  ZFDIR = XF_DIR_SPHERE
+ENDIF
 !
 !*       1.     SURFACE PROPERTIES OF THE ROOF
 !               -------------------------------
@@ -367,7 +429,7 @@ ZT_ROOF  = DMT%XTS_ROOF(KICELL)
 ZCOSZ = COS(FORC%XZENITH(KICELL))
 ZIDIR = 0.
 IF (DMT%XSW_DIR_ROOF(KICELL) > 0. .AND. ZCOSZ > 0.) THEN
-  ZIDIR = XF_DIR * DMT%XSW_DIR_ROOF(KICELL) / MAX(ZCOSZ,XCOSZ_MIN)
+  ZIDIR = ZFDIR * DMT%XSW_DIR_ROOF(KICELL) / MAX(ZCOSZ,XCOSZ_MIN)
 ENDIF
 !
 !* diffuse sky: half of the horizontal flux (the sphere sees half of the sky)

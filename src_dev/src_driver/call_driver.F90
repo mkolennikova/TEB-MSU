@@ -827,10 +827,13 @@ DMT%XTS_WALL_B(1:1) = TSTATE%XT_WALL_B(icell,1)
 !MV202610 mean radiant temperature of a pedestrian standing on the road
 !* pure diagnostic: it needs the surface temperatures of this sub-step (set just
 !* above), the incident shortwave components of URBAN_SOLAR_ABS (DMT%XSW_*) and
-!* the canyon geometry of TPARAMS; no feedback on the physics
-CALL URBAN_MRT(icell, iblock, FORC, TPARAMS, TSTATE, DMT, EXT)
+!* the canyon geometry of TPARAMS; no feedback on the physics. The projection
+!* factor of a STANDING person is used here ('PERSON': the beam factor depends on
+!* the solar elevation); 'SPHERE' - the default of URBAN_MRT, the globe-like
+!* definition - remains available as an alternative
+CALL URBAN_MRT(icell, iblock, FORC, TPARAMS, TSTATE, DMT, EXT, 'PERSON')
 !MV202610 the same pedestrian on the roof: only the sky and the roof itself
-CALL URBAN_MRT_ROOF(icell, iblock, FORC, TPARAMS, TSTATE, DMT, EXT)
+CALL URBAN_MRT_ROOF(icell, iblock, FORC, TPARAMS, TSTATE, DMT, EXT, 'PERSON')
 
 DMT%XH_ROOF_FR(1:1) = DMT%XH_ROOF(1)*TPARAMS%XBLD(icell:icell)
 !MV202609 CBS scheme of the road

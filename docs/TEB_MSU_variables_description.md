@@ -472,6 +472,13 @@ Mean radiant temperature of a person standing on the road of the canyon (canyon
 axis, 1.1 m above the road). Pure diagnostic: it feeds no budget and changes no
 other column. The scheme is described in `TEB_MSU_MRT_pedestrian_scheme.md`.
 
+The body is a sphere for the diffuse and longwave terms; the projection factor
+of the direct beam is selected by the optional argument `CBODY` of `URBAN_MRT`
+and `URBAN_MRT_ROOF` (`'SPHERE'` - 0.25, the default - or `'PERSON'` - the
+standing-person factor `0.308*cos(elev*(1 - elev^2/48402))`, Fanger 1970 after
+Underwood & Ward 1966). `CALL_DRIVER` passes `'PERSON'`, so the exported values
+are those of a standing person; the run itself does not depend on this choice.
+
 | Variable | Dimension | Comment |
 |:---------|:----------|:--------|
 | `MRT_ROAD` | K | MRT of a pedestrian "smeared" over the road width: the direct beam is weighted by the sunlit area fraction of the road (consistent with the other road-area-averaged diagnostics) |
@@ -482,7 +489,7 @@ other column. The scheme is described in `TEB_MSU_MRT_pedestrian_scheme.md`.
 | `SW_TOT_ROAD` | W/m² | Total shortwave incident on the snow-free road, `SW_DIR_ROAD + SW_SKY_ROAD + SW_WALL_ROAD` |
 | `SUN_FRAC_ROAD` | - | Sunlit area fraction of the road (0 at night) |
 | `MRT_F_SKY`, `MRT_F_WALL`, `MRT_F_ROAD` | - | View factors of the pedestrian (sky, walls, road; they sum to one) |
-| `MRT_SW_DIR`, `MRT_SW_SKY`, `MRT_SW_WALL`, `MRT_SW_ROAD` | W/m² | Shortwave absorbed by the body (after the body absorptivity `0.70`) |
+| `MRT_SW_DIR`, `MRT_SW_SKY`, `MRT_SW_WALL`, `MRT_SW_ROAD` | W/m² | Shortwave absorbed by the body (after the body absorptivity `0.70`); `MRT_SW_DIR` uses the standing-person projection factor |
 | `MRT_LW_SKY`, `MRT_LW_WALL`, `MRT_LW_ROAD` | W/m² | Longwave absorbed by the body (after the body emissivity `0.97`) |
 | `MRT_ROOF` | K | The same MRT for a pedestrian standing on the **roof** (comparison): only the sky and the roof surface, `F_sky = F_roof = 0.5`, no walls, no canyon shadow |
 | `SW_DIR_ROOF` | W/m² | Direct shortwave reaching the roof (reduced by the solar-panel coverage, not shadowed by the canyon) |

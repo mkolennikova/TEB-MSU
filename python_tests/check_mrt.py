@@ -37,6 +37,15 @@ M12 roof night bounds (the emitted irradiances of the sky and of the roof);
 M13 the roof value is materially different from the road one (``MRT_ROOF`` is
     not a copy of ``MRT_ROAD``), with the mean difference in daylight.
 
+Body model
+----------
+The projection factor of the direct beam follows ``src_teb/urban_mrt.F90``: the
+model hardcodes the STANDING PERSON variant (``'PERSON'``,
+``0.308*cos(elev*(1 - elev^2/48402))``, elev in degrees - Fanger, 1970, after
+Underwood & Ward, 1966; the form of RayMan and of PyBiometeo ``calcsolarfv``),
+so this is the default here; ``--body sphere`` checks a run built with the
+globe-like default of ``URBAN_MRT`` (factor 0.25).
+
 Usage
 -----
     python python_tests/check_mrt.py build/out/TEB_output_b1_c1.csv \
@@ -61,7 +70,9 @@ SEP = ';'
 Z_PED = 1.1        # height of the centre of the pedestrian (m)
 ABS_BODY = 0.70    # shortwave absorption of the body (-)
 EMIS_BODY = 0.97   # longwave emissivity of the body (-)
-F_DIR = 0.25       # projected area factor of a sphere for the beam (-)
+F_DIR_SPHERE = 0.25   # projected area factor of a sphere for the beam (-)
+F_PERSON_A = 0.308    # projection factor of a standing person at the horizon (-)
+F_PERSON_C = 48402.   # fitted constant of the projection factor (deg^2)
 COSZ_MIN = 0.02    # lower bound of cos(zenith)
 SIGMA = 5.6697e-8  # MODD_CSTS:XSTEFAN (set in INI_CSTS), not the CODATA value
 
@@ -109,8 +120,25 @@ def report(name: str, ok: bool, detail: str) -> bool:
     return ok
 
 
+def projection_factor(solar_zenith_deg, body='PERSON'):
+    """Projected area factor of the direct beam, as in ``src_teb/urban_mrt.F90``.
+
+    'PERSON' (default) - standing person: ``0.308*cos(elev*(1 - elev^2/48402))``
+    with the solar elevation ``elev = 90 - zenith`` in degrees (Fanger, 1970,
+    after Underwood & Ward, 1966; the form used by RayMan and by the MRT chain of
+    PyBiometeo), so 0.308 at the horizon and 0.08 at the zenith;
+    'SPHERE' - 0.25, the globe-like body of the scheme, independent of the sun.
+    """
+    zenith = np.asarray(solar_zenith_deg, dtype=float)
+    if str(body).strip().lower().startswith('p'):
+        elev = np.clip(90.0 - zenith, 0.0, 90.0)
+        return F_PERSON_A * np.cos(np.radians(elev * (1.0 - elev ** 2 / F_PERSON_C)))
+    return np.full(zenith.shape, F_DIR_SPHERE, dtype=float)
+
+
 def run_checks(d: pd.DataFrame, alb_rd: float, emis_rd: float, emis_wl: float,
-               alb_rf: float, emis_rf: float, h_bld: float, h2w: float) -> bool:
+               alb_rf: float, emis_rf: float, h_bld: float, h2w: float,
+               body: str = 'PERSON') -> bool:
     """All checks of the scheme; returns True when every one of them passes."""
     psi, f_sky, f_wall, f_road = view_factors(h_bld, h2w)
     ok = True
@@ -143,7 +171,8 @@ def run_checks(d: pd.DataFrame, alb_rd: float, emis_rd: float, emis_wl: float,
     sun_frac = np.clip(x['SUN_FRAC_ROAD'].to_numpy(), 0., 1.)
     sun_on = (sw_dir > 0.) & (cosz > 0.)
     # the area-averaged beam of the "smeared" pedestrian, and the sunlit variant
-    q_dir = np.where(sun_on, ABS_BODY * F_DIR * sw_dir / cosz_eff, 0.)
+    q_dir = np.where(sun_on, ABS_BODY * projection_factor(x['SOLAR_ZENITH'], body)
+                     * sw_dir / cosz_eff, 0.)
     q_dir_sun = np.where(sun_on & (sun_frac > 0.), q_dir / np.maximum(sun_frac, 1e-12), 0.)
     q_sky = ABS_BODY * 0.5 * x['SW_SKY_ROAD'].to_numpy()
     q_wall = ABS_BODY * f_wall * x['SW_WALL_ROAD'].to_numpy() / max(1. - psi, 0.05)
@@ -223,7 +252,8 @@ def run_checks(d: pd.DataFrame, alb_rd: float, emis_rd: float, emis_wl: float,
     cosz_eff = np.maximum(cosz, COSZ_MIN)
     sw_dir = x['SW_DIR_ROOF'].to_numpy()
     q_dir = np.where((sw_dir > 0.) & (cosz > 0.),
-                     ABS_BODY * F_DIR * sw_dir / cosz_eff, 0.)
+                     ABS_BODY * projection_factor(x['SOLAR_ZENITH'], body)
+                     * sw_dir / cosz_eff, 0.)
     q_sky = ABS_BODY * 0.5 * x['SW_SKY_ROOF'].to_numpy()
     q_roof = ABS_BODY * 0.5 * alb_rf * x['SW_TOT_ROOF'].to_numpy()
     q_lw = EMIS_BODY * (0.5 * x['Forc_LW'].to_numpy()
@@ -270,6 +300,10 @@ def main(argv=None) -> int:
     ap.add_argument('path', help='TEB_output_b<block>_c<cell>.csv of a dev run')
     ap.add_argument('--param-nml', default='namelist/namelist.nml',
                     help='parameter namelist of the run (geometry, albedo, emissivity)')
+    ap.add_argument('--body', default='person', choices=('person', 'sphere'),
+                    help="body model of the beam projection factor used by the run: "
+                         "'person' (standing person, the variant hardcoded in CALL_DRIVER) "
+                         "or 'sphere' (globe-like, the default of URBAN_MRT)")
     args = ap.parse_args(argv)
 
     d = read_output(Path(args.path))
@@ -295,8 +329,10 @@ def main(argv=None) -> int:
     print(f'  geometry: H = {h_bld} m, H/W = {h2w}, z_ped = {Z_PED} m; '
           f'road alb/emis = {alb_rd}/{emis_rd}, wall emis = {emis_wl}, '
           f'roof alb/emis = {alb_rf}/{emis_rf}')
+    print(f'  body model: {args.body} (projection factor of the direct beam)')
     print(f'  rows: {len(d)}')
-    ok = run_checks(d, alb_rd, emis_rd, emis_wl, alb_rf, emis_rf, h_bld, h2w)
+    ok = run_checks(d, alb_rd, emis_rd, emis_wl, alb_rf, emis_rf, h_bld, h2w,
+                    body=args.body)
     print(f'  RESULT: {"OK" if ok else "FAIL"}')
     return 0 if ok else 1
 
