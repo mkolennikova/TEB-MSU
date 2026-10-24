@@ -14,8 +14,9 @@ MODULE sfc_teb
 !* implicit interface; IMPLICIT NONE closes the door to a silently created
 !* variable when an identifier is misspelled.
 USE MODI_CALL_DRIVER, ONLY : CALL_DRIVER
+USE MODI_INI_CSTS,   ONLY : INI_CSTS
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
-USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_FILL_FORCING, TEB_FILL_EXT, TEB_HOST_ENSURE, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, DMT, FORC, EXT, TEB_BIND_STATE, TEB_UNBIND_STATE
+USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_FILL_FORCING, TEB_FILL_EXT, TEB_HOST_ENSURE, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, DMT, FORC, EXT, TEB_BIND_STATE, TEB_UNBIND_STATE, TEB_INIT_STATE
 USE TEB_LOG,  ONLY : TEB_LOG_SET_FILTER, TEB_LOG_AT_CADENCE, TEB_LOG_EMIT
 IMPLICIT NONE
 
@@ -354,13 +355,19 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
                   teb_ws_road, &
                   teb_tfloor, &
                   teb_tmass)
+    !MV202610 cold start of the first model step: ntstep is 0-based
+    IF (ntstep == 0) THEN
+       CALL INI_CSTS
+       CALL TEB_INIT_STATE (ivstart, ivend)
+    END IF
 	DO i = ivstart, ivend
 		CALL CALL_DRIVER (ntstep, i, iblock, dt, teb_year, teb_month, teb_day, teb_hour, teb_min, &
                  teb_sec, teb_hour_seconds(1), sa_uc(i), lon_teb(i), lat_teb(i), FORC, EXT, &
                  teb_tch_gd(i), teb_tcm_gd(i), &
                  DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR)
 	END DO
-	
+    !MV202610 keep the post-TEB_GARDEN value on the first model step
+    IF (ntstep == 0) DMT%XTSTOWN_S_NOW(ivstart:ivend) = DMT%XTSTOWN_S(ivstart:ivend)
     CALL TEB_UNBIND_STATE (ivstart, ivend, &
                  teb_ti_bld, &
                  teb_twin2, &

@@ -143,8 +143,10 @@ def main(argv=None) -> int:
         exp_dir = out_root / name
         nml = {'off': make_param_namelist(exp_dir / 'off' / 'namelist.nml', off),
                'on': make_param_namelist(exp_dir / 'on' / 'namelist.nml', on)}
+        nml_ref = {'off': make_param_namelist(exp_dir / 'off' / 'namelist_ref.nml', off, reference=True),
+                   'on': make_param_namelist(exp_dir / 'on' / 'namelist_ref.nml', on, reference=True)}
         for variant in ('off', 'on'):
-            run_case(ref_exe, CASE, FORCING_NML, exp_dir / variant / 'ref', None, nml[variant])
+            run_case(ref_exe, CASE, FORCING_NML, exp_dir / variant / 'ref', None, nml_ref[variant])
             run_case(new_exe, CASE, FORCING_NML, exp_dir / variant / 'new', None, nml[variant])
 
         ab = {}

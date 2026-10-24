@@ -52,6 +52,9 @@ MODEL_DIR = HERE.parent
 #: the forcing namelist item that controls the length of the run
 RE_NSTEPS = re.compile(r'(nsteps\s*=\s*)(\d+)', re.I)
 
+#: candidate-only initial-state keys, unknown to the old reference binary
+INIT_KEYS = ('teb_ti_bld_init', 'teb_qi_bld_init')
+
 
 def sha256(path: Path) -> str:
     h = hashlib.sha256()
@@ -69,6 +72,16 @@ def read_csv(path: Path):
     header = lines[0].split(';')
     rows = [line.split(';') for line in lines[1:] if line.strip()]
     return header, rows
+
+
+def make_reference_param_namelist(src: Path, dst: Path) -> Path:
+    """Copy a parameter namelist, removing keys the old reference does not know."""
+    text = src.read_text(encoding='utf-8', errors='ignore')
+    for key in INIT_KEYS:
+        text = re.sub(r'^(\s*)' + re.escape(key) + r'\s*=\s*[^\n]*\n?', '', text, flags=re.M)
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    dst.write_text(text, encoding='utf-8')
+    return dst
 
 
 def make_short_namelist(src: Path, dst: Path, steps: int) -> Path:
@@ -179,6 +192,7 @@ def main(argv=None) -> int:
     ap.add_argument('--case', default='tests/CAPITOUL', help='case directory (default: tests/CAPITOUL)')
     ap.add_argument('--steps', type=int, default=None, help='run only the first N forcing steps')
     ap.add_argument('--param-nml', default=None, help='parameter namelist file (passed via -param_nml)')
+    ap.add_argument('--ref-param-nml', default=None, help='parameter namelist for the reference binary (default: --param-nml without the new init keys)')
     ap.add_argument('--out-root', default='python_tests/container_ab', help='root of the run outputs')
     ap.add_argument('--golden', default=None, help='file with the expected CSV header (one column per line)')
     ap.add_argument('--timeout', type=float, default=None, help='seconds allowed per run')
@@ -201,9 +215,17 @@ def main(argv=None) -> int:
         print(f'short run: nsteps = {args.steps} ({forcing_nml.name})')
 
     param_nml = (MODEL_DIR / args.param_nml).resolve() if args.param_nml else None
+    if args.ref_param_nml:
+        ref_param_nml = (MODEL_DIR / args.ref_param_nml).resolve()
+    elif param_nml is not None:
+        ref_param_nml = make_reference_param_namelist(param_nml, out_root / 'param_namelist_ref.nml')
+    else:
+        base_nml = case / 'namelist' / 'namelist.nml'
+        ref_param_nml = (make_reference_param_namelist(base_nml, out_root / 'param_namelist_ref.nml')
+                         if base_nml.is_file() else None)
 
     print(f'A/B comparison: {args.case}')
-    run_case(ref_exe, case, forcing_nml, out_root / 'ref', args.timeout, param_nml)
+    run_case(ref_exe, case, forcing_nml, out_root / 'ref', args.timeout, ref_param_nml)
     run_case(new_exe, case, forcing_nml, out_root / 'new', args.timeout, param_nml)
 
     ref_csv = out_root / 'ref' / 'TEB_output_b1_c1.csv'

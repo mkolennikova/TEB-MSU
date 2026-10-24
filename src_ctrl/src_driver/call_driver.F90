@@ -901,7 +901,7 @@ ZROUGH_WALL   = 1.52    ! wall roughness coef. in case DOE-2
 !===========================================================================
 !===========================================================================
 !===========================================================================
-IF (ntstep == 1) THEN
+IF (ntstep == 0) THEN
 	ZZ0U = ZZ0
 ELSE
     ZZ0U = ZZ0
@@ -914,15 +914,15 @@ ENDIF
 !ZZ0U = MIN(ZZ0U,ZZ0 * 5.)
 !ZZ0U = MAX(ZZ0U,ZZ0 * 0.2)
 
-IF (ntstep == 1) THEN
+IF (ntstep == 0) THEN
 
 	! Input/Output semi-prognostic variables
 	ZT_CANYON      = t                 ! Canyon air temperature
 	ZQ_CANYON      = qv                ! Outdoor specific humidity    [kg kg-1]
 	
 	! Input/Output prognostic variables
-	ZTI_BLD        = ZTCOOL_TARGET     ! indoor air temperature
-    ZQI_BLD        = 0.0068794074      ! Indoor air specific humidity [kg kg-1]
+	!* ZTI_BLD / ZQI_BLD are initialised by the driver (teb_ti_bld_init /
+	!* teb_qi_bld_init) or by the coupled host; they are not reset here.
 	ZU_CANYON      = 1.                ! Wind speed in canyon
 	ZTS_TOWN_S     = t
     ZTS_TOWN       = t	
@@ -1376,7 +1376,7 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, LGARDEN_EXT, LGREENROOF, LGREENR
 !*****************************************************************************
 !
 
-IF (ntstep == 1) THEN
+IF (ntstep == 0) THEN
 	ZTS_TOWN_S_NOW = ZTS_TOWN
 END IF
 

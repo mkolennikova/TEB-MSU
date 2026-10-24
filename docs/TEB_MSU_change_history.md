@@ -14,6 +14,12 @@
 ---
 
 ## 0. Текущие (незакоммиченные) правки
+**Инициализация теплового состояния здания.** В `/tebparam/` введены `teb_ti_bld_init` и `teb_qi_bld_init`. Если `teb_ti_bld_init` не задан, используется `teb_tcool_target`; если не задан `teb_qi_bld_init` — `0.5*QSAT(TI_BLD, ps)` на первом модельном шаге. `CALL_DRIVER` больше не перезаписывает `XTI_BLD`/`XQI_BLD`. CAPITOUL задаёт `teb_qi_bld_init=0.0068794074`.
+
+**Cold-start вынесен в `TEB_INIT_STATE` (рабочая копия).** В `src_dev` cold-start из `CALL_DRIVER` перенесён в `TEB_INIT_STATE(KSTART, KEND)` (`src_api/teb_host.F90`); `teb_interface` вызывает его после `TEB_BIND_STATE` и до `CALL_DRIVER` при `ntstep == 0`. `CALL_DRIVER` больше не содержит `IF (ntstep == 1)`. Нумерация шага модели 0-based; offline передаёт `kstep_model = (nstep-1)*INB_ATM + (JSURF_STEP-1)`, поэтому первый forcing step с несколькими суб-шагами инициализирует состояние один раз. `TEB_INIT_STATE` заполняет только `XUNDEF` (`TI_BLD -> teb_tcool_target`, `QI_BLD -> 0.5*QSAT(TI_BLD, ps)`); перед cold-start вызывается `INI_CSTS`. Прежний перенос `XTSTOWN_S_NOW = XTSTOWN_S` после `TEB_GARDEN` сохранён в `teb_interface` при `ntstep == 0`.
+
+Аналогично `src_ctrl` адаптирован in-place, без новых функций и контейнеров: `run_teb_offline` передаёт `kstep_model`, а условия первых-step блоков `CALL_DRIVER` (`:904`, `:917`, `:1379`) переведены на `ntstep == 0`. `teb_ti_bld_init` / `teb_qi_bld_init` и их default/range-check реализованы в `run_teb_offline`; `CALL_DRIVER` значения не сбрасывает. `tests/CAPITOUL/output_ref` и A/B reference не перегенерированы.
+
 **Разделение репозитория на `src_dev` и `src_ctrl` (рабочая копия).** Дерево источника
 разделено на два независимых дерева, собираемых из корня репозитория: `src_dev/` — текущая
 физика ветки `MV_devs` + I/O (`make -C src_dev` → `build/TEB_offline_dev.exe`), `src_ctrl/` —

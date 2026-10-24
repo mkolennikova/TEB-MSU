@@ -105,6 +105,7 @@ TYPE(TEB_EXT_SURF_t), SAVE :: EXT       ! external garden / greenroof surface (h
 | `TEB_FILL_FORCING(KSTART, KEND, …)` | форсинг подшага: сырые величины хоста и производные (`FORC`) |
 | `TEB_FILL_EXT(KSTART, KEND, PDT, …)` | внешние поверхности: состояние и потоки сада/кровли от хоста (`EXT`), сток приводится к потоку (`/PDT`) |
 | `TEB_BIND_STATE(KSTART, KEND, …)` | привязка указателей `TSTATE`/`BSTATE` к окну хоста `teb_*` |
+| `TEB_INIT_STATE(KSTART, KEND)` | cold-start состояния на первом модельном шаге (`ntstep == 0`); вызывается из `teb_interface` до `CALL_DRIVER` |
 | `TEB_UNBIND_STATE(KSTART, KEND, …)` | отвязка указателей после шага |
 | `TEB_HOST_FINAL` | деаллокация всех контейнеров (конец прогона) |
 
@@ -126,6 +127,14 @@ TYPE(TEB_EXT_SURF_t), SAVE :: EXT       ! external garden / greenroof surface (h
 т.д.); физика читает/пишет состояние через ссылки, `TEB_UNBIND_STATE` отвязывает
 после шага. Это убирает копирование «аргумент → контейнер» из физики.
 
+**Cold-start.** `TEB_INIT_STATE(KSTART, KEND)` заполняет состояние окна на первом
+модельном шаге. Вызов находится в `teb_interface` под условием `ntstep == 0`, до
+цикла `CALL_DRIVER`; отдельной маски/флага нет. Offline-драйвер передаёт
+`(nstep-1)*INB_ATM + (JSURF_STEP-1)`, coupled-хост — свой номер шага, начинающийся
+с нуля. При restart `nstart > 0` процедура не вызывается. Перед cold-start
+`teb_interface` вызывает `INI_CSTS`; после цикла `CALL_DRIVER` при `ntstep == 0`
+синхронизирует `DMT%XTSTOWN_S_NOW` с пост-`TEB_GARDEN` значением `DMT%XTSTOWN_S`.
+
 ---
 
 ## 4. Путь контейнеров по цепочке вызовов
@@ -139,6 +148,7 @@ run_teb_offline
       → TEB_FILL_FORCING     FORC ← форсинг подшага (сырые + производные)
       → TEB_FILL_EXT         EXT ← внешние поверхности сада/кровли (хост -> TEB)
       → TEB_BIND_STATE       TSTATE/BSTATE ⇒ окно teb_* (указатели)
+      → TEB_INIT_STATE       cold-start, только ntstep == 0
       → CALL_DRIVER (27 dummy)  [по ячейке]          src_driver/call_driver.F90
           → TEB_GARDEN (29 аргументов)               src_teb/teb_garden.F90
               читает/пишет TOPTS/TPARAMS/TSTATE/BOPTS/BPARAMS/BSTATE/TPN/TIR/DMT

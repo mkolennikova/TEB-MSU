@@ -143,7 +143,19 @@ SETS = {
 }
 
 
-def make_param_namelist(dst: Path, overrides: dict) -> Path:
+#: candidate-only initial-state keys, unknown to the old reference binary
+INIT_KEYS = ('teb_ti_bld_init', 'teb_qi_bld_init')
+
+
+def _strip_init_keys(text: str) -> str:
+    """Remove the candidate-only initial-state keys (unknown to the old ref)."""
+    for key in INIT_KEYS:
+        text = re.sub(r'^(\s*)' + re.escape(key) + r'\s*=\s*[^\n]*\n?', '', text, flags=re.M)
+    return text
+
+
+def make_param_namelist(dst: Path, overrides: dict, *, reference: bool = False) -> Path:
+    """Copy the base param namelist, applying the overrides; write to dst."""
     """Copy the base param namelist, applying the overrides; write to dst."""
     text = BASE_NML.read_text(encoding='utf-8')
     for key, value in overrides.items():
@@ -152,6 +164,8 @@ def make_param_namelist(dst: Path, overrides: dict) -> Path:
             text = pat.sub(lambda m: m.group(1) + key + '=' + value + ',', text, count=1)
         else:
             text = text.replace('\n/', '\n ' + key + '=' + value + ',\n/', 1)
+    if reference:
+        text = _strip_init_keys(text)
     dst.parent.mkdir(parents=True, exist_ok=True)
     dst.write_text(text, encoding='utf-8')
     return dst
@@ -269,9 +283,10 @@ def main(argv=None) -> int:
                                         else (cfg[0], cfg[1], {}))
         cfg_dir = OUT_ROOT / name
         param_nml = make_param_namelist(cfg_dir / 'namelist.nml', overrides)
+        param_nml_ref = make_param_namelist(cfg_dir / 'namelist_ref.nml', overrides, reference=True)
         forcing_nml = (make_forcing_namelist(cfg_dir / 'namelist_forcing.nml', f_overrides)
                        if f_overrides else FORCING_NML)
-        run_case(ref_exe, CASE, forcing_nml, cfg_dir / 'ref', None, param_nml)
+        run_case(ref_exe, CASE, forcing_nml, cfg_dir / 'ref', None, param_nml_ref)
         run_case(new_exe, CASE, forcing_nml, cfg_dir / 'new', None, param_nml)
 
         ref_csv = cfg_dir / 'ref' / REF_CSV_NAME

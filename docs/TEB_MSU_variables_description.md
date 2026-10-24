@@ -17,8 +17,11 @@ These variables are defined in the Fortran namelist files (`namelist.nml` and `n
 | `teb_road_dir` | External parameter | ° | Canyon azimuth |
 | `teb_hroad_dir` | Control variable | "UNIF" / "ORIE" | Canyon orientation: ORIE - with orientation, UNIF - without |
 | `teb_wall_opt` | Control variable | "UNIF" / "TWO" | Wall energy balance: TWO - separate walls, UNIF - uniform |
-| `teb_ti_bld` | Prognostic variable | K | Indoor air temperature |
-| `teb_qi_bld` | Prognostic variable | kg/kg | Indoor specific humidity |
+| `teb_ti_bld_init` | Initial condition | K | Initial indoor air temperature; default `teb_tcool_target` (297.16 K). Applied once at model step 0 (`ntstep = 0`). The prognostic state remains `teb_ti_bld` |
+| `teb_qi_bld_init` | Initial condition | kg/kg | Initial indoor specific humidity; default `0.5*QSAT(teb_ti_bld, ps)` at model step 0. The prognostic state remains `teb_qi_bld` |
+
+Both `_init` items are applied exactly once per cell at the first model step (`ntstep = 0`, 0-based), not at every forcing step. The offline driver computes this number as `(nstep-1)*INB_ATM + (JSURF_STEP-1)`, so the first forcing step may contain several model sub-steps. `TEB_INIT_STATE` only fills values that are still `XUNDEF`; a value supplied by the driver or by a coupled host is kept.
+
 
 <!-- MV202609 z0 and zd to namelist -->
 ### Urban Aerodynamics

@@ -93,6 +93,7 @@ INTEGER :: JSURF_STEP                        ! Driver loop index
 INTEGER :: INB_ATM                           ! number time the driver calls the TEB
 !                                            ! routines during a forcing time-step
 !                                            ! --> it defines the time-step for TEB
+INTEGER :: kstep_model                       ! 0-based model sub-step
 INTEGER :: nstep                             !IN timestep 
 INTEGER, PARAMETER :: nvec = 1               !IN array dimensions
 INTEGER :: ivstart                           !IN optional start index                  
@@ -337,7 +338,9 @@ REAL ,DIMENSION(nvec) :: teb_tcanyon                    !INOUT air canyon temper
 REAL ,DIMENSION(nvec) :: teb_qcanyon                    !INOUT canyon air humidity ratio
 
 ! Input/Output prognostic variables
+REAL ,DIMENSION(nvec) :: teb_ti_bld_init                !IN initial indoor air temperature [K]
 REAL ,DIMENSION(nvec) :: teb_ti_bld                     !INOUT indoor air temperature   
+REAL ,DIMENSION(nvec) :: teb_qi_bld_init                !IN initial indoor specific humidity [kg kg-1]
 REAL ,DIMENSION(nvec) :: teb_qi_bld                     !INOUT Indoor air specific humidity [kg kg-1]     
 REAL ,DIMENSION(nvec, teb_nroof_layer)  :: teb_troof    !INOUT roof layers temperatures
 REAL ,DIMENSION(nvec, teb_nroad_layer)  :: teb_troad    !INOUT road layers temperatures     
@@ -455,7 +458,7 @@ NAMELIST /tebforcing/ forcing_path, lon_teb, lat_teb, hlev_teb, teb_year,       
                       teb_month, teb_day, teb_hour, teb_min, nsteps, forc_step
 
 NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,           &
-                    teb_hroad_dir, teb_wall_opt, teb_ti_bld, teb_qi_bld,               &
+                    teb_hroad_dir, teb_wall_opt, teb_ti_bld_init, teb_qi_bld_init,               &
 					urb_alb_rf_so, urb_alb_rf_th, urb_hcap_rf, urb_hcon_rf,            &
 					urb_alb_rd_so, urb_alb_rd_th, urb_hcap_rd, urb_hcon_rd,            &
 					urb_alb_wl_so, urb_alb_wl_th, urb_hcap_wl, urb_hcon_wl,            &
@@ -494,7 +497,7 @@ CHARACTER(LEN=*), PARAMETER :: nml_forcing_value_items =                        
      'teb_year,teb_month,teb_day,teb_hour,teb_min,nsteps'
 CHARACTER(LEN=*), PARAMETER :: nml_param_items =                                    &
      'dt,urb_h_bld,urb_fr_bld,fr_garden,urb_h2w,teb_road_dir,teb_hroad_dir,'//      &
-     'teb_wall_opt,teb_ti_bld,teb_qi_bld,urb_alb_rf_so,urb_alb_rf_th,urb_hcap_rf,'//&
+     'teb_wall_opt,teb_ti_bld_init,teb_qi_bld_init,urb_alb_rf_so,urb_alb_rf_th,urb_hcap_rf,'//&
      'urb_hcon_rf,urb_alb_rd_so,urb_alb_rd_th,urb_hcap_rd,urb_hcon_rd,'//           &
      'urb_alb_wl_so,urb_alb_wl_th,urb_hcap_wl,urb_hcon_wl,teb_itype_bem,'//         &
      'teb_lbem_ac,teb_itype_natvent,teb_itype_bem_cool,teb_itype_bem_heat,'//       &
@@ -741,6 +744,8 @@ teb_zresidential(:)  = 1.           ! Fraction of residential use in buildings (
 teb_dt_res(:)        = 3.           ! Target temperature change when unoccupied (K) (residential buildings)
 teb_dt_off(:)        = 3.           ! Target temperature change when unoccupied (K) (office buildings)
 teb_cap_sys_heat(:)  =  90.         ! Capacity of the heating system [W m-2(bld)]
+teb_ti_bld_init(:) = XUNDEF       ! sentinel: initial temperature not given
+teb_qi_bld_init(:) = XUNDEF       ! sentinel: initial humidity default at first sub-step
 
 !============================================================
 !============================================================
@@ -904,6 +909,27 @@ CALL NML_REPORT_ABSENT('tebparam', namelist_path_local, nml_param_items)
 !* a namelist item that is not declared is silently ignored by the READ: warn
 !* explicitly when the file still carries the former names of the PHU items
 CALL NML_WARN_RENAMED('tebparam', namelist_path_local)
+!MV202610 indoor initial state: teb_ti_bld_init / teb_qi_bld_init
+IF (ALL(teb_ti_bld_init /= XUNDEF)) THEN
+   WRITE(*,'(A)') ' TEB-MSU offline: teb_ti_bld_init given in the namelist'
+ELSE IF (ANY(teb_ti_bld_init == XUNDEF)) THEN
+   WRITE(*,'(A,F7.2,A)') ' TEB-MSU offline: teb_ti_bld_init not given; using teb_tcool_target = ', &
+        teb_tcool_target(1), ' K'
+END IF
+WHERE (teb_ti_bld_init == XUNDEF)
+   teb_ti_bld_init = teb_tcool_target
+END WHERE
+IF (ANY(teb_ti_bld_init < 150. .OR. teb_ti_bld_init > 350.)) THEN
+   WRITE(*,*) 'ERROR: teb_ti_bld_init is outside the plausible range 150-350 K'
+   STOP 1
+END IF
+teb_ti_bld(:) = teb_ti_bld_init(:)
+teb_qi_bld(:) = teb_qi_bld_init(:)
+IF (ALL(teb_qi_bld_init /= XUNDEF)) THEN
+   WRITE(*,'(A)') ' TEB-MSU offline: teb_qi_bld_init given in the namelist'
+ELSE IF (ANY(teb_qi_bld_init == XUNDEF)) THEN
+   WRITE(*,'(A)') ' TEB-MSU offline: teb_qi_bld_init not given; 0.5*QSAT(TI_BLD, ps) is used at the first sub-step'
+END IF
 !MV202609 strict namelist date/time reading
 !* dt is read in this group (and has a default value here), so the consistency of
 !* the model sub-step with the forcing time-step is checked only now: INB_ATM =
@@ -1181,8 +1207,9 @@ DO nstep= 1,nsteps - 1
                     ZTA,ZQA,ZWIND,ZDIR_SW,ZSCA_SW,ZLW,ZSNOW,ZRAIN,ZPS,&
                     ZDIR )
     
-	DO JSURF_STEP=1,INB_ATM  
-	
+	DO JSURF_STEP=1,INB_ATM
+       !MV202610 0-based model sub-step
+       kstep_model = (nstep - 1)*INB_ATM + (JSURF_STEP - 1)
        ! time interpolation of the forcing
        CALL OL_TIME_INTERP_ATM(JSURF_STEP,INB_ATM,                               &
                                ZTA,ZQA,ZWIND,ZDIR_SW,ZSCA_SW,ZLW,ZSNOW,ZRAIN,ZPS,&
@@ -1195,6 +1222,17 @@ DO nstep= 1,nsteps - 1
 	   u(:) = XU(:)
 	   v(:) = XV(:)
 	   ps(:) = XPS(:)
+   IF (kstep_model == 0) THEN
+      WHERE (teb_qi_bld == XUNDEF)
+         teb_qi_bld = 0.5 * QSAT(teb_ti_bld, ps)
+      END WHERE
+      IF (ANY(teb_qi_bld < 0. .OR. teb_qi_bld > 0.2)) THEN
+         WRITE(*,*) 'ERROR: teb_qi_bld_init is outside the plausible range 0-0.2 kg/kg'
+         STOP 1
+      END IF
+      WRITE(*,'(A,F12.8,A)') ' TEB-MSU offline: initial indoor specific humidity QI_BLD = ', &
+           teb_qi_bld(1), ' kg/kg'
+   END IF
 	   rho(:) = XRHOA(:)
 	   prr_con(:) = XRAIN(:)
 	   prs_con(:) = XSNOW(:)
@@ -1216,7 +1254,7 @@ DO nstep= 1,nsteps - 1
 !*****************************************************************************
 !                  Call of physical routines of TEB is here                  !
 !*****************************************************************************	   
-	   CALL teb_interface (nstep, nvec, iblock, dt, teb_year, teb_month, teb_day, teb_hour,         &
+	   CALL teb_interface (kstep_model, nvec, iblock, dt, teb_year, teb_month, teb_day, teb_hour,         &
                 teb_min, teb_sec, teb_hour_seconds, sa_uc, lon_teb, lat_teb, hlev_teb,              &
 				ivstart, ivend, u, v, t, qv, ps, rho, prr_con, prs_con, prr_gsp, prs_gsp, prg_gsp,  &
 				lwd_s, swdir_s, swdifd_s, teb_nroof_layer, teb_nroad_layer, teb_nwall_layer,        &

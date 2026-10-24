@@ -228,7 +228,7 @@ CALL DIAG_MISC_TEB_DEALLOC (DMT)         ! после цикла
 | аспект | B | у нас | вердикт |
 | --- | --- | --- | --- |
 | снежная коррекция альбедо/эмиссивности/`Ts` | активна безусловно (`B:src_teb/teb_garden.F90:519` → `WHERE ( WSNOW_ROAD_CHECK(:)<1.E-8 * PTSTEP )`, крыша — `B:src_teb/teb_garden.F90:527`) | за флагом `teb_snow_check = .FALSE.` (`src_dev/src_teb/modd_surf_par.F90:67` → `LOGICAL :: teb_snow_check = .FALSE.`; guard `src_dev/src_teb/teb_garden.F90:600` → `IF (teb_snow_check) THEN`; в `A_ctrl` тот же флаг и значение по умолчанию: `src_teb/modd_surf_par.F90:67`) | задать `.TRUE.` для сопоставимости |
-| первый подшаг | `IF (ntstep == 0) THEN` (`B:src_driver/call_driver.F90:944`) | `IF (ntstep == 1) THEN` (`src_dev/src_driver/call_driver.F90:1047`, `A_ctrl` — `src_driver/call_driver.F90:904`) | согласовать нумерацию с хостом |
+| первый подшаг | `IF (ntstep == 0) THEN` (`B:src_driver/call_driver.F90:944`) | `src_dev`: `TEB_INIT_STATE` вызывается из `teb_interface` при `ntstep == 0`, `CALL_DRIVER` больше не содержит cold-start; `A_ctrl`: cold-start остаётся в `CALL_DRIVER`, условия `IF (ntstep == 0)` (`src_driver/call_driver.F90:904`, `:917`, `:1379`), `run_teb_offline` передаёт `kstep_model` | `A_dev` и `A_ctrl` — 0-based, совпадают с B |
 | сток города | умножение на `dt` активно (`B:src_driver/call_driver.F90:1522` → `ZRUNOFF_TOWN  = ZRUNOFF_TOWN * dt`) | строка закомментирована (`src_dev/src_driver/call_driver.F90:1641` → `!ZRUNOFF_TOWN  = ZRUNOFF_TOWN * dt`, `A_ctrl` — `src_driver/call_driver.F90:1386`) | согласовать единицы |
 | шероховатость города | `ZZ0 = ZBLD_HEIGHT * 0.075` (`B:src_driver/call_driver.F90:671` → `ZZ0         = ZBLD_HEIGHT * 0.075   ! Roughness length (m)`) | из словника (дефолт `0.1H`): `A_ctrl` — `src_driver/call_driver.F90:673` → `CALL URB_AERO_PARAMS(urb_z0_town, urb_zd_town, ZBLD_HEIGHT, ZZ0, XZD_TOWN)`; `A_dev` — строки интерфейса, `src_dev/src_driver/call_driver.F90:829` → `CALL URB_AERO_PARAMS(HZ0_TOWN, HZD_TOWN, ZBLD_HEIGHT, ZBLD, ZFAI, ZZ0, ZZDU)` | конфигурация: `'0.075H'` |
 | инициализация пола и внутренней массы | `ZT_FLOOR(!:,1) = ZTCOOL_TARGET` (`B:src_driver/call_driver.F90:990`), `ZT_MASS` (`B:src_driver/call_driver.F90:996`) | присваиваний нет; инициализируются крыша и дорога (`src_dev/src_driver/call_driver.F90:1076` → `ZT_ROOF(:,1)   = t  ! roof layers temperatures`, `src_dev/src_driver/call_driver.F90:1083`) | выравнивать (§6 п.6) |
@@ -236,7 +236,7 @@ CALL DIAG_MISC_TEB_DEALLOC (DMT)         ! после цикла
 | BEM: порог включения работы AC | `> XTHEAT_TARGET` (`B:src_teb/bem.F90:421` → `ZTI_BLD_OPEN(JJ) >  DMT%XTHEAT_TARGET (JJ))`) | `> XTHEAT_TARGET + 4.` (`src_dev/src_teb/bem.F90:417` → `ZTI_BLD_OPEN(JJ) >  DMT%XTHEAT_TARGET (JJ) + 4.)`) | выравнивать (§6 п.6) |
 | BEM: второй вызов `GET_NAT_VENT` | под разбором режима (`B:src_teb/bem.F90:465` → `IF (B%CNATVENT(JJ)=='AUTO') THEN`) | без разбора (`src_dev/src_teb/bem.F90:456` → `IF (GNAT_VENT(JJ)) THEN`) | вне садовой области, фиксируется здесь |
 | BEM: накопители тепла пола/массы | выходные аргументы (`B:src_teb/bem.F90:197` → `REAL, DIMENSION(:),   INTENT(OUT)  :: PDQS_FL`) | локальные `ZDQS_*` | вне садовой области |
-| жалюзи | принудительно выключены (`B:src_teb/urban_solar_abs.F90:470` → `G_EFF_SHAD(:) = .FALSE.`, `B:src_teb/urban_solar_abs.F90:475`, `B:src_teb/teb_garden.F90:608` → `GSHADE(:) = .FALSE.`, `B:src_driver/call_driver.F90:1032` → `LSHADE              = .FALSE.      ! Are shading devices being used ?`) | флаг `teb_lshade`, дефолт `.FALSE.` (`src_dev/src_teb/urban_solar_abs.F90:469` → `G_EFF_SHAD(:) = OSHADE(:).AND.(ZDIR_SW_WL(:) + ZSCA_SW_WL(:) > XWIN_SW_MAX)`, `src_dev/src_teb/urban_solar_abs.F90:474`) | при дефолте совпадает |
+**Контракт `ntstep` (0-based).** Номер шага модели начинается с нуля; первый cold-start шаг — `ntstep == 0`. В `A_dev` `teb_interface` вызывает `TEB_INIT_STATE` при `ntstep == 0` до первого `CALL_DRIVER`; offline-драйвер передаёт `kstep_model = (nstep-1)*INB_ATM + (JSURF_STEP-1)`. В `A_ctrl` cold-start остаётся в `CALL_DRIVER`, но его условия также `ntstep == 0`, и `run_teb_offline` передаёт тот же `kstep_model`. В H/COSMO первый вызов идёт с `ntstep == 0` (`H:COSMO/lmorg.f90:1640`, `H:COSMO/sfc_interface.f90:2804–2805`, `H:COSMO/sfc_teb.f90:364`). При restart `nstart > 0` инициализация не выполняется.
 ---
 
 ## 4. Чек-лист выравнивания для сопряжённого прогона
@@ -253,8 +253,8 @@ CALL DIAG_MISC_TEB_DEALLOC (DMT)         ! после цикла
 4. **Пара коэффициентов сопряжения** `teb_tch_gd`/`teb_tcm_gd`: в обеих ветвях уже отдаётся
    корректно, во внешнем режиме не обнуляется (§3.1).
 5. **Снежная коррекция.** `teb_snow_check = .TRUE.` (§3.3).
-6. **Шаг и единицы.** Согласовать номер первого шага (наш `== 1` против `== 0` в B) и умножение
-   городского стока на `dt` (§3.3).
+6. **Шаг и единицы.** В `A_dev` и `A_ctrl` первый шаг уже 0-based (`ntstep == 0`), как в B.
+   Согласовать также умножение городского стока на `dt` (§3.3).
 
 **Конфигурация (для численной сопоставимости с B):**
 

@@ -368,135 +368,7 @@ BSTATE%XT_ADP = 285.66  ! Apparatus dewpoint temperature of the
 !===========================================================================
 !===========================================================================
 
-IF (ntstep == 1) THEN
-
-	! Input/Output semi-prognostic variables
-	TSTATE%XT_CANYON(icell:icell)      = FORC%XTA(1:1)                 ! Canyon air temperature
-	TSTATE%XQ_CANYON(icell:icell)      = FORC%XQA(1:1)                ! Outdoor specific humidity    [kg kg-1]
-	
-	! Input/Output prognostic variables
-	BSTATE%XTI_BLD(icell) = BPARAMS%XTCOOL_TARGET(icell)     ! indoor air temperature
-	BSTATE%XTI_BLD = BPARAMS%XTCOOL_TARGET(icell:icell)     ! indoor air temperature
-    BSTATE%XQI_BLD(icell) = 0.0068794074      ! Indoor air specific humidity [kg kg-1]
-    BSTATE%XQI_BLD = 0.0068794074      ! Indoor air specific humidity [kg kg-1]
-	DMT%XWIND_CANYON(1:1)      = 1.                ! Wind speed in canyon
-	ZTS_TOWN_S     = FORC%XTA(1:1)
-    DMT%XTSTOWN_S(1:1)       = FORC%XTA(1:1)	
-	DMT%XQSTOWN_S(1:1)     = FORC%XQA(1:1)
-	
-	! Roof properties
-	ZD_ROOF_LAYERS = TPARAMS%XD_ROOF(icell,4) + TPARAMS%XD_ROOF(icell,3) + TPARAMS%XD_ROOF(icell,2) + TPARAMS%XD_ROOF(icell,1)
-	TSTATE%XT_ROOF(icell:icell,1) = FORC%XTA(1)  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:,1) = FORC%XTA(1:1)  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:icell,2) = BPARAMS%XTCOOL_TARGET(icell) - ((BPARAMS%XTCOOL_TARGET(icell) - FORC%XTA(1)) * (TPARAMS%XD_ROOF(icell,4) + TPARAMS%XD_ROOF(icell,3) + TPARAMS%XD_ROOF(icell,2)) / ZD_ROOF_LAYERS(1))  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:,2) = BPARAMS%XTCOOL_TARGET(icell:icell) - ((BPARAMS%XTCOOL_TARGET(icell:icell) - FORC%XTA(1:1)) * (TPARAMS%XD_ROOF(icell,4) + TPARAMS%XD_ROOF(icell,3) + TPARAMS%XD_ROOF(icell,2)) / ZD_ROOF_LAYERS)  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:icell,3) = BPARAMS%XTCOOL_TARGET(icell) - ((BPARAMS%XTCOOL_TARGET(icell) - FORC%XTA(1)) * (TPARAMS%XD_ROOF(icell,4) + TPARAMS%XD_ROOF(icell,3))  / ZD_ROOF_LAYERS(1))  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:,3) = BPARAMS%XTCOOL_TARGET(icell:icell) - ((BPARAMS%XTCOOL_TARGET(icell:icell) - FORC%XTA(1:1)) * (TPARAMS%XD_ROOF(icell,4) + TPARAMS%XD_ROOF(icell,3))  / ZD_ROOF_LAYERS)  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:icell,4) = BPARAMS%XTCOOL_TARGET(icell) - ((BPARAMS%XTCOOL_TARGET(icell) - FORC%XTA(1)) * TPARAMS%XD_ROOF(icell,4)  / ZD_ROOF_LAYERS(1))  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:,4) = BPARAMS%XTCOOL_TARGET(icell:icell) - ((BPARAMS%XTCOOL_TARGET(icell:icell) - FORC%XTA(1:1)) * TPARAMS%XD_ROOF(icell,4)  / ZD_ROOF_LAYERS)  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:icell,5) = BPARAMS%XTCOOL_TARGET(icell)  ! roof layers temperatures
-	TSTATE%XT_ROOF(icell:,5) = BPARAMS%XTCOOL_TARGET(icell:icell)  ! roof layers temperatures
-	
-	! Road properties
-	TSTATE%XT_ROAD(icell:icell,1) = FORC%XTA(1)  ! road layers temperatures
-	TSTATE%XT_ROAD(icell:,1) = FORC%XTA(1:1)  ! road layers temperatures
-	TSTATE%XT_ROAD(icell:icell,2) = FORC%XTA(1)  ! road layers temperatures
-	TSTATE%XT_ROAD(icell:,2) = FORC%XTA(1:1)  ! road layers temperatures
-	TSTATE%XT_ROAD(icell:icell,3) = FORC%XTA(1)  ! road layers temperatures
-	TSTATE%XT_ROAD(icell:,3) = FORC%XTA(1:1)  ! road layers temperatures
-	TSTATE%XT_ROAD(icell:icell,4) = FORC%XTA(1)  ! road layers temperatures
-	TSTATE%XT_ROAD(icell:,4) = FORC%XTA(1:1)  ! road layers temperatures
-	TSTATE%XT_ROAD(icell:icell,5) = FORC%XTA(1)  ! road layers temperatures
-	TSTATE%XT_ROAD(icell:,5) = FORC%XTA(1:1)  ! road layers temperatures
-	
-	! Wall properties
-	ZD_WALL_LAYERS = TPARAMS%XD_WALL(icell,1) + TPARAMS%XD_WALL(icell,2) + TPARAMS%XD_WALL(icell,3) + TPARAMS%XD_WALL(icell,4)
-	TSTATE%XT_WALL_A(icell:icell,1) = FORC%XTA(1)  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:,1) = FORC%XTA(1:1)  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:icell,2) = BPARAMS%XTCOOL_TARGET(icell) - ((BPARAMS%XTCOOL_TARGET(icell) - FORC%XTA(1)) * (TPARAMS%XD_WALL(icell,4) + TPARAMS%XD_WALL(icell,3) + TPARAMS%XD_WALL(icell,2)) / ZD_WALL_LAYERS(1))  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:,2) = BPARAMS%XTCOOL_TARGET(icell:icell) - ((BPARAMS%XTCOOL_TARGET(icell:icell) - FORC%XTA(1:1)) * (TPARAMS%XD_WALL(icell,4) + TPARAMS%XD_WALL(icell,3) + TPARAMS%XD_WALL(icell,2)) / ZD_WALL_LAYERS)  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:icell,3) = BPARAMS%XTCOOL_TARGET(icell) - ((BPARAMS%XTCOOL_TARGET(icell) - FORC%XTA(1)) * (TPARAMS%XD_WALL(icell,4) + TPARAMS%XD_WALL(icell,3))  / ZD_WALL_LAYERS(1))  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:,3) = BPARAMS%XTCOOL_TARGET(icell:icell) - ((BPARAMS%XTCOOL_TARGET(icell:icell) - FORC%XTA(1:1)) * (TPARAMS%XD_WALL(icell,4) + TPARAMS%XD_WALL(icell,3))  / ZD_WALL_LAYERS)  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:icell,4) = BPARAMS%XTCOOL_TARGET(icell) - ((BPARAMS%XTCOOL_TARGET(icell) - FORC%XTA(1)) * TPARAMS%XD_WALL(icell,4)  / ZD_WALL_LAYERS(1))  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:,4) = BPARAMS%XTCOOL_TARGET(icell:icell) - ((BPARAMS%XTCOOL_TARGET(icell:icell) - FORC%XTA(1:1)) * TPARAMS%XD_WALL(icell,4)  / ZD_WALL_LAYERS)  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:icell,5) = BPARAMS%XTCOOL_TARGET(icell)  ! wall layers temperatures
-	TSTATE%XT_WALL_A(icell:,5) = BPARAMS%XTCOOL_TARGET(icell:icell)  ! wall layers temperatures
-	TSTATE%XT_WALL_B(icell:icell,:) = TSTATE%XT_WALL_A(icell:icell,:)      ! wall layers temperatures
-	TSTATE%XT_WALL_B = TSTATE%XT_WALL_A(icell:icell,:)      ! wall layers temperatures
-
-	! Floor properties
-	BSTATE%XT_FLOOR(icell:icell,1) = 292.12         ! building floor temperature
-	BSTATE%XT_FLOOR(icell:icell,2) = 291.89778      ! building floor temperature
-	BSTATE%XT_FLOOR(icell:icell,3) = 291.26111      ! building floor temperature
-	BSTATE%XT_FLOOR(icell:icell,4) = 289.48333      ! building floor temperature
-	BSTATE%XT_FLOOR(icell:icell,5) = 283.84017      ! building floor temperature
-	
-	! Mass properties
-	BSTATE%XT_MASS(icell:icell,1) = 292.15         ! building mass temperature
-	BSTATE%XT_MASS(icell:icell,2) = 292.15         ! building mass temperature
-	BSTATE%XT_MASS(icell:icell,3) = 292.15         ! building mass temperature
-	BSTATE%XT_MASS(icell:icell,4) = 292.15         ! building mass temperature
-	BSTATE%XT_MASS(icell:icell,5) = 291.84017      ! building mass temperature
-	
-	! Water content at first time-step
-	TSTATE%XWS_ROOF(icell) = 0.             ! roof water content (kg/m2) 
-	TSTATE%XWS_ROOF = 0.             ! roof water content (kg/m2) 
-	TSTATE%XWS_ROAD(icell:icell)       = 0.             ! road water content (kg/m2)
-	! -----------------------------------------------------------
-	! Default at first time-step : no snow
-	! ----------------------------------------------------------- 
-	TSTATE%TSNOW_ROOF%WSNOW(icell:icell,:) = 0.             ! Initial Amount of roof snow reservoir
-	TSTATE%TSNOW_ROOF%WSNOW = 0.             ! Initial Amount of roof snow reservoir
-	TSTATE%TSNOW_ROAD%WSNOW(icell:icell,:) = 0.             ! Initial Amount of road snow reservoir
-	TSTATE%TSNOW_ROAD%WSNOW = 0.             ! Initial Amount of road snow reservoir
-	TSTATE%TSNOW_ROOF%T(icell:icell,:) = XUNDEF         ! layer temperature   of roof snow
-	TSTATE%TSNOW_ROOF%T = XUNDEF         ! layer temperature   of roof snow
-	TSTATE%TSNOW_ROAD%T(icell:icell,:) = XUNDEF         ! layer temperature   of road snow
-	TSTATE%TSNOW_ROAD%T = XUNDEF         ! layer temperature   of road snow
-	TSTATE%TSNOW_ROOF%RHO(icell:icell,:) = XUNDEF         ! density             of roof snow
-	TSTATE%TSNOW_ROOF%RHO = XUNDEF         ! density             of roof snow
-	TSTATE%TSNOW_ROAD%RHO(icell:icell,:) = XUNDEF         ! density             of road snow
-	TSTATE%TSNOW_ROAD%RHO = XUNDEF         ! density             of road snow
-	TSTATE%TSNOW_ROOF%TS(icell) = XUNDEF         ! surface temperature of roof snow
-	TSTATE%TSNOW_ROOF%TS = XUNDEF         ! surface temperature of roof snow
-	TSTATE%TSNOW_ROAD%TS(icell) = XUNDEF         ! surface temperature of road snow
-	TSTATE%TSNOW_ROAD%TS = XUNDEF         ! surface temperature of road snow
-	TSTATE%TSNOW_ROOF%ALB(icell) = XUNDEF
-	TSTATE%TSNOW_ROOF%ALB = XUNDEF
-	TSTATE%TSNOW_ROAD%ALB(icell) = XUNDEF
-	TSTATE%TSNOW_ROAD%ALB = XUNDEF
-	TSTATE%TSNOW_ROOF%EMIS(icell) = XUNDEF
-	TSTATE%TSNOW_ROOF%EMIS = XUNDEF
-	TSTATE%TSNOW_ROAD%EMIS(icell) = XUNDEF
-	TSTATE%TSNOW_ROAD%EMIS = XUNDEF
-	! -----------------------------------------------------------
-	! Default at first time-step for BEM Model
-	! -----------------------------------------------------------
-	BSTATE%XM_SYS_RAT(icell) = 0.0067         ! Rated HVAC mass flow rate [kg s-1 m-2(bld)]	
-	BSTATE%XM_SYS_RAT = 0.0067         ! Rated HVAC mass flow rate [kg s-1 m-2(bld)]	
-	BSTATE%XT_WIN1(icell) = FORC%XTA(1)              ! External window temperature
-	BSTATE%XT_WIN1 = FORC%XTA(1:1)              ! External window temperature
-	BSTATE%XT_WIN2(icell) = BPARAMS%XTCOOL_TARGET(icell)  ! Internal window temperature
-	BSTATE%XT_WIN2 = BPARAMS%XTCOOL_TARGET(icell:icell)  ! Internal window temperature
-	BSTATE%XNATVENT = 0.           ! flag to describe surventilation system for i/o 
-                                       ! 0 for NONE, 1 for MANU and 2 for AUTO
-	!BSTATE%LSHADE(icell:icell)         = .FALSE.      ! Are shading devices being used ?
-	BSTATE%XSHADE = 0.
-    BSTATE%XAUX_MAX = 5.           ! flag to activate shading devices -> REAL for i/o 0. or 1	
-    BSTATE%LSHAD_DAY(icell) = .FALSE.      ! has shading been necessary this day ?
-    BSTATE%LSHAD_DAY = .FALSE.      ! has shading been necessary this day ?
-    BSTATE%LNATVENT_NIGHT(icell) = .FALSE.      ! has natural ventilation been necessary/possible this night ?	
-    BSTATE%LNATVENT_NIGHT = .FALSE.      ! has natural ventilation been necessary/possible this night ?	
-	! For REAL Cooling System
-	IF (PFLOOR_HEIGHT(1) > TPARAMS%XBLD_HEIGHT(icell)) THEN
-      PFLOOR_HEIGHT = TPARAMS%XBLD_HEIGHT(icell:icell)
-    ENDIF
-    ZN_FLOOR = FLOAT(NINT(TPARAMS%XBLD_HEIGHT(icell:icell) / PFLOOR_HEIGHT ))
-    BSTATE%XCAP_SYS_RAT(icell:icell)        = BSTATE%XCAP_SYS_RAT(icell:icell) * ZN_FLOOR   ! Rated capacity of the cooling system [W m-2(bld)]
-
-	! For (Wang, 2012) Wind Calculation
-	DMT%XUSTAR_TOWN(1:1)         = 0.2 
-	
+!MV202610 cold-start state: initialized by TEB_INIT_STATE at ntstep == 0
 	IF (TEB_LOG_VERBOSE_FIRST()) THEN
 		!-------------------------------------------------------------------
 		! Print configuration parameters: once per run and only when the host
@@ -573,7 +445,6 @@ IF (ntstep == 1) THEN
 		PRINT*, '    BSTATE%LSHADE(icell:icell)        = ', BSTATE%LSHADE(icell:icell)
 		PRINT*, '=================================================='
 	END IF
-ENDIF
 
 !===========================================================================
 !===========================================================================
@@ -788,9 +659,7 @@ CALL TEB_GARDEN (icell, iblock, TOPTS, TSTATE, BOPTS, BSTATE, TPN, TIR, DMT, &
 !*****************************************************************************
 !
 
-IF (ntstep == 1) THEN
-	DMT%XTSTOWN_S_NOW(1:1) = DMT%XTSTOWN_S(1:1)
-END IF
+!* XTSTOWN_S_NOW is initialized after TEB_GARDEN by teb_interface at ntstep == 0
 
 DMT%XQSTOWN_S(1:1)    = FORC%XQA(1:1) * FORC%XEXNS(1:1) / FORC%XEXNA(1:1) + DMT%XLE_TOWN(1) / (FORC%XRHOA(1:1) * XLVTT * DMT%XTCH_TOWN(1) * FORC%XVMOD(1:1))
 
