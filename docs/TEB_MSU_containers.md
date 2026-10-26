@@ -133,7 +133,7 @@ TYPE(TEB_EXT_SURF_t), SAVE :: EXT       ! external garden / greenroof surface (h
 `(nstep-1)*INB_ATM + (JSURF_STEP-1)`, coupled-хост — свой номер шага, начинающийся
 с нуля. При restart `nstart > 0` процедура не вызывается. Перед cold-start
 `teb_interface` вызывает `INI_CSTS`; после цикла `CALL_DRIVER` при `ntstep == 0`
-синхронизирует `DMT%XTSTOWN_S_NOW` с пост-`TEB_GARDEN` значением `DMT%XTSTOWN_S`.
+синхронизирует `DMT%XTSTOWN_S_NOW` с пост-`TEB_GARDEN` значением `DMT%XTSTOWN_S`. Начальные профили слоёв крыши/стены, температура внутреннего окна и `XT_FLOOR`/`XT_MASS` якорятся на `XTI_BLD` (начальная температура здания из `teb_ti_bld_init`, при отсутствии — `XTCOOL_TARGET`); разрешение `XUNDEF` для `XTI_BLD`/`XQI_BLD` выполняется до заполнения состояния. В `src_ctrl` тот же порядок реализован в `CALL_DRIVER` под `IF (ntstep == 0)`.
 
 ---
 

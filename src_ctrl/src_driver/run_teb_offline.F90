@@ -126,6 +126,9 @@ REAL ,DIMENSION(nvec) :: urb_alb_wl_so                  !IN wall material solar 
 REAL ,DIMENSION(nvec) :: urb_alb_rd_th                  !IN road material thermal albedo
 REAL ,DIMENSION(nvec) :: urb_alb_rf_th                  !IN roof material thermal albedo
 REAL ,DIMENSION(nvec) :: urb_alb_wl_th                  !IN wall material thermal albedo
+REAL ,DIMENSION(nvec) :: urb_emis_rd                    !IN road material emissivity (primary item; alb_th = 1 - emis)
+REAL ,DIMENSION(nvec) :: urb_emis_rf                    !IN roof material emissivity (primary item; alb_th = 1 - emis)
+REAL ,DIMENSION(nvec) :: urb_emis_wl                    !IN wall material emissivity (primary item; alb_th = 1 - emis)
 REAL ,DIMENSION(nvec) :: ahf_traffic                    !IN Anthropogenic heat flux by traffic (annual mean)
 REAL ,DIMENSION(nvec) :: ahf_industry                   !IN Anthropogenic heat flux by industry (annual mean)
 INTEGER               :: teb_utc_hour                   !IN Time zone for traffic daily cycle calculation                  
@@ -361,9 +364,9 @@ CHARACTER(LEN=*), PARAMETER :: nml_forcing_value_items =                        
      'teb_year,teb_month,teb_day,teb_hour,teb_min,nsteps'
 CHARACTER(LEN=*), PARAMETER :: nml_param_items =                                    &
      'dt,urb_h_bld,urb_fr_bld,fr_garden,urb_h2w,teb_road_dir,teb_hroad_dir,'//      &
-     'teb_wall_opt,teb_ti_bld_init,teb_qi_bld_init,urb_alb_rf_so,urb_alb_rf_th,urb_hcap_rf,'//&
-     'urb_hcon_rf,urb_alb_rd_so,urb_alb_rd_th,urb_hcap_rd,urb_hcon_rd,'//           &
-     'urb_alb_wl_so,urb_alb_wl_th,urb_hcap_wl,urb_hcon_wl,teb_itype_bem,'//         &
+     'teb_wall_opt,teb_ti_bld_init,teb_qi_bld_init,urb_alb_rf_so,urb_alb_rf_th,urb_emis_rf,urb_hcap_rf,'//&
+     'urb_hcon_rf,urb_alb_rd_so,urb_alb_rd_th,urb_emis_rd,urb_hcap_rd,urb_hcon_rd,'//           &
+     'urb_alb_wl_so,urb_alb_wl_th,urb_emis_wl,urb_hcap_wl,urb_hcon_wl,teb_itype_bem,'//         &
      'teb_lbem_ac,teb_itype_natvent,teb_itype_bem_cool,teb_itype_bem_heat,'//       &
      'teb_frac_gz,teb_tcool_target,teb_theat_target,teb_zresidential,teb_dt_res,'//  &
      'teb_dt_off,teb_bem_inf,teb_bem_vent,teb_bem_cop,teb_cap_sys_rat,'//           &
@@ -380,9 +383,9 @@ NAMELIST /tebforcing/ forcing_path, lon_teb, lat_teb, hlev_teb, teb_year,   &
                       teb_month, teb_day, teb_hour, teb_min, nsteps, forc_step
 NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,           &
                     teb_hroad_dir, teb_wall_opt, teb_ti_bld_init, teb_qi_bld_init,                   &
-                    urb_alb_rf_so, urb_alb_rf_th, urb_hcap_rf, urb_hcon_rf,                &
-                    urb_alb_rd_so, urb_alb_rd_th, urb_hcap_rd, urb_hcon_rd,                &
-                    urb_alb_wl_so, urb_alb_wl_th, urb_hcap_wl, urb_hcon_wl,                &
+                    urb_alb_rf_so, urb_alb_rf_th, urb_emis_rf, urb_hcap_rf, urb_hcon_rf,                &
+                    urb_alb_rd_so, urb_alb_rd_th, urb_emis_rd, urb_hcap_rd, urb_hcon_rd,                &
+                    urb_alb_wl_so, urb_alb_wl_th, urb_emis_wl, urb_hcap_wl, urb_hcon_wl,                &
                     teb_itype_bem, teb_lbem_ac, teb_itype_natvent, teb_itype_bem_cool,     &
                     teb_itype_bem_heat, teb_frac_gz, teb_tcool_target,                     &
                     teb_theat_target, teb_zresidential, teb_dt_res, teb_dt_off,            &
@@ -470,7 +473,8 @@ teb_wall_opt     = 'UNIF'           ! Wall option
 urb_hcap_rf(:)   = 1580000.         ! Volumetric heat capacity (J m-3 K-1)
 urb_hcon_rf(:)   = 1.15             ! Thermal conductivity (W/m K)
 urb_alb_rf_so(:) = 0.40             ! Solar albedo of roofs
-urb_alb_rf_th(:) = 0.03             ! Thermal albedo of roofs
+urb_alb_rf_th(:) = XUNDEF           ! Thermal albedo of roofs (legacy item; see urb_emis_rf)
+urb_emis_rf(:)   = XUNDEF           ! Emissivity of roofs (primary item; alb_th = 1 - emis)
 !============================================================
 !============================================================
 ! Road
@@ -479,7 +483,8 @@ urb_alb_rf_th(:) = 0.03             ! Thermal albedo of roofs
 urb_hcap_rd(:)   = 1740000.         ! Volumetric heat capacity (J m-3 K-1)
 urb_hcon_rd(:)   = 0.82             ! Thermal conductivity (W/m K)
 urb_alb_rd_so(:) = 0.08             ! Solar albedo of roads
-urb_alb_rd_th(:) = 0.04             ! Thermal albedo of roads
+urb_alb_rd_th(:) = XUNDEF           ! Thermal albedo of roads (legacy item; see urb_emis_rd)
+urb_emis_rd(:)   = XUNDEF           ! Emissivity of roads (primary item; alb_th = 1 - emis)
 !============================================================
 !============================================================
 ! Wall
@@ -488,7 +493,8 @@ urb_alb_rd_th(:) = 0.04             ! Thermal albedo of roads
 urb_hcap_wl(:)   = 1580000.         ! Volumetric heat capacity (J m-3 K-1)
 urb_hcon_wl(:)   = 1.15             ! Thermal conductivity (W/m K)
 urb_alb_wl_so(:) = 0.32             ! Solar albedo of walls
-urb_alb_wl_th(:) = 0.03             ! Thermal albedo of walls
+urb_alb_wl_th(:) = XUNDEF           ! Thermal albedo of walls (legacy item; see urb_emis_wl)
+urb_emis_wl(:)   = XUNDEF           ! Emissivity of walls (primary item; alb_th = 1 - emis)
 !============================================================
 !============================================================
 !* anthropogenic heat fluxes
@@ -779,6 +785,16 @@ WRITE(*,'(A,F8.3,A,F6.3,A,F6.3,A)') ' TEB-MSU offline: garden  z0/alb/emis = ', 
      ' m / ', urb_alb_gdn, ' / ', urb_emis_gdn
 WRITE(*,'(A,F8.3,A,F6.3,A,F6.3,A)') ' TEB-MSU offline: greenroof z0/alb/emis = ', urb_z0_grf, &
      ' m / ', urb_alb_grf, ' / ', urb_emis_grf
+
+!MV202610 emissivity of the built surfaces (longwave albedo = 1 - emissivity)
+!* The namelist items urb_emis_rf / urb_emis_rd / urb_emis_wl give the emissivity
+!* of the roof / road / wall material, i.e. the quantity called ZEMIS_ROOF /
+!* ZEMIS_ROAD / ZEMIS_WALL in the upstream 2018/2020 namelists. The interface
+!* keeps receiving the longwave albedo, which is derived here. Giving both the
+!* emissivity and the legacy thermal albedo of the same surface is an error.
+CALL NML_RESOLVE_EMIS('urb_emis_rf', 'urb_alb_rf_th', 'roof', urb_emis_rf, urb_alb_rf_th, 0.03)
+CALL NML_RESOLVE_EMIS('urb_emis_rd', 'urb_alb_rd_th', 'road', urb_emis_rd, urb_alb_rd_th, 0.04)
+CALL NML_RESOLVE_EMIS('urb_emis_wl', 'urb_alb_wl_th', 'wall', urb_emis_wl, urb_alb_wl_th, 0.03)
 
 !MV202609 garden / greenroof model types (namelist keys of the dev tree)
 !* The control tree has a SINGLE internal parameterization for the garden and for
@@ -1274,6 +1290,55 @@ FUNCTION NML_ITEM_NAME_OF(line) RESULT(name)
     j = INDEX(line, '=')
     name = NML_LOWER(TRIM(ADJUSTL(line(1:j-1))))
 END FUNCTION NML_ITEM_NAME_OF
+
+!> Resolves the longwave (thermal) albedo of one built surface from either the
+!! emissivity item (urb_emis_*) or the legacy thermal albedo item (urb_alb_*_th).
+!! Giving both is an error; giving neither keeps the driver default. The interface
+!! keeps receiving the thermal albedo: alb_th = 1 - emissivity.
+SUBROUTINE NML_RESOLVE_EMIS(name_emis, name_alb, label, emis, alb_th, default_alb)
+    CHARACTER(LEN=*), INTENT(IN)      :: name_emis, name_alb, label
+    REAL, DIMENSION(:), INTENT(INOUT) :: emis, alb_th
+    REAL, INTENT(IN)                  :: default_alb
+    LOGICAL :: lemis, lalb
+    lemis = ANY(emis   /= XUNDEF)
+    lalb  = ANY(alb_th /= XUNDEF)
+    IF (lemis .AND. lalb) THEN
+        WRITE(*,*) 'ERROR: the namelist gives both ', TRIM(name_emis), ' (emissivity) and ', &
+                   TRIM(name_alb), ' (longwave albedo) for the ', TRIM(label)
+        WRITE(*,*) '       specify only one of them: the emissivity is the primary item'
+        WRITE(*,*) '       and the longwave albedo is derived as 1 - emissivity'
+        STOP 1
+    END IF
+    IF ((lemis .AND. .NOT. ALL(emis /= XUNDEF)) .OR. (lalb .AND. .NOT. ALL(alb_th /= XUNDEF))) THEN
+        WRITE(*,*) 'ERROR: ', TRIM(name_emis), ' / ', TRIM(name_alb), &
+                   ' must be given as one value for all the cells'
+        STOP 1
+    END IF
+    IF (lemis) THEN
+        IF (ANY(emis <= 0. .OR. emis > 1.)) THEN
+            WRITE(*,*) 'ERROR: ', TRIM(name_emis), ' = ', emis(1), ' is not a valid ', TRIM(label), ' emissivity'
+            WRITE(*,*) '       ', TRIM(name_emis), ' must be > 0 and <= 1'
+            STOP 1
+        END IF
+        alb_th(:) = 1. - emis(:)
+        WRITE(*,'(A,A,A,F8.4,A,F8.4,A)') ' TEB-MSU offline: ', TRIM(label), ' emissivity = ', &
+             emis(1), ' -> alb_th = ', alb_th(1), ' (derived)'
+    ELSE IF (lalb) THEN
+        IF (ANY(alb_th < 0. .OR. alb_th >= 1.)) THEN
+            WRITE(*,*) 'ERROR: ', TRIM(name_alb), ' = ', alb_th(1), ' is not a valid ', TRIM(label), ' longwave albedo'
+            WRITE(*,*) '       ', TRIM(name_alb), ' must be >= 0 and < 1'
+            STOP 1
+        END IF
+        emis(:) = 1. - alb_th(:)
+        WRITE(*,'(A,A,A,F8.4,A,F8.4,A)') ' TEB-MSU offline: ', TRIM(label), ' alb_th = ', &
+             alb_th(1), ' -> emissivity = ', emis(1), ' (legacy item)'
+    ELSE
+        alb_th(:) = default_alb
+        emis(:)   = 1. - default_alb
+        WRITE(*,'(A,A,A,F8.4,A,F8.4,A)') ' TEB-MSU offline: ', TRIM(label), ' alb_th = ', &
+             alb_th(1), ' -> emissivity = ', emis(1), ' (driver default)'
+    END IF
+END SUBROUTINE NML_RESOLVE_EMIS
 
 !> Reports the declared items of a group that are NOT present in the namelist file:
 !! their value is the value of the program, i.e. the driver default. Informational

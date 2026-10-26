@@ -12,3 +12,4 @@ python/*/
 python_tests/*/
 .vscode/settings.json
 /logo_design/
+_temp/

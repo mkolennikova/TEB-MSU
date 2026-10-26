@@ -923,6 +923,10 @@ IF (ntstep == 0) THEN
 	! Input/Output prognostic variables
 	!* ZTI_BLD / ZQI_BLD are initialised by the driver (teb_ti_bld_init /
 	!* teb_qi_bld_init) or by the coupled host; they are not reset here.
+	!* The cold-start profiles of the roof/wall layers, of the internal
+	!* window and the initial floor/mass temperatures are anchored to
+	!* ZTI_BLD (the initial building temperature, as in the 2018 original),
+	!* not to ZTCOOL_TARGET.
 	ZU_CANYON      = 1.                ! Wind speed in canyon
 	ZTS_TOWN_S     = t
     ZTS_TOWN       = t	
@@ -931,10 +935,10 @@ IF (ntstep == 0) THEN
 	! Roof properties
 	ZD_ROOF_LAYERS = ZD_ROOF(1,4) + ZD_ROOF(1,3) + ZD_ROOF(1,2) + ZD_ROOF(1,1)
 	ZT_ROOF(:,1)   = t  ! roof layers temperatures
-	ZT_ROOF(:,2)   = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * (ZD_ROOF(1,4) + ZD_ROOF(1,3) + ZD_ROOF(1,2)) / ZD_ROOF_LAYERS)  ! roof layers temperatures
-	ZT_ROOF(:,3)   = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * (ZD_ROOF(1,4) + ZD_ROOF(1,3))  / ZD_ROOF_LAYERS)  ! roof layers temperatures
-	ZT_ROOF(:,4)   = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * ZD_ROOF(1,4)  / ZD_ROOF_LAYERS)  ! roof layers temperatures
-	ZT_ROOF(:,5)   = ZTCOOL_TARGET  ! roof layers temperatures
+	ZT_ROOF(:,2)   = ZTI_BLD - ((ZTI_BLD - t) * (ZD_ROOF(1,4) + ZD_ROOF(1,3) + ZD_ROOF(1,2)) / ZD_ROOF_LAYERS)  ! roof layers temperatures
+	ZT_ROOF(:,3)   = ZTI_BLD - ((ZTI_BLD - t) * (ZD_ROOF(1,4) + ZD_ROOF(1,3))  / ZD_ROOF_LAYERS)  ! roof layers temperatures
+	ZT_ROOF(:,4)   = ZTI_BLD - ((ZTI_BLD - t) * ZD_ROOF(1,4)  / ZD_ROOF_LAYERS)  ! roof layers temperatures
+	ZT_ROOF(:,5)   = ZTI_BLD  ! roof layers temperatures
 	
 	! Road properties
 	ZT_ROAD  (:,1) = t  ! road layers temperatures
@@ -947,25 +951,25 @@ IF (ntstep == 0) THEN
 	! Wall properties
 	ZD_WALL_LAYERS = ZD_WALL(1,1) + ZD_WALL(1,2) + ZD_WALL(1,3) + ZD_WALL(1,4)
 	ZT_WALL_A(:,1) = t  ! wall layers temperatures
-	ZT_WALL_A(:,2) = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * (ZD_WALL(1,4) + ZD_WALL(1,3) + ZD_WALL(1,2)) / ZD_WALL_LAYERS)  ! wall layers temperatures
-	ZT_WALL_A(:,3) = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * (ZD_WALL(1,4) + ZD_WALL(1,3))  / ZD_WALL_LAYERS)  ! wall layers temperatures
-	ZT_WALL_A(:,4) = ZTCOOL_TARGET - ((ZTCOOL_TARGET - t) * ZD_WALL(1,4)  / ZD_WALL_LAYERS)  ! wall layers temperatures
-	ZT_WALL_A(:,5) = ZTCOOL_TARGET  ! wall layers temperatures
+	ZT_WALL_A(:,2) = ZTI_BLD - ((ZTI_BLD - t) * (ZD_WALL(1,4) + ZD_WALL(1,3) + ZD_WALL(1,2)) / ZD_WALL_LAYERS)  ! wall layers temperatures
+	ZT_WALL_A(:,3) = ZTI_BLD - ((ZTI_BLD - t) * (ZD_WALL(1,4) + ZD_WALL(1,3))  / ZD_WALL_LAYERS)  ! wall layers temperatures
+	ZT_WALL_A(:,4) = ZTI_BLD - ((ZTI_BLD - t) * ZD_WALL(1,4)  / ZD_WALL_LAYERS)  ! wall layers temperatures
+	ZT_WALL_A(:,5) = ZTI_BLD  ! wall layers temperatures
 	ZT_WALL_B      = ZT_WALL_A      ! wall layers temperatures
 
 	! Floor properties
-	ZT_FLOOR (:,1) = 292.12         ! building floor temperature
-	ZT_FLOOR (:,2) = 291.89778      ! building floor temperature
-	ZT_FLOOR (:,3) = 291.26111      ! building floor temperature
-	ZT_FLOOR (:,4) = 289.48333      ! building floor temperature
-	ZT_FLOOR (:,5) = 283.84017      ! building floor temperature
+	ZT_FLOOR (:,1) = ZTI_BLD        ! building floor temperature
+	ZT_FLOOR (:,2) = ZTI_BLD        ! building floor temperature
+	ZT_FLOOR (:,3) = ZTI_BLD        ! building floor temperature
+	ZT_FLOOR (:,4) = ZTI_BLD        ! building floor temperature
+	ZT_FLOOR (:,5) = ZTI_BLD        ! building floor temperature
 	
 	! Mass properties
-	ZT_MASS  (:,1) = 292.15         ! building mass temperature
-	ZT_MASS  (:,2) = 292.15         ! building mass temperature
-	ZT_MASS  (:,3) = 292.15         ! building mass temperature
-	ZT_MASS  (:,4) = 292.15         ! building mass temperature
-	ZT_MASS  (:,5) = 291.84017      ! building mass temperature
+	ZT_MASS  (:,1) = ZTI_BLD        ! building mass temperature
+	ZT_MASS  (:,2) = ZTI_BLD        ! building mass temperature
+	ZT_MASS  (:,3) = ZTI_BLD        ! building mass temperature
+	ZT_MASS  (:,4) = ZTI_BLD        ! building mass temperature
+	ZT_MASS  (:,5) = ZTI_BLD        ! building mass temperature
 	
 	! Water content at first time-step
 	ZWS_ROOF       = 0.             ! roof water content (kg/m2) 
@@ -990,7 +994,7 @@ IF (ntstep == 0) THEN
 	! -----------------------------------------------------------
 	ZM_SYS_RAT     = 0.0067         ! Rated HVAC mass flow rate [kg s-1 m-2(bld)]	
 	ZT_WIN1        = t              ! External window temperature
-	ZT_WIN2        = ZTCOOL_TARGET  ! Internal window temperature
+	ZT_WIN2        = ZTI_BLD  ! Internal window temperature
 	ZALB_WIN       = XUNDEF
 	ZNATVENT       = 0.           ! flag to describe surventilation system for i/o 
                                        ! 0 for NONE, 1 for MANU and 2 for AUTO
@@ -1081,7 +1085,13 @@ XRIMAX = 0.2 ! Maximum richardson number for exchange coefficients computations
 !
 ! sun position at run start
 !
+#ifdef TEB_UPSTREAM_CONS
+XTSTEP_SURF = dt
+CALL SUNPOS(IYEAR, IMONTH, IDAY, ZTIME-XTSTEP_SURF, ZLON, ZLAT, XTSUN, XZENITH, XAZIM)
+CALL SUNPOS(IYEAR, IMONTH, IDAY, ZTIME, ZLON, ZLAT, XTSUN, XZENITH2, XAZIM)
+#else
 CALL SUNPOS(IYEAR, IMONTH, IDAY, ZTIME, ZLON, ZLAT, XTSUN, XZENITH, XAZIM)
+#endif
 
 
 !

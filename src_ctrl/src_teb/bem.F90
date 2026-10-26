@@ -213,6 +213,10 @@ REAL, DIMENSION(:)  , INTENT(IN)  :: PLOAD_IN_MA   ! solar + int heat gain on fl
 INTEGER                        :: IRF        ! Number of roof layers
 INTEGER                        :: IWL        ! Number of wall layers
 !REAL                           :: ZTCOMF_MAX   ! Maximum comfort temperature for nat.vent [K]
+#ifdef TEB_UPSTREAM_CONS
+! Official TEB 4.0.0 natural-ventilation threshold.
+REAL, PARAMETER :: XNATVENT_THRESH = 1.0
+#endif
 !
 REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZFAN_AP      ! Fan design pressure increase [Pa]
 REAL, DIMENSION(SIZE(B%XTI_BLD)) :: ZFAN_EFF     ! Fan total efficiency
@@ -396,7 +400,11 @@ DO JJ=1,SIZE(PT_CAN)
     !
     IF (MOD(PSUNTIME(JJ), 3600.) .LT. PTSTEP) THEN
       !
+#ifdef TEB_UPSTREAM_CONS
+      IF ( B%XTI_BLD(JJ).GT. PT_CAN(JJ) + XNATVENT_THRESH ) THEN ! condition to enable the
+#else
       IF ( B%XTI_BLD(JJ).GT. PT_CAN(JJ) + 0.5 ) THEN ! condition to enable the
+#endif
         IF (B%CNATVENT(JJ)=='AUTO') THEN
         ! natural surventilation rate calculation (window opening)
           CALL GET_NAT_VENT(B%XTI_BLD(JJ), PT_CAN(JJ), PU_CAN(JJ), B%XGR(JJ), &

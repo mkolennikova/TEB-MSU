@@ -17,10 +17,10 @@ These variables are defined in the Fortran namelist files (`namelist.nml` and `n
 | `teb_road_dir` | External parameter | ° | Canyon azimuth |
 | `teb_hroad_dir` | Control variable | "UNIF" / "ORIE" | Canyon orientation: ORIE - with orientation, UNIF - without |
 | `teb_wall_opt` | Control variable | "UNIF" / "TWO" | Wall energy balance: TWO - separate walls, UNIF - uniform |
-| `teb_ti_bld_init` | Initial condition | K | Initial indoor air temperature; default `teb_tcool_target` (297.16 K). Applied once at model step 0 (`ntstep = 0`). The prognostic state remains `teb_ti_bld` |
+| `teb_ti_bld_init` | Initial condition | K | Initial indoor air temperature; default `teb_tcool_target` (297.16 K). Applied once at model step 0 (`ntstep = 0`). The prognostic state remains `teb_ti_bld`. It also anchors the cold-start profiles of the roof/wall layers, the internal window temperature and the initial floor/mass temperatures (as in the 2018 original). |
 | `teb_qi_bld_init` | Initial condition | kg/kg | Initial indoor specific humidity; default `0.5*QSAT(teb_ti_bld, ps)` at model step 0. The prognostic state remains `teb_qi_bld` |
 
-Both `_init` items are applied exactly once per cell at the first model step (`ntstep = 0`, 0-based), not at every forcing step. The offline driver computes this number as `(nstep-1)*INB_ATM + (JSURF_STEP-1)`, so the first forcing step may contain several model sub-steps. `TEB_INIT_STATE` only fills values that are still `XUNDEF`; a value supplied by the driver or by a coupled host is kept.
+Both `_init` items are applied exactly once per cell at the first model step (`ntstep = 0`, 0-based), not at every forcing step. The offline driver computes this number as `(nstep-1)*INB_ATM + (JSURF_STEP-1)`, so the first forcing step may contain several model sub-steps. `TEB_INIT_STATE` only fills values that are still `XUNDEF`; a value supplied by the driver or by a coupled host is kept. `XTI_BLD`/`XQI_BLD` are resolved before the state is filled, because the cold-start profiles and the floor/mass temperatures are anchored to `XTI_BLD`.
 
 
 <!-- MV202609 z0 and zd to namelist -->
@@ -79,17 +79,28 @@ Notes:
 | Variable | Type | Dimension/Value | Comment |
 |:---------|:-----|:----------------|:--------|
 | `urb_alb_rf_so` | External parameter | - | Roof surface albedo |
-| `urb_alb_rf_th` | External parameter | - | Roof surface emissivity |
+| `urb_alb_rf_th` | External parameter | - | Roof longwave albedo, legacy item (the interface receives this value; `urb_alb_rf_th = 1 - urb_emis_rf`) |
+| `urb_emis_rf` | External parameter | - | Roof surface emissivity, primary item (default `0.97`; must be `> 0` and `<= 1`, otherwise the run stops). Giving both `urb_emis_rf` and `urb_alb_rf_th` stops the run |
 | `urb_hcap_rf` | External parameter | J/m³/K | Roof layers volumetric heat capacity |
 | `urb_hcon_rf` | External parameter | W/m/K | Roof layers thermal conductivity |
 | `urb_alb_rd_so` | External parameter | - | Road surface albedo |
-| `urb_alb_rd_th` | External parameter | - | Road surface emissivity |
+| `urb_alb_rd_th` | External parameter | - | Road longwave albedo, legacy item (the interface receives this value; `urb_alb_rd_th = 1 - urb_emis_rd`) |
+| `urb_emis_rd` | External parameter | - | Road surface emissivity, primary item (default `0.96`; must be `> 0` and `<= 1`, otherwise the run stops). Giving both `urb_emis_rd` and `urb_alb_rd_th` stops the run |
 | `urb_hcap_rd` | External parameter | J/m³/K | Road layers volumetric heat capacity |
 | `urb_hcon_rd` | External parameter | W/m/K | Road layers thermal conductivity |
 | `urb_alb_wl_so` | External parameter | - | Wall surface albedo |
-| `urb_alb_wl_th` | External parameter | - | Wall surface emissivity |
+| `urb_alb_wl_th` | External parameter | - | Wall longwave albedo, legacy item (the interface receives this value; `urb_alb_wl_th = 1 - urb_emis_wl`) |
+| `urb_emis_wl` | External parameter | - | Wall surface emissivity, primary item (default `0.97`; must be `> 0` and `<= 1`, otherwise the run stops). Giving both `urb_emis_wl` and `urb_alb_wl_th` stops the run |
 | `urb_hcap_wl` | External parameter | J/m³/K | Wall layers volumetric heat capacity |
 | `urb_hcon_wl` | External parameter | W/m/K | Wall layers thermal conductivity |
+> **Emissivity vs longwave albedo.** The three `urb_emis_*` items are the primary
+> source of the longwave radiative property of the built materials (the upstream
+> 2018/2020 namelists call them `ZEMIS_ROOF` / `ZEMIS_ROAD` / `ZEMIS_WALL`). The
+> driver derives the longwave albedo that the interface receives as
+> `urb_alb_*_th = 1 - urb_emis_*`. The legacy items `urb_alb_*_th` are still
+> supported, but giving both items for the same surface is an error (the run stops);
+> giving neither keeps the driver default (`0.97` / `0.96` / `0.97`).
+
 
 ### Building Energy Model (BEM)
 

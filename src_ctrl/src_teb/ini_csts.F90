@@ -122,7 +122,11 @@ XTH00 = 300.
 !
 !JUAN OVERFLOW XSTEFAN = 2.* XPI**5 * XBOLTZ**4 / (15.* XLIGHTSPEED**2 * XPLANCK**3)
 !XSTEFAN = ( 2.* XPI**5 / 15. ) * ( (XBOLTZ / XPLANCK)* XBOLTZ ) * (XBOLTZ/(XLIGHTSPEED*XPLANCK))**2 
+#ifdef TEB_UPSTREAM_CONS
+XSTEFAN = ( 2.* XPI**5 / 15. ) * ( (XBOLTZ / XPLANCK)* XBOLTZ ) * (XBOLTZ/(XLIGHTSPEED*XPLANCK))**2
+#else
 XSTEFAN = 5.6697E-8
+#endif
 XI0     = 1370.
 !
 !-------------------------------------------------------------------------------
@@ -132,11 +136,17 @@ XI0     = 1370.
 !
 XMD    = 28.9644E-3
 XMV    = 18.0153E-3
+#ifdef TEB_UPSTREAM_CONS
+XRD    = XAVOGADRO * XBOLTZ / XMD
+XRV    = XAVOGADRO * XBOLTZ / XMV
+XCPD   = 7.* XRD /2.
+#else
 !XRD    = XAVOGADRO * XBOLTZ / XMD
 XRD    = 287.05
 XRV    = XAVOGADRO * XBOLTZ / XMV
 !XCPD   = 7.* XRD /2.
 XCPD   = 1005.
+#endif
 XCPV   = 4.* XRV
 XRHOLW = 1000.
 XRHOLI = 917.
