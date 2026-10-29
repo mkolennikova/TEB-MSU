@@ -1,4 +1,5 @@
 *.pyc
+__pycache__/
 *.zip
 *.o
 *.exe
@@ -13,3 +14,14 @@ python_tests/*/
 .vscode/settings.json
 /logo_design/
 _temp/
+
+# python_tests/*/ above ignores every subdirectory; the upstream_cons_test
+# bench is a tracked subdirectory (its code, not its runs).
+!python_tests/upstream_cons_test/
+!python_tests/upstream_cons_test/**
+python_tests/upstream_cons_test/run/
+
+# the byte code of that subdirectory must stay ignored: the '!' rules above come
+# later than the global *.pyc / __pycache__ patterns, so they are repeated here
+__pycache__/
+*.pyc
