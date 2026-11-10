@@ -2,7 +2,7 @@
 MODULE MODI_ROAD_LAYER_E_BUDGET
 INTERFACE
     SUBROUTINE ROAD_LAYER_E_BUDGET(TSTATE, BSTATE, PTSTEP, PDN_ROAD, PRHOA, PAC_ROAD, PAC_ROAD_WAT, &
-                                   PLW_RAD, PPS, PQSAT_ROAD, PDELT_ROAD, PEXNS,           &
+                                   PLW_RAD, PPS, PQSAT_ROAD, PQSAT_ROAD_EFF, PDELT_ROAD, PEXNS, &
                                    PABS_SW_ROAD, PGSNOW_ROAD, PQ_LOWCAN, PT_LOWCAN,       &
                                    PTS_WALL_A, PTS_WALL_B, PTSNOW_ROAD, PTS_GARDEN,       &
                                    PLW_WA_TO_R, PLW_WB_TO_R, PLW_S_TO_R, PLW_WIN_TO_R,    &
@@ -23,7 +23,8 @@ REAL, DIMENSION(:), INTENT(IN)    :: PAC_ROAD     ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(IN)    :: PAC_ROAD_WAT ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(IN)    :: PLW_RAD      ! atmospheric infrared radiation
 REAL, DIMENSION(:), INTENT(IN)    :: PPS          ! pressure at the surface
-REAL, DIMENSION(:), INTENT(IN)    :: PQSAT_ROAD   ! q_sat(Ts)
+REAL, DIMENSION(:), INTENT(IN)    :: PQSAT_ROAD   ! q_sat at the start of the step
+REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_ROAD_EFF ! linearized q_sat used by the energy budget
 REAL, DIMENSION(:), INTENT(IN)    :: PDELT_ROAD   ! fraction of water
 REAL, DIMENSION(:), INTENT(IN)    :: PEXNS        ! surface Exner function
 REAL, DIMENSION(:), INTENT(IN)    :: PABS_SW_ROAD ! absorbed solar radiation
@@ -44,7 +45,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW_ROAD ! absorbed infrared rad.
 REAL, DIMENSION(:), INTENT(OUT)   :: PHFREE_ROAD  ! sensible heat flux on the
 REAL, DIMENSION(:), INTENT(OUT)   :: PLEFREE_ROAD ! latent heat flux on the
 REAL, DIMENSION(:), INTENT(OUT)   :: PIMB_ROAD    ! road residual energy imbalance 
-REAL, DIMENSION(:), INTENT(IN)    :: PRR          ! rain rate [kg m-2 s-1]
+REAL, DIMENSION(:), INTENT(IN)    :: PRR          ! rain and irrigation rate [kg m-2 s-1]
 END SUBROUTINE ROAD_LAYER_E_BUDGET
 END INTERFACE
 END MODULE MODI_ROAD_LAYER_E_BUDGET

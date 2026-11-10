@@ -297,7 +297,7 @@ REAL, DIMENSION(:), INTENT(INOUT) :: PDN_RF      ! snow-covered fraction on roof
 REAL, DIMENSION(:), INTENT(INOUT) :: PDF_RD      ! snow-free    fraction on roads
 REAL, DIMENSION(:), INTENT(INOUT) :: PDN_RD      ! snow-covered fraction on roads
 REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_RF    ! hum at saturation over roof
-REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_RD    ! hum at saturation over road
+REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_RD    ! linearized road saturation humidity from the energy budget
 REAL, DIMENSION(:), INTENT(OUT)   :: PDELT_RF    ! water fraction on roof
 REAL, DIMENSION(:), INTENT(OUT)   :: PDELT_RD    ! water fraction on road
 !
@@ -325,7 +325,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_ATM  ! sensible heat flux over snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD_CAN ! latent heat flux over snow, snow -> canyon air
 REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD_ATM ! latent heat flux over snow, snow -> forcing level
 REAL, DIMENSION(:), INTENT(OUT)   :: PGSN_RD  ! flux under the snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RD   ! snow melt
+REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RD   ! road snow melt (kg/m2 snow/s)
 !
 REAL, DIMENSION(:), INTENT(OUT)   :: PUW_RD     ! Momentum flux for roads
 REAL, DIMENSION(:), INTENT(OUT)   :: PUW_RF     ! Momentum flux for roofs
@@ -440,6 +440,8 @@ REAL, DIMENSION(:), INTENT(OUT) :: LE_ROOF_SNOW     ! roof latent heat flux of t
 REAL, DIMENSION(SIZE(PTA)) :: ZVMOD          ! wind
 REAL, DIMENSION(SIZE(PTA)) :: ZWS_RF_MAX   ! maximum deepness of roof
 REAL, DIMENSION(SIZE(PTA)) :: ZWS_RD_MAX   ! and road water reservoirs
+REAL, DIMENSION(SIZE(PTA)) :: ZPDN_RD_BEFORE_SNOW ! road snow fraction used by the snow scheme
+REAL, DIMENSION(SIZE(PTA)) :: ZMELT_RD_TILE       ! road snow melt (kg/m2 road/s)
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 REAL, DIMENSION(SIZE(PTA)) :: ZAC_RD_ATM_WAT ! road conductance for water (forcing level)
 REAL, DIMENSION(SIZE(PTA)) :: ZDF_RD         ! snow-free road fraction (for the atm. flux)
@@ -447,6 +449,7 @@ REAL, DIMENSION(SIZE(PTA)) :: ZDF_RD         ! snow-free road fraction (for the 
 REAL, DIMENSION(:), INTENT(IN) :: PTAU       ! CBS scheme weight of the canyon path (-)
 REAL, DIMENSION(SIZE(PTA)) :: ZPAC_RD        ! road conductance, tau-aggregated
 REAL, DIMENSION(SIZE(PTA)) :: ZPAC_RD_WAT    ! road water conductance, tau-aggregated
+REAL, DIMENSION(SIZE(PTA)) :: ZQSAT_RD_OLD   ! road saturation humidity at the start of the step
 REAL, DIMENSION(SIZE(PTA)) :: ZT_REF         ! reference air temperature of the road fluxes [K]
 REAL, DIMENSION(SIZE(PTA)) :: ZQ_REF         ! reference air humidity of the road fluxes [kg kg-1]
 INTEGER                    :: JJ             ! loop index (CBS scheme)
@@ -646,7 +649,7 @@ ZWS_RD_MAX(:) = ZWS_RD_MAX(:) * PDF_RD(:)
                  PVMOD, ZWS_RF_MAX, ZWS_RD_MAX, PPEW_A_COEF,            &
                  PPEW_B_COEF, PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT, PZ0_GR_EXT, &   
 				 PTSRAD_GR, PRUNOFF_GR,&
-                 PQSAT_RF, PQSAT_RD, PDELT_RF, PDELT_RD, PCD, PCDN,     &
+                 PQSAT_RF, ZQSAT_RD_OLD, PDELT_RF, PDELT_RD, PCD, PCDN, &
                  PAC_RF, PAC_RF_WAT, PAC_WL, PAC_RD, PAC_RD_WAT,        &
                  PAC_TOP, PAC_GARDEN, PRI_TWN, PUW_RD, PUW_RF,          &
                  PDUWDU_RD, PDUWDU_RF, PUSTAR_TWN, ZAC_WIN, PCH_GARDEN, &
@@ -710,6 +713,7 @@ ZQA(:) = PQA(:) * QSAT(ZTA(:),PPS(:)) / QSAT(PTA(:),PPA(:))
 !*      5.     Snow mantel model
 !              -----------------
 !
+ ZPDN_RD_BEFORE_SNOW(:) = PDN_RD(:)
  CALL URBAN_SNOW_EVOL(TSTATE, BSTATE, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, ZTS_RF, ZTS_RD, ZTS_WL_A,    &
                       ZTS_WL_B, PPS, ZTA, ZQA, PRHOA, PLW_RAD, PSR, PZREF, PUREF, PVMOD,  &
                       PTSTEP,  PZ_LOWCAN, PDN_RF, DMT%XABS_SW_SNOW_ROOF,                 &
@@ -720,6 +724,9 @@ ZQA(:) = PQA(:) * QSAT(ZTA(:),PPS(:)) / QSAT(PTA(:),PPA(:))
                       ZDQS_SN_RD, PSNOWD_RF, PSNOWD_RD, PTAU,                           &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                       PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TPARAMS   )
+ ! The snow scheme can clear PDN_RD on the same step that produces meltwater.
+ ! Convert the melt rate with the fraction used by that step's snow budget.
+ ZMELT_RD_TILE(:) = ZPDN_RD_BEFORE_SNOW(:) * PMELT_RD(:)
 					  
 
 !
@@ -826,7 +833,7 @@ ENDIF
 !* ts_road, ts_wall, qsat_road, t_canyon and q_canyon are updated
 !
  CALL ROAD_LAYER_E_BUDGET(TSTATE, BSTATE, PTSTEP, PDN_RD, PRHOA, ZPAC_RD, ZPAC_RD_WAT, &
-                          PLW_RAD, PPS, PQSAT_RD, PDELT_RD, PEXNS,         &
+                          PLW_RAD, PPS, ZQSAT_RD_OLD, PQSAT_RD, PDELT_RD, PEXNS, &
                           DMT%XABS_SW_ROAD, PGSN_RD, ZQ_REF, ZT_REF,       &
                           ZTS_WL_A, ZTS_WL_B, ZTSSN_RD,  PTS_GARDEN,       &
                           PLW_WA_TO_R, PLW_WB_TO_R, PLW_S_TO_R,            &
@@ -863,12 +870,9 @@ LE_ROOF_SNOW(:) =        PDN_RF(:)   * PLESN_RF(:)
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* potential component fluxes of the road: same quantity as if the whole exchange
 !* occurred with the canyon air (tau = 1) or directly with the air of the forcing
-!* level (tau = 0), computed from the surface temperature resulting from the road
-!* energy-budget solve (TSTATE%XT_ROAD(:,1), which is also the surface temperature used
-!* by the road/canyon fluxes, the scheme being fully implicit). Same formula, same
-!* water limitation and same cp/Exns convention as PHFREE_ROAD/PLEFREE_ROAD, only
-!* the reference air - and hence its conductance - is changed. Diagnostics only:
-!* they do not feed back on the road energy budget.
+!* level (tau = 0). They use the solved surface temperature and the linearized
+!* saturation humidity returned by the road energy budget. Each branch uses its
+!* own reference air and conductance, with the same water limitation.
 !
 ZDF_RD(:)       = 1. - PDN_RD(:)
 PH_ROAD_CAN(:)  = PRHOA(:) * PAC_RD(:)         * ZDF_RD(:) * XCPD/PEXNS(:)  &
@@ -954,7 +958,7 @@ END SELECT
  CALL URBAN_FLUXES   (TOPTS, TSTATE, BSTATE, DMT, HIMPLICIT_WIND, PT_CANYON, PPEW_A_COEF, PPEW_B_COEF,      &
                       PEXNS, PRHOA, PVMOD, PH_TRAFFIC, PLE_TRAFFIC,PAC_WL, PCD, PDF_RF,         &
                       PDN_RF, PDF_RD, PDN_RD, PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF,             &
-                      PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RF, ZDQS_RF, PMELT_RD,        &
+                      PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RF, ZDQS_RF, ZMELT_RD_TILE,   &
                       ZDQS_RD, ZDQS_WL_A, ZDQS_WL_B, ZFLX_BLD_RF, ZFLX_BLD_WL_A,                &
                       ZFLX_BLD_WL_B, ZFLX_BLD_FL, ZFLX_BLD_MA, PE_SHADING, PLEW_RF,             &
                       PRN_GR, PH_GR, PLE_GR, PGFLUX_GR,                                         &
@@ -964,26 +968,15 @@ END SELECT
 ! Water transfer from snow reservoir to water reservoir in case of snow melt
 !
 !MV202609 fixes of the snow melt / roof puddle water path (melt injection)
-!* PMELT_RF / PMELT_RD are computed by URBAN_SNOW_EVOL for each m2 of SNOW
-!* ("All computations are then done only for each m2 of snow, and not for each
-!* m2 of roof/road": the snowpack is divided by PDN_* before the call and
-!* multiplied back afterwards, see URBAN_SNOW_EVOL), so the melt water that
-!* reaches the roof/road reservoirs is PDN_RF*PMELT_RF / PDN_RD*PMELT_RD per m2
-!* of roof/road, exactly like the tile-mean snow latent flux PDN_*PLESN_*.
-!* Without the PDN_* weight the reservoirs receive 1/PDN_* times the real melt
-!* (a spurious water source, maximal for a patchy snowpack: with PDN = 0.7 the
-!* melt water injected is 43% too large).
-!* The MIN() with the reservoir capacity is also removed here: URBAN_HYDRO
-!* (called just below) applies the capacity and turns the excess into runoff,
-!* while capping the reservoir here silently DESTROYS the melt water that does
-!* not fit in the roof/road puddle (a water leak of the same order as the melt
-!* itself during the melt season, ZWS_*_MAX being only 1 mm * (1-PDN_*)).
+!* URBAN_SNOW_EVOL returns melt rates per m2 of snow. Convert roof melt using
+!* PDN_RF and use the road-area rate already computed above. URBAN_HYDRO
+!* applies the reservoir capacities below and sends the excess to runoff.
 WHERE (PMELT_RF(:) .GT. 0.)
   TSTATE%XWS_ROOF(:) = TSTATE%XWS_ROOF(:) + PDN_RF(:) * PMELT_RF(:) * PTSTEP
 ENDWHERE
 !
-WHERE (PMELT_RD(:) .GT. 0.)
-  TSTATE%XWS_ROAD(:) = TSTATE%XWS_ROAD(:) + PDN_RD(:) * PMELT_RD(:) * PTSTEP
+WHERE (ZMELT_RD_TILE(:) .GT. 0.)
+  TSTATE%XWS_ROAD(:) = TSTATE%XWS_ROAD(:) + ZMELT_RD_TILE(:) * PTSTEP
 ENDWHERE
 
 !

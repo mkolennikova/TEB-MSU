@@ -199,6 +199,8 @@ REAL,DIMENSION(1)  :: ZD_ROOF_LAYERS         ! Thickness            of 1-4 roof 
 REAL,DIMENSION(1)  :: ZDIR             ! Wind direction (degrees)
 REAL               :: XPII
 REAL,DIMENSION(1:9):: ZU_CANYON_WANG   ! hor. wind in canyon due to Wang
+REAL,DIMENSION(1)  :: ZU_CAN_PED       ! hor. wind at pedestrian height (1.1 m) due to Wang
+REAL,DIMENSION(1)  :: ZU_CAN_10M       ! hor. wind at 10 m height due to Wang
 
 REAL,DIMENSION(1)  :: ZVMOD_TS         ! Wind speed at forcing level limited with wind_threshold (m/s)
 ! Urban variables    
@@ -576,9 +578,13 @@ IF (TOPTS%ITYPE_WIND == 0) THEN
 	ZWAKE = 1. + (2./XPI-1.) * 2. * (TPARAMS%XCAN_HW_RATIO(icell:icell)-0.5)
 	ZWAKE = MAX(MIN(ZWAKE,1.),2./XPI)
 	DMT%XWIND_CANYON(1:1) = ZWAKE * EXP(-TPARAMS%XCAN_HW_RATIO(icell:icell)/4.) * DMT%XWIND_TOP(1)
+	DMT%XU_CAN_PED(1:1)   = DMT%XWIND_CANYON(1:1)
+	DMT%XU_CAN_10M(1:1)   = DMT%XWIND_CANYON(1:1)
 ELSEIF (TOPTS%ITYPE_WIND == 1) THEN
-	CALL WIND_CALCULATION_WANG(icell, iblock, TPARAMS%XBLD_HEIGHT(icell:icell), DMT%XUSTAR_TOWN(1:1), DMT%XWIND_TOP(1:1), FORC%XU(1:1), FORC%XV(1:1), TPARAMS%XFAI(icell:icell,:), ZU_CANYON_WANG)  
+	CALL WIND_CALCULATION_WANG(icell, iblock, TPARAMS%XBLD_HEIGHT(icell:icell), DMT%XUSTAR_TOWN(1:1), DMT%XWIND_TOP(1:1), FORC%XU(1:1), FORC%XV(1:1), TPARAMS%XFAI(icell:icell,:), ZU_CANYON_WANG, ZU_CAN_PED, ZU_CAN_10M)
 	DMT%XWIND_CANYON(1:1) = ZU_CANYON_WANG(5)
+	DMT%XU_CAN_PED(1:1)   = ZU_CAN_PED(1:1)
+	DMT%XU_CAN_10M(1:1)   = ZU_CAN_10M(1:1)
 ENDIF
 
 ! Calculate Wind Direction from U and V components

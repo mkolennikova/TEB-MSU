@@ -59,7 +59,7 @@ USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 !
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
 USE MODD_CSTS,              ONLY: XTT, XSTEFAN
-USE MODD_SURF_PAR,          ONLY: XUNDEF, teb_snow_check
+USE MODD_SURF_PAR,          ONLY: XUNDEF, teb_snow_check, XTEB_SNOW_RATE_MIN
 USE MODD_SNOW_PAR,          ONLY: XEMISSN, XANSMAX
 !
 USE MODE_THERMOS
@@ -199,9 +199,7 @@ REAL, DIMENSION(SIZE(FORC%XTA)) :: ILMO_ROAD
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ILMO_ROOF
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ILMO_TOP
 
-! MT
-REAL, DIMENSION(SIZE(FORC%XTA))  :: WSNOW_ROOF_CHECK    ! new snow content to exclude very low snow rate
-REAL, DIMENSION(SIZE(FORC%XTA))  :: WSNOW_ROAD_CHECK    ! new snow content to exclude very low snow rate
+LOGICAL, DIMENSION(SIZE(FORC%XTA)) :: GNEW_SNOW ! snowfall that can create new cover
 
 !
 !REAL, DIMENSION(SIZE(PTA)) :: ZDN_RF       ! snow fraction on roofs
@@ -366,6 +364,7 @@ LOGICAL, DIMENSION(SIZE(FORC%XTA)) :: GSHADE           ! describes if one encoun
 !                                                 ! conditions to close windows
 
 INTEGER :: JJ
+INTEGER :: IGARDEN_SIZE ! zero-length radiative inputs when the garden is disabled
 
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
@@ -476,61 +475,35 @@ ENDDO
 !*      2.     Snow-covered surfaces relative effects
 !              --------------------------------------
 !
-!*      2.1    Snow-covered surfaces relative fractions (at previous time-step)
-!              ----------------------------------------
- CALL SNOW_FRAC_ROAD(TSTATE%TSNOW_ROAD%WSNOW(:,1),FORC%XSNOW(:)>0.,DMT%XPDN_RD(1:1),ZDF_RD)
- CALL SNOW_FRAC_ROOF(TSTATE%TSNOW_ROOF%WSNOW(:,1),FORC%XSNOW(:)>0.,DMT%XPDN_RF(1:1),ZDF_RF)
-
- ! MT  teb_snow_check = .TRUE. activates the correction of the coupled model
- IF (teb_snow_check) THEN
-   ! Claculation of snow content to exclude cases of very low snow rate
-   WSNOW_ROOF_CHECK = 0.
-   WSNOW_ROAD_CHECK = 0.
-   WHERE (TSTATE%TSNOW_ROAD%WSNOW(:,1)==0. .AND. FORC%XSNOW(:)>0.) WSNOW_ROAD_CHECK = PTSTEP * FORC%XSNOW(:)
-   WHERE (TSTATE%TSNOW_ROOF%WSNOW(:,1)==0. .AND. FORC%XSNOW(:)>0.) WSNOW_ROOF_CHECK = PTSTEP * FORC%XSNOW(:)
- ENDIF
- 
+!*      2.1    Snow-covered fractions from existing cover and accepted new snow
+!              --------------------------------------------------------------
+GNEW_SNOW(:) = FORC%XSNOW(:) > 0.
+IF (teb_snow_check) GNEW_SNOW(:) = FORC%XSNOW(:) >= XTEB_SNOW_RATE_MIN
+CALL SNOW_FRAC_ROAD(TSTATE%TSNOW_ROAD%WSNOW(:,1), GNEW_SNOW, DMT%XPDN_RD(1:1), ZDF_RD)
+CALL SNOW_FRAC_ROOF(TSTATE%TSNOW_ROOF%WSNOW(:,1), GNEW_SNOW, DMT%XPDN_RF(1:1), ZDF_RF)
 !
-!* new snow albedo
+!*      2.2    Radiative properties of new snow and bare surfaces
+!              -------------------------------------------------
 !
-WHERE (TSTATE%TSNOW_ROAD%WSNOW(:,1)==0. .AND. FORC%XSNOW(:)>0.) TSTATE%TSNOW_ROAD%ALB(:) = XANSMAX
-WHERE (TSTATE%TSNOW_ROOF%WSNOW(:,1)==0. .AND. FORC%XSNOW(:)>0.) TSTATE%TSNOW_ROOF%ALB(:) = XANSMAX
-!
-
-!*      2.2    If snow was not present at previous time-step but is falling
-!              ------------------------------------------------------------
-!
-WHERE (TSTATE%TSNOW_ROAD%WSNOW(:,1)==0. .AND. FORC%XSNOW(:)>0.)
+WHERE (TSTATE%TSNOW_ROAD%WSNOW(:,1)==0. .AND. GNEW_SNOW(:))
   TSTATE%TSNOW_ROAD%ALB (:) = XANSMAX
   TSTATE%TSNOW_ROAD%EMIS(:) = XEMISSN
   TSTATE%TSNOW_ROAD%TS  (:) = MIN(TSTATE%XT_ROAD(:,1), XTT)
+ELSEWHERE (teb_snow_check .AND. TSTATE%TSNOW_ROAD%WSNOW(:,1)==0.)
+  TSTATE%TSNOW_ROAD%ALB (:) = XUNDEF
+  TSTATE%TSNOW_ROAD%EMIS(:) = XUNDEF
+  TSTATE%TSNOW_ROAD%TS  (:) = XUNDEF
 END WHERE
-WHERE (TSTATE%TSNOW_ROOF%WSNOW(:,1)==0. .AND. FORC%XSNOW(:)>0.)
+WHERE (TSTATE%TSNOW_ROOF%WSNOW(:,1)==0. .AND. GNEW_SNOW(:))
   TSTATE%TSNOW_ROOF%ALB (:) = XANSMAX
   TSTATE%TSNOW_ROOF%EMIS(:) = XEMISSN
   TSTATE%TSNOW_ROOF%TS  (:) = MIN(TSTATE%XT_ROOF(:,1), XTT)
+ELSEWHERE (teb_snow_check .AND. TSTATE%TSNOW_ROOF%WSNOW(:,1)==0.)
+  TSTATE%TSNOW_ROOF%ALB (:) = XUNDEF
+  TSTATE%TSNOW_ROOF%EMIS(:) = XUNDEF
+  TSTATE%TSNOW_ROOF%TS  (:) = XUNDEF
 END WHERE
-
-! MT  teb_snow_check = .TRUE. activates the correction of the coupled model
-IF (teb_snow_check) THEN
-  ! Exclude cases of very low snow rate
-  WHERE ( WSNOW_ROAD_CHECK(:)<1.E-8 * PTSTEP )
-     TSTATE%TSNOW_ROAD%ALB (:) = XUNDEF
-     TSTATE%TSNOW_ROAD%EMIS(:) = XUNDEF
-     TSTATE%TSNOW_ROAD%TS  (:) = XUNDEF
-     DMT%XPDN_RD(1:1) = 0.
-     ZDF_RD = 1.
-  END WHERE
-  !
-  WHERE ( WSNOW_ROOF_CHECK(:)<1.E-8 * PTSTEP )
-     TSTATE%TSNOW_ROOF%ALB (:) = XUNDEF
-     TSTATE%TSNOW_ROOF%EMIS(:) = XUNDEF
-     TSTATE%TSNOW_ROOF%TS  (:) = XUNDEF
-     DMT%XPDN_RF(1:1) = 0.
-     ZDF_RF = 1.
-  END WHERE
-ENDIF
-
+!
 !
 !*      2.3    Radiative snow variables at previous time-step
 !              ----------------------------------------------
@@ -555,14 +528,8 @@ ZQA(:) = FORC%XQA(:) * QSAT(ZTA(:),FORC%XPS(:)) / QSAT(FORC%XTA(:),FORC%XPA(:))
 !              --------------------------------------------------
 !
 
-!* Initialise the grid-averaged albedo, emissivity and radiative temperature of
-!  green areas and green roofs to XUNDEF before the optional blocks below.
-!  These arrays are passed to URBAN_SOLAR_ABS / URBAN_LW_COEF and are used there
-!  even when the garden / greenroof schemes are disabled (LGARDEN / LGREENROOF
-!  = .FALSE.); without this initialisation uninitialised memory would be used.
-!  When a scheme is enabled the values below are overwritten either by the
-!  external data (*_EXT) or by TEB_VEG_PROPERTIES, so both operating modes
-!  (built-in and external) are unaffected.
+!* Mark radiative properties of disabled vegetation as undefined.
+!  The radiation calculations evaluate these properties only for enabled surfaces.
 ZALB_GD   = XUNDEF
 ZEMIS_GD  = XUNDEF
 ZTSRAD_GD = XUNDEF
@@ -662,7 +629,9 @@ END IF
 !*      6.     LW properties
 !              -------------
 !
-  CALL URBAN_LW_COEF(BSTATE, TSTATE, FORC%XLW, ZEMIS_GD, TSTATE%TSNOW_ROAD%TS, ZTSRAD_GD,  &
+  IGARDEN_SIZE = 0
+  IF (TOPTS%LGARDEN) IGARDEN_SIZE = SIZE(ZTSRAD_GD)
+  CALL URBAN_LW_COEF(BSTATE, TSTATE, FORC%XLW, ZEMIS_GD(:IGARDEN_SIZE), TSTATE%TSNOW_ROAD%TS, ZTSRAD_GD(:IGARDEN_SIZE), &
                      ZLW_WA_TO_WB, ZLW_WA_TO_R, ZLW_WB_TO_R,            &
                      ZLW_WA_TO_NR, ZLW_WB_TO_NR, ZLW_WA_TO_G,           &
                      ZLW_WB_TO_G, ZLW_WA_TO_WIN, ZLW_WB_TO_WIN,         &
@@ -800,6 +769,8 @@ END IF
                        DMT%XPT_CAN0(1:1), DMT%XPT_CAN1(1:1), DMT%XPPHI_CAN1(1:1), ZQ_CAN0, ZQ_CAN1,                       &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                        DMT%CAN%PHSN_RD, DMT%ATM%PHSN_RD, DMT%CAN%PLESN_RD, DMT%ATM%PLESN_RD , TPARAMS, BPARAMS)
+!MV202610 town emissivity (EMIS_TOWN) from AVG_URBAN_FLUXES
+DMT%XEMIS_TOWN(:) = PEMIS_TWN(:)
 !
 PSFCO2(:) = TPARAMS%XGARDEN(:) * ZSFCO2_GD(:) + TPARAMS%XBLD(:) * TPARAMS%XGREENROOF(:) * ZSFCO2_GR(:) ! no CO2 flux from built and road yet.
 !

@@ -68,7 +68,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
                  teb_rd_irrig_end_h, teb_rd_irrig_sum, teb_utc_hour, &
                  teb_lshade, urb_z0_town, urb_zd_town, urb_z0_o_z0h_gdn, &
                  urb_z0_o_z0h_grf, teb_lcbs_scheme, teb_tau_hw_thresh, &
-                 teb_tau_hw_width, teb_wind_canyon, teb_sobs, teb_thbs, teb_runoff_road, teb_runoff_roof, kteb_log_block, &
+                 teb_tau_hw_width, teb_wind_canyon, teb_u_can_ped, teb_u_can_10m, teb_sobs, teb_thbs, teb_runoff_road, teb_runoff_roof, kteb_log_block, &
                  kteb_log_point)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
@@ -271,6 +271,8 @@ REAL,                 INTENT(IN)  :: teb_tau_hw_thresh! H/W giving tau = 0.5 (CB
 REAL,                 INTENT(IN)  :: teb_tau_hw_width ! width of the tanh relaxation (CBS scheme)
 !MV202610 emulator inputs as individual fields (no structures across the boundary)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_wind_canyon   ! canyon wind (m/s)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_u_can_ped    ! wind speed at pedestrian height (1.1 m) (m/s)
+REAL, DIMENSION(nvec), INTENT(OUT) :: teb_u_can_10m    ! wind speed at 10 m height (m/s)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_sobs         ! solar radiation absorbed by the ground (W/m2)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_thbs         ! thermal radiation absorbed by the ground (W/m2)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_runoff_road  ! road runoff of this sub-step (kg/m2/s)
@@ -407,6 +409,8 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT   ! points to write
     !* (the dedicated XSOBS/XTHBS fields of the container were never filled and
     !* have been removed; check_diag_producers.py guards against a recurrence)
     teb_wind_canyon(1:nvec) = DMT%XWIND_CANYON(1:nvec)
+    teb_u_can_ped(1:nvec)   = DMT%XU_CAN_PED(1:nvec)
+    teb_u_can_10m(1:nvec)   = DMT%XU_CAN_10M(1:nvec)
     teb_sobs(1:nvec)        = DMT%XABS_SW_GARDEN(1:nvec)
     teb_thbs(1:nvec)        = DMT%XABS_LW_GARDEN(1:nvec)
     teb_runoff_road(1:nvec) = DMT%XRUNOFF_ROAD(1:nvec)

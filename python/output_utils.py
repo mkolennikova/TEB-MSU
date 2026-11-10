@@ -147,7 +147,7 @@ DEFAULT_SUBPLOTS_CONFIG = [
         'forcing': [{'column': 'Forc_TA', 'label': 'FORC_TA'}]
     },
     {
-        'variables': ['U_CANYON', 'WIND_TOP'],
+        'variables': ['U_CAN_PED', 'U_CANYON', 'U_CAN_10M', 'WIND_TOP'],
         'title': 'Wind Speed',
         'ylabel': 'Wind speed (m/s)',
         # 'labels' omitted -> uses variable names

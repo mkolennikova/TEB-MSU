@@ -220,6 +220,8 @@ TYPE DIAG_MISC_TEB_t
   REAL, POINTER, DIMENSION(:)   :: XAC_TOP                          ! teb_ac_top - OUT Canyon-atm. aerodynamical conductance
   REAL, POINTER, DIMENSION(:)   :: XAC_WL                           ! teb_ac_wl - OUT Wall aerodynamical conductance
   REAL, POINTER, DIMENSION(:)   :: XALB_SO                          ! teb_alb_so - OUT town solar albedo
+!MV202610 town emissivity (EMIS_TOWN) - OUT town equivalent emissivity
+  REAL, POINTER, DIMENSION(:)   :: XEMIS_TOWN                       ! town equivalent emissivity (CSV EMIS_TOWN)
   REAL, POINTER, DIMENSION(:)   :: XEVAP_GARDEN                     ! teb_evap_garden (CSV EVAP_GARDEN) - OUT total evaporation over the garden (kg/m2/s)
   REAL, POINTER, DIMENSION(:)   :: XEVAP_GREENROOF                  ! teb_evap_greenroof (CSV EVAP_GREENROOF) - OUT total evaporation over the greenroof (kg/m2/s)
   REAL, POINTER, DIMENSION(:)   :: XFRSNOW                          ! teb_frsnow - OUT snow fraction over town
@@ -278,6 +280,8 @@ TYPE DIAG_MISC_TEB_t
   REAL, POINTER, DIMENSION(:)   :: XTS_WALL_B                       ! teb_tswallb (CSV T_WALLB1) - OUT wall 'B' surface temperature [K]
   REAL, POINTER, DIMENSION(:)   :: XUCANYON                         ! teb_ucanyon - OUT u-wind component of wind inside the canyon
   REAL, POINTER, DIMENSION(:)   :: XUSTAR_TOWN                      ! teb_ustar_town (CSV USTAR_TOWN) - OUT friction velocity over the town [m/s]
+  REAL, POINTER, DIMENSION(:)   :: XU_CAN_10M                       ! teb_u_can_10m (CSV U_CAN_10M) - OUT wind speed at 10 m height [m/s] (Wang scheme, XUNDEF above roof level)
+  REAL, POINTER, DIMENSION(:)   :: XU_CAN_PED                       ! teb_u_can_ped (CSV U_CAN_PED) - OUT wind speed at pedestrian height (1.1 m) [m/s] (Wang scheme, XUNDEF above roof level)
   REAL, POINTER, DIMENSION(:)   :: XVCANYON                         ! teb_vcanyon - OUT v-wind component of wind inside the canyon
   REAL, POINTER, DIMENSION(:)   :: XWIND_CANYON                     ! teb_wind_canyon (CSV U_CANYON) - OUT Wind speed in canyon
   REAL, POINTER, DIMENSION(:)   :: XWIND_TOP                        ! teb_wind_top (CSV WIND_TOP) - OUT Wind speed at canyon top (m/s)
@@ -377,6 +381,7 @@ REAL(KIND=JPRB) :: ZHOOK_HANDLE
   NULLIFY(YDIAG_MISC_TEB%XAC_TOP)
   NULLIFY(YDIAG_MISC_TEB%XAC_WL)
   NULLIFY(YDIAG_MISC_TEB%XALB_SO)
+  NULLIFY(YDIAG_MISC_TEB%XEMIS_TOWN)
   NULLIFY(YDIAG_MISC_TEB%XEVAP_GARDEN)
   NULLIFY(YDIAG_MISC_TEB%XEVAP_GREENROOF)
   NULLIFY(YDIAG_MISC_TEB%XFRSNOW)
@@ -435,6 +440,8 @@ REAL(KIND=JPRB) :: ZHOOK_HANDLE
   NULLIFY(YDIAG_MISC_TEB%XTS_WALL_B)
   NULLIFY(YDIAG_MISC_TEB%XUCANYON)
   NULLIFY(YDIAG_MISC_TEB%XUSTAR_TOWN)
+  NULLIFY(YDIAG_MISC_TEB%XU_CAN_10M)
+  NULLIFY(YDIAG_MISC_TEB%XU_CAN_PED)
   NULLIFY(YDIAG_MISC_TEB%XVCANYON)
   NULLIFY(YDIAG_MISC_TEB%XWIND_CANYON)
   NULLIFY(YDIAG_MISC_TEB%XWIND_TOP)

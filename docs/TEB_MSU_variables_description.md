@@ -458,7 +458,9 @@ The driver therefore
 |:---------|:-----------|:--------|
 | `T_CANYON` | K | Canyon air temperature |
 | `Q_CANYON` | kg/kg | Canyon air specific humidity |
-| `U_CANYON` | m/s | Canyon wind speed |
+| `U_CANYON` | m/s | Canyon wind speed (with the Wang scheme, `teb_itype_wind = 1`: the profile value at half building height, `z = H/2`) |
+| `U_CAN_PED` | m/s | Wind speed at pedestrian height (1.1 m above ground): the Wang profile value at that absolute height (`teb_itype_wind = 1`), `XUNDEF` above the roof level; duplicated from `U_CANYON` with the default scheme (`teb_itype_wind = 0`) |
+| `U_CAN_10M` | m/s | Wind speed at the standard 10 m height: the Wang profile value at that absolute height (`teb_itype_wind = 1`), `XUNDEF` when the roof level is below 10 m; duplicated from `U_CANYON` with the default scheme (`teb_itype_wind = 0`) |
 | `P_CANYON` | Pa | Atmospheric pressure at the surface |
 | `T_ROOF1` | K | Roof surface temperature |
 | `T_ROAD1` | K | Road surface temperature |
@@ -470,6 +472,8 @@ The driver therefore
 | `RN_TOWN` | W/m² | Net radiation of urban canyon effective surface |
 | `WIND_TOP` | m/s | Wind speed at the canyon top |
 | `USTAR_TOWN` | m/s | Friction velocity of the urban surface (`PUSTAR_TWN` of `URBAN_FLUXES`, from the bulk town drag coefficient `PCD`); always defined in the offline driver, which runs with `LCANOPY = .FALSE.` |
+<!-- MV202610 integral town albedo (ALB_TOWN) -->
+| `ALB_TOWN` | - | Town area-averaged shortwave albedo `SW_up/SW_in` over roofs, roads, walls, windows, solar panels, garden and green roof, including the canyon re-reflections and snow. This is exactly the urban-tile value that TEB exports to the atmosphere model in a coupled run (`teb_alb_so` = `ZSO_ALB_TOWN` = `PSO_ALB_TWN`, the COSMO field `TEB_ALB_SO`). Defined at every step, also at night: `URBAN_SOLAR_ABS` floors the incoming diffuse radiation (`ZSCA_SW = MAX(PSCA_SW, 0.000001)`), so the ratio is always computable, and without a direct beam it reduces to the town diffuse albedo (`PDIR_ALB_TWN = PSCA_ALB_TWN`) |
 | `HVAC_COOL` | W/m²(building) | Cooling energy consumption |
 | `HVAC_HEAT` | W/m²(building) | Heating energy consumption |
 | `SOLAR_PROD` | W/m²(building) | Average solar panel energy production |

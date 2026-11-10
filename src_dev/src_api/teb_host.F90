@@ -381,6 +381,14 @@ DO K = KSTART, KEND
        WRITE(*,*) '   zd must be in [0, urb_h_bld), urb_h_bld = ', TPARAMS%XBLD_HEIGHT(K), ' m'
        STOP
     ENDIF
+    ! Keep the roof-level wind logarithm positive beyond round-off.
+    IF (TPARAMS%XBLD_HEIGHT(K) - TPARAMS%XZD_TOWN(K) - TPARAMS%XZ0_TOWN(K) &
+        <= SPACING(TPARAMS%XBLD_HEIGHT(K))) THEN
+       WRITE(*,*) 'ERROR in TEB_FILL_DERIVED: H - zd must exceed z0 beyond round-off'
+       WRITE(*,*) '   H = ', TPARAMS%XBLD_HEIGHT(K), ' m, zd = ', TPARAMS%XZD_TOWN(K), ' m, z0 = ', TPARAMS%XZ0_TOWN(K), ' m'
+       WRITE(*,*) '   required: zd < H - z0 = ', TPARAMS%XBLD_HEIGHT(K) - TPARAMS%XZ0_TOWN(K), ' m'
+       STOP 1
+    ENDIF
 END DO
 !
 !* anthropogenic latent fluxes are zero in this version

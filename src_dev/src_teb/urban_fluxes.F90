@@ -6,7 +6,7 @@
     SUBROUTINE URBAN_FLUXES(TOPTS, TSTATE, BSTATE, DMT, HIMPLICIT_WIND, PT_CANYON, PPEW_A_COEF, PPEW_B_COEF,      &
                             PEXNS, PRHOA, PVMOD, PH_TRAFFIC, PLE_TRAFFIC, PAC_WL, PCD, PDF_RF,        &
                             PDN_RF, PDF_RD, PDN_RD, PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF,             &
-                            PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RF, PDQS_RF, PMELT_RD,        &
+                            PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RF, PDQS_RF, PMELT_RD_TILE,   &
                             PDQS_RD, PDQS_WL_A, PDQS_WL_B, PFLX_BLD_RF, PFLX_BLD_WL_A,                &
                             PFLX_BLD_WL_B, PFLX_BLD_FL, PFLX_BLD_MA, PE_SHADING, PLEW_RF,             &
                             PRN_GR, PH_GR, PLE_GR, PGFLUX_GR,                                         &
@@ -119,7 +119,7 @@ REAL, DIMENSION(:), INTENT(IN)    :: PGSN_RD  ! flux under the snow
 !
 REAL, DIMENSION(:), INTENT(IN)    :: PMELT_RF   ! snow melting on roof
 REAL, DIMENSION(:), INTENT(IN)    :: PDQS_RF    ! storage inside roofs
-REAL, DIMENSION(:), INTENT(IN)    :: PMELT_RD   ! snow melting on road
+REAL, DIMENSION(:), INTENT(IN)    :: PMELT_RD_TILE ! road snow melt (kg/m2 road/s)
 REAL, DIMENSION(:), INTENT(IN)    :: PDQS_RD    ! storage inside roads
 REAL, DIMENSION(:), INTENT(IN)    :: PDQS_WL_A  ! storage inside walls
 REAL, DIMENSION(:), INTENT(IN)    :: PDQS_WL_B  ! storage inside walls
@@ -363,7 +363,7 @@ DMT%XGFLUX_BLT (:) = ( TPARAMS%XBLD(:)        * DMT%XGFLUX_ROOF (:)    &
                   / (TPARAMS%XROAD(:) + TPARAMS%XBLD(:))
 !
 PMELT_BLT  (:) = (     TPARAMS%XBLD(:)         * PMELT_RF(:) * PDN_RF(:)  &
-                  +    TPARAMS%XROAD(:)        * PMELT_RD(:) * PDN_RD(:)) &
+                  +    TPARAMS%XROAD(:)        * PMELT_RD_TILE(:))       &
                   / (TPARAMS%XROAD(:) + TPARAMS%XBLD(:))
 !
 DMT%XDQS_TOWN  (:) = (  TPARAMS%XBLD(:)         * PDQS_RF (:)      &

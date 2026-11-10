@@ -74,7 +74,7 @@ USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 !
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
 USE MODD_CSTS,              ONLY: XTT, XSTEFAN, XKARMAN
-USE MODD_SURF_PAR,          ONLY: XUNDEF, teb_snow_check
+USE MODD_SURF_PAR,          ONLY: XUNDEF, teb_snow_check, XTEB_SNOW_RATE_MIN
 USE MODD_PROXI_SVAT_PAR,    ONLY: urb_alb_gdn, urb_emis_gdn, urb_alb_grf, urb_emis_grf
 USE MODD_SNOW_PAR,          ONLY: XEMISSN, XANSMAX
 !
@@ -269,9 +269,7 @@ REAL, DIMENSION(:),   INTENT(OUT)     :: PPROD_BLD        ! Averaged     Energy 
 REAL, DIMENSION(SIZE(PTA)) :: ZTA            ! air temperature extrapolated at roof level
 REAL, DIMENSION(SIZE(PTA)) :: ZQA            ! air humidity extrapolated at roof level
 
-! MT
-REAL, DIMENSION(SIZE(PTA))  :: WSNOW_ROOF_CHECK    ! new snow content to exclude very low snow rate
-REAL, DIMENSION(SIZE(PTA))  :: WSNOW_ROAD_CHECK    ! new snow content to exclude very low snow rate
+LOGICAL, DIMENSION(SIZE(PTA)) :: GNEW_SNOW ! snowfall that can create new cover
 
 !
 !REAL, DIMENSION(SIZE(PTA)) :: ZDN_RF       ! snow fraction on roofs
@@ -428,6 +426,7 @@ LOGICAL, DIMENSION(SIZE(PTA)) :: GSHADE           ! describes if one encounters 
 !                                                 ! conditions to close windows
 
 INTEGER :: JJ
+INTEGER :: IGARDEN_SIZE ! zero-length radiative inputs when the garden is disabled
 
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
@@ -479,61 +478,35 @@ ENDDO
 !*      2.     Snow-covered surfaces relative effects
 !              --------------------------------------
 !
-!*      2.1    Snow-covered surfaces relative fractions (at previous time-step)
-!              ----------------------------------------
- CALL SNOW_FRAC_ROAD(T%TSNOW_ROAD%WSNOW(:,1),PSR(:)>0.,PDN_RD,ZDF_RD)
- CALL SNOW_FRAC_ROOF(T%TSNOW_ROOF%WSNOW(:,1),PSR(:)>0.,PDN_RF,ZDF_RF)
-
- ! MT  teb_snow_check = .TRUE. activates the correction of the coupled model
- IF (teb_snow_check) THEN
-   ! Claculation of snow content to exclude cases of very low snow rate
-   WSNOW_ROOF_CHECK = 0.
-   WSNOW_ROAD_CHECK = 0.
-   WHERE (T%TSNOW_ROAD%WSNOW(:,1)==0. .AND. PSR(:)>0.) WSNOW_ROAD_CHECK = PTSTEP * PSR(:)
-   WHERE (T%TSNOW_ROOF%WSNOW(:,1)==0. .AND. PSR(:)>0.) WSNOW_ROOF_CHECK = PTSTEP * PSR(:)
- ENDIF
- 
+!*      2.1    Snow-covered fractions from existing cover and accepted new snow
+!              --------------------------------------------------------------
+GNEW_SNOW(:) = PSR(:) > 0.
+IF (teb_snow_check) GNEW_SNOW(:) = PSR(:) >= XTEB_SNOW_RATE_MIN
+CALL SNOW_FRAC_ROAD(T%TSNOW_ROAD%WSNOW(:,1), GNEW_SNOW, PDN_RD, ZDF_RD)
+CALL SNOW_FRAC_ROOF(T%TSNOW_ROOF%WSNOW(:,1), GNEW_SNOW, PDN_RF, ZDF_RF)
 !
-!* new snow albedo
+!*      2.2    Radiative properties of new snow and bare surfaces
+!              -------------------------------------------------
 !
-WHERE (T%TSNOW_ROAD%WSNOW(:,1)==0. .AND. PSR(:)>0.) T%TSNOW_ROAD%ALB(:) = XANSMAX
-WHERE (T%TSNOW_ROOF%WSNOW(:,1)==0. .AND. PSR(:)>0.) T%TSNOW_ROOF%ALB(:) = XANSMAX
-!
-
-!*      2.2    If snow was not present at previous time-step but is falling
-!              ------------------------------------------------------------
-!
-WHERE (T%TSNOW_ROAD%WSNOW(:,1)==0. .AND. PSR(:)>0.)
+WHERE (T%TSNOW_ROAD%WSNOW(:,1)==0. .AND. GNEW_SNOW(:))
   T%TSNOW_ROAD%ALB (:) = XANSMAX
   T%TSNOW_ROAD%EMIS(:) = XEMISSN
   T%TSNOW_ROAD%TS  (:) = MIN(T%XT_ROAD(:,1), XTT)
+ELSEWHERE (teb_snow_check .AND. T%TSNOW_ROAD%WSNOW(:,1)==0.)
+  T%TSNOW_ROAD%ALB (:) = XUNDEF
+  T%TSNOW_ROAD%EMIS(:) = XUNDEF
+  T%TSNOW_ROAD%TS  (:) = XUNDEF
 END WHERE
-WHERE (T%TSNOW_ROOF%WSNOW(:,1)==0. .AND. PSR(:)>0.)
+WHERE (T%TSNOW_ROOF%WSNOW(:,1)==0. .AND. GNEW_SNOW(:))
   T%TSNOW_ROOF%ALB (:) = XANSMAX
   T%TSNOW_ROOF%EMIS(:) = XEMISSN
   T%TSNOW_ROOF%TS  (:) = MIN(T%XT_ROOF(:,1), XTT)
+ELSEWHERE (teb_snow_check .AND. T%TSNOW_ROOF%WSNOW(:,1)==0.)
+  T%TSNOW_ROOF%ALB (:) = XUNDEF
+  T%TSNOW_ROOF%EMIS(:) = XUNDEF
+  T%TSNOW_ROOF%TS  (:) = XUNDEF
 END WHERE
-
-! MT  teb_snow_check = .TRUE. activates the correction of the coupled model
-IF (teb_snow_check) THEN
-  ! Exclude cases of very low snow rate
-  WHERE ( WSNOW_ROAD_CHECK(:)<1.E-8 * PTSTEP )
-     T%TSNOW_ROAD%ALB (:) = XUNDEF
-     T%TSNOW_ROAD%EMIS(:) = XUNDEF
-     T%TSNOW_ROAD%TS  (:) = XUNDEF
-     PDN_RD = 0.
-     ZDF_RD = 1.
-  END WHERE
-  !
-  WHERE ( WSNOW_ROOF_CHECK(:)<1.E-8 * PTSTEP )
-     T%TSNOW_ROOF%ALB (:) = XUNDEF
-     T%TSNOW_ROOF%EMIS(:) = XUNDEF
-     T%TSNOW_ROOF%TS  (:) = XUNDEF
-     PDN_RF = 0.
-     ZDF_RF = 1.
-  END WHERE
-ENDIF
-
+!
 !
 !*      2.3    Radiative snow variables at previous time-step
 !              ----------------------------------------------
@@ -559,16 +532,8 @@ ZQA(:) = PQA(:) * QSAT(ZTA(:),PPS(:)) / QSAT(PTA(:),PPA(:))
 !
 
 !!
-!MV202609 initialisation of the grid-averaged albedo, emissivity and radiative
-!* temperature of the green areas and of the green roofs BEFORE the branches.
-!* These arrays are assigned inside 'IF (TOP%LGARDEN)' / 'IF (TOP%LGREENROOF)'
-!* only, but they are passed to URBAN_SOLAR_ABS / URBAN_LW_COEF unconditionally.
-!* With both surfaces inactive (teb_lgarden and teb_lgreenroof = .FALSE.) they
-!* were READ UNINITIALISED: the stack garbage reached the canyon radiation
-!* budget (the '1.-PALB_GRF' term of URBAN_SOLAR_ABS) and gave NaN / SIGFPE
-!* after a few steps (the picture was layout-dependent, hence irregular).
-!* The value set here is inert: the terms of an inactive surface are weighted
-!* by a zero surface fraction downstream.
+!* Mark radiative properties of disabled vegetation as undefined.
+!  The radiation calculations evaluate these properties only for enabled surfaces.
 ZALB_GD   = XUNDEF
 ZEMIS_GD  = XUNDEF
 ZTSRAD_GD = XUNDEF
@@ -675,7 +640,9 @@ END IF
 !*      6.     LW properties
 !              -------------
 !
-  CALL URBAN_LW_COEF(B, T, PLW_RAD, ZEMIS_GD, T%TSNOW_ROAD%TS, ZTSRAD_GD,  &
+  IGARDEN_SIZE = 0
+  IF (TOP%LGARDEN) IGARDEN_SIZE = SIZE(ZTSRAD_GD)
+  CALL URBAN_LW_COEF(B, T, PLW_RAD, ZEMIS_GD(:IGARDEN_SIZE), T%TSNOW_ROAD%TS, ZTSRAD_GD(:IGARDEN_SIZE), &
                      ZLW_WA_TO_WB, ZLW_WA_TO_R, ZLW_WB_TO_R,            &
                      ZLW_WA_TO_NR, ZLW_WB_TO_NR, ZLW_WA_TO_G,           &
                      ZLW_WB_TO_G, ZLW_WA_TO_WIN, ZLW_WB_TO_WIN,         &

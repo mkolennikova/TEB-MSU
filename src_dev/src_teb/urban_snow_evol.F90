@@ -190,8 +190,9 @@ PSNOWD_RD(:)=0.
 !
 !-------------------------------------------------------------------------------
 !
-GSN_RF = ANY( PSR(:)>0. .OR. TSTATE%TSNOW_ROOF%WSNOW(:,1)>0. )
-GSN_RD = ANY( PSR(:)>0. .OR. TSTATE%TSNOW_ROAD%WSNOW(:,1)>0. )
+!* The fractions account for existing cover and for snowfall accepted by TEB_GARDEN.
+GSN_RF = ANY(PDN_RF(:)>0.)
+GSN_RD = ANY(PDN_RD(:)>0.)
 !
 !-------------------------------------------------------------------------------
 !

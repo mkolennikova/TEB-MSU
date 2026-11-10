@@ -434,6 +434,8 @@ CHARACTER(LEN=4096) :: emu_hdr          ! emulator header line
 CHARACTER(LEN=4096) :: emu_line         ! emulator data row
 CHARACTER(LEN=32) :: time_buf                  ! timestamp buffer (ISO 8601)
 REAL, DIMENSION(nvec) :: teb_wind_canyon   !IN  canyon wind (m/s), from teb_interface
+REAL, DIMENSION(nvec) :: teb_u_can_ped    !IN  wind speed at pedestrian height (1.1 m), from teb_interface
+REAL, DIMENSION(nvec) :: teb_u_can_10m    !IN  wind speed at 10 m height, from teb_interface
 REAL, DIMENSION(nvec) :: teb_sobs         !IN  solar radiation absorbed by the ground
 REAL, DIMENSION(nvec) :: teb_thbs         !IN  thermal radiation absorbed by the ground
 REAL, DIMENSION(nvec) :: teb_runoff_road  !IN  road runoff of this sub-step
@@ -1314,7 +1316,7 @@ DO nstep= 1,nsteps - 1
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 !MV202609 greenroof diagnostics
 !MV202609 greenroof-to-atm exchange diagnostics
-                          teb_wind_canyon, teb_sobs, teb_thbs, teb_runoff_road, teb_runoff_roof, kteb_log_block = ZLOG_BLOCK, kteb_log_point = ZLOG_POINT)
+                          teb_wind_canyon, teb_u_can_ped, teb_u_can_10m, teb_sobs, teb_thbs, teb_runoff_road, teb_runoff_roof, kteb_log_block = ZLOG_BLOCK, kteb_log_point = ZLOG_POINT)
 !MV202609 garden emulation (teb_type_garden = 'EXT')
 !* the external garden model: TEB has just used the garden state prescribed at
 !* the previous sub-step; the emulator now updates the state and the fluxes for

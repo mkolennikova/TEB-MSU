@@ -27,7 +27,7 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 				ZRUNOFF_GR_EXT, LGARDEN, ZZ0_GD_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD,   &
 				ZCD_GD, ZRUNOFF_GD_EXT, ITYPE_WIND, ZFAI, ZDQS_TOWN, ZGFLUX_TOWN, ZH_ROOF_FR, ZH_ROAD_FR,         &
 				ZH_WALL_FR, ZAC_ROOF, ZAC_ROAD, ZAC_WALL, ZAC_TOP, ZCH_RF, ZCH_RD, ZCH_WL, ZCH_TOP, ZU_TOP,   &
-                ZUSTAR_TOWN, ZCD_TERRA, ZCH_TERRA, ZH_TRAFFIC_NOW, ZRN_TOWN, ZU_CANYON, ZTS_ROAD, LGARDEN_EXT, &
+                ZUSTAR_TOWN, ZCD_TERRA, ZCH_TERRA, ZH_TRAFFIC_NOW, ZRN_TOWN, ZU_CANYON, ZU_CAN_PED, ZU_CAN_10M, ZTS_ROAD, LGARDEN_EXT, &
 				LGREENROOF_EXT, HROAD_DIR, HWALL_OPT, ZROAD_DIR, ZRESIDENTIAL, ZDT_RES, ZDT_OFF, ZCAP_SYS_HEAT, &
 				LSOLAR_PANEL, ZFRAC_PANEL, LPAR_RD_IRRIG, ZRD_START_MONTH, ZRD_END_MONTH, ZRD_START_HOUR,        &
 				ZRD_END_HOUR, ZRD_24H_IRRIG, ZPROD_BLD, ZUTC_HOUR, LSHADE)
@@ -327,6 +327,8 @@ REAL,DIMENSION(1)                 :: ZSO_ALB_TOWN      !OUT town solar albedo
 REAL,DIMENSION(1)                 :: ZTH_ALB_TOWN      !OUT town thermal albedo
 REAL,DIMENSION(1)                 :: XU_CANYON         !OUT u-wind component of wind inside the canyon                            
 REAL,DIMENSION(1)                 :: XV_CANYON         !OUT v-wind component of wind inside the canyon
+REAL,DIMENSION(1)                 :: ZU_CAN_PED        !OUT wind speed at pedestrian height (1.1 m) [m/s]
+REAL,DIMENSION(1)                 :: ZU_CAN_10M        !OUT wind speed at 10 m height [m/s]
 REAL,DIMENSION(1)                 :: ZABS_SW_GRND      !OUT Shortwave radiation absorbed by ground
 REAL,DIMENSION(1)                 :: ZABS_LW_GRND      !OUT Longwave radiation absorbed by ground
 REAL,DIMENSION(1)                 :: ZH_WASTE          !OUT Sensible waste heat from HVAC system [W m-2(tot)]
@@ -684,6 +686,13 @@ IF (XZD_TOWN(1) < 0. .OR. XZD_TOWN(1) >= ZBLD_HEIGHT(1)) THEN
   WRITE(*,*) '   zd must be in [0, urb_h_bld), urb_h_bld = ', ZBLD_HEIGHT(1), ' m'
   STOP 1
 ENDIF
+! Apply the same roof-level logarithm constraint to the shared namelist.
+IF (ZBLD_HEIGHT(1) - XZD_TOWN(1) - ZZ0(1) <= SPACING(ZBLD_HEIGHT(1))) THEN
+  WRITE(*,*) 'ERROR in CALL_DRIVER: H - zd must exceed z0 beyond round-off'
+  WRITE(*,*) '   H = ', ZBLD_HEIGHT(1), ' m, zd = ', XZD_TOWN(1), ' m, z0 = ', ZZ0(1), ' m'
+  WRITE(*,*) '   required: zd < H - z0 = ', ZBLD_HEIGHT(1) - ZZ0(1), ' m'
+  STOP 1
+ENDIF
 
 !MV202609 garden roughness of an EXTERNAL garden
 !* for the external garden the coefficients of URBAN_DRAG are computed with the
@@ -928,6 +937,8 @@ IF (ntstep == 0) THEN
 	!* ZTI_BLD (the initial building temperature, as in the 2018 original),
 	!* not to ZTCOOL_TARGET.
 	ZU_CANYON      = 1.                ! Wind speed in canyon
+	ZU_CAN_PED     = 1.                ! Wind speed at pedestrian height (1.1 m)
+	ZU_CAN_10M     = 1.                ! Wind speed at 10 m height
 	ZTS_TOWN_S     = t
     ZTS_TOWN       = t	
 	ZQS_TOWN_S     = qv
@@ -1235,10 +1246,12 @@ IF (ITYPE_WIND(1) == 0) THEN
 	ZU_CANYON = ZWAKE * EXP(-ZCAN_HW_RATIO/4.) * ZVMOD     &
 		* LOG( (           2.* ZBLD_HEIGHT/3.) / ZZ0U)   &
 		/ LOG( (ZZREF + 2.* ZBLD_HEIGHT/3.) / ZZ0U) 
+	ZU_CAN_PED = ZU_CANYON
+	ZU_CAN_10M = ZU_CANYON
 ELSEIF (ITYPE_WIND(1) == 1) THEN
 	ZU_TOP = ZVMOD * LOG( (   2.* ZBLD_HEIGHT/3.) / ZZ0U)   &
 		/ LOG( (ZZREF + 2.* ZBLD_HEIGHT/3.) / ZZ0U)
-	CALL WIND_CALCULATION_WANG(icell, iblock, ZBLD_HEIGHT, ZUSTAR_TOWN, ZU_TOP, XU, XV, ZFAI, ZU_CANYON_WANG)  
+	CALL WIND_CALCULATION_WANG(icell, iblock, ZBLD_HEIGHT, ZUSTAR_TOWN, ZU_TOP, XU, XV, ZFAI, ZU_CANYON_WANG, ZU_CAN_PED, ZU_CAN_10M)
 	ZU_CANYON = ZU_CANYON_WANG(5)
 ENDIF
 

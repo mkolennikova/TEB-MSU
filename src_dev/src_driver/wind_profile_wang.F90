@@ -2,6 +2,8 @@
 
 MODULE WIND_PROFILE_WANG
 
+USE MODD_SURF_PAR, ONLY: XUNDEF
+
 !------------------------------------------------------------------------------
 ! Public subroutines
 !------------------------------------------------------------------------------
@@ -16,7 +18,7 @@ CONTAINS
 
 
 
-SUBROUTINE WIND_CALCULATION_WANG(icell, iblock, PBLD_HEIGHT, PUSTAR_TOWN, PU_TOP, PU, PV, PFAI, PU_CANYON_WANG) 
+SUBROUTINE WIND_CALCULATION_WANG(icell, iblock, PBLD_HEIGHT, PUSTAR_TOWN, PU_TOP, PU, PV, PFAI, PU_CANYON_WANG, PU_CAN_PED, PU_CAN_10M)
 !     ##################
 !
 !-------------------------------------------------------------------------------
@@ -34,6 +36,8 @@ REAL, DIMENSION(:),INTENT(IN)    :: PU
 REAL, DIMENSION(:),INTENT(IN)    :: PV
 REAL, DIMENSION(:,:),INTENT(IN)  :: PFAI
 REAL, DIMENSION(1:9),INTENT(OUT) :: PU_CANYON_WANG
+REAL, DIMENSION(1),INTENT(OUT)   :: PU_CAN_PED    ! wind speed at pedestrian height (1.1 m), XUNDEF above roof level
+REAL, DIMENSION(1),INTENT(OUT)   :: PU_CAN_10M    ! wind speed at 10 m height, XUNDEF above roof level
 
 ! local variables
 
@@ -156,19 +160,43 @@ K0h = bessk0(I0h,gh)
 !       ! Calculation of integration coefficients and wind speed at height z
 ! ---------------------------------------------------------------------------- !  
 
+C1 = (PU_TOP - up + up * K0h / K0z0) / (I0h - I0z0 * K0h / K0z0)
+C2 = -(up + C1 * I0z0) / K0z0
+
 DO i = 1,size(zz)
 	gz = 2. * sqrt(A * zz(i))
 	I0z = bessi0(gz)
 	K0z = bessk0(I0z,gz)
 
-	C1 = (PU_TOP - up + up * K0h / K0z0) / (I0h - I0z0 * K0h / K0z0)
-	C2 = -(up + C1 * I0z0) / K0z0
 	PU_CANYON_WANG(i) = C1(1) * I0z(1) + C2(1) * K0z(1) + up(1)
 	IF (PU_CANYON_WANG(i) < 0.01) THEN
 		PU_CANYON_WANG(i) = 0.01
 	ENDIF
 	
-ENDDO	
+ENDDO
+
+! Wind speed at absolute heights: pedestrian level (1.1 m) and 10 m.
+! The canopy profile is only defined below the roof level: above it the
+! result is undefined (XUNDEF).
+IF (1.1 < PBLD_HEIGHT(1)) THEN
+	gz = 2. * sqrt(A * 1.1 / PBLD_HEIGHT)
+	I0z = bessi0(gz)
+	K0z = bessk0(I0z,gz)
+	PU_CAN_PED(1) = C1(1) * I0z(1) + C2(1) * K0z(1) + up(1)
+	IF (PU_CAN_PED(1) < 0.01) PU_CAN_PED(1) = 0.01
+ELSE
+	PU_CAN_PED(1) = XUNDEF
+ENDIF
+
+IF (10.0 < PBLD_HEIGHT(1)) THEN
+	gz = 2. * sqrt(A * 10.0 / PBLD_HEIGHT)
+	I0z = bessi0(gz)
+	K0z = bessk0(I0z,gz)
+	PU_CAN_10M(1) = C1(1) * I0z(1) + C2(1) * K0z(1) + up(1)
+	IF (PU_CAN_10M(1) < 0.01) PU_CAN_10M(1) = 0.01
+ELSE
+	PU_CAN_10M(1) = XUNDEF
+ENDIF
 
 !-------------------------------------------------------------------------------
 !

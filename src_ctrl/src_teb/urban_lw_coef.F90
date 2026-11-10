@@ -235,9 +235,10 @@ DO JJ=1,SIZE(T%XROAD)
   !
   IF (SIZE(PTS_G)>0) THEN
     PLW_S_TO_G(JJ)  = ZLW(1.,PEMIS_G(JJ),T%XSVF_ROAD(JJ),ZT_S(JJ),PTS_G(JJ))
+  ELSE
+    PLW_S_TO_G(JJ) = 0.
   ENDIF
   PLW_S_TO_R(JJ)  = ZLW(1.,T%XEMIS_ROAD(JJ),T%XSVF_ROAD(JJ),ZT_S(JJ),T%XT_ROAD(JJ,1))  
-  PLW_S_TO_NR(JJ) = ZLW(1.,T%TSNOW_ROAD%EMIS(JJ),T%XSVF_ROAD(JJ),ZT_S(JJ),PTS_SR(JJ))
   !
 ENDDO
 !-------------------------------------------------------------------------------

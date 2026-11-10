@@ -53,18 +53,11 @@ REAL,    PARAMETER :: XSURF_EPSILON = EPSILON(XSURF_EPSILON)  ! minimum
 REAL,    PARAMETER :: XSURF_HUGE    = HUGE(XSURF_HUGE) 
 REAL,    PARAMETER :: XSURF_TINY    = TINY(XSURF_TINY) 
 !
-!MV202609 compatibility switch of the offline experiments, read from the namelist
-!* group /tebparam/ (the driver only lists it in its NAMELIST statement: a
-!* NAMELIST group can reference use-associated variables). Used by TEB_GARDEN
-!* (src_teb/teb_garden.F90):
-!*   .FALSE. : the snow correction block of TEB_GARDEN is skipped, i.e. the run
-!*             reproduces the base model (default);
-!*   .TRUE.  : the snow correction block is active: when the snow rate of the
-!*             time step is negligible (< 1.E-8*PTSTEP) the road and the roof
-!*             snow albedo, emissivity and radiative temperature are reset to
-!*             XUNDEF (and the snow fractions to 0/1, PDN to 0) - the behaviour
-!*             of the coupled TEB_in_function_external_forcing model.
+!* COSMO coupling option, available in the offline /tebparam/ namelist.
+!* When enabled, snowfall below XTEB_SNOW_RATE_MIN cannot create snow cover
+!* on a bare road or roof. Existing cover receives the full snowfall rate.
 LOGICAL :: teb_snow_check = .FALSE.
+REAL, PARAMETER :: XTEB_SNOW_RATE_MIN = 1.E-8 ! kg m-2 s-1
 
 !-----------------------------------------------------------------------------------------------------
 !

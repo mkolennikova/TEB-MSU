@@ -251,6 +251,8 @@ REAL ,DIMENSION(nvec) :: teb_wind_top                   !OUT Wind speed at canyo
 REAL ,DIMENSION(nvec) :: teb_ucanyon                    !OUT u-wind component of wind inside the canyon    
 REAL ,DIMENSION(nvec) :: teb_vcanyon                    !OUT v-wind component of wind inside the canyon   
 REAL ,DIMENSION(nvec) :: teb_wind_canyon                !OUT Wind speed in canyon   
+REAL ,DIMENSION(nvec) :: teb_u_can_ped                  !OUT Wind speed at pedestrian height (1.1 m) [m/s]
+REAL ,DIMENSION(nvec) :: teb_u_can_10m                  !OUT Wind speed at 10 m height [m/s]
 REAL ,DIMENSION(nvec) :: teb_rn_town                    !OUT Net radiation over town    
 
 ! For individual surfaces
@@ -861,6 +863,8 @@ nout = nout + 1; out_names(nout) = 'TI_BLD'
 nout = nout + 1; out_names(nout) = 'Q_CANYON'
 nout = nout + 1; out_names(nout) = 'P_CANYON'
 nout = nout + 1; out_names(nout) = 'U_CANYON'
+nout = nout + 1; out_names(nout) = 'U_CAN_PED'
+nout = nout + 1; out_names(nout) = 'U_CAN_10M'
 nout = nout + 1; out_names(nout) = 'H_TOWN'
 nout = nout + 1; out_names(nout) = 'LE_TOWN'
 nout = nout + 1; out_names(nout) = 'RN_TOWN'
@@ -869,6 +873,8 @@ nout = nout + 1; out_names(nout) = 'HVAC_HEAT'
 nout = nout + 1; out_names(nout) = 'WIND_TOP'
 !MV202609 town friction velocity diagnostic
 nout = nout + 1; out_names(nout) = 'USTAR_TOWN'
+!MV202610 integral town albedo (ALB_TOWN), the value exported to the coupled model
+nout = nout + 1; out_names(nout) = 'ALB_TOWN'
 nout = nout + 1; out_names(nout) = 'SOLAR_PROD'
 nout = nout + 1; out_names(nout) = 'AHF_TRAFFIC'
 nout = nout + 1; out_names(nout) = 'GFLUX_TOWN'
@@ -1049,7 +1055,7 @@ DO ntstep = 1, nsteps - 1
 				teb_dqs_town, teb_gflux, teb_shfl_rf, teb_shfl_rd, teb_shfl_wl, teb_ac_rf,          &
 				teb_ac_rd, teb_ac_wl, teb_ac_top, teb_tch_rf, teb_tch_rd, teb_tch_wl, teb_tch_top,  &
 				teb_wind_top, teb_ustar_town, teb_cd_terra, teb_ch_terra, ahf_traffic_now,          &
-				teb_rn_town, teb_wind_canyon, teb_tsroad, teb_lgarden_ext, teb_lgreenroof_ext,      &
+				teb_rn_town, teb_wind_canyon, teb_u_can_ped, teb_u_can_10m, teb_tsroad, teb_lgarden_ext, teb_lgreenroof_ext,      &
 				teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
 				teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
 				teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
@@ -1081,6 +1087,8 @@ DO ntstep = 1, nsteps - 1
     CALL CSV_APPEND(out_line, teb_qcanyon(1))
     CALL CSV_APPEND(out_line, XPS(1))
     CALL CSV_APPEND(out_line, teb_wind_canyon(1))
+    CALL CSV_APPEND(out_line, teb_u_can_ped(1))
+    CALL CSV_APPEND(out_line, teb_u_can_10m(1))
     CALL CSV_APPEND(out_line, teb_shfl(1))
     CALL CSV_APPEND(out_line, teb_lhfl(1))
     CALL CSV_APPEND(out_line, teb_rn_town(1))
@@ -1089,6 +1097,8 @@ DO ntstep = 1, nsteps - 1
     CALL CSV_APPEND(out_line, teb_wind_top(1))
 !MV202609 town friction velocity diagnostic
     CALL CSV_APPEND(out_line, teb_ustar_town(1))
+!MV202610 integral town albedo (ALB_TOWN), the value exported to the coupled model
+    CALL CSV_APPEND(out_line, teb_alb_so(1))
     CALL CSV_APPEND(out_line, teb_solar_prod(1))
     CALL CSV_APPEND(out_line, ahf_traffic_now(1))
     CALL CSV_APPEND(out_line, teb_gflux(1))
