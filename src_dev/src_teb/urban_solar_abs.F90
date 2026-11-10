@@ -353,9 +353,17 @@ DO JJ=1,SIZE(TPARAMS%XROAD)
 !
 !* solar energy received by the surfaces below solar panels
   ZABS_DIR_SW_RF   (JJ) = ZDIR_SW(JJ) * (1. - TPARAMS%XALB_ROOF     (JJ)) * (1.-PFRAC_PANEL(JJ))
-  ZABS_DIR_SW_SN_RF(JJ) = ZDIR_SW(JJ) * (1. - TSTATE%TSNOW_ROOF%ALB(JJ)) * (1.-PFRAC_PANEL(JJ))
   ZABS_SCA_SW_RF   (JJ) = ZSCA_SW(JJ) * (1. - TPARAMS%XALB_ROOF     (JJ)) * (1.-PFRAC_PANEL(JJ))
-  ZABS_SCA_SW_SN_RF(JJ) = ZSCA_SW(JJ) * (1. - TSTATE%TSNOW_ROOF%ALB(JJ)) * (1.-PFRAC_PANEL(JJ))
+  ZABS_DIR_SW_SN_RF(JJ) = 0.
+  ZABS_SCA_SW_SN_RF(JJ) = 0.
+  IF (PDN_RF(JJ) > 0.) THEN
+    IF (TSTATE%TSNOW_ROOF%ALB(JJ) == XUNDEF) THEN
+      WRITE(*,'(A,I0)') 'ERROR in URBAN_SOLAR_ABS: undefined roof snow albedo at point ', JJ
+      STOP 1
+    ENDIF
+    ZABS_DIR_SW_SN_RF(JJ) = ZDIR_SW(JJ) * (1. - TSTATE%TSNOW_ROOF%ALB(JJ)) * (1.-PFRAC_PANEL(JJ))
+    ZABS_SCA_SW_SN_RF(JJ) = ZSCA_SW(JJ) * (1. - TSTATE%TSNOW_ROOF%ALB(JJ)) * (1.-PFRAC_PANEL(JJ))
+  ENDIF
   IF (TOPTS%LGREENROOF) THEN
     ZABS_DIR_SW_GRF(JJ) = ZDIR_SW(JJ) * (1. - PALB_GRF(JJ)) * (1.-PFRAC_PANEL(JJ))
     ZABS_SCA_SW_GRF(JJ) = ZSCA_SW(JJ) * (1. - PALB_GRF(JJ)) * (1.-PFRAC_PANEL(JJ))
@@ -463,7 +471,14 @@ END IF
 !*      2.7    averaged albedos when snow is present
 !              -------------------------------------
 !
-  ZAALB_RD   (JJ) =  PDF_RD (JJ) * TPARAMS%XALB_ROAD   (JJ) + PDN_RD (JJ) * TSTATE%TSNOW_ROAD%ALB (JJ)  
+  ZAALB_RD   (JJ) =  PDF_RD (JJ) * TPARAMS%XALB_ROAD   (JJ)
+  IF (PDN_RD(JJ) > 0.) THEN
+    IF (TSTATE%TSNOW_ROAD%ALB(JJ) == XUNDEF) THEN
+      WRITE(*,'(A,I0)') 'ERROR in URBAN_SOLAR_ABS: undefined road snow albedo at point ', JJ
+      STOP 1
+    ENDIF
+    ZAALB_RD(JJ) = ZAALB_RD(JJ) + PDN_RD(JJ) * TSTATE%TSNOW_ROAD%ALB(JJ)
+  ENDIF
 !
 !
 ENDDO
@@ -718,7 +733,7 @@ DO JJ=1,SIZE(TPARAMS%XROAD)
 !* quantity the pedestrian road-reflection term and python_tests/check_mrt.py use
   DMT%XSW_TOT_ROAD(JJ) = PREC_SW_RD      (JJ)
 !
-  PREC_SW_SN_RD   (JJ) = DMT%XABS_SW_SNOW_ROAD (JJ)/(1.-TSTATE%TSNOW_ROAD%ALB(JJ))
+  IF (PDN_RD(JJ) > 0.) PREC_SW_SN_RD(JJ) = DMT%XABS_SW_SNOW_ROAD(JJ)/(1.-TSTATE%TSNOW_ROAD%ALB(JJ))
 !
   PREC_SW_WL_A    (JJ) = DMT%XABS_SW_WALL_A    (JJ)/(1.-TPARAMS%XALB_WALL   (JJ))
   PREC_SW_WL_B    (JJ) = DMT%XABS_SW_WALL_B    (JJ)/(1.-TPARAMS%XALB_WALL   (JJ))
@@ -831,8 +846,9 @@ DO JJ=1,SIZE(ZSW_RD)
 !
   ZABS_SW_RD(JJ)    = (1.-TPARAMS%XALB_ROAD(JJ)) * (ZSW_RD(JJ) + ZSREF_SW_WL(JJ) * (1.- TPARAMS%XSVF_ROAD(JJ)))  
 !
-  ZABS_SW_SN_RD(JJ) = (1.-TSTATE%TSNOW_ROAD%ALB(JJ)) * &
-                        (ZSW_RD(JJ) + ZSREF_SW_WL(JJ) * (1.- TPARAMS%XSVF_ROAD(JJ)))  
+  ZABS_SW_SN_RD(JJ) = 0.
+  IF (PDN_RD(JJ) > 0.) ZABS_SW_SN_RD(JJ) = (1.-TSTATE%TSNOW_ROAD%ALB(JJ)) * &
+                        (ZSW_RD(JJ) + ZSREF_SW_WL(JJ) * (1.-TPARAMS%XSVF_ROAD(JJ)))
 !
   ZABS_SW_GD(JJ) = 0.
   IF (TOPTS%LGARDEN) ZABS_SW_GD(JJ) = (1.-PALB_GD(JJ)) * (ZSW_GD(JJ) + ZSREF_SW_WL(JJ) * (1.-PSVF_GD(JJ)))

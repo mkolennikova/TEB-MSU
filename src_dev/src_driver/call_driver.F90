@@ -226,7 +226,9 @@ REAL,DIMENSION(1)  :: ZH_TRAFFIC_NOW_CAN! heat fluxes due to traffic at current 
                        
 REAL,DIMENSION(1)  :: ZALB_TH_RED       ! thermal albedo reduction factor for the urban fabric 
                 
-REAL,DIMENSION(1)  :: ZALB_AVE_TWN      ! town area-averaged albedo                
+REAL :: ZPDN_RF_DIAG, ZPDN_RD_DIAG      ! snow fractions for end-of-step state diagnostics
+REAL :: ZTSSNOW_RF_TERM, ZTSSNOW_RD_TERM
+REAL :: ZRSNOW_RF_TERM, ZRSNOW_RD_TERM
 
 REAL,DIMENSION(1)  :: ZWAKE             ! reduction of average wind speed                
 
@@ -672,26 +674,45 @@ DMT%XQSTOWN_S(1:1)    = FORC%XQA(1:1) * FORC%XEXNS(1:1) / FORC%XEXNA(1:1) + DMT%
 DMT%XWSTOWN(1:1)      = (TSTATE%XWS_ROOF(icell) * TPARAMS%XBLD(icell:icell) + TSTATE%XWS_ROAD(icell:icell) * TPARAMS%XROAD(icell:icell)) * 0.001
 !DMT%XRUNOFF_TOWN(1:1)  = DMT%XRUNOFF_TOWN(1) * dt
 
-DMT%XTSSNOW_TOWN(1:1)  = (TSTATE%TSNOW_ROOF%TS(icell) * TPARAMS%XBLD(icell:icell) * DMT%XPDN_RF(1) + TSTATE%TSNOW_ROAD%TS(icell) * TPARAMS%XROAD(icell:icell) * DMT%XPDN_RD(1)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell))
+!* Diagnose remaining snow after evolution using local fractions.
+ZPDN_RF_DIAG = 0.
+IF (TSTATE%TSNOW_ROOF%WSNOW(icell,1) > 0.) ZPDN_RF_DIAG = DMT%XPDN_RF(1)
+ZTSSNOW_RF_TERM = 0.
+ZRSNOW_RF_TERM = 0.
+IF (ZPDN_RF_DIAG > 0.) THEN
+  ZTSSNOW_RF_TERM = TSTATE%TSNOW_ROOF%TS(icell)
+  IF (ZTSSNOW_RF_TERM /= XUNDEF) ZTSSNOW_RF_TERM = ZTSSNOW_RF_TERM * TPARAMS%XBLD(icell) * ZPDN_RF_DIAG
+  ZRSNOW_RF_TERM = TSTATE%TSNOW_ROOF%RHO(icell,1)
+  IF (ZRSNOW_RF_TERM /= XUNDEF) ZRSNOW_RF_TERM = ZRSNOW_RF_TERM * TPARAMS%XBLD(icell) * ZPDN_RF_DIAG
+ENDIF
+
+ZPDN_RD_DIAG = 0.
+IF (TSTATE%TSNOW_ROAD%WSNOW(icell,1) > 0.) ZPDN_RD_DIAG = DMT%XPDN_RD(1)
+ZTSSNOW_RD_TERM = 0.
+ZRSNOW_RD_TERM = 0.
+IF (ZPDN_RD_DIAG > 0.) THEN
+  ZTSSNOW_RD_TERM = TSTATE%TSNOW_ROAD%TS(icell)
+  IF (ZTSSNOW_RD_TERM /= XUNDEF) ZTSSNOW_RD_TERM = ZTSSNOW_RD_TERM * TPARAMS%XROAD(icell) * ZPDN_RD_DIAG
+  ZRSNOW_RD_TERM = TSTATE%TSNOW_ROAD%RHO(icell,1)
+  IF (ZRSNOW_RD_TERM /= XUNDEF) ZRSNOW_RD_TERM = ZRSNOW_RD_TERM * TPARAMS%XROAD(icell) * ZPDN_RD_DIAG
+ENDIF
+!
+IF (ZTSSNOW_RF_TERM == XUNDEF .OR. ZTSSNOW_RD_TERM == XUNDEF) THEN
+  DMT%XTSSNOW_TOWN(1:1) = XUNDEF
+ELSE
+  DMT%XTSSNOW_TOWN(1:1) = (ZTSSNOW_RF_TERM + ZTSSNOW_RD_TERM) / (TPARAMS%XBLD(icell) + TPARAMS%XROAD(icell))
+ENDIF
+IF (ZRSNOW_RF_TERM == XUNDEF .OR. ZRSNOW_RD_TERM == XUNDEF) THEN
+  DMT%XRSNOW_TOWN(1:1) = XUNDEF
+ELSE
+  DMT%XRSNOW_TOWN(1:1) = (ZRSNOW_RF_TERM + ZRSNOW_RD_TERM) / (TPARAMS%XBLD(icell) + TPARAMS%XROAD(icell))
+ENDIF
+DMT%XFRSNOW(1:1) = (ZPDN_RF_DIAG * TPARAMS%XBLD(icell) + ZPDN_RD_DIAG * TPARAMS%XROAD(icell)) / (TPARAMS%XBLD(icell) + TPARAMS%XROAD(icell))
+
 DMT%XWSNOW_TOWN(1:1)   = (TSTATE%TSNOW_ROOF%WSNOW(icell,1) * TPARAMS%XBLD(icell:icell) * DMT%XPDN_RF(1) + TSTATE%TSNOW_ROAD%WSNOW(icell,1) * TPARAMS%XROAD(icell:icell) * DMT%XPDN_RD(1)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell)) * 0.001
-DMT%XRSNOW_TOWN(1:1)   = (TSTATE%TSNOW_ROOF%RHO(icell,1) * TPARAMS%XBLD(icell:icell) * DMT%XPDN_RF(1) + TSTATE%TSNOW_ROAD%RHO(icell,1) * TPARAMS%XROAD(icell:icell) * DMT%XPDN_RD(1)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell))
 DMT%XSHFL_SNOW(1:1)   = (DMT%XH_SNOW_ROOF(1) * TPARAMS%XBLD(icell:icell) * DMT%XPDN_RF(1) + DMT%XH_SNOW_ROAD(1) * TPARAMS%XROAD(icell:icell) * DMT%XPDN_RD(1)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell))
 DMT%XLHFL_SNOW(1:1)  = (DMT%XLE_SNOW_ROOF(1) * TPARAMS%XBLD(icell:icell) * DMT%XPDN_RF(1) + DMT%XLE_SNOW_ROAD(1) * TPARAMS%XROAD(icell:icell) * DMT%XPDN_RD(1)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell))
-DMT%XFRSNOW(1:1)      = (DMT%XPDN_RF(1) * TPARAMS%XBLD(icell:icell) + DMT%XPDN_RD(1) * TPARAMS%XROAD(icell:icell)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell))
 DMT%XHSNOW_TOWN(1:1)   = (DMT%XSNOWD_ROOF(1) * TPARAMS%XBLD(icell:icell) * DMT%XPDN_RF(1) + DMT%XSNOWD_ROAD(1) * TPARAMS%XROAD(icell:icell) * DMT%XPDN_RD(1)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell))
-
-
-!Town area-averaged albedo 
-!Albedo of Green garden and Green roofs is manualy added: 0.15. Fix later!
-ZALB_AVE_TWN = TPARAMS%XBLD(icell:icell) * (1.- TPARAMS%XGREENROOF(icell:icell)) * (1-DMT%XPDN_RF(1)) * TPARAMS%XALB_ROOF(icell:icell) * (1.-TPN%XFRAC_PANEL(1))                    &
-                  + TPARAMS%XBLD(icell:icell) * (1.-TPARAMS%XGREENROOF(icell:icell)) * DMT%XPDN_RF(1) * TSTATE%TSNOW_ROOF%ALB(icell) * (1.-TPN%XFRAC_PANEL(1))                  &
-                  + TPARAMS%XBLD(icell:icell) *     TPARAMS%XGREENROOF(icell:icell)               * EXT%XALB_GR(icell) * (1.-TPN%XFRAC_PANEL(1))                     &
-                  + TPARAMS%XBLD(icell:icell) * TPN%XALB_PANEL(1) * TPN%XFRAC_PANEL(1)                                            &
-                  + TPARAMS%XROAD(icell:icell) * ( TPARAMS%XSVF_ROAD(icell:icell) * (1-DMT%XPDN_RD(1)) * TPARAMS%XALB_ROAD(icell:icell)                                    &
-                  + TPARAMS%XSVF_ROAD(icell:icell) * DMT%XPDN_RD(1) * TSTATE%TSNOW_ROAD%ALB(icell))                                               &
-                  + TPARAMS%XGARDEN(icell:icell) *    TPARAMS%XSVF_GARDEN(icell:icell) * 0.15                                                 &
-                  + TPARAMS%XWALL_O_HOR(icell:icell) *    TPARAMS%XSVF_WALL(icell:icell)         * TPARAMS%XALB_WALL(icell:icell)
-
 
 !  Instantaneous diagnostics
 DMT%XTS_ROOF(1:1) = TSTATE%XT_ROOF(icell,1)

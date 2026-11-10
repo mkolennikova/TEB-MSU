@@ -523,7 +523,9 @@ REAL,DIMENSION(1)  :: ZDIR_ALB_TOWN     ! town direct albedo
 REAL,DIMENSION(1)  :: ZSCA_ALB_TOWN     ! town scaterred albedo     
 REAL,DIMENSION(1)  :: ZALB_TH_RED       ! thermal albedo reduction factor for the urban fabric 
                 
-REAL,DIMENSION(1)  :: ZALB_AVE_TWN      ! town area-averaged albedo                
+REAL :: ZPDN_RF_DIAG, ZPDN_RD_DIAG      ! snow fractions for end-of-step state diagnostics
+REAL :: ZTSSNOW_RF_TERM, ZTSSNOW_RD_TERM
+REAL :: ZRSNOW_RF_TERM, ZRSNOW_RD_TERM
 REAL,DIMENSION(1)  :: ZSW_UP_SO         ! outgoing solar radiation 
 REAL,DIMENSION(1)  :: ZLW_UP            ! outgoing longwave radiation                      
 REAL,DIMENSION(1,1):: ZTDIR_SW          ! total direct SW                         
@@ -1408,27 +1410,46 @@ ZQS_TOWN_S    = ZQA_KGKG * ZEXNS / ZEXNA + ZLE_TOWN / (XRHOA * XLVTT * ZCH_TOWN 
 ZWS_TOWN      = (ZWS_ROOF * ZBLD + ZWS_ROAD * ZROAD) * 0.001
 !ZRUNOFF_TOWN  = ZRUNOFF_TOWN * dt
 
-ZTSSNOW_TOWN  = (ZTSSNOW_ROOF * ZBLD * ZDN_RF + ZTSSNOW_ROAD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
+!* Diagnose remaining snow after evolution using local fractions.
+ZPDN_RF_DIAG = 0.
+IF (ZWSNOW_ROOF(1,1) > 0.) ZPDN_RF_DIAG = ZDN_RF(1)
+ZTSSNOW_RF_TERM = 0.
+ZRSNOW_RF_TERM = 0.
+IF (ZPDN_RF_DIAG > 0.) THEN
+  ZTSSNOW_RF_TERM = ZTSSNOW_ROOF(1)
+  IF (ZTSSNOW_RF_TERM /= XUNDEF) ZTSSNOW_RF_TERM = ZTSSNOW_RF_TERM * ZBLD(1) * ZPDN_RF_DIAG
+  ZRSNOW_RF_TERM = ZRSNOW_ROOF(1,1)
+  IF (ZRSNOW_RF_TERM /= XUNDEF) ZRSNOW_RF_TERM = ZRSNOW_RF_TERM * ZBLD(1) * ZPDN_RF_DIAG
+ENDIF
+
+ZPDN_RD_DIAG = 0.
+IF (ZWSNOW_ROAD(1,1) > 0.) ZPDN_RD_DIAG = ZDN_RD(1)
+ZTSSNOW_RD_TERM = 0.
+ZRSNOW_RD_TERM = 0.
+IF (ZPDN_RD_DIAG > 0.) THEN
+  ZTSSNOW_RD_TERM = ZTSSNOW_ROAD(1)
+  IF (ZTSSNOW_RD_TERM /= XUNDEF) ZTSSNOW_RD_TERM = ZTSSNOW_RD_TERM * ZROAD(1) * ZPDN_RD_DIAG
+  ZRSNOW_RD_TERM = ZRSNOW_ROAD(1,1)
+  IF (ZRSNOW_RD_TERM /= XUNDEF) ZRSNOW_RD_TERM = ZRSNOW_RD_TERM * ZROAD(1) * ZPDN_RD_DIAG
+ENDIF
+!
+IF (ZTSSNOW_RF_TERM == XUNDEF .OR. ZTSSNOW_RD_TERM == XUNDEF) THEN
+  ZTSSNOW_TOWN = XUNDEF
+ELSE
+  ZTSSNOW_TOWN = (ZTSSNOW_RF_TERM + ZTSSNOW_RD_TERM) / (ZBLD(1) + ZROAD(1))
+ENDIF
+IF (ZRSNOW_RF_TERM == XUNDEF .OR. ZRSNOW_RD_TERM == XUNDEF) THEN
+  ZRSNOW_TOWN = XUNDEF
+ELSE
+  ZRSNOW_TOWN = (ZRSNOW_RF_TERM + ZRSNOW_RD_TERM) / (ZBLD(1) + ZROAD(1))
+ENDIF
+ZDN_TOWN = (ZPDN_RF_DIAG * ZBLD(1) + ZPDN_RD_DIAG * ZROAD(1)) / (ZBLD(1) + ZROAD(1))
+
 ZWSNOW_TOWN   = (ZWSNOW_ROOF(1,1) * ZBLD * ZDN_RF + ZWSNOW_ROAD(1,1) * ZROAD * ZDN_RD) / (ZBLD + ZROAD) * 0.001
-ZRSNOW_TOWN   = (ZRSNOW_ROOF(1,1) * ZBLD * ZDN_RF + ZRSNOW_ROAD(1,1) * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
 ZHSNOW_TOWN   = (ZHSNOW_ROOF * ZBLD * ZDN_RF + ZHSNOW_ROAD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
 ZLESNOW_TOWN  = (ZLESNOW_ROOF * ZBLD * ZDN_RF + ZLESNOW_ROAD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
-ZDN_TOWN      = (ZDN_RF * ZBLD + ZDN_RD * ZROAD) / (ZBLD + ZROAD)
 ZMELT_BLT_SUM = ZMELT_BLT * dt
 ZSNOWD_TOWN   = (ZSNOWD_RF * ZBLD * ZDN_RF + ZSNOWD_RD * ZROAD * ZDN_RD) / (ZBLD + ZROAD)
-
-
-!Town area-averaged albedo 
-!Albedo of Green garden and Green roofs is manualy added: 0.15. Fix later!
-ZALB_AVE_TWN = ZBLD * (1.- ZFRAC_GR) * (1-ZDN_RF) * ZALB_ROOF * (1.-ZFRAC_PANEL)                    &
-                  + ZBLD * (1.-ZFRAC_GR) * ZDN_RF * ZASNOW_ROOF * (1.-ZFRAC_PANEL)                  &
-                  + ZBLD *     ZFRAC_GR               * ZALB_GR_EXT * (1.-ZFRAC_PANEL)                     &
-                  + ZBLD * ZALB_PANEL *      ZFRAC_PANEL                                            &
-                  + ZROAD * ( ZSVF_ROAD * (1-ZDN_RD) * ZALB_ROAD                                    &
-                  + ZSVF_ROAD * ZDN_RD * ZASNOW_ROAD)                                               &
-                  + ZGARDEN *    ZSVF_GARDEN * 0.15                                                 &
-                  + ZWALL_O_HOR *    ZSVF_WALL         * ZALB_WALL
-
 
 ZTH_ALB_TOWN = 1 - ZEMIS_TOWN
 !  Instantaneous diagnostics
