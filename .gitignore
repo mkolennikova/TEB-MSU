@@ -21,7 +21,11 @@ _temp/
 !python_tests/upstream_cons_test/**
 python_tests/upstream_cons_test/run/
 
-# the byte code of that subdirectory must stay ignored: the '!' rules above come
+# Tracked ctrl/dev base comparison bench; its runs go under build/.
+!python_tests/ctrl_dev_base_test/
+!python_tests/ctrl_dev_base_test/**
+
+# The byte code of these subdirectories must stay ignored: the '!' rules above come
 # later than the global *.pyc / __pycache__ patterns, so they are repeated here
 __pycache__/
 *.pyc

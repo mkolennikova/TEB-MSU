@@ -1242,17 +1242,31 @@ ZTSCA_SW(:,1) = XSCA_SW(:,1) * (1. - ZF1_o_B)
 ! Calculation of Wind Speed inside the canyon
 ! -----------------------------------------------------------
 ZVMOD = SQRT(XU**2+XV**2)
+!MV202611 upstream consistency switches: D7 roof-level wind profile.
 IF (ITYPE_WIND(1) == 0) THEN
 	ZWAKE = 1. + (2./XPI-1.) * 2. * (ZCAN_HW_RATIO-0.5)
 	ZWAKE = MAX(MIN(ZWAKE,1.),2./XPI)
+#ifdef TEB_UPSTREAM_CONS
+	! D7: preserve the original roof-level wind profile for upstream comparison.
 	ZU_CANYON = ZWAKE * EXP(-ZCAN_HW_RATIO/4.) * ZVMOD     &
 		* LOG( (           2.* ZBLD_HEIGHT/3.) / ZZ0U)   &
 		/ LOG( (ZZREF + 2.* ZBLD_HEIGHT/3.) / ZZ0U) 
+#else
+	ZU_CANYON = ZWAKE * EXP(-ZCAN_HW_RATIO/4.) * ZVMOD     &
+		* LOG( (           ZBLD_HEIGHT-XZD_TOWN) / ZZ0U)   &
+		/ LOG( (ZZREF + ZBLD_HEIGHT-XZD_TOWN) / ZZ0U)
+#endif
 	ZU_CAN_PED = ZU_CANYON
 	ZU_CAN_10M = ZU_CANYON
 ELSEIF (ITYPE_WIND(1) == 1) THEN
+#ifdef TEB_UPSTREAM_CONS
+	! D7: the upstream profile uses a fixed displacement of H/3.
 	ZU_TOP = ZVMOD * LOG( (   2.* ZBLD_HEIGHT/3.) / ZZ0U)   &
 		/ LOG( (ZZREF + 2.* ZBLD_HEIGHT/3.) / ZZ0U)
+#else
+	ZU_TOP = ZVMOD * LOG( (   ZBLD_HEIGHT-XZD_TOWN) / ZZ0U)   &
+		/ LOG( (ZZREF + ZBLD_HEIGHT-XZD_TOWN) / ZZ0U)
+#endif
 	CALL WIND_CALCULATION_WANG(icell, iblock, ZBLD_HEIGHT, ZUSTAR_TOWN, ZU_TOP, XU, XV, ZFAI, ZU_CANYON_WANG, ZU_CAN_PED, ZU_CAN_10M)
 	ZU_CANYON = ZU_CANYON_WANG(5)
 ENDIF

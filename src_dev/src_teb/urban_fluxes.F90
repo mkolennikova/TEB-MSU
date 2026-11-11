@@ -242,8 +242,15 @@ PLE_WL_B(:) = ZINTER(:)
 !
 !                                            heat flux into the ground
 !
+!MV202611 upstream consistency switches: inherited D3 road-flux normalization.
+#ifdef TEB_UPSTREAM_CONS_BUGS
+! D3: reproduce the second snow-free weight on road turbulent fluxes.
+DMT%XGFLUX_ROAD (:) = PDF_RD(:) * (DMT%XRN_ROAD(:) - DMT%XH_ROAD(:) - PLEW_RD(:)) &
+                    + PDN_RD(:) * PGSN_RD(:)
+#else
 DMT%XGFLUX_ROAD (:) =  PDF_RD(:) * DMT%XRN_ROAD(:) - DMT%XH_ROAD (:) - PLEW_RD(:) &
                      + PDN_RD(:) * PGSN_RD(:)
+#endif
 !
 !                                            net radiation
 !
@@ -256,10 +263,18 @@ DMT%XRN_ROAD(:) = DMT%XRN_ROAD(:) * PDF_RD(:) + PRNSN_RD(:) * PDN_RD(:)
 ! sensible heat flux
 !
 
+#ifdef TEB_UPSTREAM_CONS_BUGS
+DMT%XH_ROAD  (:) = DMT%XH_ROAD (:) * PDF_RD(:) + PHSN_RD(:) * PDN_RD(:)
+#else
 DMT%XH_ROAD  (:) = DMT%XH_ROAD (:)          + PHSN_RD(:) * PDN_RD(:)
+#endif
 ! total latent heat of evaporation from  the road (snow free + snow)
 !
+#ifdef TEB_UPSTREAM_CONS_BUGS
+DMT%XLE_ROAD (:) = PLEW_RD(:) * PDF_RD(:) + PLESN_RD(:) * PDN_RD(:)
+#else
 DMT%XLE_ROAD (:) = PLEW_RD(:)               + PLESN_RD(:) * PDN_RD(:)
+#endif
 !
 !*      4.2    Roofs
 !              -----

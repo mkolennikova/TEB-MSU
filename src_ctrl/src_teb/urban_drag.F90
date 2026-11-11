@@ -384,13 +384,18 @@ ENDDO
 IF (.NOT. TOP%LCANOPY) THEN
  
 !MV202609 z0 and zd to namelist
-! The reference heights are taken at the base-model displacement height of the
-! urban surface (XZD_TOWN, from the namelist entry urb_zd_town): the first
-! commit has a hard-coded '+ T%XBLD_HEIGHT/3.' here, and the default entry
-! 'H/3' resolves to exactly the same value.
+!MV202611 upstream consistency switches: D7 aerodynamic reference heights.
+! D7: use the same roof height above displacement (H-zd) as the wind profile.
+! TEB_UPSTREAM_CONS retains the original +zd offset for upstream comparison.
+#ifdef TEB_UPSTREAM_CONS
   CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, ZTS_TOWN, ZQ_TOWN, PEXNS, PEXNA, PTA, PQA,     &
                        PZREF+ XZD_TOWN, PUREF+XZD_TOWN, PVMOD, T%XZ0_TOWN,                 &
                        PRI, PCD, PCDN, ZAC, ZRA, ZCH, ZZ0H_TOWN, ILMO_TOWN              )
+#else
+  CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, ZTS_TOWN, ZQ_TOWN, PEXNS, PEXNA, PTA, PQA,     &
+                       PZREF+(T%XBLD_HEIGHT-XZD_TOWN), PUREF+(T%XBLD_HEIGHT-XZD_TOWN), PVMOD, T%XZ0_TOWN, &
+                       PRI, PCD, PCDN, ZAC, ZRA, ZCH, ZZ0H_TOWN, ILMO_TOWN              )
+#endif
   
 !  OPEN(UNIT=27, FILE = ZZ0H_TOWN1, ACCESS = 'APPEND')
 !  WRITE(27,*) ZZ0H_TOWN

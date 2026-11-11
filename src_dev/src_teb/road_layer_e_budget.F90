@@ -290,8 +290,16 @@ DO JJ=1,SIZE(TSTATE%XT_ROAD,1)
   !
   ! Use the solver's linearization about the start-of-step temperature for
   ! both the liquid water budget and the road exchange with the air.
+!MV202611 upstream consistency switches: inherited D10 road budget and liquid flux.
+#ifdef TEB_UPSTREAM_CONS_BUGS
+  ! D10: subtracting the effective (already updated) temperature loses the
+  ! implicit saturation-humidity correction when ZIMPL=1.
+  PQSAT_ROAD_EFF(JJ) = PQSAT_ROAD(JJ) + ZIMPL * ZDQSAT_ROAD(JJ) * &
+                      (TSTATE%XT_ROAD(JJ,1) - ZTS_ROAD_EFF)
+#else
   PQSAT_ROAD_EFF(JJ) = PQSAT_ROAD(JJ) + ZIMPL * ZDQSAT_ROAD(JJ) * &
                       (TSTATE%XT_ROAD(JJ,1) - ZTS_ROAD(JJ))
+#endif
   PLEFREE_ROAD(JJ) = ZRHO_ACF_R_WAT(JJ) * XLVTT * PDELT_ROAD(JJ) * &
                     (PQSAT_ROAD_EFF(JJ) - PQ_LOWCAN(JJ))
   ZHEAT_RR(JJ) = PRR(JJ) * XCL * (ZTS_ROAD_EFF - PT_LOWCAN(JJ))
@@ -305,10 +313,18 @@ DO JJ=1,SIZE(TSTATE%XT_ROAD,1)
 !* Radiation and heating of rain and irrigation water are per m2 of snow-free
 !* road. The turbulent conductances already carry the snow-free weight and
 !* PGSNOW_ROAD is a gain per m2 of snow.
+#ifdef TEB_UPSTREAM_CONS_BUGS
+  ! D10: original residual weights the turbulent fluxes twice, reverses the
+  ! snow-ground term, and omits the heating of rain and irrigation water.
+  PIMB_ROAD(JJ) = PABS_SW_ROAD(JJ) + PABS_LW_ROAD(JJ) - PDQS_ROAD(JJ) &
+                 - ZDF_ROAD(JJ) * (PHFREE_ROAD(JJ) + PLEFREE_ROAD(JJ)) &
+                 - ZDN_ROAD(JJ) * PGSNOW_ROAD(JJ)
+#else
   PIMB_ROAD(JJ) = ZDF_ROAD(JJ) * ( PABS_SW_ROAD(JJ) + PABS_LW_ROAD(JJ) - ZHEAT_RR(JJ) ) &
              - PDQS_ROAD(JJ)                                              &
              - ( PHFREE_ROAD(JJ) + PLEFREE_ROAD(JJ) )                     &
              + ZDN_ROAD(JJ) *   PGSNOW_ROAD(JJ)
+#endif
   !
 ENDDO
 !

@@ -88,11 +88,31 @@ The Fortran sources are split into two independent trees, each with its own `Mak
 | Tree | Physics | Builds |
 | --- | --- | --- |
 | `src_dev/` | development line (branch `MV_devs`) with the modern I/O | `build/TEB_offline_dev.exe` |
-| `src_ctrl/` | control line (physics of the first commit `582c3ab`) with the same I/O and namelists | `build/TEB_offline_ctrl.exe` |
+| `src_ctrl/` | control line based on the first commit `582c3ab`, with common D7–D9 fixes and the same I/O and namelists | `build/TEB_offline_ctrl.exe` |
 
 Both trees share `tests/`, `python/` and `docs/`, are built in the same way
 (`make -C src_dev` / `make -C src_ctrl`) and write the same columns to the per-cell tables
 `TEB_output_b<block>_c<cell>.csv`, so runs of the two trees can be compared line by line.
+
+For a controlled comparison of inherited defects D1–D5 and D10, build `src_dev`
+with `CPPDEFS=-DTEB_UPSTREAM_CONS_BUGS`. The normal build keeps the corrected
+formulas. The control tree uses a consistent displacement height by default;
+its existing `TEB_UPSTREAM_CONS` switch also restores the original D7 wind and
+aerodynamic formulas for comparison with official TEB. Keep a separate object
+directory and executable for each set of preprocessor flags, for example:
+
+```sh
+make -C src_dev OBJDIR=../build/obj_dev_bugs EXEC=../build/TEB_offline_dev_bugs.exe CPPDEFS=-DTEB_UPSTREAM_CONS_BUGS
+make -C src_ctrl OBJDIR=../build/obj_ctrl_upstream EXEC=../build/TEB_offline_ctrl_upstream.exe CPPDEFS=-DTEB_UPSTREAM_CONS
+```
+
+On Windows, pass `FC=gfortran LD=gfortran` if compiler auto-detection returns an
+empty value. The scopes of both switches are listed in
+[`docs/TEB_MSU_source_defects.md`](docs/TEB_MSU_source_defects.md).
+
+The [ctrl/dev comparison bench](python_tests/ctrl_dev_base_test/README.md)
+checks the shared CAPITOUL physics across several configurations, including
+the historical garden and greenroof proxies; CBS remains disabled.
 
 ## Repository Layout
 

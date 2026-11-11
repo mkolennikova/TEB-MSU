@@ -26,7 +26,11 @@ ifeq ($(FC),ifort)
 else
     FFLAGS += -J$(OBJDIR) -I. -Isrc_teb
 endif
-$(shell mkdir -p $(OBJDIR))
+ifeq ($(OS),Windows_NT)
+    $(shell if not exist "$(OBJDIR)" mkdir "$(OBJDIR)")
+else
+    $(shell mkdir -p $(OBJDIR))
+endif
 
 
 .DEFAULT:

@@ -475,7 +475,13 @@ DO JJ=1,SIZE(TPARAMS%XROAD)
                    PRF_FRAC  (JJ) * PDF_RF(JJ) * (1.-TPARAMS%XGREENROOF(JJ)) * PLEW_RF   (JJ) / XLVTT  &
                  + PRF_FRAC  (JJ) * PDN_RF(JJ) * (1.-TPARAMS%XGREENROOF(JJ)) * PLESN_RF  (JJ) / XLSTT  &
                  + PRF_FRAC  (JJ)              *     TPARAMS%XGREENROOF(JJ)  * PEVAP_GR  (JJ)          &
+!MV202611 upstream consistency switches: inherited D1-D3 canyon and town fluxes.
+#ifdef TEB_UPSTREAM_CONS_BUGS
+! D3: upstream applies PDF_RD again to the already weighted liquid flux.
+                 + PRD_FRAC  (JJ) * PDF_RD(JJ)                     * PLEW_RD   (JJ) / XLVTT  &
+#else
                  + PRD_FRAC  (JJ)                                  * PLEW_RD   (JJ) / XLVTT  &
+#endif
                  + PRD_FRAC  (JJ) * PDN_RD(JJ)                         * PLESN_RD  (JJ) / XLSTT  &
                  + PGD_FRAC  (JJ)                                      * PEVAP_GD  (JJ)          &
                  + PWL_FRAC  (JJ) * 0.5                 * (PLE_WL_A(JJ) + PLE_WL_B(JJ)) / XLVTT )&
@@ -529,7 +535,12 @@ DO JJ=1,SIZE(TPARAMS%XROAD)
                    + BSTATE%XT_WIN1    (JJ) * PAC_WL (JJ) *     BPARAMS%XGR(JJ)  * PWL_O_GRND(JJ)       &
                    + PTA          (JJ) * PAC_TOP(JJ)                                         &
                    + PH_TRAFFIC   (JJ) / (1.-TPARAMS%XBLD (JJ))               / PRHOA(JJ) / XCPD   &
+#ifdef TEB_UPSTREAM_CONS_BUGS
+! D1: omit the ground-area weight of the sensible road-snow flux.
+                   + PHSN_RD_CAN(JJ) * PDN_RD(JJ)  / PRHOA(JJ) / XCPD  ) &
+#else
                    + ZRD(JJ) * PHSN_RD_CAN(JJ) * PDN_RD(JJ)  / PRHOA(JJ) / XCPD  ) &
+#endif
                                             / ZINTER  
 !
 !	print*, 'avg_urban_fluxes PT_CAN1 = ', PT_CAN(JJ)
@@ -619,7 +630,12 @@ DO JJ=1,SIZE(TPARAMS%XROAD)
                   + PQSAT_GD   (JJ) * PAC_GD(JJ) * PHU_AGG_GD(JJ) * ZGD(JJ)                   &
                   + PQA        (JJ) * PAC_TOP(JJ)                                                 &
                   + PLE_TRAFFIC(JJ) / (1.-TPARAMS%XBLD(JJ)) / PRHOA(JJ) / XLVTT                         &
+#ifdef TEB_UPSTREAM_CONS_BUGS
+! D2: apply the liquid-water latent heat to road-snow sublimation.
+                  + PLESN_RD_CAN(JJ) * PDN_RD(JJ)     / PRHOA(JJ) / XLVTT * ZRD(JJ)  ) / ZINTER
+#else
                   + PLESN_RD_CAN(JJ) * PDN_RD(JJ)     / PRHOA(JJ) / XLSTT * ZRD(JJ)  ) / ZINTER
+#endif
 
     IF (TOPTS%CBEM=="BEM") THEN
       PQ_CAN0(JJ) = PQ_CAN0(JJ) + (DMT%XLE_WASTE(JJ) * BPARAMS%XF_WASTE_CAN(JJ) / (1-TPARAMS%XBLD(JJ)) / PRHOA(JJ) / XLVTT) / ZINTER
@@ -638,7 +654,12 @@ DO JJ=1,SIZE(TPARAMS%XROAD)
 !* the snow sublimates (XLSTT) while the other sources evaporate liquid water
 !* (XLVTT): the snow part is converted into its XLVTT-equivalent so that the
 !* single latent heat of the sub-layer formula can be applied to the whole sum
+#ifdef TEB_UPSTREAM_CONS_BUGS
+! D2: the free-layer sum is divided by XLVTT below.
+    ZLE_CAN1_SN = ZRD(JJ) * PLESN_RD_ATM(JJ) * PDN_RD(JJ)
+#else
     ZLE_CAN1_SN = ZRD(JJ) * PLESN_RD_ATM(JJ) * PDN_RD(JJ) * XLVTT / XLSTT
+#endif
     PQ_CAN1(JJ) = PQA(JJ) + ( ZLE_CAN1 + ZLE_CAN1_SN )                                 &
                 / ( PRHOA(JJ) * XLVTT * XKARMAN * ZU_ROAD_ATM ) * ZPHI_CAN1
 !

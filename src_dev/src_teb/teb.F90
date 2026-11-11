@@ -713,7 +713,10 @@ ZQA(:) = PQA(:) * QSAT(ZTA(:),PPS(:)) / QSAT(PTA(:),PPA(:))
 !*      5.     Snow mantel model
 !              -----------------
 !
+!MV202611 upstream consistency switches: inherited D3-D5 water pathways.
+#ifndef TEB_UPSTREAM_CONS_BUGS
  ZPDN_RD_BEFORE_SNOW(:) = PDN_RD(:)
+#endif
  CALL URBAN_SNOW_EVOL(TSTATE, BSTATE, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, ZTS_RF, ZTS_RD, ZTS_WL_A,    &
                       ZTS_WL_B, PPS, ZTA, ZQA, PRHOA, PLW_RAD, PSR, PZREF, PUREF, PVMOD,  &
                       PTSTEP,  PZ_LOWCAN, PDN_RF, DMT%XABS_SW_SNOW_ROOF,                 &
@@ -726,7 +729,12 @@ ZQA(:) = PQA(:) * QSAT(ZTA(:),PPS(:)) / QSAT(PTA(:),PPA(:))
                       PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TPARAMS   )
  ! The snow scheme can clear PDN_RD on the same step that produces meltwater.
  ! Convert the melt rate with the fraction used by that step's snow budget.
+#ifdef TEB_UPSTREAM_CONS_BUGS
+ ! D5: the old building melt diagnostic used the fraction after snow evolution.
+ ZMELT_RD_TILE(:) = PDN_RD(:) * PMELT_RD(:)
+#else
  ZMELT_RD_TILE(:) = ZPDN_RD_BEFORE_SNOW(:) * PMELT_RD(:)
+#endif
 					  
 
 !
@@ -972,12 +980,23 @@ END SELECT
 !* PDN_RF and use the road-area rate already computed above. URBAN_HYDRO
 !* applies the reservoir capacities below and sends the excess to runoff.
 WHERE (PMELT_RF(:) .GT. 0.)
+#ifdef TEB_UPSTREAM_CONS_BUGS
+  ! D5: unweighted melt is capped before URBAN_HYDRO can count the runoff.
+  TSTATE%XWS_ROOF(:) = MIN(ZWS_RF_MAX, TSTATE%XWS_ROOF(:) + PMELT_RF(:) * PTSTEP)
+#else
   TSTATE%XWS_ROOF(:) = TSTATE%XWS_ROOF(:) + PDN_RF(:) * PMELT_RF(:) * PTSTEP
+#endif
 ENDWHERE
 !
+#ifdef TEB_UPSTREAM_CONS_BUGS
+WHERE (PMELT_RD(:) .GT. 0.)
+  TSTATE%XWS_ROAD(:) = MIN(ZWS_RD_MAX, TSTATE%XWS_ROAD(:) + PMELT_RD(:) * PTSTEP)
+ENDWHERE
+#else
 WHERE (ZMELT_RD_TILE(:) .GT. 0.)
   TSTATE%XWS_ROAD(:) = TSTATE%XWS_ROAD(:) + ZMELT_RD_TILE(:) * PTSTEP
 ENDWHERE
+#endif
 
 !
 !-------------------------------------------------------------------------------
@@ -1008,10 +1027,17 @@ ENDWHERE
 !*    is already taken from the roof snowpack by the snow scheme (WSNOW_RF):
 !*    draining the puddle with it evaporates the roof puddle water a second time
 !*    (and with XLVTT instead of the XLSTT used by the snow scheme).
+#ifdef TEB_UPSTREAM_CONS_BUGS
+ ! D3-D5: drain the puddles with the total roof/road latent fluxes.
+ CALL URBAN_HYDRO(ZWS_RF_MAX, ZWS_RD_MAX, TSTATE%XWS_ROOF, TSTATE%XWS_ROAD, PRR,          &
+                  DMT%XIRRIG_ROAD, PTSTEP, TPARAMS%XBLD, DMT%XLE_ROOF(:),           &
+                  DMT%XLE_ROAD(:), DMT%XRUNOFF_STRLROOF, DMT%XRUNOFF_ROAD)
+#else
  CALL URBAN_HYDRO(ZWS_RF_MAX, ZWS_RD_MAX, TSTATE%XWS_ROOF, TSTATE%XWS_ROAD, PRR,          &
                   DMT%XIRRIG_ROAD, PTSTEP, TPARAMS%XBLD, LE_ROOF_WAT(:),              &
                   PLEW_RD(:),                                                    &
                   DMT%XRUNOFF_STRLROOF, DMT%XRUNOFF_ROAD   )
+#endif
 !
 IF (TOPTS%LGREENROOF) THEN
   DMT%XRUNOFF_ROOF(:) =  (1.-TPARAMS%XGREENROOF(:)) * DMT%XRUNOFF_STRLROOF(:) &
