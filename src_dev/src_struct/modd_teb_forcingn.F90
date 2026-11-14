@@ -32,7 +32,7 @@
 !!    ---------
 !!    TEB-MSU: TEB_MSU_containers.md, section 5.10
 !!
- IMPLICIT NONE
+IMPLICIT NONE
 !---------------------------------------------------------------------------
 !
 !* Raw forcing: one value per cell, as the host provides it. XDIR_SW/XSCA_SW are
@@ -45,29 +45,29 @@
 !
 TYPE TEB_FORCING_t
   !* ---- raw forcing ----
-  REAL, POINTER, DIMENSION(:)   :: XU        ! zonal wind                                 (m/s)
-  REAL, POINTER, DIMENSION(:)   :: XV        ! meridional wind                            (m/s)
-  REAL, POINTER, DIMENSION(:)   :: XTA       ! air temperature                            (K)
-  REAL, POINTER, DIMENSION(:)   :: XQA       ! specific humidity                          (kg/kg)
-  REAL, POINTER, DIMENSION(:)   :: XPS       ! surface pressure                           (Pa)
-  REAL, POINTER, DIMENSION(:)   :: XZS       ! orography (fallback of XPS; 0 in offline)  (m)
-  REAL, POINTER, DIMENSION(:)   :: XRAIN     ! liquid precipitation                       (kg/m2/s)
-  REAL, POINTER, DIMENSION(:)   :: XSNOW     ! solid precipitation, graupel included      (kg/m2/s)
-  REAL, POINTER, DIMENSION(:)   :: XLW       ! downward longwave radiation                (W/m2)
-  REAL, POINTER, DIMENSION(:,:) :: XDIR_SW   ! direct shortwave, circumsolar partition    (W/m2)
-  REAL, POINTER, DIMENSION(:,:) :: XSCA_SW   ! diffuse shortwave, circumsolar partition   (W/m2)
-  REAL, POINTER, DIMENSION(:)   :: XZREF     ! height of the temperature/humidity forcing (m)
-  REAL, POINTER, DIMENSION(:)   :: XUREF     ! height of the wind forcing                 (m)
-  REAL, POINTER, DIMENSION(:)   :: XCO2      ! CO2 concentration                          (kg/kg)
+  REAL, POINTER, DIMENSION(:)   :: XU       ! zonal wind                                 (m/s)
+  REAL, POINTER, DIMENSION(:)   :: XV       ! meridional wind                            (m/s)
+  REAL, POINTER, DIMENSION(:)   :: XTA      ! air temperature                            (K)
+  REAL, POINTER, DIMENSION(:)   :: XQA      ! specific humidity                          (kg/kg)
+  REAL, POINTER, DIMENSION(:)   :: XPS      ! surface pressure                           (Pa)
+  REAL, POINTER, DIMENSION(:)   :: XZS      ! orography (fallback of XPS; 0 in offline)  (m)
+  REAL, POINTER, DIMENSION(:)   :: XRAIN    ! liquid precipitation                       (kg/m2/s)
+  REAL, POINTER, DIMENSION(:)   :: XSNOW    ! solid precipitation, graupel included      (kg/m2/s)
+  REAL, POINTER, DIMENSION(:)   :: XLW      ! downward longwave radiation                (W/m2)
+  REAL, POINTER, DIMENSION(:,:) :: XDIR_SW  ! direct shortwave, circumsolar partition    (W/m2)
+  REAL, POINTER, DIMENSION(:,:) :: XSCA_SW  ! diffuse shortwave, circumsolar partition   (W/m2)
+  REAL, POINTER, DIMENSION(:)   :: XZREF    ! height of the temperature/humidity forcing (m)
+  REAL, POINTER, DIMENSION(:)   :: XUREF    ! height of the wind forcing                 (m)
+  REAL, POINTER, DIMENSION(:)   :: XCO2     ! CO2 concentration                          (kg/kg)
   !* ---- derived once per sub-step ----
-  REAL, POINTER, DIMENSION(:)   :: XPA       ! pressure at the forcing level              (Pa)
-  REAL, POINTER, DIMENSION(:)   :: XEXNS     ! Exner function at the surface              (-)
-  REAL, POINTER, DIMENSION(:)   :: XEXNA     ! Exner function at the forcing level        (-)
-  REAL, POINTER, DIMENSION(:)   :: XRHOA     ! air density at the forcing level           (kg/m3)
-  REAL, POINTER, DIMENSION(:)   :: XVMOD     ! wind speed at the forcing level            (m/s)
-  REAL, POINTER, DIMENSION(:)   :: XTSUN     ! solar time                                 (s)
-  REAL, POINTER, DIMENSION(:)   :: XZENITH   ! solar zenithal angle                       (rad)
-  REAL, POINTER, DIMENSION(:)   :: XAZIM     ! solar azimuthal angle                      (rad)
+  REAL, POINTER, DIMENSION(:)   :: XPA      ! pressure at the forcing level              (Pa)
+  REAL, POINTER, DIMENSION(:)   :: XEXNS    ! Exner function at the surface              (-)
+  REAL, POINTER, DIMENSION(:)   :: XEXNA    ! Exner function at the forcing level        (-)
+  REAL, POINTER, DIMENSION(:)   :: XRHOA    ! air density at the forcing level           (kg/m3)
+  REAL, POINTER, DIMENSION(:)   :: XVMOD    ! wind speed at the forcing level            (m/s)
+  REAL, POINTER, DIMENSION(:)   :: XTSUN    ! solar time                                 (s)
+  REAL, POINTER, DIMENSION(:)   :: XZENITH  ! solar zenithal angle                       (rad)
+  REAL, POINTER, DIMENSION(:)   :: XAZIM    ! solar azimuthal angle                      (rad)
 END TYPE TEB_FORCING_t
 !
 !---------------------------------------------------------------------------

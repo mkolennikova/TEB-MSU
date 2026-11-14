@@ -39,7 +39,7 @@
 IMPLICIT NONE
 !
 !-----------------------------------------------------------------------------------------------------
- CHARACTER(LEN=6) :: CPROGNAME
- CHARACTER(LEN=7) :: CSOFTWARE="       " ! software used: 'PGD    ','PREP  ','OFFLINE','      '
+CHARACTER(LEN=6) :: CPROGNAME
+CHARACTER(LEN=7) :: CSOFTWARE="       "  ! software used: 'PGD    ','PREP  ','OFFLINE','      '
 !
 END MODULE MODD_SURF_CONF

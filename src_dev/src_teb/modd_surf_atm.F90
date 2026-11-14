@@ -42,24 +42,24 @@
 IMPLICIT NONE
 !
 !-----------------------------------------------------------------------------------------------------
-REAL       :: XCISMIN  ! minimum wind shear
-REAL       :: XVMODMIN ! minimum wind speed
-LOGICAL    :: LALDTHRES! activate aladin threshold for wind
+REAL       :: XCISMIN    ! minimum wind shear
+REAL       :: XVMODMIN   ! minimum wind speed
+LOGICAL    :: LALDTHRES  ! activate aladin threshold for wind
 !
-LOGICAL    :: LDRAG_COEF_ARP ! activate aladin formulation for Cd and Ch
+LOGICAL    :: LDRAG_COEF_ARP  ! activate aladin formulation for Cd and Ch
 LOGICAL    :: LALDZ0H
 !
-LOGICAL    :: LNOSOF   ! No parameterization of Subgrid Orography effects on atmospheric Forcing  
-LOGICAL    :: LVERTSHIFT ! vertical shift from atmospheric orography to surface orography
-LOGICAL    :: LVSHIFT_LW ! vertical shift for LW
-LOGICAL    :: LVSHIFT_PRCP ! vertical shift for Precip
+LOGICAL    :: LNOSOF        ! No parameterization of Subgrid Orography effects on atmospheric Forcing  
+LOGICAL    :: LVERTSHIFT    ! vertical shift from atmospheric orography to surface orography
+LOGICAL    :: LVSHIFT_LW    ! vertical shift for LW
+LOGICAL    :: LVSHIFT_PRCP  ! vertical shift for Precip
 !
-LOGICAL    :: LVZIUSTAR0_ARP   ! activate aladin formulation for zoh over sea
-LOGICAL    :: LRRGUST_ARP      ! activate aladin formulation for CD CH, CDN, correction due to moist gustiness
-LOGICAL    :: LCPL_ARP         ! activate aladin formulation for Cp and L
-LOGICAL    :: LQVNPLUS         ! An option for the resolution of the surface temperature equation
+LOGICAL    :: LVZIUSTAR0_ARP  ! activate aladin formulation for zoh over sea
+LOGICAL    :: LRRGUST_ARP     ! activate aladin formulation for CD CH, CDN, correction due to moist gustiness
+LOGICAL    :: LCPL_ARP        ! activate aladin formulation for Cp and L
+LOGICAL    :: LQVNPLUS        ! An option for the resolution of the surface temperature equation
 !
-LOGICAL    :: LCPL_GCM         ! Flag used to Read/Write some field from/into the restart file for coupling with ARPEGE/ALADIN
+LOGICAL    :: LCPL_GCM  ! Flag used to Read/Write some field from/into the restart file for coupling with ARPEGE/ALADIN
 !
 REAL       :: XEDB
 REAL       :: XEDC
@@ -71,9 +71,9 @@ REAL       :: XUSURICL
 REAL       :: XVCHRNK
 REAL       :: XVZ0CM
 REAL       :: XRIMAX
-REAL       :: XDELTA_MAX ! Maximum fraction of the foliage covered by intercepted water for high vegetation
+REAL       :: XDELTA_MAX  ! Maximum fraction of the foliage covered by intercepted water for high vegetation
 !
-REAL       :: XWINDMIN ! minimum wind speed (canopy)
+REAL       :: XWINDMIN  ! minimum wind speed (canopy)
 !
 REAL       :: XRZHZ0M
 REAL       :: XVZIUSTAR0
@@ -81,7 +81,7 @@ REAL       :: XRRSCALE
 REAL       :: XRRGAMMA
 REAL       :: XUTILGUST
 !
-REAL       :: XCO2UNCPL ! uncoupled CO2 values (ppmv)
+REAL       :: XCO2UNCPL  ! uncoupled CO2 values (ppmv)
 !
 !-----------------------------------------------------------------------------------------------------
 !

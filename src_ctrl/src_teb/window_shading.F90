@@ -54,15 +54,15 @@ USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
 !
-REAL,    DIMENSION(:), INTENT(IN) :: PSHGC     !Window solar heat gain coefficient
-REAL,    DIMENSION(:), INTENT(IN) :: PSHGC_SH  !Window + shading solar heat gain coefficient
-LOGICAL, DIMENSION(:), INTENT(IN) :: O_SHADE   !use of shadings TRUE -> shadings ;
-                                               !FALSE -> no shading
-REAL, DIMENSION(:), INTENT(IN)  :: PALB_WALL !albedo of the wall     
-REAL, DIMENSION(:), INTENT(IN)  :: PABS_WIN  !Window absorptivity
-REAL, DIMENSION(:), INTENT(OUT) :: PABS_WINSH!Window absorptivity after shading
-REAL, DIMENSION(:), INTENT(OUT) :: PALB_WIN  !Albedo of the ensemble window + shading
-REAL, DIMENSION(:), INTENT(INOUT) :: PTRAN_WIN !Window transmitivity
+REAL,    DIMENSION(:), INTENT(IN) :: PSHGC      !Window solar heat gain coefficient
+REAL,    DIMENSION(:), INTENT(IN) :: PSHGC_SH   !Window + shading solar heat gain coefficient
+LOGICAL, DIMENSION(:), INTENT(IN) :: O_SHADE    !use of shadings TRUE -> shadings ;
+                                                !FALSE -> no shading
+REAL, DIMENSION(:), INTENT(IN)  :: PALB_WALL    !albedo of the wall     
+REAL, DIMENSION(:), INTENT(IN)  :: PABS_WIN     !Window absorptivity
+REAL, DIMENSION(:), INTENT(OUT) :: PABS_WINSH   !Window absorptivity after shading
+REAL, DIMENSION(:), INTENT(OUT) :: PALB_WIN     !Albedo of the ensemble window + shading
+REAL, DIMENSION(:), INTENT(INOUT) :: PTRAN_WIN  !Window transmitivity
 !
 !local variables
 REAL(KIND=JPRB) :: ZHOOK_HANDLE

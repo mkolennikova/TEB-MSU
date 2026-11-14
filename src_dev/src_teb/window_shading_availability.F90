@@ -45,10 +45,10 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments
 !              -------------------------
 !
-LOGICAL, DIMENSION(:), INTENT(IN)  :: OSHADE          ! TRUE if solar protections exist
-REAL,    DIMENSION(:), INTENT(IN)  :: PTI_BLD         ! indoor air temperature
-REAL,    DIMENSION(:), INTENT(IN)  :: PTCOOL_TARGET   ! Cooling setpoint of HVAC system
-LOGICAL, DIMENSION(:), INTENT(OUT) :: OSHADE_POSSIBLE ! TRUE if solar protections 
+LOGICAL, DIMENSION(:), INTENT(IN)  :: OSHADE           ! TRUE if solar protections exist
+REAL,    DIMENSION(:), INTENT(IN)  :: PTI_BLD          ! indoor air temperature
+REAL,    DIMENSION(:), INTENT(IN)  :: PTCOOL_TARGET    ! Cooling setpoint of HVAC system
+LOGICAL, DIMENSION(:), INTENT(OUT) :: OSHADE_POSSIBLE  ! TRUE if solar protections 
 !                                                     ! are likely to be used today if
 !                                                     ! solar irradiance is enough
 !
@@ -60,7 +60,7 @@ LOGICAL, DIMENSION(:), INTENT(OUT) :: OSHADE_POSSIBLE ! TRUE if solar protection
 !
 !
 OSHADE_POSSIBLE(:) = OSHADE(:)                                   .AND. &
-          (       PTI_BLD(:) .GE. XCOMFORT_TEMP_FOR_SHADING_USE        &
-             .OR. PTI_BLD(:) .EQ. PTCOOL_TARGET(:)              )
+  (       PTI_BLD(:) .GE. XCOMFORT_TEMP_FOR_SHADING_USE        &
+          .OR. PTI_BLD(:) .EQ. PTCOOL_TARGET(:)              )
 !
 END SUBROUTINE WINDOW_SHADING_AVAILABILITY

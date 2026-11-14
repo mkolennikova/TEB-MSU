@@ -661,7 +661,7 @@ README_TAIL = """
 | `src/src_teb/urban_fluxes.F90:282-285` | remaining part added to the roof fluxes (`/ XBLD`) |
 | `src/src_teb/urban_fluxes.F90:196-197` | wall ground fluxes computed *before* the waste heat is added: no double counting |
 | `src/src_teb/teb.F90:752-784` | CBS scheme: only the effective conductance and the reference air of the road budget are weighted |
-| `src/src_driver/run_teb_offline.F90` | output columns `AHF_TRAFFIC` and `H_WASTE` |
+| `src_dev/src_offline/run_teb_offline.F90` | output columns `AHF_TRAFFIC` and `H_WASTE` |
 
 Conclusion: the CBS scheme replaces the road exchange (effective conductance and
 reference air of `ROAD_LAYER_E_BUDGET`) and weights the road terms of the canyon

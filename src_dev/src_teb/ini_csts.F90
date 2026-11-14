@@ -93,11 +93,11 @@ XAVOGADRO   = 6.0221367E+23
 !*       2.     ASTRONOMICAL CONSTANTS
 !               ----------------------
 !
-XDAY   = 86400.
-XSIYEA = 365.25*XDAY*2.*XPI/ 6.283076
-XSIDAY = XDAY/(1.+XDAY/XSIYEA)
-XOMEGA = 2.*XPI/XSIDAY
-NDAYSEC = 24*3600 ! Number of seconds in a day
+XDAY    = 86400.
+XSIYEA  = 365.25*XDAY*2.*XPI/ 6.283076
+XSIDAY  = XDAY/(1.+XDAY/XSIYEA)
+XOMEGA  = 2.*XPI/XSIDAY
+NDAYSEC = 24*3600  ! Number of seconds in a day
 !
 !-------------------------------------------------------------------------------!
 !
@@ -130,11 +130,11 @@ XI0     = 1370.
 !*       6.     THERMODYNAMIC CONSTANTS
 !               -----------------------
 !
-XMD    = 28.9644E-3
-XMV    = 18.0153E-3
+XMD = 28.9644E-3
+XMV = 18.0153E-3
 !XRD    = XAVOGADRO * XBOLTZ / XMD
-XRD    = 287.05
-XRV    = XAVOGADRO * XBOLTZ / XMV
+XRD = 287.05
+XRV = XAVOGADRO * XBOLTZ / XMV
 !XCPD   = 7.* XRD /2.
 XCPD   = 1005.
 XCPV   = 4.* XRV

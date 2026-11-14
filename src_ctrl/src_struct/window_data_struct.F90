@@ -61,13 +61,13 @@ USE MODD_BEM_n, ONLY : BEM_t
 !
 IMPLICIT NONE
 !
-INTEGER,             INTENT(IN)  :: KI       ! number of points
-REAL, DIMENSION(KI), INTENT(IN)  :: PSHGC    ! solar heat gain coef. of windows
-REAL, DIMENSION(KI), INTENT(IN)  :: PU_WIN   ! window U-factor [K m W-2]
-REAL, DIMENSION(KI), INTENT(OUT) :: PALB_WIN ! window albedo
-REAL, DIMENSION(KI), INTENT(OUT) :: PABS_WIN ! window absortance
-REAL, DIMENSION(KI), INTENT(OUT) :: PUGG_WIN ! window glass-to-glass U-factor [W m-2 K-1]
-REAL, DIMENSION(KI), INTENT(OUT) :: PTRAN_WIN! window transmittance (-)
+INTEGER,             INTENT(IN)  :: KI         ! number of points
+REAL, DIMENSION(KI), INTENT(IN)  :: PSHGC      ! solar heat gain coef. of windows
+REAL, DIMENSION(KI), INTENT(IN)  :: PU_WIN     ! window U-factor [K m W-2]
+REAL, DIMENSION(KI), INTENT(OUT) :: PALB_WIN   ! window albedo
+REAL, DIMENSION(KI), INTENT(OUT) :: PABS_WIN   ! window absortance
+REAL, DIMENSION(KI), INTENT(OUT) :: PUGG_WIN   ! window glass-to-glass U-factor [W m-2 K-1]
+REAL, DIMENSION(KI), INTENT(OUT) :: PTRAN_WIN  ! window transmittance (-)
 !
 !
 !*      0.2    Declarations of local variables 
@@ -94,10 +94,10 @@ CALL WINDOW_DATA(KI,B)
 !------------------------------------------------------------------------------
 !
 ! put computed variables in output variables
-PALB_WIN = B%XALB_WIN ! window albedo
-PABS_WIN = B%XABS_WIN ! window absortance
-PUGG_WIN = B%XUGG_WIN ! window glass-to-glass U-factor [W m-2 K-1]
-PTRAN_WIN= B%XTRAN_WIN! window transmittance (-)!
+PALB_WIN = B%XALB_WIN  ! window albedo
+PABS_WIN = B%XABS_WIN  ! window absortance
+PUGG_WIN = B%XUGG_WIN  ! window glass-to-glass U-factor [W m-2 K-1]
+PTRAN_WIN= B%XTRAN_WIN  ! window transmittance (-)!
 !------------------------------------------------------------------------------
 DEALLOCATE(B%XSHGC    )
 DEALLOCATE(B%XU_WIN   )

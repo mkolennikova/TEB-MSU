@@ -54,7 +54,7 @@ CHARACTER(LEN=*),  INTENT(IN)  :: YTEXT
 !              -------------------------------
 !
 CHARACTER(LEN=6)  :: YPROGRAM      
-INTEGER           :: ILUOUT = 25        ! logical unit of output file      
+INTEGER           :: ILUOUT = 25  ! logical unit of output file      
 !
 !-------------------------------------------------------------------------------
 !
@@ -64,11 +64,11 @@ YPROGRAM = CPROGNAME
 !      
 !
 IF (YPROGRAM=='ASCII ' .OR. YPROGRAM=='TEXTE ' .OR. YPROGRAM=='BINARY') THEN
-   WRITE(*,*)YTEXT
-   WRITE(*,*)'---------------------------------------------------------------------------'
-   WRITE(*,*) 'MORE DETAILS ABOUT THE CRASH IN THE OUTPUT LISTING: SEE THE FILE NAMED    '
-   WRITE(*,*) 'LISTING_[NAME OF THE RUNNING .EXE: PGD, PREP, OFFLINE].txt              '
-   WRITE(*,*)'---------------------------------------------------------------------------'
+  WRITE(*,*)YTEXT
+  WRITE(*,*)'---------------------------------------------------------------------------'
+  WRITE(*,*) 'MORE DETAILS ABOUT THE CRASH IN THE OUTPUT LISTING: SEE THE FILE NAMED    '
+  WRITE(*,*) 'LISTING_[NAME OF THE RUNNING .EXE: PGD, PREP, OFFLINE].txt              '
+  WRITE(*,*)'---------------------------------------------------------------------------'
 ENDIF
 !
 WRITE(ILUOUT,*) '---------------------------------------------------------------------------'

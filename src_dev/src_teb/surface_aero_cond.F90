@@ -4,7 +4,7 @@
 !SFX_LIC for details. version 1.
 !   ######################################################################
     SUBROUTINE SURFACE_AERO_COND(PRI, PZREF, PUREF, PVMOD, PZ0,&
-                                     PZ0H, PAC, PRA, PCH           ) 
+                                 PZ0H, PAC, PRA, PCH           ) 
 !   ######################################################################
 !
 !!****  *SURFACE_AERO_COND*  
@@ -70,27 +70,27 @@ IMPLICIT NONE
 !*      0.1    declarations of arguments
 !
 !
-REAL, DIMENSION(:), INTENT(IN)    :: PRI      ! Richardson number
-REAL, DIMENSION(:), INTENT(IN)    :: PVMOD    ! module of the horizontal wind
-REAL, DIMENSION(:), INTENT(IN)    :: PZREF    ! reference height of the first
-                                              ! atmospheric level
-REAL, DIMENSION(:), INTENT(IN)    :: PUREF    ! reference height of the wind
-                                              ! NOTE this is different from ZZREF
-                                              ! ONLY in stand-alone/forced mode,
-                                              ! NOT when coupled to a model (MesoNH)
-REAL, DIMENSION(:), INTENT(IN)    :: PZ0      ! roughness length for momentum
-REAL, DIMENSION(:), INTENT(IN)    :: PZ0H     ! roughness length for heat
+REAL, DIMENSION(:), INTENT(IN)    :: PRI    ! Richardson number
+REAL, DIMENSION(:), INTENT(IN)    :: PVMOD  ! module of the horizontal wind
+REAL, DIMENSION(:), INTENT(IN)    :: PZREF  ! reference height of the first
+                                            ! atmospheric level
+REAL, DIMENSION(:), INTENT(IN)    :: PUREF  ! reference height of the wind
+                                            ! NOTE this is different from ZZREF
+                                            ! ONLY in stand-alone/forced mode,
+                                            ! NOT when coupled to a model (MesoNH)
+REAL, DIMENSION(:), INTENT(IN)    :: PZ0    ! roughness length for momentum
+REAL, DIMENSION(:), INTENT(IN)    :: PZ0H   ! roughness length for heat
 !
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC      ! aerodynamical conductance
-REAL, DIMENSION(:), INTENT(OUT)   :: PRA      ! aerodynamical resistance
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH      ! drag coefficient for heat
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC  ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(OUT)   :: PRA  ! aerodynamical resistance
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH  ! drag coefficient for heat
 !
 !*      0.2    declarations of local variables
 !
 !
 REAL, DIMENSION(SIZE(PRI)) :: ZZ0, ZZ0H, ZMU,          &
-                               ZFH, ZCHSTAR, ZPH, ZCDN, &
-                               ZSTA, ZDI, ZWORK1, ZWORK2, ZWORK3 
+  ZFH, ZCHSTAR, ZPH, ZCDN, &
+  ZSTA, ZDI, ZWORK1, ZWORK2, ZWORK3 
 REAL, DIMENSION(SIZE(PRI)) :: ZVMOD
 !
 INTEGER                    :: JJ
@@ -134,16 +134,16 @@ DO JJ=1,SIZE(PRI)
 !
   IF ( PRI(JJ) < 0.0 ) THEN
     ZDI(JJ) = 1. / ( ZVMOD(JJ)                                  &
-                   +ZCHSTAR(JJ)*ZCDN(JJ)*15.                         &
-                                *ZWORK2(JJ)**ZPH(JJ)  &
-                                *ZFH(JJ) * SQRT(-ZSTA(JJ))           &
-                  ) 
+                     +ZCHSTAR(JJ)*ZCDN(JJ)*15.                         &
+                     *ZWORK2(JJ)**ZPH(JJ)  &
+                     *ZFH(JJ) * SQRT(-ZSTA(JJ))           &
+                     ) 
     PAC(JJ) = ZCDN(JJ)*(ZVMOD(JJ)-15.* ZSTA(JJ)*ZDI(JJ))*ZFH(JJ)
 
   ELSE
     ZDI(JJ) = SQRT(ZWORK3(JJ) + 5. * ZSTA(JJ) )
     PAC(JJ) = ZCDN(JJ)*ZVMOD(JJ)/(1.+15.*ZSTA(JJ)*ZDI(JJ)  &
-             / ZWORK3(JJ) /ZVMOD(JJ) )*ZFH(JJ)    
+                                  / ZWORK3(JJ) /ZVMOD(JJ) )*ZFH(JJ)    
   ENDIF
 !
   PRA(JJ) = 1. / PAC(JJ)

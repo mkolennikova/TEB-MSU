@@ -4,7 +4,7 @@
 !SFX_LIC for details. version 1.
 !   ##########################################################################
     SUBROUTINE ALLOC_TEB_STRUCT(KROOF_LAYER,KROAD_LAYER,KWALL_LAYER,KFLOOR_LAYER,&
-                               TOPTS,TSTATE,BOPTS,BSTATE,TPN,TIR                           )
+                                TOPTS,TSTATE,BOPTS,BSTATE,TPN,TIR                           )
 !   ##########################################################################
 !
 !!****  *ALLOC_TEB_STRUCT*
@@ -100,8 +100,8 @@ CALL BEM_INIT(BSTATE)
 ! Indoor parameters
 !
 ALLOCATE(BSTATE%XTI_BLD(1))                    ! building interior temperature    (K)
-ALLOCATE(BSTATE%XT_FLOOR (1,KFLOOR_LAYER)) ! floor layer temperatures         (K)
-ALLOCATE(BSTATE%XT_MASS  (1,KFLOOR_LAYER)) ! Air cooled building internal th. mass temperature (K)
+ALLOCATE(BSTATE%XT_FLOOR (1,KFLOOR_LAYER))  ! floor layer temperatures         (K)
+ALLOCATE(BSTATE%XT_MASS  (1,KFLOOR_LAYER))  ! Air cooled building internal th. mass temperature (K)
 !
 ALLOCATE(BSTATE%XTRAN_WIN(1))      ! window transmittance (-)
 !
@@ -110,13 +110,13 @@ ALLOCATE(BSTATE%XTRAN_WIN(1))      ! window transmittance (-)
 ALLOCATE(BSTATE%XAUX_MAX(1))      ! Auxiliar variable for autosize calcs
 ALLOCATE(BSTATE%XT_WIN2(1))       ! Indoor window temperature [K]
 ALLOCATE(BSTATE%XQI_BLD(1))       ! Indoor air specific humidity [kg kg-1]
-                             ! [W m-2(bld)]
+! [W m-2(bld)]
 ALLOCATE(BSTATE%XCAP_SYS_RAT(1))  ! Rated capacity of the cooling system
-                             ! [W m-2(bld)]
+! [W m-2(bld)]
 ALLOCATE(BSTATE%XT_ADP(1))        ! Apparatus dewpoint temperature of the
-                             ! cooling coil [K]
+! cooling coil [K]
 ALLOCATE(BSTATE%XM_SYS_RAT(1))    ! Rated HVAC mass flow rate 
-                             ! [kg s-1 m-2(bld)]
+! [kg s-1 m-2(bld)]
 ALLOCATE(BSTATE%XT_WIN1(1))       ! outdoor window temperature [K]
 ALLOCATE(BSTATE%XALB_WIN(1))      ! window albedo
 ALLOCATE(BSTATE%XABS_WIN(1))      ! window absortance
@@ -124,11 +124,11 @@ ALLOCATE(BSTATE%XUGG_WIN(1))      ! Window glass-to-glass U-factor [K m W-2]
 ALLOCATE(BSTATE%LSHADE(1))        ! flag to activate shading devices -> LOGICAL in the code
 ALLOCATE(BSTATE%XSHADE(1))        ! flag to activate shading devices -> REAL for i/o 0. or 1.
 ALLOCATE(BSTATE%XNATVENT(1))      ! flag to describe surventilation system for i/o 
-                             ! 0 for NONE, 1 for MANU and 2 for AUTO
+! 0 for NONE, 1 for MANU and 2 for AUTO
 ALLOCATE(BSTATE%LSHAD_DAY(1))     !Has shading been necessary this day ?
-ALLOCATE(BSTATE%LNATVENT_NIGHT(1))!Has nocturnal surventilation been necessary and possible this night ?
-  !
-  !indoor relative surfaces and view factors
+ALLOCATE(BSTATE%LNATVENT_NIGHT(1))  !Has nocturnal surventilation been necessary and possible this night ?
+!
+!indoor relative surfaces and view factors
 !
 !-------------------------------------------------------------------------------
 !
@@ -229,18 +229,18 @@ ALLOCATE(TIR%XRD_24H_IRRIG(1))     ! roads : total irrigation over 24 hours (kg/
 !
 !
 
-                                                     ! of the building [W m-2(bld)]
-                                                     ! of the building [W m-2(bld)]
-                                                     ! of the building [W m-2(bld)]
-                                                     ! of the building [W m-2(bld)]
-                                                     ! of the building [W m-2(bld)]
-                                                     ! [W m-2(tot)]
-                                                     ! [W m-2(tot)]
-                                                     ! [W m-2(bld)]
-                                                     ! [W m-2(bld)]
-                                                     ! [W m-2(bld)] 
-                                                     ! [kg s-1 m-2(bld)]
-                                                     ! windows [W m-2(bld)]
+! of the building [W m-2(bld)]
+! of the building [W m-2(bld)]
+! of the building [W m-2(bld)]
+! of the building [W m-2(bld)]
+! of the building [W m-2(bld)]
+! [W m-2(tot)]
+! [W m-2(tot)]
+! [W m-2(bld)]
+! [W m-2(bld)]
+! [W m-2(bld)] 
+! [kg s-1 m-2(bld)]
+! windows [W m-2(bld)]
 
 !
 !MV202609 diagnostics moved into the container (Phase 4a)

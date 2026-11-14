@@ -82,13 +82,13 @@ REAL,    DIMENSION(:,:), INTENT(OUT) :: PX  ! solution of A.X = Y
 !
 !*       0.2 declarations of local variables
 !
-INTEGER           :: JI             ! number of point loop control
-INTEGER           :: JK             ! vertical loop control
-INTEGER           :: INI            ! number of point
-INTEGER           :: INL            ! number of vertical levels
+INTEGER           :: JI   ! number of point loop control
+INTEGER           :: JK   ! vertical loop control
+INTEGER           :: INI  ! number of point
+INTEGER           :: INL  ! number of vertical levels
 !
-REAL, DIMENSION(SIZE(PA,1)           ) :: ZDET ! work array
-REAL, DIMENSION(SIZE(PA,1),SIZE(PA,2)) :: ZW   ! work array
+REAL, DIMENSION(SIZE(PA,1)           ) :: ZDET  ! work array
+REAL, DIMENSION(SIZE(PA,1),SIZE(PA,2)) :: ZW    ! work array
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 ! ---------------------------------------------------------------------------
 !
@@ -110,11 +110,11 @@ PX  (:,1) = PY(:,1) / ZDET(:)
 !            ------------
 !
 DO JK=2,INL
-   DO JI=1,INI
-      ZW  (JI,JK)  = PC(JI,JK-1)/ZDET(JI)
-      ZDET(JI)     = PB(JI,JK  ) - PA(JI,JK)*ZW(JI,JK)
-      PX  (JI,JK)  = ( PY(JI,JK) - PA(JI,JK)*PX(JI,JK-1) ) / ZDET(JI)
-   END DO
+  DO JI=1,INI
+    ZW  (JI,JK) = PC(JI,JK-1)/ZDET(JI)
+    ZDET(JI)    = PB(JI,JK  ) - PA(JI,JK)*ZW(JI,JK)
+    PX  (JI,JK) = ( PY(JI,JK) - PA(JI,JK)*PX(JI,JK-1) ) / ZDET(JI)
+  END DO
 END DO
 !
 !-------------------------------------------------------------------------------
@@ -123,9 +123,9 @@ END DO
 !            -----------------
 !
 DO JK=INL-1,1,-1
-   DO JI=1,INI
-      PX  (JI,JK) = PX(JI,JK) - ZW(JI,JK+1)*PX(JI,JK+1)
-   END DO
+  DO JI=1,INI
+    PX  (JI,JK) = PX(JI,JK) - ZW(JI,JK+1)*PX(JI,JK+1)
+  END DO
 END DO
 IF (LHOOK) CALL DR_HOOK('TRIDIAG_GROUND',1,ZHOOK_HANDLE)
 !

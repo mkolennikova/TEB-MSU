@@ -48,7 +48,7 @@ TYPE BEM_OPTIONS_t
 !
 ! Number of layers
 !
-  INTEGER                       :: NFLOOR_LAYER   ! number of layers in walls
+  INTEGER                       :: NFLOOR_LAYER  ! number of layers in walls
   CHARACTER(LEN=6)              :: CCOOL_COIL    ! type of cooling coil
   CHARACTER(LEN=6)              :: CHEAT_COIL    ! type of heating coil
   LOGICAL                       :: LAUTOSIZE     ! Flag to activate autosize calculations

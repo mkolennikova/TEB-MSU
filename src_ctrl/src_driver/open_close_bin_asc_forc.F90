@@ -47,11 +47,11 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments
 !              -------------------------
 !
-CHARACTER(LEN=5),  INTENT(IN)  :: HACTION  ! action to do
-CHARACTER(LEN=6),  INTENT(IN)  :: HFORCING ! forcing file type
-INTEGER,           INTENT(IN)  :: KNI      ! number of points
-CHARACTER(LEN=1),  INTENT(IN)  :: HACTION2 ! 'R': read, 'W': write
-CHARACTER(LEN=7)               :: YSTATUS  ! file status (OLD/NEW)
+CHARACTER(LEN=5),  INTENT(IN)  :: HACTION   ! action to do
+CHARACTER(LEN=6),  INTENT(IN)  :: HFORCING  ! forcing file type
+INTEGER,           INTENT(IN)  :: KNI       ! number of points
+CHARACTER(LEN=1),  INTENT(IN)  :: HACTION2  ! 'R': read, 'W': write
+CHARACTER(LEN=7)               :: YSTATUS   ! file status (OLD/NEW)
 CHARACTER(LEN=*),  INTENT(IN)  :: path
 
 !
@@ -61,11 +61,11 @@ CHARACTER(LEN=*),  INTENT(IN)  :: path
 !-------------------------------------------------------------------------------
 !
 IF (HACTION2=='R') THEN
-   YSTATUS='UNKNOWN'
+  YSTATUS='UNKNOWN'
 ELSE IF (HACTION2=='W') THEN
-   YSTATUS='NEW    '
+  YSTATUS='NEW    '
 ELSE
-   CALL ABOR1_SFX('OPEN_CLOSE_BIN_ASC_FORC: UNKNOWN FILE STATUS, '//YSTATUS)      
+  CALL ABOR1_SFX('OPEN_CLOSE_BIN_ASC_FORC: UNKNOWN FILE STATUS, '//YSTATUS)      
 ENDIF
 !      
 IF (HACTION=='CONF ') THEN

@@ -7,7 +7,7 @@ INTERFACE
                                PREC_SW_SN_RD, PREC_SW_WL_A, PREC_SW_WL_B,           &
                                PREC_SW_GD, PREC_SW_RF, PDIR_ALB_TWN, PSCA_ALB_TWN,  &
                                PSO_ALB_TWN, ZSW_UP_SO, PSW_RAD_GD, PREC_SW_WIN, PREF_SW_GRND,  &
-							   PREF_SW_FAC, PE_SHADING, OSHAD_DAY, OSHADE, OALB_ONLY )  
+                               PREF_SW_FAC, PE_SHADING, OSHAD_DAY, OSHADE, OALB_ONLY )  
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
@@ -17,15 +17,15 @@ TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
 TYPE(TEB_t), INTENT(INOUT) :: T
 TYPE(BEM_t), INTENT(INOUT) :: B
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
-REAL, DIMENSION(:), INTENT(IN)    :: PDIR_SW           ! incoming direct solar radiation
-REAL, DIMENSION(:), INTENT(IN)    :: PSCA_SW           ! scattered incoming solar rad.
-REAL, DIMENSION(:), INTENT(IN)    :: PZENITH           ! solar zenithal angle
-REAL, DIMENSION(:), INTENT(IN)    :: PAZIM             ! solar azimuthal angle
-REAL, DIMENSION(:), INTENT(IN)    :: PFRAC_PANEL       ! Fraction of solar panel on roofs (-)
-REAL, DIMENSION(:), INTENT(IN)    :: PALB_PANEL        ! Albedo     of solar panels (-)
-REAL, DIMENSION(:), INTENT(IN)    :: PALB_GD       ! GD areas albedo
-REAL, DIMENSION(:), INTENT(IN)    :: PSVF_GD       ! GD areas sky view factor
-REAL, DIMENSION(:), INTENT(IN)    :: PALB_GRF      ! green roof albedo
+REAL, DIMENSION(:), INTENT(IN)    :: PDIR_SW         ! incoming direct solar radiation
+REAL, DIMENSION(:), INTENT(IN)    :: PSCA_SW         ! scattered incoming solar rad.
+REAL, DIMENSION(:), INTENT(IN)    :: PZENITH         ! solar zenithal angle
+REAL, DIMENSION(:), INTENT(IN)    :: PAZIM           ! solar azimuthal angle
+REAL, DIMENSION(:), INTENT(IN)    :: PFRAC_PANEL     ! Fraction of solar panel on roofs (-)
+REAL, DIMENSION(:), INTENT(IN)    :: PALB_PANEL      ! Albedo     of solar panels (-)
+REAL, DIMENSION(:), INTENT(IN)    :: PALB_GD         ! GD areas albedo
+REAL, DIMENSION(:), INTENT(IN)    :: PSVF_GD         ! GD areas sky view factor
+REAL, DIMENSION(:), INTENT(IN)    :: PALB_GRF        ! green roof albedo
 REAL, DIMENSION(:), INTENT(IN)    :: PDN_RF          ! snow-covered roof fraction
 REAL, DIMENSION(:), INTENT(IN)    :: PDF_RF          ! snow-free    roof fraction
 REAL, DIMENSION(:), INTENT(IN)    :: PDN_RD          ! snow-covered road fraction
@@ -41,12 +41,12 @@ REAL, DIMENSION(:), INTENT(OUT)    :: PSCA_ALB_TWN   ! town diffuse albedo
 REAL, DIMENSION(:), INTENT(OUT)    :: PSO_ALB_TWN    ! town solar albedo
 REAL, DIMENSION(:), INTENT(OUT)    :: ZSW_UP_SO      ! outgoing solar radiation
 REAL, DIMENSION(:), INTENT(OUT)    :: PSW_RAD_GD     ! solar radiation reaching GD areas
-REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_WIN      ! solar radiation received by windows
-REAL, DIMENSION(:), INTENT(OUT)    :: PREF_SW_GRND     ! total solar radiation reflected by ground
-REAL, DIMENSION(:), INTENT(OUT)    :: PREF_SW_FAC      ! total solar radiation reflected by wall
-REAL, DIMENSION(:), INTENT(OUT)    :: PE_SHADING       ! Energy that is not reflected 
-LOGICAL, DIMENSION(:),INTENT(INOUT):: OSHAD_DAY        ! has shading been necessary this day ?
-LOGICAL, DIMENSION(:),INTENT(IN)   :: OSHADE           ! are building conditions favorable for 
+REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_WIN    ! solar radiation received by windows
+REAL, DIMENSION(:), INTENT(OUT)    :: PREF_SW_GRND   ! total solar radiation reflected by ground
+REAL, DIMENSION(:), INTENT(OUT)    :: PREF_SW_FAC    ! total solar radiation reflected by wall
+REAL, DIMENSION(:), INTENT(OUT)    :: PE_SHADING     ! Energy that is not reflected 
+LOGICAL, DIMENSION(:),INTENT(INOUT):: OSHAD_DAY      ! has shading been necessary this day ?
+LOGICAL, DIMENSION(:),INTENT(IN)   :: OSHADE         ! are building conditions favorable for 
 LOGICAL, INTENT(IN), OPTIONAL :: OALB_ONLY
 END SUBROUTINE URBAN_SOLAR_ABS
 END INTERFACE

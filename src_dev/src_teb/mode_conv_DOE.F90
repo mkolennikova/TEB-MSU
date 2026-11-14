@@ -38,24 +38,24 @@ MODULE MODE_CONV_DOE
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 INTERFACE CHTC_VERT_DOE
-        MODULE PROCEDURE CHTC_VERT_DOE_0D
-        MODULE PROCEDURE CHTC_VERT_DOE_1D
+MODULE PROCEDURE CHTC_VERT_DOE_0D
+MODULE PROCEDURE CHTC_VERT_DOE_1D
 END INTERFACE
 INTERFACE CHTC_UP_DOE
-        MODULE PROCEDURE CHTC_UP_DOE_0D
-        MODULE PROCEDURE CHTC_UP_DOE_1D
+MODULE PROCEDURE CHTC_UP_DOE_0D
+MODULE PROCEDURE CHTC_UP_DOE_1D
 END INTERFACE
 INTERFACE CHTC_SMOOTH_LEE_DOE
-        MODULE PROCEDURE CHTC_SMOOTH_LEE_DOE_0D
-        MODULE PROCEDURE CHTC_SMOOTH_LEE_DOE_1D
+MODULE PROCEDURE CHTC_SMOOTH_LEE_DOE_0D
+MODULE PROCEDURE CHTC_SMOOTH_LEE_DOE_1D
 END INTERFACE
 INTERFACE CHTC_SMOOTH_WIND_DOE
-        MODULE PROCEDURE CHTC_SMOOTH_WIND_DOE_0D
-        MODULE PROCEDURE CHTC_SMOOTH_WIND_DOE_1D
+MODULE PROCEDURE CHTC_SMOOTH_WIND_DOE_0D
+MODULE PROCEDURE CHTC_SMOOTH_WIND_DOE_1D
 END INTERFACE
 INTERFACE CHTC_ROUGH_DOE
-        MODULE PROCEDURE CHTC_ROUGH_DOE_0D
-        MODULE PROCEDURE CHTC_ROUGH_DOE_1D
+MODULE PROCEDURE CHTC_ROUGH_DOE_0D
+MODULE PROCEDURE CHTC_ROUGH_DOE_1D
 END INTERFACE
 !
 CONTAINS
@@ -104,9 +104,9 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments and results
 !
 !
-REAL, INTENT(IN)                :: PTS     ! Surface temperature (Kelvin)
-REAL, INTENT(IN)                :: PTA     ! Air temperature (Kelvin)
-REAL                            :: PCHTC   ! Convective heat transfer coefficient [W/(m2.K)]
+REAL, INTENT(IN)                :: PTS    ! Surface temperature (Kelvin)
+REAL, INTENT(IN)                :: PTA    ! Air temperature (Kelvin)
+REAL                            :: PCHTC  ! Convective heat transfer coefficient [W/(m2.K)]
 !
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
@@ -165,9 +165,9 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments and results
 !
 !
-REAL, DIMENSION(:), INTENT(IN)                :: PTS     ! Surface temperature (Kelvin)
-REAL, DIMENSION(:), INTENT(IN)                :: PTA     ! Air temperature (Kelvin)
-REAL, DIMENSION(SIZE(PTS))                    :: PCHTC   ! Convective heat transfer coefficient [W/(m2.K)]
+REAL, DIMENSION(:), INTENT(IN)                :: PTS    ! Surface temperature (Kelvin)
+REAL, DIMENSION(:), INTENT(IN)                :: PTA    ! Air temperature (Kelvin)
+REAL, DIMENSION(SIZE(PTS))                    :: PCHTC  ! Convective heat transfer coefficient [W/(m2.K)]
 !
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
@@ -226,9 +226,9 @@ IMPLICIT NONE
 !
 !*       0.1   Declarations of arguments and results
 !
-REAL, DIMENSION(:), INTENT(IN)                :: PTS     ! Surface temperature (Kelvin)
-REAL, DIMENSION(:), INTENT(IN)                :: PTA     ! Air temperature (Kelvin)
-REAL, DIMENSION(SIZE(PTS))                    :: PCHTC   ! Convective heat transfer coefficient [W/(m2.K)]
+REAL, DIMENSION(:), INTENT(IN)                :: PTS    ! Surface temperature (Kelvin)
+REAL, DIMENSION(:), INTENT(IN)                :: PTA    ! Air temperature (Kelvin)
+REAL, DIMENSION(SIZE(PTS))                    :: PCHTC  ! Convective heat transfer coefficient [W/(m2.K)]
 !
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
@@ -238,9 +238,9 @@ IF (LHOOK) CALL DR_HOOK('MODE_CONV_DOE:CHTC_UP_DOE',0,ZHOOK_HANDLE)
 !              ----------------
 !
 WHERE(PTA < PTS)
-   PCHTC  = 9.482 * (PTS - PTA)**(1./3.) / (7.283 - 1)
+  PCHTC  = 9.482 * (PTS - PTA)**(1./3.) / (7.283 - 1)
 ELSE WHERE
-   PCHTC  = 1.810 * (PTA - PTS)**(1./3.) / (1.382 + 1)  
+  PCHTC  = 1.810 * (PTA - PTS)**(1./3.) / (1.382 + 1)  
 END WHERE
 !
 !-------------------------------------------------------------------------------
@@ -291,9 +291,9 @@ IMPLICIT NONE
 !
 !*       0.1   Declarations of arguments and results
 !
-REAL, INTENT(IN)                :: PTS     ! Surface temperature (Kelvin)
-REAL, INTENT(IN)                :: PTA     ! Air temperature (Kelvin)
-REAL                            :: PCHTC   ! Convective heat transfer coefficient [W/(m2.K)]
+REAL, INTENT(IN)                :: PTS    ! Surface temperature (Kelvin)
+REAL, INTENT(IN)                :: PTA    ! Air temperature (Kelvin)
+REAL                            :: PCHTC  ! Convective heat transfer coefficient [W/(m2.K)]
 !
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
@@ -303,9 +303,9 @@ IF (LHOOK) CALL DR_HOOK('MODE_CONV_DOE:CHTC_UP_DOE',0,ZHOOK_HANDLE)
 !              ----------------
 !
 IF (PTA < PTS) THEN
-   PCHTC  = 9.482 * (PTS - PTA)**(1./3.) / (7.283 - 1)
+  PCHTC  = 9.482 * (PTS - PTA)**(1./3.) / (7.283 - 1)
 ELSE 
-   PCHTC  = 1.810 * (PTA - PTS)**(1./3.) / (1.382 + 1)  
+  PCHTC  = 1.810 * (PTA - PTS)**(1./3.) / (1.382 + 1)  
 ENDIF
 !
 !-------------------------------------------------------------------------------
@@ -357,9 +357,9 @@ IMPLICIT NONE
 !
 !*       0.1   Declarations of arguments and results
 !
-REAL, DIMENSION(:), INTENT(IN)                :: PTS     ! Surface temperature (Kelvin)
-REAL, DIMENSION(:), INTENT(IN)                :: PTA     ! Air temperature (Kelvin)
-REAL, DIMENSION(SIZE(PTS))                    :: PCHTC   ! Convective heat transfer coefficient [W/(m2.K)]
+REAL, DIMENSION(:), INTENT(IN)                :: PTS    ! Surface temperature (Kelvin)
+REAL, DIMENSION(:), INTENT(IN)                :: PTA    ! Air temperature (Kelvin)
+REAL, DIMENSION(SIZE(PTS))                    :: PCHTC  ! Convective heat transfer coefficient [W/(m2.K)]
 !
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
@@ -369,9 +369,9 @@ IF (LHOOK) CALL DR_HOOK('MODE_CONV_DOE:CHTC_DOWN_DOE',0,ZHOOK_HANDLE)
 !              ----------------
 !
 WHERE(PTA > PTS)
-   PCHTC  = 9.482 * (PTA - PTS)**(1./3.) / (7.283 - 1)
+  PCHTC  = 9.482 * (PTA - PTS)**(1./3.) / (7.283 - 1)
 ELSE WHERE
-   PCHTC  = 1.810 * (PTS - PTA)**(1./3.) / (1.382 + 1)  
+  PCHTC  = 1.810 * (PTS - PTA)**(1./3.) / (1.382 + 1)  
 END WHERE
 !
 !-------------------------------------------------------------------------------
@@ -432,7 +432,7 @@ REAL                           :: PCHTC   ! Convective heat transfer coefficient
 !*       0.2   Declarations of local variables
 !
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
-REAL :: ZALEE, ZBLEE ! coef for leeward facade
+REAL :: ZALEE, ZBLEE  ! coef for leeward facade
 !----------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('MODE_CONV_DOE:CHTC_SMOOTH_LEE_DOE',0,ZHOOK_HANDLE)
 !
@@ -505,7 +505,7 @@ REAL, DIMENSION(SIZE(PCHTCN))                 :: PCHTC   ! Convective heat trans
 !*       0.2   Declarations of local variables
 !
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
-REAL :: ZALEE, ZBLEE ! coef for windward/leeward facade
+REAL :: ZALEE, ZBLEE  ! coef for windward/leeward facade
 !----------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('MODE_CONV_DOE:CHTC_SMOOTH_LEE_DOE',0,ZHOOK_HANDLE)
 !
@@ -577,7 +577,7 @@ REAL                           :: PCHTC   ! Convective heat transfer coefficient
 !*       0.2   Declarations of local variables
 !
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
-REAL :: ZAWIND, ZBWIND ! coef for windward/leeward facade
+REAL :: ZAWIND, ZBWIND  ! coef for windward/leeward facade
 !----------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('MODE_CONV_DOE:CHTC_SMOOTH_WIND_DOE',0,ZHOOK_HANDLE)
 !
@@ -650,7 +650,7 @@ REAL, DIMENSION(SIZE(PCHTCN))                 :: PCHTC   ! Convective heat trans
 !*       0.2   Declarations of local variables
 !
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
-REAL :: ZAWIND, ZBWIND ! coef for windward facade
+REAL :: ZAWIND, ZBWIND  ! coef for windward facade
 !----------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('MODE_CONV_DOE:CHTC_SMOOTH_WIND_DOE',0,ZHOOK_HANDLE)
 !

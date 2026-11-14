@@ -42,11 +42,11 @@ TYPE TEB_PANEL_t
 !*   param - panel emissivity, albedo, efficiency and roof fraction (namelist)
 !*   state - XTHER_PRODC_DAY, the daily integral of the thermal production
 !
-  REAL,    POINTER, DIMENSION(:) :: XEMIS_PANEL       ! emissivity of solar panels               (-)
-  REAL,    POINTER, DIMENSION(:) :: XALB_PANEL        ! albedo of soolar panels                  (-)
-  REAL,    POINTER, DIMENSION(:) :: XEFF_PANEL        ! Efficiency coefficient of solar panels   (-)
-  REAL,    POINTER, DIMENSION(:) :: XFRAC_PANEL       ! Fraction of SOLAR panels on roofs        (-)
-  REAL,    POINTER, DIMENSION(:) :: XTHER_PRODC_DAY   ! Present day integrated thermal production of energy    (J/m2 panel)
+  REAL,    POINTER, DIMENSION(:) :: XEMIS_PANEL      ! emissivity of solar panels               (-)
+  REAL,    POINTER, DIMENSION(:) :: XALB_PANEL       ! albedo of soolar panels                  (-)
+  REAL,    POINTER, DIMENSION(:) :: XEFF_PANEL       ! Efficiency coefficient of solar panels   (-)
+  REAL,    POINTER, DIMENSION(:) :: XFRAC_PANEL      ! Fraction of SOLAR panels on roofs        (-)
+  REAL,    POINTER, DIMENSION(:) :: XTHER_PRODC_DAY  ! Present day integrated thermal production of energy    (J/m2 panel)
 !
 END TYPE TEB_PANEL_t
 
@@ -63,11 +63,11 @@ SUBROUTINE TEB_PANEL_INIT(YTEB_PANEL)
 TYPE(TEB_PANEL_t), INTENT(INOUT) :: YTEB_PANEL
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 IF (LHOOK) CALL DR_HOOK("MODD_TEB_PANEL_N:TEB_PANEL_INIT",0,ZHOOK_HANDLE)
-  NULLIFY(YTEB_PANEL%XEMIS_PANEL)
-  NULLIFY(YTEB_PANEL%XALB_PANEL)
-  NULLIFY(YTEB_PANEL%XEFF_PANEL)
-  NULLIFY(YTEB_PANEL%XFRAC_PANEL)
-  NULLIFY(YTEB_PANEL%XTHER_PRODC_DAY)
+NULLIFY(YTEB_PANEL%XEMIS_PANEL)
+NULLIFY(YTEB_PANEL%XALB_PANEL)
+NULLIFY(YTEB_PANEL%XEFF_PANEL)
+NULLIFY(YTEB_PANEL%XFRAC_PANEL)
+NULLIFY(YTEB_PANEL%XTHER_PRODC_DAY)
 IF (LHOOK) CALL DR_HOOK("MODD_TEB_PANEL_N:TEB_PANEL_INIT",1,ZHOOK_HANDLE)
 END SUBROUTINE TEB_PANEL_INIT
 

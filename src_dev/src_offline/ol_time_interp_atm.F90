@@ -64,21 +64,21 @@ SUBROUTINE OL_TIME_INTERP_ATM (KSURF_STEP,KNB_ATM,                              
 !
 USE MODD_CSTS,       ONLY : XPI, XRD, XRV, XG
 USE MODD_SURF_PAR,   ONLY : XUNDEF
-USE MODD_FORC_ATM,  ONLY: XTA       ,&! air temperature forcing               (K)
-                          XQA       ,&! air specific humidity forcing         (kg/m3)
-                          XRHOA     ,&! air density forcing                   (kg/m3)
-                          XZS       ,&! orography                             (m)
-                          XU        ,&! zonal wind                            (m/s)
-                          XV        ,&! meridian wind                         (m/s)
-                          XDIR_SW   ,&! direct  solar radiation (on horizontal surf.)
-                          XSCA_SW   ,&! diffuse solar radiation (on horizontal surf.)
-                          XLW       ,&! longwave radiation (on horizontal surf.)
-                          XPS       ,&! pressure at atmospheric model surface (Pa)
-                          XPA       ,&! pressure at forcing level             (Pa)
-                          XRHOA     ,&! density at forcing level              (kg/m3)
+USE MODD_FORC_ATM,  ONLY: XTA       ,&  ! air temperature forcing               (K)
+                          XQA       ,&  ! air specific humidity forcing         (kg/m3)
+                          XRHOA     ,&  ! air density forcing                   (kg/m3)
+                          XZS       ,&  ! orography                             (m)
+                          XU        ,&  ! zonal wind                            (m/s)
+                          XV        ,&  ! meridian wind                         (m/s)
+                          XDIR_SW   ,&  ! direct  solar radiation (on horizontal surf.)
+                          XSCA_SW   ,&  ! diffuse solar radiation (on horizontal surf.)
+                          XLW       ,&  ! longwave radiation (on horizontal surf.)
+                          XPS       ,&  ! pressure at atmospheric model surface (Pa)
+                          XPA       ,&  ! pressure at forcing level             (Pa)
+                          XRHOA     ,&  ! density at forcing level              (kg/m3)
 !                          XCO2      ,&! CO2 concentration in the air          (kg/kg)
-                          XSNOW     ,&! snow precipitation                    (kg/m2/s)
-                          XRAIN     ,&! liquid precipitation                  (kg/m2/s)
+                          XSNOW     ,&  ! snow precipitation                    (kg/m2/s)
+                          XRAIN     ,&  ! liquid precipitation                  (kg/m2/s)
                           XZREF       ! height of T,q forcing                 (m)
 
 !
@@ -91,10 +91,10 @@ INTEGER,INTENT(IN)   :: KSURF_STEP,KNB_ATM
 
 ! local variables
 REAL, DIMENSION(SIZE(PTA,2)) :: ZDELTA_TA,ZDELTA_QA,                   &
-                                ZDELTA_DIR_SW,ZDELTA_SCA_SW,ZDELTA_LW, &
-                                ZDELTA_SNOW,ZDELTA_RAIN,ZDELTA_PS,     &
-                                ZDELTA_CO2,ZDELTA_U, ZDELTA_V,         &
-                                ZU1, ZV1, ZU2, ZV2
+  ZDELTA_DIR_SW,ZDELTA_SCA_SW,ZDELTA_LW, &
+  ZDELTA_SNOW,ZDELTA_RAIN,ZDELTA_PS,     &
+  ZDELTA_CO2,ZDELTA_U, ZDELTA_V,         &
+  ZU1, ZV1, ZU2, ZV2
 INTEGER :: ILUOUT
 !========================================================================
 !
@@ -148,30 +148,30 @@ XQA(:) = XQA(:) * XRHOA(:)
 ! Error cases
 !
 IF ((MINVAL(XTA)  .EQ.XUNDEF).OR.(MINVAL(XQA).EQ.XUNDEF).OR.&
-    (MINVAL(XU).EQ.XUNDEF).OR.(MINVAL(XRAIN).EQ.XUNDEF).OR.&
-    (MINVAL(XSNOW).EQ.XUNDEF)) THEN
-    WRITE(ILUOUT,*)'MINVAL(XTA),MINVAL(XQA),MINVAL(XU),MINVAL(XRAIN),MINVAL(XSNOW)'
-    WRITE(ILUOUT,*)MINVAL(XTA),MINVAL(XQA),MINVAL(XU),MINVAL(XRAIN),MINVAL(XSNOW)
-    CALL ABOR1_SFX('OL_TIME_INTERP_ATM: UNDEFINED VALUE IN ATMOSPHERIC FORCING')
+   (MINVAL(XU).EQ.XUNDEF).OR.(MINVAL(XRAIN).EQ.XUNDEF).OR.&
+   (MINVAL(XSNOW).EQ.XUNDEF)) THEN
+  WRITE(ILUOUT,*)'MINVAL(XTA),MINVAL(XQA),MINVAL(XU),MINVAL(XRAIN),MINVAL(XSNOW)'
+  WRITE(ILUOUT,*)MINVAL(XTA),MINVAL(XQA),MINVAL(XU),MINVAL(XRAIN),MINVAL(XSNOW)
+  CALL ABOR1_SFX('OL_TIME_INTERP_ATM: UNDEFINED VALUE IN ATMOSPHERIC FORCING')
 ENDIF
 !
 IF ((MINVAL(XDIR_SW).EQ.XUNDEF).AND.(MINVAL(XSCA_SW).EQ.XUNDEF)) THEN
-    WRITE(ILUOUT,*)'MINVAL(XSCA_SW),MINVAL(XDIR_SW)'
-    WRITE(ILUOUT,*)MINVAL(XSCA_SW),MINVAL(XDIR_SW)
-    CALL ABOR1_SFX('OL_TIME_INTERP_ATM: UNDEFINED VALUE IN ATMOSPHERIC FORCING')
+  WRITE(ILUOUT,*)'MINVAL(XSCA_SW),MINVAL(XDIR_SW)'
+  WRITE(ILUOUT,*)MINVAL(XSCA_SW),MINVAL(XDIR_SW)
+  CALL ABOR1_SFX('OL_TIME_INTERP_ATM: UNDEFINED VALUE IN ATMOSPHERIC FORCING')
 ENDIF
 !
 IF ((MINVAL(XPS).EQ.XUNDEF).AND.(MINVAL(XZS).EQ.XUNDEF)) THEN
-    WRITE(ILUOUT,*)'MINVAL(XPS),MINVAL(XZS)'
-    WRITE(ILUOUT,*)MINVAL(XPS),MINVAL(XZS)
-    CALL ABOR1_SFX('OL_TIME_INTERP_ATM: UNDEFINED VALUE IN ATMOSPHERIC FORCING')
+  WRITE(ILUOUT,*)'MINVAL(XPS),MINVAL(XZS)'
+  WRITE(ILUOUT,*)MINVAL(XPS),MINVAL(XZS)
+  CALL ABOR1_SFX('OL_TIME_INTERP_ATM: UNDEFINED VALUE IN ATMOSPHERIC FORCING')
 ENDIF
 !
-IF (MINVAL(XDIR_SW).EQ.XUNDEF) XDIR_SW(:,:)=0. ! No direct solar radiation
-IF (MINVAL(XSCA_SW).EQ.XUNDEF) XSCA_SW(:,:)=0. ! No diffuse solar radiation
+IF (MINVAL(XDIR_SW).EQ.XUNDEF) XDIR_SW(:,:)=0.  ! No direct solar radiation
+IF (MINVAL(XSCA_SW).EQ.XUNDEF) XSCA_SW(:,:)=0.  ! No diffuse solar radiation
 IF (MINVAL(XPS)    .EQ.XUNDEF) THEN            ! No surface Pressure 
-   WRITE(ILUOUT,*)' OL_TIME_INTERP_ATM: SURFACE PRESSURE COMPUTED FROM ZS'
-   XPS(:)  = 101325*(1-0.0065 * XZS(:)/288.15)**5.31
+  WRITE(ILUOUT,*)' OL_TIME_INTERP_ATM: SURFACE PRESSURE COMPUTED FROM ZS'
+  XPS(:)  = 101325*(1-0.0065 * XZS(:)/288.15)**5.31
 ENDIF
 !
 !* forcing level pressure from hydrostatism

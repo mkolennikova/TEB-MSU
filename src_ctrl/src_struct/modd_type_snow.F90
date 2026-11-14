@@ -41,31 +41,31 @@ IMPLICIT NONE
 !
 TYPE SURF_SNOW
 !
-CHARACTER(LEN=3)                :: SCHEME    ! snow scheme used
-INTEGER                         :: NLAYER    ! number of layers
+  CHARACTER(LEN=3)                :: SCHEME  ! snow scheme used
+  INTEGER                         :: NLAYER  ! number of layers
 !
-REAL, DIMENSION(:,:), POINTER :: DEPTH
-REAL, DIMENSION(:,:), POINTER :: WSNOW     ! snow (& liq. water) content (kg/m2)
-REAL, DIMENSION(:,:), POINTER :: HEAT      ! heat content                (J/m2)
-REAL, DIMENSION(:,:), POINTER :: T         ! temperature '1-L'
-REAL, DIMENSION(:,:), POINTER :: TEMP      ! temperature '3-L' (K)
-REAL, DIMENSION(:,:), POINTER :: RHO       ! density
-REAL, DIMENSION(:),   POINTER :: ALB       ! snow surface albedo
-REAL, DIMENSION(:),   POINTER :: ALBVIS    ! snow surface visible albedo
-REAL, DIMENSION(:),   POINTER :: ALBNIR    ! snow surface near-infrared albedo
-REAL, DIMENSION(:),   POINTER :: ALBFIR    ! snow surface far-infrared albedo
-REAL, DIMENSION(:),   POINTER :: EMIS      ! snow surface emissivity
-REAL, DIMENSION(:),   POINTER :: TS        ! snow surface temperature
-REAL, DIMENSION(:,:),   POINTER :: GRAN1   ! snow grain parameter 1
-REAL, DIMENSION(:,:),   POINTER :: GRAN2   ! snow grain parameter 2
-REAL, DIMENSION(:,:),   POINTER :: HIST    ! snow historical variable
+  REAL, DIMENSION(:,:), POINTER :: DEPTH
+  REAL, DIMENSION(:,:), POINTER :: WSNOW    ! snow (& liq. water) content (kg/m2)
+  REAL, DIMENSION(:,:), POINTER :: HEAT     ! heat content                (J/m2)
+  REAL, DIMENSION(:,:), POINTER :: T        ! temperature '1-L'
+  REAL, DIMENSION(:,:), POINTER :: TEMP     ! temperature '3-L' (K)
+  REAL, DIMENSION(:,:), POINTER :: RHO      ! density
+  REAL, DIMENSION(:),   POINTER :: ALB      ! snow surface albedo
+  REAL, DIMENSION(:),   POINTER :: ALBVIS   ! snow surface visible albedo
+  REAL, DIMENSION(:),   POINTER :: ALBNIR   ! snow surface near-infrared albedo
+  REAL, DIMENSION(:),   POINTER :: ALBFIR   ! snow surface far-infrared albedo
+  REAL, DIMENSION(:),   POINTER :: EMIS     ! snow surface emissivity
+  REAL, DIMENSION(:),   POINTER :: TS       ! snow surface temperature
+  REAL, DIMENSION(:,:),   POINTER :: GRAN1  ! snow grain parameter 1
+  REAL, DIMENSION(:,:),   POINTER :: GRAN2  ! snow grain parameter 2
+  REAL, DIMENSION(:,:),   POINTER :: HIST   ! snow historical variable
 !                                               (non dendritic case)
-REAL, DIMENSION(:,:),   POINTER :: AGE ! snow grain age
+  REAL, DIMENSION(:,:),   POINTER :: AGE  ! snow grain age
 END TYPE SURF_SNOW
 !
 TYPE NSURF_SNOW
 !
-TYPE(SURF_SNOW), DIMENSION(:), POINTER :: AL
+  TYPE(SURF_SNOW), DIMENSION(:), POINTER :: AL
 !
 END TYPE NSURF_SNOW
 !

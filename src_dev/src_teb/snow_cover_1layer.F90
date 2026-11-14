@@ -80,54 +80,54 @@ IMPLICIT NONE
 !*      0.1    declarations of arguments
 !
 !
-REAL,                 INTENT(IN)    :: PTSTEP   ! time step
-REAL,                 INTENT(IN)    :: PANSMIN  ! minimum snow albedo
-REAL,                 INTENT(IN)    :: PANSMAX  ! maximum snow albedo
-REAL,                 INTENT(IN)    :: PTODRY   ! snow albedo decreasing constant
-REAL,                 INTENT(IN)    :: PRHOSMIN ! minimum snow density
-REAL,                 INTENT(IN)    :: PRHOSMAX ! maximum snow density
-REAL,                 INTENT(IN)    :: PRHOFOLD ! snow density increasing constant
-LOGICAL,              INTENT(IN)    :: OALL_MELT! T --> all snow runs off if
-                                                ! lower surf. temperature is
-                                                ! positive
-REAL,                 INTENT(IN)    :: PDRAIN_TIME ! drainage folding time (days)
-REAL,                 INTENT(IN)    :: PWCRN    ! critical snow amount necessary
-                                                ! to cover the considered surface
-REAL,                 INTENT(IN)    :: PZ0SN    ! snow roughness length for momentum
-REAL,                 INTENT(IN)    :: PZ0HSN   ! snow roughness length for heat
+REAL,                 INTENT(IN)    :: PTSTEP       ! time step
+REAL,                 INTENT(IN)    :: PANSMIN      ! minimum snow albedo
+REAL,                 INTENT(IN)    :: PANSMAX      ! maximum snow albedo
+REAL,                 INTENT(IN)    :: PTODRY       ! snow albedo decreasing constant
+REAL,                 INTENT(IN)    :: PRHOSMIN     ! minimum snow density
+REAL,                 INTENT(IN)    :: PRHOSMAX     ! maximum snow density
+REAL,                 INTENT(IN)    :: PRHOFOLD     ! snow density increasing constant
+LOGICAL,              INTENT(IN)    :: OALL_MELT    ! T --> all snow runs off if
+                                                    ! lower surf. temperature is
+                                                    ! positive
+REAL,                 INTENT(IN)    :: PDRAIN_TIME  ! drainage folding time (days)
+REAL,                 INTENT(IN)    :: PWCRN        ! critical snow amount necessary
+                                                    ! to cover the considered surface
+REAL,                 INTENT(IN)    :: PZ0SN        ! snow roughness length for momentum
+REAL,                 INTENT(IN)    :: PZ0HSN       ! snow roughness length for heat
 TYPE(SURF_SNOW), INTENT(INOUT) :: TPSNOW
-REAL, DIMENSION(:), INTENT(IN)    :: PTG      ! underlying ground temperature
-REAL, DIMENSION(:), INTENT(IN)    :: PTG_COEFA! underlying ground temperature
-REAL, DIMENSION(:), INTENT(IN)    :: PTG_COEFB! implicit terms
-REAL, DIMENSION(:), INTENT(IN)    :: PABS_SW  ! absorbed SW energy (Wm-2)
-REAL, DIMENSION(:), INTENT(IN)    :: PLW1     ! LW coef independant of TSNOW
-                                              ! (Wm-2)     usually equal to:
-                                              !      emis_snow * LW_down
-                                              !
-REAL, DIMENSION(:), INTENT(IN)    :: PLW2     ! LW coef dependant   of TSNOW
-                                              ! (Wm-2 K-4) usually equal to:
-                                              ! -1 * emis_snow * stefan_constant
-                                              !
-REAL, DIMENSION(:), INTENT(IN)    :: PTA      ! temperature at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PQA      ! specific humidity
-                                                ! at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PVMOD    ! module of the horizontal wind
-REAL, DIMENSION(:), INTENT(IN)    :: PPS      ! pressure at the surface
-REAL, DIMENSION(:), INTENT(IN)    :: PRHOA    ! air density
-                                                ! at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PSR      ! snow rate
-REAL, DIMENSION(:), INTENT(IN)    :: PZREF    ! reference height of the first
-                                              ! atmospheric level (temperature)
-REAL, DIMENSION(:), INTENT(IN)    :: PUREF    ! reference height of the first
-                                              ! atmospheric level (wind)
-REAL, DIMENSION(:), INTENT(OUT)   :: PRNSNOW  ! net radiation over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PHSNOW   ! sensible heat flux over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PLESNOW  ! latent heat flux over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PGSNOW   ! flux under the snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PMELT    ! snow melting rate (kg/m2/s)
-REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SNOW! heat storage inside snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW  ! absorbed LW rad by snow (W/m2)
-REAL, DIMENSION(:), INTENT(OUT)   :: PSNOW_D  ! snow depth
+REAL, DIMENSION(:), INTENT(IN)    :: PTG            ! underlying ground temperature
+REAL, DIMENSION(:), INTENT(IN)    :: PTG_COEFA      ! underlying ground temperature
+REAL, DIMENSION(:), INTENT(IN)    :: PTG_COEFB      ! implicit terms
+REAL, DIMENSION(:), INTENT(IN)    :: PABS_SW        ! absorbed SW energy (Wm-2)
+REAL, DIMENSION(:), INTENT(IN)    :: PLW1           ! LW coef independant of TSNOW
+                                                    ! (Wm-2)     usually equal to:
+                                                    !      emis_snow * LW_down
+                                                    !
+REAL, DIMENSION(:), INTENT(IN)    :: PLW2           ! LW coef dependant   of TSNOW
+                                                    ! (Wm-2 K-4) usually equal to:
+                                                    ! -1 * emis_snow * stefan_constant
+                                                    !
+REAL, DIMENSION(:), INTENT(IN)    :: PTA            ! temperature at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PQA            ! specific humidity
+                                                    ! at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PVMOD          ! module of the horizontal wind
+REAL, DIMENSION(:), INTENT(IN)    :: PPS            ! pressure at the surface
+REAL, DIMENSION(:), INTENT(IN)    :: PRHOA          ! air density
+                                                    ! at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PSR            ! snow rate
+REAL, DIMENSION(:), INTENT(IN)    :: PZREF          ! reference height of the first
+                                                    ! atmospheric level (temperature)
+REAL, DIMENSION(:), INTENT(IN)    :: PUREF          ! reference height of the first
+                                                    ! atmospheric level (wind)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRNSNOW        ! net radiation over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PHSNOW         ! sensible heat flux over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PLESNOW        ! latent heat flux over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PGSNOW         ! flux under the snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PMELT          ! snow melting rate (kg/m2/s)
+REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SNOW      ! heat storage inside snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW        ! absorbed LW rad by snow (W/m2)
+REAL, DIMENSION(:), INTENT(OUT)   :: PSNOW_D        ! snow depth
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 REAL, DIMENSION(:), INTENT(IN)    :: PTA_ATM      ! air temperature of the forcing level (free atmosphere)
 REAL, DIMENSION(:), INTENT(IN)    :: PQA_ATM      ! specific humidity of the forcing level
@@ -148,58 +148,58 @@ REAL :: ZEXPL = 0.
 REAL :: ZIMPL = 1.
 !
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZEXNS, ZEXNA, ZDIRCOSZW
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZZ0      ! roughness length for momentum
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZZ0H     ! roughness length forheat
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZZ0   ! roughness length for momentum
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZZ0H  ! roughness length forheat
 !
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRI      ! Richardson number
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZAC      ! aerodynamical conductance
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRA      ! aerodynamical resistance
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZCH      ! drag coefficient for heat
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRI  ! Richardson number
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZAC  ! aerodynamical conductance
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRA  ! aerodynamical resistance
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZCH  ! drag coefficient for heat
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRI_ATM    ! Richardson number (forcing level)
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZAC_CAN    ! conductance with the canyon air
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZAC_ATM    ! conductance with the forcing level air
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRA_ATM    ! aerodynamical resistance (forcing level)
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZCH_ATM    ! drag coefficient for heat (forcing level)
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZTA_REF    ! reference air temperature of the snow exchange
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZQA_REF    ! reference air humidity of the snow exchange
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZB, ZY   ! coefficients in Ts eq.
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZWSNOW   ! snow before evolution
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZSNOW_HC ! snow heat capacity
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZSNOW_TC ! snow thermal conductivity
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRI_ATM   ! Richardson number (forcing level)
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZAC_CAN   ! conductance with the canyon air
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZAC_ATM   ! conductance with the forcing level air
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRA_ATM   ! aerodynamical resistance (forcing level)
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZCH_ATM   ! drag coefficient for heat (forcing level)
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZTA_REF   ! reference air temperature of the snow exchange
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZQA_REF   ! reference air humidity of the snow exchange
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZB, ZY    ! coefficients in Ts eq.
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZWSNOW    ! snow before evolution
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZSNOW_HC  ! snow heat capacity
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZSNOW_TC  ! snow thermal conductivity
 !REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZSNOW_D  ! snow depth
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZMELT    ! snow melting rate (kg/m3/s)
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZTS_SNOW ! snow surface temperature
-                                          ! at previous time-step
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZQSAT    ! specific humidity
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZMELT     ! snow melting rate (kg/m3/s)
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZTS_SNOW  ! snow surface temperature
+                                                   ! at previous time-step
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZQSAT     ! specific humidity
 !                                         ! for ice
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZDQSAT   ! d(specific humidity)/dT
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZDQSAT  ! d(specific humidity)/dT
 !                                         ! for ice
 !
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZSR1, ZSR2   ! norm. snow precip.
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZSR1, ZSR2  ! norm. snow precip.
 !
-LOGICAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: GSNOWMASK ! where snow is
+LOGICAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: GSNOWMASK  ! where snow is
 !                                             ! at previuos time-step
-LOGICAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: GFLUXMASK ! where fluxes can
+LOGICAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: GFLUXMASK  ! where fluxes can
 !                                             ! be computed at
 !                                             ! new time-step
 !                                             ! i.e. snow occurence
 !                                             ! at previous time-step
 !                                             ! OR snow fall
-INTEGER, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: JSNOWMASK1, JSNOWMASK2, JSNOWMASK3 ! where snow is or not
+INTEGER, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: JSNOWMASK1, JSNOWMASK2, JSNOWMASK3  ! where snow is or not
 !                                                                      ! at previuos time-step
-INTEGER, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: JFLUXMASK ! where fluxes can
+INTEGER, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: JFLUXMASK  ! where fluxes can
 !                                             ! be computed at
 !                                             ! new time-step
 !                                             ! i.e. snow occurence
 !                                             ! at previous time-step
 !                                             ! OR snow fall
 !
-REAL :: ZWSNOW_MIN = 0.1 ! minimum value of snow content (kg/m2) for prognostic
+REAL :: ZWSNOW_MIN = 0.1  ! minimum value of snow content (kg/m2) for prognostic
 !                        ! computations
 !
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZEI_SNOW  ! internal energy of snow
-REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZPEI_SNOW ! internal energy of snow at t+
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZEI_SNOW   ! internal energy of snow
+REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZPEI_SNOW  ! internal energy of snow at t+
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZWORK1
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZDQSATI, ZQSATI
 !
@@ -247,7 +247,7 @@ JSNOWMASK2(:)=0.
 JSNOWMASK3(:)=0.
 JFLUXMASK(:)=0.
 
-  !*      1.2    drag
+!*      1.2    drag
 !              ----
 !
 !*      1.2.1  defaults
@@ -329,13 +329,13 @@ ZQSAT(:) = QSATI(ZTS_SNOW(:), PPS(:) )
 !* snow is present on all the considered surface.
 !* computation occurs where snow is and/or falls.
 !
- CALL SURFACE_RI(ZTS_SNOW, ZQSAT, ZEXNS, ZEXNA, PTA, PQA, &
-                  PZREF, PUREF, ZDIRCOSZW, PVMOD, ZRI      )  
+CALL SURFACE_RI(ZTS_SNOW, ZQSAT, ZEXNS, ZEXNA, PTA, PQA, &
+                PZREF, PUREF, ZDIRCOSZW, PVMOD, ZRI      )  
 !
 !*      1.2.4  Aerodynamical conductance
 !              -------------------------
 !
- CALL SURFACE_AERO_COND(ZRI, PZREF, PUREF, PVMOD, ZZ0, ZZ0H, ZAC, ZRA, ZCH)
+CALL SURFACE_AERO_COND(ZRI, PZREF, PUREF, PVMOD, ZZ0, ZZ0H, ZAC, ZRA, ZCH)
 !
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 !* The snow may exchange with the air of the canyon (tau fraction) and directly
@@ -346,29 +346,29 @@ ZQSAT(:) = QSATI(ZTS_SNOW(:), PPS(:) )
 !* the roofs) or with tau = 1 (scheme disabled) the canyon branch is used
 !* unchanged, so that the former behaviour is reproduced exactly.
 !
- ZAC_CAN(:) = ZAC(:)
- ZTA_REF(:) = PTA(:)
- ZQA_REF(:) = PQA(:)
- IF (LCBS_SPLIT) THEN
-   CALL SURFACE_RI(ZTS_SNOW, ZQSAT, ZEXNS, ZEXNA, PTA_ATM, PQA_ATM, &
-                   PZREF_ATM, PUREF_ATM, ZDIRCOSZW, PVMOD_ATM, ZRI_ATM)
-   CALL SURFACE_AERO_COND(ZRI_ATM, PZREF_ATM, PUREF_ATM, PVMOD_ATM, ZZ0, ZZ0H, &
-                          ZAC_ATM, ZRA_ATM, ZCH_ATM)
-   !* the aggregation is restricted to the cells where the snow fluxes are
-   !* computed (elsewhere the snow temperature may be undefined)
-   DO JJ = 1, JCOMPT_FLUX
-     JI = JFLUXMASK(JJ)
-     IF (PTAU(JI) < 1.) THEN
-       ZAC(JI) = PTAU(JI) * ZAC_CAN(JI) + (1.-PTAU(JI)) * ZAC_ATM(JI)
-       IF (ZAC(JI) > 0.) THEN
-         ZTA_REF(JI) = ( PTAU(JI) * ZAC_CAN(JI) * PTA(JI)             &
-                       + (1.-PTAU(JI)) * ZAC_ATM(JI) * PTA_ATM(JI) ) / ZAC(JI)
-         ZQA_REF(JI) = ( PTAU(JI) * ZAC_CAN(JI) * PQA(JI)             &
-                       + (1.-PTAU(JI)) * ZAC_ATM(JI) * PQA_ATM(JI) ) / ZAC(JI)
-       END IF
-     END IF
-   END DO
- END IF
+ZAC_CAN(:) = ZAC(:)
+ZTA_REF(:) = PTA(:)
+ZQA_REF(:) = PQA(:)
+IF (LCBS_SPLIT) THEN
+  CALL SURFACE_RI(ZTS_SNOW, ZQSAT, ZEXNS, ZEXNA, PTA_ATM, PQA_ATM, &
+                  PZREF_ATM, PUREF_ATM, ZDIRCOSZW, PVMOD_ATM, ZRI_ATM)
+  CALL SURFACE_AERO_COND(ZRI_ATM, PZREF_ATM, PUREF_ATM, PVMOD_ATM, ZZ0, ZZ0H, &
+                         ZAC_ATM, ZRA_ATM, ZCH_ATM)
+  !* the aggregation is restricted to the cells where the snow fluxes are
+  !* computed (elsewhere the snow temperature may be undefined)
+  DO JJ = 1, JCOMPT_FLUX
+    JI = JFLUXMASK(JJ)
+    IF (PTAU(JI) < 1.) THEN
+      ZAC(JI) = PTAU(JI) * ZAC_CAN(JI) + (1.-PTAU(JI)) * ZAC_ATM(JI)
+      IF (ZAC(JI) > 0.) THEN
+        ZTA_REF(JI) = ( PTAU(JI) * ZAC_CAN(JI) * PTA(JI)             &
+                        + (1.-PTAU(JI)) * ZAC_ATM(JI) * PTA_ATM(JI) ) / ZAC(JI)
+        ZQA_REF(JI) = ( PTAU(JI) * ZAC_CAN(JI) * PQA(JI)             &
+                        + (1.-PTAU(JI)) * ZAC_ATM(JI) * PQA_ATM(JI) ) / ZAC(JI)
+      END IF
+    END IF
+  END DO
+END IF
 !
 !-------------------------------------------------------------------------------
 !
@@ -450,7 +450,7 @@ DO JJ=1,JCOMPT_SNOW3
 !*      3.4    coefficients from sensible heat flux
 !              ------------------------------------
 !
- ZWORK1(JI) = XCPD * PRHOA(JI) * ZAC(JI)
+  ZWORK1(JI) = XCPD * PRHOA(JI) * ZAC(JI)
 ! 
   ZB(JI) = ZB(JI) + ZWORK1(JI) *   ZIMPL
 !
@@ -474,7 +474,7 @@ DO JJ=1,JCOMPT_SNOW3
   ZB(JI) = ZB(JI) + ZWORK1(JI) *  ZIMPL / ( 1. + ZWORK1(JI)*PTG_COEFA(JI) )
 !
   ZY(JI) = ZY(JI) - ZWORK1(JI) * (ZEXPL * TPSNOW%T(JI,1) - PTG_COEFB(JI)) &
-                   / ( 1. + ZWORK1(JI)*PTG_COEFA(JI) )
+    / ( 1. + ZWORK1(JI)*PTG_COEFA(JI) )
 !
 !*      3.8    guess of snow temperature before accumulation and melting
 !              ---------------------------------------------------------
@@ -530,7 +530,7 @@ PMELT(:) = ZMELT(:) * PSNOW_D(:)
 !
 ZQSATI = QSATI(TPSNOW%T(:,1),PPS(:))
 WHERE (GFLUXMASK(:)) 
-   ZQSAT(:) = ZQSATI(:)
+  ZQSAT(:) = ZQSATI(:)
 END WHERE
 !
 !*      5.1    net radiation (with Ts lin. extrapolation)
@@ -577,7 +577,7 @@ DO JJ = 1, JCOMPT_FLUX
 !
   !PGSNOW(JI) = ZSNOW_TC(JI)/(0.5*ZSNOW_D(JI)) * ( TPSNOW%T(JI,1) - PTG(JI) )
   PGSNOW(JI) = ZSNOW_TC(JI)/(0.5*PSNOW_D(JI)) * ( TPSNOW%T(JI,1) - PTG_COEFB(JI) ) &
-             / ( 1. + ZSNOW_TC(JI)/(0.5*PSNOW_D(JI))*PTG_COEFA(JI) )
+    / ( 1. + ZSNOW_TC(JI)/(0.5*PSNOW_D(JI))*PTG_COEFA(JI) )
 !
 !
 !*      5.6    If ground T>0 C, Melting is estimated from conduction heat flux
@@ -641,7 +641,7 @@ WHERE ( TPSNOW%WSNOW(:,1)<ZWSNOW_MIN .AND. PMELT(:)>0. .AND. PSR(:)==0. )
 END WHERE
 !
 WHERE ( TPSNOW%WSNOW(:,1)<1.E-8 * PTSTEP ) 
-   TPSNOW%WSNOW(:,1) = 0.
+  TPSNOW%WSNOW(:,1) = 0.
 END WHERE
 !
 !-------------------------------------------------------------------------------
@@ -661,7 +661,7 @@ DO JJ=1,JCOMPT_SNOW1
   IF (PMELT(JI) > 0. ) THEN
 !
     TPSNOW%ALB(JI) = (TPSNOW%ALB(JI)-PANSMIN)*EXP(-PRHOFOLD*PTSTEP/XDAY) + PANSMIN   &
-                     + PSR(JI)*PTSTEP/PWCRN*PANSMAX  
+      + PSR(JI)*PTSTEP/PWCRN*PANSMAX  
 !
   ELSEIF (PMELT(JI)==0.) THEN 
     TPSNOW%ALB(JI) = TPSNOW%ALB(JI) - PTODRY*PTSTEP/XDAY  + PSR(JI)*PTSTEP/PWCRN*PANSMAX  
@@ -689,7 +689,7 @@ DO JJ = 1, JCOMPT_SNOW1
 !
     TPSNOW%RHO(JI,1) = (TPSNOW%RHO(JI,1)-PRHOSMAX)*EXP(-PRHOFOLD*PTSTEP/XDAY) + PRHOSMAX
     TPSNOW%RHO(JI,1) = ( (ZSR1(JI)-PSR(JI)*PTSTEP) * TPSNOW%RHO(JI,1)    &
-                  + (PSR(JI)*PTSTEP) * PRHOSMIN ) / ZSR1(JI)  
+                       + (PSR(JI)*PTSTEP) * PRHOSMIN ) / ZSR1(JI)  
   ENDIF
 !
 ENDDO
@@ -708,7 +708,7 @@ DO JJ=1,SIZE(TPSNOW%WSNOW,1)
       TPSNOW%RHO(JJ,1) = PRHOSMIN
     ENDIF
   ENDIF
-    ENDDO
+ENDDO
 !
 !-------------------------------------------------------------------------------
 !
@@ -725,7 +725,7 @@ DO JJ=1,JCOMPT_SNOW3
     ZSR2(JI) = MIN( TPSNOW%WSNOW(JI,1) , PSR(JI) * PTSTEP )
 !
     TPSNOW%T(JI,1) =( ( TPSNOW%WSNOW(JI,1) - ZSR2(JI) ) *  TPSNOW%T(JI,1)        &
-              +   ZSR2(JI)  * MIN( PTA   (JI) ,XTT )) / ( TPSNOW%WSNOW(JI,1) )  
+                    +   ZSR2(JI)  * MIN( PTA   (JI) ,XTT )) / ( TPSNOW%WSNOW(JI,1) )  
   ENDIF
 !
 ENDDO

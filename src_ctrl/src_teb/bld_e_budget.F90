@@ -75,27 +75,27 @@ IMPLICIT NONE
 !
 !*      0.1    declarations of arguments
 !
-LOGICAL,              INTENT(IN)   :: OTI_EVOL      ! true --> internal temp. of
+LOGICAL,              INTENT(IN)   :: OTI_EVOL  ! true --> internal temp. of
 !                                                   !      of buildings evolves
 !                                                   ! false--> it is fixed
-REAL,                 INTENT(IN)   :: PTSTEP        ! time step
-REAL, DIMENSION(:),   INTENT(IN)   :: PBLD          ! building fraction
-REAL, DIMENSION(:),   INTENT(IN)   :: PWALL_O_HOR   ! wall surf. / hor. surf.
-REAL, DIMENSION(:),   INTENT(IN)   :: PRHOA         ! air density
-                                                    ! at the lowest level
-REAL, DIMENSION(:,:), INTENT(IN)   :: PT_ROOF       ! roof layers temperatures
-REAL, DIMENSION(:,:), INTENT(IN)   :: PT_WALL       ! wall layers temperatures
-REAL, DIMENSION(:),   INTENT(INOUT):: PTI_BLD       ! building air temperature
-                                                    ! computed with its equation evolution
+REAL,                 INTENT(IN)   :: PTSTEP       ! time step
+REAL, DIMENSION(:),   INTENT(IN)   :: PBLD         ! building fraction
+REAL, DIMENSION(:),   INTENT(IN)   :: PWALL_O_HOR  ! wall surf. / hor. surf.
+REAL, DIMENSION(:),   INTENT(IN)   :: PRHOA        ! air density
+                                                   ! at the lowest level
+REAL, DIMENSION(:,:), INTENT(IN)   :: PT_ROOF      ! roof layers temperatures
+REAL, DIMENSION(:,:), INTENT(IN)   :: PT_WALL      ! wall layers temperatures
+REAL, DIMENSION(:),   INTENT(INOUT):: PTI_BLD      ! building air temperature
+                                                   ! computed with its equation evolution
 REAL, DIMENSION(:),   INTENT(IN)  :: PTS_FLOOR     ! floor surface temperature
 !
 !*      0.2    declarations of local variables
 !
 !
-REAL                           :: ZTAU         ! temporal filter period
+REAL                           :: ZTAU  ! temporal filter period
 !
-INTEGER                        :: IROOF        ! number of roof layers
-INTEGER                        :: IWALL        ! number of wall layers
+INTEGER                        :: IROOF  ! number of roof layers
+INTEGER                        :: IWALL  ! number of wall layers
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('BLD_E_BUDGET',0,ZHOOK_HANDLE)
@@ -123,10 +123,10 @@ ZTAU = XDAY
 !
 WHERE (PBLD(:) .GT. 0.)
   PTI_BLD(:) = PTI_BLD(:) * (ZTAU-PTSTEP)/ZTAU       &
-            + ( PT_ROOF(:,IROOF) * PBLD       (:)    &
-              + PT_WALL(:,IWALL) * PWALL_O_HOR(:)    &
-              + PTS_FLOOR(:)      * PBLD       (:) )  &
-             / (  2. * PBLD(:)  +  PWALL_O_HOR(:) ) * PTSTEP / ZTAU
+    + ( PT_ROOF(:,IROOF) * PBLD       (:)    &
+          + PT_WALL(:,IWALL) * PWALL_O_HOR(:)    &
+          + PTS_FLOOR(:)      * PBLD       (:) )  &
+    / (  2. * PBLD(:)  +  PWALL_O_HOR(:) ) * PTSTEP / ZTAU
 ELSEWHERE
   PTI_BLD   (:) = PTS_FLOOR(:)
 ENDWHERE

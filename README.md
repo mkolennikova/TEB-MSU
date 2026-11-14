@@ -60,25 +60,107 @@ toolchain and the Python environment instead of installing anything.
 
 #### Option 2: Local Build
 
-To build and run TEB-MSU locally:
+The development build requires GNU Make 4.0 or newer, a Fortran compiler,
+an archiver and a POSIX shell. Select `FC` and `LD` explicitly. GNU Fortran is
+the dev default; the existing Intel `ifort` flag profile is also retained.
+All generated files must be outside the checkout (see [AGENTS.md](AGENTS.md)).
+Use absolute paths without spaces and a separate build root for each compiler
+and flag set.
 
-```bash
-# Clone the repository
-git clone https://github.com/mkolennikova/TEB-MSU.git
-cd TEB-MSU
+For Linux or another POSIX environment, select an external work root:
 
-# Check the compiler flags in src_dev/gfortran_args (or src_ctrl/gfortran_args)
-# The model automatically detects ifort or gfortran
-
-# Build a source tree (sources and Makefile live in the tree; the object files
-# and the executable are written to build/)
-make -C src_dev clean
-make -C src_dev          # -> build/TEB_offline_dev.exe
-
-# Run the reference case from its own directory
-cd tests/CAPITOUL
-../../build/TEB_offline_dev.exe
+```sh
+export TEB_WORK_ROOT="$HOME/Work_TEB"
+build_root="$TEB_WORK_ROOT/TEB-Ru/manual/build/gfortran-dev"
+make -C src_dev library FC=gfortran LD=gfortran BUILD_ROOT="$build_root"
+make -C src_dev offline FC=gfortran LD=gfortran BUILD_ROOT="$build_root"
 ```
+
+On this Windows workstation, use the matching MSYS2 UCRT64 tools and shell:
+
+```powershell
+$env:PATH = 'C:\msys64\ucrt64\bin;C:\msys64\usr\bin;' + $env:PATH
+$buildRoot = 'W:/Work_TEB/TEB-Ru/manual/build/gfortran-dev'
+make -C src_dev library FC=gfortran LD=gfortran BUILD_ROOT=$buildRoot SHELL=C:/msys64/usr/bin/sh.exe
+make -C src_dev offline FC=gfortran LD=gfortran BUILD_ROOT=$buildRoot SHELL=C:/msys64/usr/bin/sh.exe
+```
+
+The `library` target creates `lib/libteb.a` and `common/mod/*.mod` below
+`BUILD_ROOT`; `offline` links `bin/TEB_offline_dev.exe` with that archive.
+The default target `all` is an alias for `offline`. Common, offline and
+platform objects have separate directories. `make ... print-config` reports
+the exact paths and platform linker flags; `platform` builds the optional
+Windows/GNU support object for another consumer.
+
+The source lists are explicit in [teb_sources.mk](src_dev/make/teb_sources.mk),
+including four common `.cdk` include files; module dependencies are in
+[teb_dependencies.mk](src_dev/make/teb_dependencies.mk). The library can be
+built without `src_offline/`. Experimental source snapshots and the unused
+`mode_char2real`/`modd_arch` pair are excluded from the archive.
+Fortran module files are compiler-specific: a consumer must use a compatible
+compiler, numerical kind and ABI. Compile against `common/mod`, then link
+consumer objects followed by `libteb.a`. The Windows/GNU runtime workaround
+is applied during final linking and is not stored in the physics archive.
+
+A build profile records compilation and linking settings and rejects reuse
+with different settings. Choose a new `BUILD_ROOT`, or explicitly clean that
+profile. `clean` removes only named artifacts of that profile; it does not
+delete directories recursively. The legacy `convert_makefile.sh` refuses
+to overwrite this split build.
+
+Run from an external case directory. For example, starting at the repository
+root in a POSIX shell and using a fresh task directory:
+
+```sh
+case_root="$TEB_WORK_ROOT/TEB-Ru/manual/runs/CAPITOUL"
+mkdir -p "$case_root/output"
+cp -R tests/CAPITOUL/input tests/CAPITOUL/namelist "$case_root/"
+cd "$case_root"
+"$build_root/bin/TEB_offline_dev.exe" -param_nml "$case_root/namelist/namelist.nml" -forcing_nml "$case_root/namelist/namelist_forcing.nml" -output "$case_root/output"
+```
+
+The notebook build cell uses an external profile too. Saved notebook output
+may show older paths; new executions use the explicit executable location.
+
+### Runtime-sized diagnostic offline host (`src_dev`)
+
+`make -C src_dev offline-block` builds `bin/TEB_offline_block_dev.exe` under
+the same external `BUILD_ROOT`, linked to `libteb.a`. It has separate
+`offline-block/obj` and `offline-block/mod` directories and reuses the eight
+offline forcing/calendar helpers. The ordinary executable and the default
+`all` target are unchanged. Compiler and external-path options are the same
+as above; use a fresh profile when enabling `OTHERFLAGS=-fcheck=all`.
+
+The diagnostic executable accepts `-config <block_test.nml> -output <existing
+external directory>`. The `/block_test/` namelist selects runtime `nvec`,
+physics profile, synthetic or file forcing, array modifications, masks and
+checkpoint/restart. It calls the public API with a whole block; the library
+still evaluates physics one column at a time. This is a diagnostic host,
+not a replacement for the general parameter namelist of ordinary offline.
+Configuration and binary-output details are in
+[the coupling checklist, §7.3](docs/TEB_MSU_coupling_checklist.md#73-блочный-диагностический-offline-драйвер).
+
+Run the permanent suite from the repository root with a new external task path:
+
+```powershell
+python -B python_tests/check_offline_block.py --out-root W:/Work_TEB/TEB-Ru/block-check-001
+```
+
+On POSIX systems, pass an explicit external path to `python3 -B` instead.
+The script uses the Python standard library and GNU tools, builds both hosts
+with REAL64, bounds and FPE checks, and runs `nvec=1,2,7,16,31` in separate
+processes. It compares all 33 INOUT and 53 OUT at every model step, checks
+targeted physical responses, masks, permutation, external surfaces and
+restart, and compares matched file forcing with ordinary offline. External
+instrumented API copies check both memory loads and detect their deliberate
+removal. No instrumentation enters the production library.
+
+`--exe <block executable>` skips the regular build and uses its matching build
+objects for memory instrumentation. `--skip-memory-probe` permits executable-only
+checks but omits that audit; `--quick` reduces the size matrix to 1,2,7.
+All configurations, logs, dumps, probe objects and `checks/summary.json` go
+below `--out-root`. Existing results are never reused or overwritten.
+Any process failure or FPE fails the suite; there are no automatic retries.
 
 ### Two source trees: `src_dev` and `src_ctrl`
 
@@ -87,11 +169,12 @@ The Fortran sources are split into two independent trees, each with its own `Mak
 
 | Tree | Physics | Builds |
 | --- | --- | --- |
-| `src_dev/` | development line (branch `MV_devs`) with the modern I/O | `build/TEB_offline_dev.exe` |
-| `src_ctrl/` | control line based on the first commit `582c3ab`, with common D7–D9 fixes and the same I/O and namelists | `build/TEB_offline_ctrl.exe` |
+| `src_dev/` | development line (branch `MV_devs`) with the modern I/O | `<BUILD_ROOT>/lib/libteb.a` and `<BUILD_ROOT>/bin/TEB_offline_dev.exe` |
+| `src_ctrl/` | control line based on the first commit `582c3ab`, with common D7–D9 fixes and the same I/O and namelists | executable selected with absolute external `OBJDIR` and `EXEC` |
 
-Both trees share `tests/`, `python/` and `docs/`, are built in the same way
-(`make -C src_dev` / `make -C src_ctrl`) and write the same columns to the per-cell tables
+Both trees share `tests/`, `python/` and `docs/`. Dev builds the offline host
+through its common library; ctrl retains its existing Makefile and numerical
+flags. Both write the same columns to the per-cell tables
 `TEB_output_b<block>_c<cell>.csv`, so runs of the two trees can be compared line by line.
 
 For a controlled comparison of inherited defects D1–D5 and D10, build `src_dev`
@@ -102,12 +185,11 @@ aerodynamic formulas for comparison with official TEB. Keep a separate object
 directory and executable for each set of preprocessor flags, for example:
 
 ```sh
-make -C src_dev OBJDIR=../build/obj_dev_bugs EXEC=../build/TEB_offline_dev_bugs.exe CPPDEFS=-DTEB_UPSTREAM_CONS_BUGS
-make -C src_ctrl OBJDIR=../build/obj_ctrl_upstream EXEC=../build/TEB_offline_ctrl_upstream.exe CPPDEFS=-DTEB_UPSTREAM_CONS
+make -C src_dev FC=gfortran LD=gfortran BUILD_ROOT="$TEB_WORK_ROOT/TEB-Ru/manual/build/dev-bugs" CPPDEFS=-DTEB_UPSTREAM_CONS_BUGS
+make -C src_ctrl OBJDIR="$TEB_WORK_ROOT/TEB-Ru/manual/build/ctrl-upstream/obj" EXEC="$TEB_WORK_ROOT/TEB-Ru/manual/build/ctrl-upstream/TEB_offline_ctrl.exe" CPPDEFS=-DTEB_UPSTREAM_CONS
 ```
 
-On Windows, pass `FC=gfortran LD=gfortran` if compiler auto-detection returns an
-empty value. The scopes of both switches are listed in
+On Windows, pass `FC=gfortran LD=gfortran` explicitly and use the matching POSIX shell. The scopes of both switches are listed in
 [`docs/TEB_MSU_source_defects.md`](docs/TEB_MSU_source_defects.md).
 
 The [ctrl/dev comparison bench](python_tests/ctrl_dev_base_test/README.md)
@@ -118,7 +200,8 @@ the historical garden and greenroof proxies; CBS remains disabled.
 
 | Path | Content |
 | --- | --- |
-| `src_dev/` | Development Fortran sources (`src_driver/`, `src_teb/`, `src_struct/`, `src_solar/`, `src_proxi_SVAT/`) with their `Makefile` and `gfortran_args`; builds `build/TEB_offline_dev.exe` |
+| [`AGENTS.md`](AGENTS.md) | Shared instructions for coding agents: source-tree roles, approval for control-physics changes, and external build/test workspaces |
+| `src_dev/` | Development sources: public `src_api/`, shared `src_driver/` and physics directories, offline-only `src_offline/`; explicit library/offline manifests in `make/`, external build products |
 | `src_ctrl/` | Control Fortran sources (same layout, physics of the first commit); builds `build/TEB_offline_ctrl.exe` |
 | `python/` | Python libraries shared by the notebook and the test benches: output handling (`output_utils.py`), forcing preparation (`forcing_ERA5.py`, `forcing_utils.py`) and the notebook helpers (`run_utils.py`, `install_utils.py`) |
 | `python_tests/` | Python test benches and comparison/sensitivity experiments verifying the model revisions |
@@ -205,15 +288,13 @@ df = output_utils.read_output('output_old/', fmt='txt',   # legacy <VAR>.txt fil
 
 Compiler settings are defined in [`src_dev/gfortran_args`](https://github.com/mkolennikova/TEB-MSU/blob/main/src_dev/gfortran_args)
 (the same file exists in [`src_ctrl/gfortran_args`](https://github.com/mkolennikova/TEB-MSU/blob/main/src_ctrl/gfortran_args)).
-The model automatically detects the available compiler:
-
-- `ifort` – Intel Fortran Compiler (if available)
-- `gfortran` – GNU Fortran Compiler (fallback)
+Select `FC` and `LD` explicitly. Dev defaults to GNU Fortran; ctrl keeps
+its existing compiler detection. Dev retains GNU and Intel `ifort` flag profiles.
 
 Key compilation flags:
 - `-ffree-line-length-0` – Allow unlimited line length (avoids line truncation errors)
 - `-fdefault-real-8` – Use double precision real numbers
-- `-J$(OBJDIR)` – Place module files in the build directory (`build/obj_dev` or `build/obj_ctrl`)
+- GNU `-J$(MODDIR)` / `-J$(OFFLINE_MODDIR)` – Keep dev module files separate from objects and from each other
 
 On Windows the build additionally links `libgfortran` statically and applies a small
 workaround for a locale defect of the UCRT runtime (`src_dev/src_driver/wrap_setlocale.c`,

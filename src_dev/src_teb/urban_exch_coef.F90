@@ -4,8 +4,8 @@
 !SFX_LIC for details. version 1.
 !     #########
 SUBROUTINE URBAN_EXCH_COEF(HZ0H, PZ0_O_Z0H, PTG, PQS, PEXNS, PEXNA, PTA, PQA,   &
-                             PZREF, PUREF, PVMOD, PZ0,                            &
-                             PRI, PCD, PCDN, PAC, PRA, PCH, ZZ0H, ilmo            )  
+                           PZREF, PUREF, PVMOD, PZ0,                            &
+                           PRI, PCD, PCDN, PAC, PRA, PCH, ZZ0H, ilmo            )  
 !          #######################################################################
 !
 !!****  *URBAN_DRAG*  
@@ -64,48 +64,48 @@ USE MODI_FLXSURF3BX
 !
 IMPLICIT NONE
 !
- CHARACTER(LEN=6)                 :: HZ0H     ! TEB option for z0h roof & road
-REAL,               INTENT(IN)    :: PZ0_O_Z0H! z0/z0h ratio used in Mascart (1995)
-REAL, DIMENSION(:), INTENT(IN)    :: PTG      ! surface temperature
-REAL, DIMENSION(:), INTENT(IN)    :: PQS      ! surface specific humidity
-REAL, DIMENSION(:), INTENT(IN)    :: PEXNS    ! surface exner function
-REAL, DIMENSION(:), INTENT(IN)    :: PTA      ! temperature at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PQA      ! specific humidity
-                                              ! at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PEXNA    ! exner function
-                                              ! at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PVMOD    ! module of the horizontal wind
+CHARACTER(LEN=6)                 :: HZ0H        ! TEB option for z0h roof & road
+REAL,               INTENT(IN)    :: PZ0_O_Z0H  ! z0/z0h ratio used in Mascart (1995)
+REAL, DIMENSION(:), INTENT(IN)    :: PTG        ! surface temperature
+REAL, DIMENSION(:), INTENT(IN)    :: PQS        ! surface specific humidity
+REAL, DIMENSION(:), INTENT(IN)    :: PEXNS      ! surface exner function
+REAL, DIMENSION(:), INTENT(IN)    :: PTA        ! temperature at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PQA        ! specific humidity
+                                                ! at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PEXNA      ! exner function
+                                                ! at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PVMOD      ! module of the horizontal wind
 !
-REAL, DIMENSION(:), INTENT(IN)    :: PZ0      ! roughness length for momentum
-REAL, DIMENSION(:), INTENT(IN)    :: PZREF    ! reference height of the first
-                                              ! atmospheric level
-REAL, DIMENSION(:), INTENT(IN)    :: PUREF    ! reference height of the wind
+REAL, DIMENSION(:), INTENT(IN)    :: PZ0    ! roughness length for momentum
+REAL, DIMENSION(:), INTENT(IN)    :: PZREF  ! reference height of the first
+                                            ! atmospheric level
+REAL, DIMENSION(:), INTENT(IN)    :: PUREF  ! reference height of the wind
 !                                             ! NOTE this is different from ZZREF
 !                                             ! ONLY in stand-alone/forced mode,
 !                                             ! NOT when coupled to a model (MesoNH)
-REAL, DIMENSION(:), INTENT(OUT)   :: PRI      ! Richardson number
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI  ! Richardson number
 !
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD      ! drag coefficient for momentum
-REAL, DIMENSION(:), INTENT(OUT)   :: PCDN     ! neutral drag coefficient for momentum
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC      ! aerodynamical conductance
-REAL, DIMENSION(:), INTENT(OUT)   :: PRA      ! aerodynamical resistance
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH      ! drag coefficient for heat
-REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H     ! roughness length for heat
-REAL, DIMENSION(:), INTENT(OUT)   :: ilmo     ! 1/length of Monin-Obukov
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD   ! drag coefficient for momentum
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN  ! neutral drag coefficient for momentum
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC   ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(OUT)   :: PRA   ! aerodynamical resistance
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH   ! drag coefficient for heat
+REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H  ! roughness length for heat
+REAL, DIMENSION(:), INTENT(OUT)   :: ilmo  ! 1/length of Monin-Obukov
 !
 !* local variables
 !
 !REAL, DIMENSION(SIZE(PZ0))         :: ZZ0H     ! roughness length for heat
 !* BRUT82 & KAND07 cases
-REAL,DIMENSION(SIZE(PTA)) :: cmu, ctu, rib,ftemp,fvap !ilmo  ! temporary var for
-REAL,DIMENSION(SIZE(PTA)) :: ue,fcor, hBL,lzz0,lzz0t,fm, fh ! flxsurf3
-REAL,DIMENSION(SIZE(PTA)) :: z0h_roof,z0h_town,z0h_road     ! local thermal roughness
+REAL,DIMENSION(SIZE(PTA)) :: cmu, ctu, rib,ftemp,fvap        !ilmo  ! temporary var for
+REAL,DIMENSION(SIZE(PTA)) :: ue,fcor, hBL,lzz0,lzz0t,fm, fh  ! flxsurf3
+REAL,DIMENSION(SIZE(PTA)) :: z0h_roof,z0h_town,z0h_road      ! local thermal roughness
 REAL,DIMENSION(SIZE(PTA)) :: zustar, zta, ztg
-REAL,DIMENSION(SIZE(PTA)) :: ZVMOD                          ! wind
+REAL,DIMENSION(SIZE(PTA)) :: ZVMOD                           ! wind
 INTEGER N
 !
 !* MASC95 case
-REAL,DIMENSION(SIZE(PTA)) :: ZDIRCOSZW     ! orography slope cosine
+REAL,DIMENSION(SIZE(PTA)) :: ZDIRCOSZW  ! orography slope cosine
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 !
@@ -114,11 +114,11 @@ REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !
 IF (LHOOK) CALL DR_HOOK('URBAN_EXCH_COEF',0,ZHOOK_HANDLE)
 IF (HZ0H=='MASC95') THEN
-  ZZ0H = PZ0 / PZ0_O_Z0H ! fixed ratio for MASC95
+  ZZ0H = PZ0 / PZ0_O_Z0H  ! fixed ratio for MASC95
   ZDIRCOSZW=1.           ! no orography slope effect taken into account in TEB
 !
   CALL SURFACE_RI(PTG, PQS, PEXNS, PEXNA, PTA, PQA,   &
-                    PZREF, PUREF, ZDIRCOSZW, PVMOD, PRI )  
+                  PZREF, PUREF, ZDIRCOSZW, PVMOD, PRI )  
 !
   CALL SURFACE_CD(PRI, PZREF, PUREF, PZ0, ZZ0H, PCD, PCDN)
 !
@@ -140,9 +140,9 @@ ELSEIF(HZ0H=='BRUT82' .OR. HZ0H=='KAND07')THEN
   ! First guess of u*
   ZUSTAR(:) = 0.4 * ZVMOD(:) / LOG( PUREF/PZ0(:) )
   
-  IF (HZ0H=='KAND07') THEN ! Kanda 2007
+  IF (HZ0H=='KAND07') THEN  ! Kanda 2007
     ZZ0H(:)= PZ0(:) * 7.4 * EXP( - 1.29 *( PZ0(:)*zustar(:)/1.461e-5)**0.25)
-  ELSEIF (HZ0H=='BRUT82') THEN ! Brutsaert 1982
+  ELSEIF (HZ0H=='BRUT82') THEN  ! Brutsaert 1982
     ZZ0H(:)= PZ0(:) * 7.4 * EXP( - 2.46 *( PZ0(:)*zustar(:)/1.461e-5)**0.25)
   ENDIF
 

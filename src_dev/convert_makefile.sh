@@ -1,5 +1,12 @@
 #!/bin/bash
 
+# MV202611 the split library/offline build has explicit manifests. This legacy
+# converter must not overwrite it or restore the old mixed source layout.
+if [ -f make/teb_sources.mk ]; then
+    echo 'Legacy converter disabled: edit Makefile and make/teb_*.mk for the split build.' >&2
+    exit 1
+fi
+
 # NOTE: the script rewrites ./Makefile and ./Makefile.bak of the CURRENT directory,
 # therefore it must be run from src/ (the directory that now holds the Makefile):
 #

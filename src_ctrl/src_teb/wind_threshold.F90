@@ -38,8 +38,8 @@ IMPLICIT NONE
 !*      0.1    declarations of arguments
 !
 !
-REAL, DIMENSION(:), INTENT(IN)   :: PWIND      ! wind
-REAL, DIMENSION(:), INTENT(IN)   :: PUREF      ! forcing level
+REAL, DIMENSION(:), INTENT(IN)   :: PWIND  ! wind
+REAL, DIMENSION(:), INTENT(IN)   :: PUREF  ! forcing level
 !
 REAL, DIMENSION(SIZE(PWIND))     :: PWIND_NEW  ! modified wind
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
@@ -56,10 +56,10 @@ IF (LHOOK) CALL DR_HOOK('WIND_THRESHOLD',0,ZHOOK_HANDLE)
 IF (.NOT.LALDTHRES) THEN
 !        
 !  minimum value for exchange coefficients computations : 1m/s / 10m
-   PWIND_NEW = MAX(PWIND , 0.1 * MIN(10.,PUREF) )
+  PWIND_NEW = MAX(PWIND , 0.1 * MIN(10.,PUREF) )
 ELSE
 !  minimum value for exchange coefficients computations : 1m/s / 10m
-   PWIND_NEW = MAX( XVMODMIN, SQRT( PWIND**2 + (XCISMIN*PUREF)**2 ) )
+  PWIND_NEW = MAX( XVMODMIN, SQRT( PWIND**2 + (XCISMIN*PUREF)**2 ) )
 ENDIF
 IF (LHOOK) CALL DR_HOOK('WIND_THRESHOLD',1,ZHOOK_HANDLE)
 !

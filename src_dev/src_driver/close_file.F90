@@ -12,8 +12,8 @@
 INTERFACE
       SUBROUTINE CLOSE_FILE(HPROGRAM,KUNIT)
 !
-CHARACTER(LEN=6),  INTENT(IN)  :: HPROGRAM ! main program
-INTEGER,           INTENT(IN)  :: KUNIT    ! logical unit of file
+CHARACTER(LEN=6),  INTENT(IN)  :: HPROGRAM  ! main program
+INTEGER,           INTENT(IN)  :: KUNIT     ! logical unit of file
 !
 END SUBROUTINE CLOSE_FILE
 !
@@ -60,8 +60,8 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments
 !              -------------------------
 !
-CHARACTER(LEN=6),  INTENT(IN)  :: HPROGRAM ! main program
-INTEGER,           INTENT(IN)  :: KUNIT    ! logical unit of file
+CHARACTER(LEN=6),  INTENT(IN)  :: HPROGRAM  ! main program
+INTEGER,           INTENT(IN)  :: KUNIT     ! logical unit of file
 !
 !*       0.2   Declarations of local variables
 !              -------------------------------

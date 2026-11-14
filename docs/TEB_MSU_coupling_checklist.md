@@ -1,345 +1,1104 @@
-# Сопряжение TEB-MSU с COSMO-TEB: контракт, матрица соответствия и чек-лист выравнивания
+# Сопряжение TEB-Ru `src_dev` с COSMO-TEB: контракт и план работ
 
-> Code state: commit `6e5b46e` (2026-10-04), branch `MV_devs`. Сторона A — деревья этого
-> репозитория; сторона B — `D:\Work\git\COSMO-TEB_vers_29_09_2026\TEB_in_function_external_forcing_Lom_vers_27_09_2026`
-> (рабочая копия от 2026-09-29); сторона H — `D:\Work\git\COSMO-TEB_vers_29_09_2026\COSMO`
-> (хост, вызывающий код).
+> Срез исходников: 2026-11-12. TEB-Ru — `main`, коммит
+> `0287dfa8fc7a9beaa32092de47abbaee4507d1a5`; COSMO-TEB — `main`, коммит
+> `41eb20102aa812aa1177ae26c03e2e7d51a0cba2`.
+> В A учтена рабочая копия: два новых INOUT (§9.7), контракт и 44 необязательных
+> выхода общего API (§3.4), блочная обёртка с поколоночной физикой и отделение
+> offline-форсинга, общая библиотека и каталог offline-хоста (§6, шаги 1–6); H и B не изменены.
+> Целевое дерево — **`src_dev`**. `src_ctrl` может служить дополнительным контролем,
+> но промежуточный перенос `src_ctrl` в COSMO не планируется.
 >
-> Сторона A приведена на этот момент (без контейнера диагностик); отличие `A_dev` по
-> контейнеру (коммит `67fa25a`, 2026-10-16) отмечено в §2.1.
->
-> Состояние B и H не изменено; §2.3 — план контейнеризованной версии для стороны B.
->
-> Документ заменил временные черновики `_TEMP_TEB_MSU_vs_COSMO_TEB_physics*.md` (v1–v3); они
-> удалены, причина записана в `TEB_MSU_change_history.md`, §0.
+> Ниже разделены проверенное состояние исходников и **предлагаемые изменения**.
+> Цель — единый `A:src_api/sfc_teb.F90` для offline и COSMO. Расширение его
+> выходов выполнено; новая сборка COSMO и сопряжённые испытания из §6 пока не реализованы.
+> Передача двух межшаговых коэффициентов через API A и offline-драйвер реализована.
 
-Документ отвечает на один вопрос: **что нужно сделать, чтобы сопряжённый прогон нашего TEB с
-хостом COSMO был корректен и сопоставим с TEB стороны B.** В отличие от удалённых черновиков он
-постоянный: обновляется вместе с изменениями контракта сопряжения.
+Документ определяет, как заменить используемую в COSMO-TEB реализацию TEB актуальным
+`src_dev`, сохранив обмен с атмосферой, TERRA и садовым тайлом. Успешная компиляция
+сама по себе не подтверждает корректность такого обмена.
 
----
+Смежные документы: [контейнеры](TEB_MSU_containers.md),
+[сад и внешняя кровля](TEB_MSU_garden_diagnostic_scheme.md),
+[CBS](TEB_MSU_CBS_scheme_T_CAN_reformulation.md),
+[фильтр снегопада](TEB_MSU_snow_check.md),
+[исправления исходной физики](TEB_MSU_source_defects.md),
+[история изменений](TEB_MSU_change_history.md).
 
-## 1. Стороны, область анализа и метод
+## 1. Стороны и действующий путь вызова
 
-| | сторона | путь | состав |
-| --- | --- | --- | --- |
-| **A_ctrl** | «первое» дерево (предполагается сопрягаемым) | `src_ctrl` | `src_teb`, `src_struct`, `src_proxi_SVAT`, `src_solar`, `src_driver` |
-| **A_dev** | рабочее дерево ветки `MV_devs` | `src_dev` | то же |
-| **B** | TEB дерева COSMO-TEB | `D:\Work\git\COSMO-TEB_vers_29_09_2026\TEB_in_function_external_forcing_Lom_vers_27_09_2026` | то же |
-| **H** | хост COSMO | `D:\Work\git\COSMO-TEB_vers_29_09_2026\COSMO` | `sfc_teb.f90` (433 строки), `sfc_interface.f90` (6071), `sfc_teb_data.f90` |
-
-**Соглашение о ссылках.** Без префикса — сторона **A_ctrl** (пути разрешаются от `src_ctrl`);
-путь `src_dev/…` — рабочее дерево; префикс `B:` — сторона B; префикс `H:` — сторона H
-(корень `D:\Work\git\COSMO-TEB_vers_29_09_2026`). Ссылки `docs/…` — от корня репозитория.
-
-**Область анализа** — сопряжённый режим, в котором сад либо выключен (`LGARDEN = .FALSE.`), либо
-**внешний**: состояние (`T_s`, `q_v`), потоки и шероховатость приходят от хоста, а TEB обязан
-вернуть коэффициенты обмена. Внутренние садовые схемы (`'PROXY_NEW'`, `'PROXY_OLD'`) упоминаются
-только там, где влияют на внешнюю ветвь. В дереве B садовый прокси вызывается всегда и сам
-является внешней ветвью (`B:src_teb/teb_garden.F90:799` → `IF (TOPTS%LGARDEN) THEN`, вызов
-`B:src_teb/teb_garden.F90:802` → `CALL GARDEN(HIMPLICIT_WIND, TOPTS%TTIME, PTSUN, PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, &`), но модели поверхности в нём нет: бовэновские потоки и β
-закомментированы (`B:src_proxi_SVAT/garden.F90:129` → `!PRN_GARDEN(:) = (1.-0.15) * PSW(:)`), а
-множитель влажности строится из влагосодержания хоста
-(`B:src_proxi_SVAT/garden.F90:164` → `PHU_AGG_GARDEN(:) = PQV_GD(:)/PQSAT_GARDEN(:)`, клиппинги —
-`B:src_proxi_SVAT/garden.F90:166` → `PHU_AGG_GARDEN(:) = MIN(PHU_AGG_GARDEN(:), 1.)` и
-`B:src_proxi_SVAT/garden.F90:167`).
-
-**Метод.** Сравнение исходников с нормализацией CRLF→LF: классификация файлов (совпадает
-побайтово / различается по коду) и, для каждой величины контракта, разбор того, **кто её
-вычисляет** (хост, `URBAN_DRAG` или прокси-модель) и **по какой формуле**. Прогоны стендов и их
-числа — в `TEB_MSU_change_history.md`; здесь приводятся только величины, различающие стороны.
-
----
-
-## 2. Контракт сопряжения
-
-### 2.1 Вход и выход `CALL_DRIVER`
-
-| | число аргументов | источник |
+| Обозначение | Корень | Назначение |
 | --- | --- | --- |
-| H (вызов) | 169 | `H:COSMO/sfc_teb.f90:364` → `CALL CALL_DRIVER (ntstep, i, iblock, dt, teb_year, teb_month, teb_day, teb_hour, teb_min, teb_sec, teb_seconds, sa_uc(i), lon_teb(i), &` |
-| B (`SUBROUTINE CALL_DRIVER`) | 169 | `B:src_driver/call_driver.F90:10` → `SUBROUTINE CALL_DRIVER` |
-| **A_ctrl** | **192** (= B + 23) | `src_driver/call_driver.F90` |
-| **A_dev** | **198** (= B + 29) | `src_dev/src_driver/call_driver.F90` |
+| **A** | `W:\git\models\TEB-Ru\src_dev` | Переносимая физика, контейнеры и вспомогательный API TEB-Ru |
+| **B** | `W:\git\models\COSMO-TEB\TEB_in_function_external_forcing` | Текущая реализация TEB в сопряжённой модели; контроль до замены |
+| **H** | `W:\git\models\COSMO-TEB\COSMO\05_xfront7_intel_nogrib_plus_TEB3` | Хост COSMO, его обёртка TEB, TERRA, обмен блоков и restart |
+| **C** | `W:\git\models\COSMO-TEB` | Корень репозитория COSMO-TEB, инструкции и сценарий сборки |
 
-Хост вызывает B-интерфейс позиционно, поэтому адаптеру нужно подать 23 (`A_ctrl`) или 29
-(`A_dev`) дополнительных аргумента и учесть переименование «внешних» величин: у B они без
-суффикса (`zz0_gd`, `zalb_gd`, `ztsrad_gd`, `zh_gd`, `zle_gd`, `zevap_gd`, `zrunoff_gd` и
-симметрично для кровли), у нас — с суффиксом `_ext` (`zz0_gd_ext`, `zalb_gd_ext`, …).
+Ссылки `A:…`, `B:…`, `H:…`, `C:…` разрешаются относительно этих корней;
+`docs/…` и `python_tests/…` — относительно TEB-Ru. Номера строк относятся к срезу
+в заголовке. В выводах приоритет имеют исходники, а не старые счётчики в документации.
 
-Дополнительные аргументы `A_ctrl` (23): `lgarden_ext`, `lgreenroof_ext`, `lshade`, `lsolar_panel`,
-`lpar_rd_irrig`, `hroad_dir`, `hwall_opt`, `zroad_dir`, `zresidential`, `zdt_res`, `zdt_off`,
-`zcap_sys_heat`, `zfrac_panel`, `zrd_start_month`, `zrd_end_month`, `zrd_start_hour`,
-`zrd_end_hour`, `zrd_24h_irrig`, `zprod_bld`, `zutc_hour`, `zrn_town`, `zu_canyon`, `zts_road`;
-плюс две OUT-диагностики (`zcd_terra`, `zch_terra`).
+**Путь сборки установлен по `C:Compilation` и `C:build/istok/build.sbatch`.**
+Сначала собирается B; его `.o` и `.mod` копируются в `H:obj_teb`, кроме
+`call_teb_interface.o`, `sfc_teb.o`, `sfc_teb.mod`. Затем COSMO компилирует
+**собственный** `H:src/sfc_teb.f90`. Действующая цепочка:
 
-К `A_dev` относительно `A_ctrl` добавлены: `TYPE_GARDEN`, `TYPE_GREENROOF` (строки режима вместо
-логических флагов), `ZQV_GR_EXT` (`src_dev/src_driver/call_driver.F90:272` → `REAL,DIMENSION(1)                 :: ZQV_GR_EXT        !IN greenroof specific humidity (external model)`),
-`ZZ0_GR_EXT` (`src_dev/src_driver/call_driver.F90:266` → `REAL,DIMENSION(1)                 :: ZZ0_GR_EXT        !IN greenroof roughness length (external model)`),
-`HZ0_TOWN`/`HZD_TOWN` (`src_dev/src_driver/call_driver.F90:234` → `CHARACTER(LEN=16)                 :: HZ0_TOWN          !IN z0 of the urban surface (0.5 | 0.5m | 0.1H | H/3 | <name>)`)
-и OUT-диагностики CBS-схемы `ZCD_GARDEN_ATM`/`ZCH_GARDEN_ATM`
-(`src_dev/src_driver/call_driver.F90:387` → `REAL,DIMENSION(1)                 :: ZCD_GARDEN_ATM         !OUT`).
-Пара, уходящая хосту как `teb_tch_gd`/`teb_tcm_gd`, в обеих ветвях называется одинаково —
-`ZCH_GD`/`ZCD_GD` (`src_driver/call_driver.F90:248` → `REAL,DIMENSION(1)                 :: ZCH_GD            !OUT garden transfer coefficient for heat (external model)`,
-`src_dev/src_driver/call_driver.F90:290`).
-
-**Способ включения внешнего режима** различается: `A_ctrl` — логическим `LGARDEN_EXT`
-(`src_driver/call_driver.F90:239` → `LOGICAL                           :: LGARDEN_EXT       !IN Flag to use a garden scheme (external)`),
-которого хост не передаёт; `A_dev` — строкой типа
-(`src_dev/src_driver/call_driver.F90:280` → `CHARACTER(LEN=9)                  :: TYPE_GARDEN       !IN garden model type ('PROXY_OLD','PROXY_NEW','EXT')`).
-Флаг сада хост подаёт сам (`H:COSMO/sfc_teb.f90:392` → `teb_shfl_gr(i), teb_lhfl_gr(i), teb_qvfl_gr(i), teb_runoff_gr(i), teb_lgarden,`).
-Обе ветви проверяют нефизическую шероховатость при включённом внешнем саде:
-`src_driver/call_driver.F90:693` → `IF (LGARDEN .AND. LGARDEN_EXT) THEN` и
-**Контейнер диагностик (`A_dev`).** Диагностики, которые сторона `A_dev` раньше несла
-отдельными аргументами `CALL_DRIVER`, выведены в контейнер `DIAG_MISC_TEB_t`,
-передаваемый последним аргументом цепочки (устройство и правила —
-`TEB_MSU_containers.md`). Для сопряжения это означает:
-
-* `CALL_DRIVER` в `A_dev` — процедура модуля `MODI_CALL_DRIVER` с `IMPLICIT NONE`:
-  подпись видит компилятор, поэтому нарушение порядка, типа или ранга на этом стыке
-  больше не проходит молча (на этой правке вскрылись четыре класса таких ошибок);
-* число аргументов `A_dev`: `TEB_INTERFACE` — 149, `CALL_DRIVER` — 147; таблица
-  счётчиков выше относится к состоянию стороны `B` и к `A_ctrl` и сохраняется как база
-  сравнения;
-* заглушки OUT-диагностик в адаптере не нужны. Хост, которому диагностики нужны,
-  создаёт экземпляр `DIAG_MISC_TEB_t`, вызывает `DIAG_MISC_TEB_ALLOC(DMT, nvec)` и
-  читает поля `DMT%X*` (какое поле какую колонку питает — по строкам
-  `CALL CSV_ADD` в `run_teb_offline.F90`);
-* контейнер передаётся как элемент производного типа, поэтому обе стороны стыка должны
-  быть собраны одним компилятором с теми же `kind` — ограничение того же рода, что и у
-  `REAL (KIND = vpp)` в таблице §2.2.
-
-### 2.2 Что хост подаёт и что получает обратно
-
-| величина | H | B | A_ctrl | A_dev |
-| --- | --- | --- | --- | --- |
-| `z0` сада | `!IN` (`H:COSMO/sfc_teb.f90:165` → `REAL (KIND = vpp),DIMENSION(nvec) :: teb_z0_gd                      !IN garden roughness`), заполняется из `gz0_b` (`H:COSMO/sfc_interface.f90:1928` → `teb_z0_gd_t       (il)     = REAL( gz0_b              (ifull,1), vpp) / g`) | вход `URBAN_DRAG` (`B:src_teb/urban_drag.F90:593` → `PU_LOWCAN, PZ0_GARDEN, ZRI, PCD_GARDEN, ZCDN_GARDEN,         &`) | `PZ0_GARDEN_EXT` (`src_teb/urban_drag.F90:622` → `PU_LOWCAN, PZ0_GARDEN_EXT, ZRI, PCD_GARDEN, ZCDN_GARDEN, &`) | то же (`src_dev/src_teb/urban_drag.F90:794`) |
-| `q_v` сада | `!IN` (`H:COSMO/sfc_teb.f90:169` → `REAL (KIND = vpp),DIMENSION(nvec) :: teb_qs_gd                      !IN garden surface specific humidity`), из `qv_s_b` (`H:COSMO/sfc_interface.f90:2488` → `teb_qs_gd_t        (il)    = REAL( qv_s_b     (ifull, 1), vpp)`) | вход `PQV_GD` (`B:src_teb/teb_garden.F90:168` → `REAL, DIMENSION(:)  , INTENT(INOUT) :: PQV_GD             ! garden specific humidity`) | вход `ZQV_GD` | вход `ZQV_GD` |
-| `T_s` сада | `!IN` (`H:COSMO/sfc_teb.f90:168`) | не меняется (`B:src_proxi_SVAT/garden.F90:158` → `!PTS_GARDEN(:) = PT_LOWCAN(:)`) | не меняется | не меняется |
-| потоки сада | `!IN` (`H:COSMO/sfc_teb.f90:170`, вызов `H:COSMO/sfc_teb.f90:393` → `teb_z0_gd(i), teb_alb_gd(i), 1 - teb_emis_gd(i), teb_ts_gd(i), teb_qs_gd(i), teb_shfl_gd(i),        &`) | не меняются (`B:src_proxi_SVAT/garden.F90:132` → `!PH_GARDEN (:) = 0.2 * PRN_GARDEN(:)`) | берутся от хоста (`src_teb/teb_garden.F90:871` → `ZH_GD(:) = PH_GD_EXT(:)`) | берутся от хоста |
-| `T_s` кровли | `!IN` (`H:COSMO/sfc_teb.f90:159` → `REAL (KIND = vpp),DIMENSION(nvec) :: teb_ts_gr                      !IN greenroof radiative surface temp. (snow free)`), из `t_g_b` (`H:COSMO/sfc_interface.f90:2479` → `teb_ts_gr_t        (il)    = REAL( t_g_b      (ifull, 1), vpp)`) | не меняется (`B:src_proxi_SVAT/greenroof.F90:161` → `!PTS_GREENROOF(:) = PTA(:)`) | не меняется | не меняется |
-| потоки кровли | `!IN` (`H:COSMO/sfc_teb.f90:160`, `H:COSMO/sfc_teb.f90:163`, вызов `H:COSMO/sfc_teb.f90:392`) | не меняются (`B:src_proxi_SVAT/greenroof.F90:136` → `!PH_GREENROOF (:) = 0.5 * PRN_GREENROOF(:)`) | берутся от хоста (`src_teb/teb_garden.F90:930` → `ZH_GR(:) = PH_GR_EXT(:)`) | берутся от хоста (`src_dev/src_teb/teb_garden.F90:1236`) |
-| `z0` кровли | **нет** | жёстко `0.01` (`B:src_proxi_SVAT/greenroof.F90:149` → `PUW_GREENROOF(:) = - (XKARMAN/LOG(PUREF(:)/0.01))**2 * PVMOD(:)**2`) | словник `urb_z0_grf` (`src_proxi_SVAT/greenroof.F90:152` → `PUW_GREENROOF(:) = - (XKARMAN/LOG(PUREF(:)/urb_z0_grf))**2 * PVMOD(:)**2`) | **вход** `ZZ0_GR_EXT` (`src_dev/src_teb/urban_drag.F90:844` → `PZ0_GREENROOF_EXT,                  &`) |
-| `q_v` кровли | **нет** | `0.3` (`B:src_proxi_SVAT/greenroof.F90:165` → `PHU_AGG_GREENROOF(:) = 0.3   ! surface humidity set to 30%`) | `XPHU_GR = 0.3` (`src_proxi_SVAT/greenroof.F90:168` → `PHU_AGG_GREENROOF(:) = XPHU_GR`, объявление `src_proxi_SVAT/modd_proxi_svat_par.F90:97` → `REAL, PARAMETER :: XPHU_GR  = 0.3`) | **вход** `PQV_GR_EXT` (`src_dev/src_teb/teb_garden.F90:1216` → `ZHU_AGG_GR(:) = PQV_GR_EXT(:)/ZQSAT_GR(:)`) |
-| пара `tch`/`tcm` сада (обратно) | `!OUT` (`H:COSMO/sfc_teb.f90:173` → `REAL (KIND = vpp),DIMENSION(nvec) :: teb_tch_gd                    !IN Heat exchange coefficient for garden`), используется хостом (`H:COSMO/sfc_interface.f90:3383` → `tch               = teb_tch_gd_t  (:)       , & !INOUT turbulent transfer coefficient for heat`) | пара `PCH_GD`/`PCD_GD` (`B:src_teb/teb_garden.F90:172` → `REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_GD             ! drag coeifficient for heat`) | `ZCH_GD`/`ZCD_GD` (`src_driver/call_driver.F90:248`) | те же (`src_dev/src_driver/call_driver.F90:290`) |
-
-**Следствие 1.** Для внешней кровли `A_dev` требует двух величин, которых у H **нет** — `z0` и
-`q_v` кровли: адаптер обязан их синтезировать (ближайшие аналоги — `gz0_b` и `qv_s_b` того же
-тайла, как для сада) или подставить константы B (`0.01`, `0.3`). `A_ctrl` этих входов не требует.
-
-### 2.3 Контейнеризованная версия: владение `DMT` и точка аллокации
-
-Этот подраздел фиксирует **план** переноса контейнера диагностик
-(`TEB_MSU_containers.md`) на стороны B и H; состояние B ниже описано как есть.
-
-**Текущее состояние B.** `DMT` — локальная переменная физики:
-`B:src_struct/teb_garden_struct.F90:586` → `TYPE(DIAG_MISC_TEB_t) :: DMT`, выделяется на подшаг
-(`B:src_struct/teb_garden_struct.F90:756` → `CALL ALLOC_TEB_STRUCT(SIZE(PT_ROOF,2),SIZE(PT_ROAD,2),SIZE(PT_WALL_A,2),SIZE(PT_FLOOR,2), &`)
-и покидает физику копированием в OUT-аргументы
-(`B:src_struct/teb_garden_struct.F90:1118` → `PQF_BLD  = DMT%XQF_BLD   ! domestic heating` и далее).
-Интерфейс о контейнере не знает: `B:src_driver/sfc_teb.F90:23` →
-`SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, …)`; `SAVE` и модульных данных в
-`MODULE sfc_teb` нет, носители диагностик — автоматические `REAL, DIMENSION(nvec)`
-(`B:src_driver/sfc_teb.F90:237`–`246`).
-
-**Цепочка и хост.** COSMO вызывает `teb_interface`, а не `CALL_DRIVER`:
-`H:COSMO/sfc_interface.f90:286` → `USE sfc_teb,          ONLY : teb_interface`;
-`H:COSMO/sfc_interface.f90:2804` → `CALL teb_interface (` внутри `SUBROUTINE sfc_organize`
-(строки 1390–4688), с `nvec = nproma`, `ivstart = 1`, `ivend = n_landgp(ib)`;
-`sfc_organize` вызывается один раз на шаг (`H:COSMO/organize_physics.f90:2413` →
-`CALL sfc_organize (izb, izpend, ierror, yerrmsg)`). Тип контейнера хосту не виден:
-`MODD_DIAG_MISC_TEB` в COSMO — 0 упоминаний.
-
-**Решение (вариант A).** Владелец — `teb_interface`: аллокация один раз на вызов, размер `nvec`:
-
-```fortran
-CALL DIAG_MISC_TEB_ALLOC (DMT, nvec)     ! до цикла по колонкам
-DO i = ivstart, ivend
-   CALL CALL_DRIVER (…, DMT, …)          ! DMT — последний аргумент подписи
-END DO
-CALL DIAG_MISC_TEB_DEALLOC (DMT)         ! после цикла
+```text
+COSMO sfc_organize / sfc_interface.f90
+  → H:sfc_teb::teb_interface                         блочный интерфейс COSMO
+      → DO i = ivstart, ivend; IF (sa_uc(i) > 0.)    маска города
+          → B:CALL_DRIVER                           внешняя процедура
+              → B:TEB_GARDEN_STRUCT → B:TEB_GARDEN
 ```
 
-Физика пишет **элемент своей колонки**: фактическим аргументом вызова физики становится
-`DMT%X…(i:i)` (в `src_dev` было `(1:1)`, потому что там `nvec = 1`); индекс `i` в `CALL_DRIVER`
-уже есть. Размер берётся `nvec`, а не `ivend`: `ivend = n_landgp(ib) ≤ nvec` и меняется от блока
-к блоку. Почему здесь: `teb_interface` — единственная рутина, которая знает `nvec`, владеет
-массивами `DIMENSION(nvec)` и вызывается один раз на шаг на блок (не на колонку); это дословный
-аналог `RUN_TEB_OFFLINE` (`TEB_MSU_containers.md`, §3), и вызов хоста при этом не
-меняется.
+Вызов H находится в `H:src/sfc_interface.f90:2807`; он передаёт `nvec=nproma`,
+`ivstart=1`, `ivend=n_landgp(ib)`. Внутри H вызов B —
+`H:src/sfc_teb.f90:364`. Это две ступени одной действующей цепочки, а не
+альтернативные точки сопряжения. Автономный `B:src_driver/sfc_teb.F90` её не задаёт.
 
-**Альтернативы.**
+**Целевая граница переноса:** использовать общий `A:src_api/sfc_teb.F90`
+в offline и COSMO. В H заменить вызов из `sfc_interface` на общий API A;
+собственный `H:src/sfc_teb.f90` исключить из сборки. Подготовка контейнеров,
+загрузка/возврат состояния и cold-start остаются внутри A. Физику переносить
+целиком из `src_dev`, с фиксацией SHA и списка файлов; B сохранить как контрольную
+сборку в отдельном каталоге. H сохраняет блочный вызов с `nvec=nproma`;
+внутри общего API A городские колонки обрабатываются последовательно
+с рабочими контейнерами размера 1. Преобразование полей COSMO и единиц
+выполняет вызывающий код H.
 
-| вариант | где живёт `DMT` | когда выбирать | цена |
+## 2. Контракт и ограничения `src_dev`
+
+### 2.1 Подписи и модули
+
+| Процедура | Файл | Фактическое число аргументов |
+| --- | --- | --- |
+| Публичный `teb_interface` H | `H:src/sfc_teb.f90:48` | **156** |
+| Внешний `CALL_DRIVER` B | `B:src_driver/call_driver.F90:10` | **169**; вызов H также содержит 169 |
+| Автономный/универсальный `teb_interface` A | `A:src_api/sfc_teb.F90:38` | **202**: 158 обязательных + 44 OPTIONAL OUT (§3.4); последние обязательные — INOUT `teb_ustar_town`, `teb_cd_greenroof_atm` |
+| Модульный `CALL_DRIVER` A | `A:src_driver/call_driver.F90:27` | **27** = 14 временных входов + 2 коэффициента сада + 11 контейнеров |
+| `TEB_GARDEN` A | `A:src_teb/teb_garden.F90:6` | **29** |
+
+Публичные `teb_interface` A и H несовместимы по составу и порядку аргументов.
+У A дата передаётся явно, есть типы поверхностей, CBS, аэродинамические настройки,
+параметры полива и фильтры логирования; требуемые текущие выходы H экспортируются
+из контейнеров через OPTIONAL OUT (§3.4).
+Схема «добавить к старому вызову 23/29 аргументов» больше неприменима.
+
+`CALL_DRIVER` A — процедура `MODI_CALL_DRIVER`: общий API A уже использует
+`USE MODI_CALL_DRIVER, ONLY: CALL_DRIVER`. COSMO должен вызывать публичный
+`sfc_teb::teb_interface`, не повторяя цепочку заполнения контейнеров.
+Старый внешний вызов не соответствует ни подписи, ни символу линковки.
+`TEB_GARDEN_STRUCT` в A удалена, драйвер вызывает физику напрямую.
+
+**Единственный модуль `sfc_teb`:** в библиотеку A включить
+`A:src_api/sfc_teb.F90`, а собственный `H:src/sfc_teb.f90` исключить из сборки H.
+Программу `A:src_offline/run_teb_offline.F90` в библиотеку не включать. Включить необходимые
+`TEB_HOST`, `TEB_LOG`, `MODI_URB_AERO_PARAMS`, новые типы параметров/форсинга/внешних
+поверхностей, MRT и все зависимости физики. Список зависимостей брать из текущего
+`A:Makefile`, а не из Makefile B. Некоторые зависимости драйвера ещё относятся
+к offline-слою; их исключение требует отдельной проверки `USE` и линковки.
+
+### 2.2 Блочный вызов и поколоночная физика
+
+В `TEB_HOST` находятся одиннадцать сохраняемых объектов:
+`TOPTS`, `TPARAMS`, `TSTATE`, `BOPTS`, `BPARAMS`, `BSTATE`, `TPN`, `TIR`, `DMT`,
+`FORC`, `EXT` (`A:src_api/teb_host.F90:58`). Они передаются в физику явно.
+Объявление `THREADPRIVATE` относится к этим объектам, но не доказывает
+потокобезопасность остальных модулей.
+
+**Размер физической рабочей памяти:** `TEB_HOST_ENSURE(KNVEC,…)` принимает
+только `KNVEC=1`. `ALLOC_TEB_STRUCT`, `ALLOC_TEB_PARAMS` и
+`ALLOC_BEM_PARAMS` выделяют многие поля с первым размером **1**:
+`A:src_struct/alloc_teb_struct.F90:102`,
+`A:src_struct/modd_teb_paramsn.F90:169`,
+`A:src_struct/modd_bem_paramsn.F90:151`.
+В драйвере и физике остаются обращения к `DMT%…(1:1)` и `FORC%…(1)` наряду
+с `TSTATE%…(icell)`; имеются присваивания диагностике целиком.
+
+Поэтому размер рабочего контейнера отличается от публичного `nvec` блока.
+`TEB_HOST_ENSURE` проверяет размер 1, пять слоёв и совместимость повторного
+обращения с выделенной памятью
+(`A:src_api/teb_host.F90:556`).
+
+**Реализованный путь A:** блочная граница API и последовательная обработка
+колонок внутри `A:sfc_teb`. В действующем вызове H передаёт
+`nvec=nproma`, `ivstart=1`, `ivend=n_landgp(ib)`, `iblock=ib`
+(`H:src/sfc_interface.f90:2807`). `nproma` — ёмкость блока, `n_landgp(ib)` —
+число упакованных сухопутных точек; городская маска дополнительно требует
+`sa_uc(i)>0`. Поэтому публичный `nvec` не ограничивается единицей.
+
+Обёртка A проходит по активным городским точкам окна. Перед физикой каждой
+колонки она загружает её параметры, форсинг, внешние поверхности и полный набор
+состояния в рабочие контейнеры с `KNVEC=1`; физика вызывается с `icell=1`.
+После вызова состояние, межшаговые коэффициенты и запрошенные выходы возвращаются
+в позицию `i` массивов хоста. Внешние индексы `(iblock,i)` для протоколов
+хранятся отдельно от индекса рабочей памяти. Логирование должно учитывать
+номер шага и блока, не увеличивая счётчик шага при переходе к следующей колонке.
+
+Проверяются границы публичного окна, пустое окно и повторное выделение рабочей
+памяти. Слои крыши, дороги, стены и пола в текущем заполнителе заданы для
+**пяти** слоёв; это следует проверять явно. За пределами городской маски окна
+поля INOUT сохраняются; значения OUT определены только для обработанных точек
+и только там используются H. Offline сохраняет свой вызов `nvec=1`.
+Эта доработка обёртки выполнена в шаге 4 и проверена внешним потребителем;
+подключение A в H ещё предстоит. Векторизация физических контейнеров
+и процедур в этот этап не входит.
+
+### 2.3 Владение состоянием, диагностикой и памятью
+
+Предложение выделять локальный `DMT(nvec)` заново на каждый вызов интерфейса
+устарело: нынешний `TEB_HOST` выделяет память лениво и освобождает её через
+`TEB_HOST_FINAL`. В поколоночном варианте это рабочий набор одной колонки,
+а владельцем долговременного состояния всех ячеек остаётся COSMO.
+
+Несмотря на названия, `TEB_BIND_STATE` и `TEB_UNBIND_STATE` в текущем исходнике
+**копируют значения** оператором `=`, а не привязывают указатели к массивам H
+(`A:src_api/teb_host.F90:632`, `A:src_api/teb_host.F90:790`). Поля типов объявлены
+указателями, но это не превращает эти процедуры в интерфейс без копирования данных.
+
+Основные 30 полей состояния уже передаются хостом и возвращаются ему.
+Аудит §9 разделяет дополнительные физические зависимости и историю выходных
+диагностик; смена владельца состояния не требуется. При переносе между колонками
+нужно учитывать следующие обращения:
+
+* `CALL_DRIVER` копирует предыдущие `XTSTOWN_S`, `XWSTOWN`, `XTSSNOW_TOWN`,
+  `XWSNOW_TOWN`, `XRSNOW_TOWN`, `XHSNOW_TOWN` в `*_NOW`
+  (`A:src_driver/call_driver.F90:550`). Внутренние копии не должны становиться
+  выходами H: в выбранном варианте свою историю формирует H из текущих выходов
+  API. Эти поля не читаются физикой шага (§9.3).
+* Ветровая схема Wang читает предыдущий `DMT%XUSTAR_TOWN`
+  (`A:src_driver/call_driver.F90:575`). Внешний сад использует входной `ZCD_GD`,
+  а внешняя кровля — сохранённый `DMT%XPCD_GREENROOF_ATM` до их нового расчёта.
+  В API A обе величины уже восстанавливаются из двух INOUT своей колонки;
+  на первом шаге задаются `0.2 m/s` и `XUNDEF` соответственно (§9.7).
+  Вызывающий код COSMO должен передать и сохранить аргументы своей ячейки.
+* `DIAG_MISC_TEB_ALLOC` выделяет поля без заполнения численными значениями.
+  Присваивание `XUNDEF` части полей в физике не заменяет инициализацию тех,
+  которые читаются раньше своей первой записи.
+* Панели и их суточный накопитель `TPN%XTHER_PRODC_DAY` отложены; в первом
+  варианте панели выключены. Рабочие поля BEM разобраны
+  отдельно в §9.4: для поддерживаемого API они не образуют ещё один набор
+  скрытого прогностического состояния.
+
+Предлагается явная загрузка/выгрузка нужных полей; простое присваивание целого
+производного типа с POINTER-полями копирует ассоциации и не создаёт независимую
+глубокую копию. Общий API A должен экспортировать требуемые текущие результаты
+§3.2 через свои выходы; COSMO не должен читать внутренний `DMT` или самостоятельно
+вызывать заполнители состояния. Все поля `DMT` в публичный API переносить не требуется.
+
+Для первого этапа — CPU, один поток на MPI-процесс, без CSV по всем ячейкам.
+В `MODD_FORC_ATM` ещё обновляются глобальные `XZREF/XUREF`, в `TEB_LOG` есть
+сохраняемые счётчики и файловые дескрипторы. OpenMP/GPU потребуют отдельной проверки.
+
+## 3. Матрица обмена с хостом
+
+### 3.1 Входы атмосферы и внешних поверхностей
+
+| Величина | Текущий источник H | Контракт A / действие вызывающего кода H |
+| --- | --- | --- |
+| Дата, время, номер шага | `get_utc_date`, `ntstep`, `teb_seconds` в H | Сохранить 0-based `ntstep`; `teb_seconds` — секунды UTC внутри суток, дата передаётся отдельно |
+| `u,v,t,qv,ps`, высота | Массивы блока COSMO; `hlev_teb=zhll_t` | `TEB_FILL_FORCING(1,1,…)`; `qv` в kg/kg, давление в Pa; проверить опорную высоту, плотность A пересчитывает сам |
+| Осадки и радиация | Интенсивности дождя/снега/крупы, `lwd_s`, `swdir_s`, `swdifd_s` | Осадки в kg/(m²·s), радиация в W/m²; коррекция горизонта и circumsolar выполняются в `TEB_FILL_FORCING` один раз |
+| Геометрия, материалы, BEM | Входные массивы H и опции `data_runcontrol` | `TEB_FILL_PARAMS` и `TEB_FILL_DERIVED`; дополнительные настройки A задаются явно (§4.2) |
+| `z0` сада | `gz0_b(ifull,1)/g`, `H:src/sfc_interface.f90:1931` | `EXT%XZ0_GD`, в метрах; проверить согласованность с выбранным садовым тайлом 1/3 |
+| `Ts`, `qv`, потоки сада | Природный тайл 1 или `TERRA_GARDEN`, тайл 3 | `EXT%XTSRAD_GD`, `XQV_GD`, `XH_GD`, `XLE_GD`, `XEVAP_GD`, `XRUNOFF_GD`; состояние и потоки приходят от хоста |
+| `Ts`, потоки кровли | Природный тайл 1 | Аналогичные `EXT%…_GR`; существующее заимствование природного тайла сохранить как явно оговорённое приближение |
+| `z0`, `qv` кровли | В публичном интерфейсе H отсутствуют | Для полноценного `EXT` добавить входы от того же тайла: `gz0_b(ifull,1)/g`, `qv_s_b(ifull,1)`; до этого кровлю выключить либо использовать явно заданный контрольный режим |
+| Тепловое альбедо поверхностей | `urb_alb_*_th`, `teb_emis_gd/gr` H фактически несут отражательную долю | На входе внешней поверхности A требуется **эмиссивность**: `ε=1−alb_th`; выполнить преобразование ровно один раз |
+
+`TEB_FILL_PARAMS` самостоятельно преобразует `urb_alb_*_th` в эмиссивности
+крыши/дороги/стены. `TEB_FILL_EXT`, напротив, копирует уже готовые `PEMIS_GD/GR`
+без дополнения до единицы (`A:src_api/teb_host.F90:520`). Поэтому нельзя одинаково
+преобразовывать все тепловые входы «по имени emis».
+
+В H потоки внешних поверхностей уже переводятся к знаку TEB при заполнении:
+`teb_shfl_gd/gr=-shfl_s_b`, аналогично `LE` и испарению
+(`H:src/sfc_interface.f90:2483`). Повторная смена знака в адаптере не нужна.
+
+**Контрольное приближение к B для кровли:** `z0=0.01 m`, `PHU=0.3`.
+В A нужно передать `qv=0.3*QSAT(Ts,ps)`, поскольку физика вычисляет
+`PHU=clamp(qv/QSAT(Ts,ps),0.01,1)`. Передавать `qv=0.3 kg/kg` неверно.
+Это воспроизводит только прежнюю влажностную параметризацию, а не весь расчёт B.
+
+### 3.2 Обязательные выходы
+
+Поля `DMT` ниже — внутренние источники для выходов общего API A. COSMO получает
+результат внутренней колонки `(1)` через API и записывает его в свой элемент `(i)`.
+Таблица задаёт требуемый обмен; соответствующие новые выходы API реализованы в §3.4.
+Преобразования к единицам H выполняются в H: общий API сохраняет единицы и
+нормировку TEB, включая потоки стока/таяния и эмиссивность города.
+
+| Поле H | Источник A | Преобразование / условие |
+| --- | --- | --- |
+| Прогностические `teb_ti_bld`, `teb_qi_bld`, `teb_troof/troad/twalla/twallb/tfloor/tmass`, окна, жидкая вода, снег, параметры HVAC и логические флаги | `TSTATE/BSTATE`, `TEB_BIND_STATE` → физика → `TEB_UNBIND_STATE` | Полный обмен состоянием без потери слоёв; `teb_albwin` также возвращается |
+| Межшаговые `teb_ustar_town`, `teb_cd_greenroof_atm` API A | `DMT%XUSTAR_TOWN`, `XPCD_GREENROOF_ATM` | INOUT своей ячейки; cold-start `0.2 m/s`/`XUNDEF`, затем загрузка до физики и возврат после неё. В H носитель `u*` уже есть, CD кровли ещё нужно провести |
+| `teb_troad_now` | Снимок `TSTATE%XT_ROAD` после cold-start/загрузки состояния, до физики | Реализован необязательный выход API `teb_troad_before`. На тёплом шаге H уже имеет входной профиль; на холодном снимок позволяет получить фактический начальный профиль без дублирования инициализации в H |
+| `teb_tsroof`, `teb_tswalla`, `teb_tswallb` | `DMT%XTS_ROOF`, `XTS_WALL_A`, `XTS_WALL_B` | K |
+| `teb_tstown_s`, `teb_qstown_s`, `teb_wstown` | `DMT%XTSTOWN_S`, `XQSTOWN_S`, `XWSTOWN` | K, kg/kg, m H₂O соответственно |
+| `teb_shfl`, `teb_lhfl`, `teb_qvfl` | `DMT%XH_TOWN`, `XLE_TOWN`, `XQVFL` | Знак TEB; существующий H меняет его при передаче в TERRA |
+| `teb_tch_town` | `DMT%XTCH_TOWN` | Безразмерный коэффициент, не проводимость в m/s |
+| `teb_runoff_town` | `DMT%XRUNOFF_TOWN` | API отдаёт поток kg/(m²·s); H умножает на `dt`, получая kg/m² за шаг |
+| `teb_tssnow_town`, `teb_rsnow_town`, `teb_wsnow_town`, `teb_frsnow`, `teb_hsnow_town` | `DMT%XTSSNOW_TOWN`, `XRSNOW_TOWN`, `XWSNOW_TOWN`, `XFRSNOW`, `XHSNOW_TOWN` | K, kg/m³, m H₂O, доля, m; температуру/плотность читать только при наличии снега |
+| `teb_*_now` для городских агрегатов | Предыдущие текущие выходы API, сохранённые H для своей ячейки | Историю формирует H; не экспортировать `DMT%…_NOW` последней обработанной колонки (§2.3) |
+| `teb_shfl_snow`, `teb_lhfl_snow` | `DMT%XSHFL_SNOW`, `XLHFL_SNOW` | Сохранить нормировку B и знак TEB |
+| `teb_snow_melt` | `DMT%XSNOW_MELT` | API отдаёт поток kg/(m²·s); H умножает на `dt`. Комментарий поля A с единицами kg/m² не отражает отсутствие умножения внутри A |
+| `teb_alb_so`, `teb_alb_th` | `DMT%XALB_SO`, `DMT%XEMIS_TOWN` | API отдаёт солнечное альбедо и эмиссивность; H формирует тепловое альбедо `1−ε` |
+| `teb_ucanyon`, `teb_vcanyon` | `DMT%XUCANYON`, `XVCANYON` | Нужны обе компоненты; одного модуля `XWIND_CANYON` недостаточно |
+| `teb_sobs`, `teb_thbs` для TERRA_GARDEN | `DMT%XABS_SW_GARDEN`, `XABS_LW_GARDEN` | W/m² сада; не смесь дороги с садом из локальных `ZABS_*_GRND` |
+| `teb_tch_gd`, `teb_tcm_gd` | Выходы `ZCH_GD`, `ZCD_GD` `CALL_DRIVER` | Коэффициенты каньонной ветви внешнего сада; не `DMT%ATM%…` и не `PAC` |
+| `teb_hwaste`, `teb_hvac_cool`, `teb_hvac_heat` | `DMT%XH_WASTE`, `XHVAC_COOL`, `XHVAC_HEAT` | Проверить площадь нормировки по контракту BEM, сохранить её для H |
+| `teb_dqs_town`, `teb_gflux` | `DMT%XDQS_TOWN`, `XGFLUX_TOWN` | Проверить нормировку по застроенной/непроницаемой части, не умножать повторно на долю города |
+| `teb_shfl_rf/rd/wl` | `DMT%XH_ROOF_FR`, `XH_ROAD_FR`, `XH_WALL_FR` | Это уже взвешенные величины; не подменять потоками на m² отдельной поверхности |
+| `teb_ac_rf/rd/wl/top` | `DMT%XAC_RF`, `DMT%CAN%PAC_ROAD`, `DMT%XAC_WL`, `DMT%XAC_TOP` | Проводимости в m/s |
+| `teb_tch_rf/rd/wl/top` | `DMT%XTCH_RF`, `DMT%CAN%PCH_ROAD`, `DMT%XTCH_WL`, `DMT%XTCH_TOP` | Безразмерные тепловые коэффициенты; при CBS отдельно оговорить выбор каньонной ветви дороги |
+| `teb_wind_top`, `ahf_traffic` | `DMT%XWIND_TOP`, `XAHF_TRAFFIC_NOW` | Текущие значения; годовой средний трафик остаётся входом |
+| `teb_ilmo_road/roof/top` — старые имена H | `DMT%XUSTAR_TOWN`, `DMT%ATM%PCD_GARDEN`, `DMT%ATM%PCH_GARDEN` | По действующему позиционному вызову H это `u*`, `CD_ATM`, `CH_ATM`, а не 1/L. Подтверждение — §9.5; смысл полей согласовать до переименования |
+
+Источник прямого экспорта сада в A — `A:src_api/sfc_teb.F90:449`.
+По позициям 65–66 действующего вызова B хост также получает
+`ZABS_SW_GARDEN/ZABS_LW_GARDEN` (`B:src_driver/call_driver.F90:16`).
+Смесь `ZABS_*_GRND` вычисляется локально (`B:src_driver/call_driver.F90:1584`),
+но в сигнатуру `CALL_DRIVER` не входит. Таким образом, прямой экспорт садовой
+радиации A сохраняет этот аспект действующего обмена; это не отдельная смена
+радиационного форсинга TERRA_GARDEN.
+
+### 3.3 Единицы, шаг и порядок обновления
+
+`TEB_FILL_EXT` делит внешний `runoff_gd/gr` на `dt`
+(`A:src_api/teb_host.F90:526`): хост подаёт накопление в kg/m², контейнер несёт
+kg/(m²·s). На обратном направлении вызывающий код H умножает городские сток и таяние на
+`dt`, поскольку это делает B, а A сохраняет потоки. `XWSTOWN/XWSNOW_TOWN`
+уже выражены в метрах водного эквивалента; повторный множитель `0.001` не нужен.
+Если появятся внутренние подшаги A, накопления H равны сумме потоков по их `dt`,
+а не последнему потоку, умноженному на весь шаг COSMO.
+
+Сначала сохранить действующий порядок: TEB использует доступные состояния и
+потоки внешнего сада, затем H вызывает TERRA для садового тайла с новыми
+каньонными `T/q/u/v`, радиацией и `tch/tcm`; результаты читаются TEB на следующем
+обмене. Это явная связь с лагом, а не итерационное решение в одном шаге.
+При первом вызове должны быть определены начальные потоки, коэффициенты и
+состояние внешних поверхностей. Offline-эмуляторы не являются частью COSMO.
+
+### 3.4 Реализованный контракт общего API: шаги 1–3
+
+`sfc_teb` публично экспортирует только `teb_interface` и константу
+`teb_real_kind = KIND(0.0)`. Все REAL-аргументы используют этот kind
+(kind обычного REAL при выбранных флагах компилятора). В проверенном GNU-профиле
+`-fdefault-real-8` это kind 8, 64 бита; соответствие `vpp` COSMO проверяется
+при переносе и не означает изменения точности всей COSMO.
+
+Существующие 158 обязательных аргументов сохраняют порядок и смысл. Для всех
+202 аргументов указан INTENT: 116 IN, 33 INOUT, 53 OUT. Последние 44 —
+необязательные выходы ниже. Они имеют тип REAL, размерность `(nvec)`, кроме
+`teb_troad_before(nvec,teb_nroad_layer)`. Значения определены только для
+обработанных городских точек окна `ivstart:ivend`. Блочный API последовательно
+вызывает физику с рабочим индексом 1; хвосты OUT вне маски не используются.
+
+| Аргумент API | Внутренний источник | Единицы | Нормировка |
 | --- | --- | --- | --- |
-| A (решение) | локальная в `teb_interface` | по умолчанию; числа совпадают с текущим B, поскольку диагностики и сейчас не переживают вызов | 202 аллокации на шаг·блок |
-| B | модульная в `MODULE sfc_teb` (`SAVE` + «первый вызов / смена `nvec`») | если диагностики должны переживать шаг | меняет числа: первый подшаг блока видит значения предыдущего ⇒ нужен A/B-прогон; не потокобезопасно и несовместимо с GPU-сборкой (`H:COSMO/sfc_interface.f90:2803` → `!$acc end parallel` выше вызова) |
-| C | у хоста: `TYPE(DIAG_MISC_TEB_t)` в `H:COSMO/sfc_teb_data.f90` (там уже `TARGET, ALLOCATABLE`, строки 26 и 38), аллокация в `H:COSMO/sfc_interface.f90:4769` → `SUBROUTINE sfc_in_wkarr_alloc (nproma, ke_soil, ke_snow)`, освобождение в `H:COSMO/sfc_interface.f90:5249` → `SUBROUTINE sfc_in_wkarr_dealloc` | если COSMO должен читать 119 диагностик напрямую | COSMO получает зависимость от `MODD_DIAG_MISC_TEB_n` (сейчас её нет) и `+1` аргумент в `teb_interface`; нужны одинаковые `kind` с обеих сторон |
-| D | переходный: `DMT` — **optional** аргумент `teb_interface`, при отсутствии создаётся локальный (как A) | чтобы ввести C позже, не меняя вызов хоста | временно две ветви кода |
+| `teb_troad_before` | `TSTATE%XT_ROAD` | K | — |
+| `teb_ucanyon` | `DMT%XUCANYON` | m/s | — |
+| `teb_vcanyon` | `DMT%XVCANYON` | m/s | — |
+| `teb_tsroof` | `DMT%XTS_ROOF` | K | — |
+| `teb_tswalla` | `DMT%XTS_WALL_A` | K | — |
+| `teb_tswallb` | `DMT%XTS_WALL_B` | K | — |
+| `teb_shfl` | `DMT%XH_TOWN` | W/m2 | город |
+| `teb_lhfl` | `DMT%XLE_TOWN` | W/m2 | город |
+| `teb_qvfl` | `DMT%XQVFL` | kg/m2/s | город |
+| `teb_tstown_s` | `DMT%XTSTOWN_S` | K | — |
+| `teb_qstown_s` | `DMT%XQSTOWN_S` | kg/kg | — |
+| `teb_wstown` | `DMT%XWSTOWN` | m H2O | город |
+| `teb_runoff_town` | `DMT%XRUNOFF_TOWN` | kg/m2/s | город |
+| `teb_tssnow_town` | `DMT%XTSSNOW_TOWN` | K | площадь снега |
+| `teb_wsnow_town` | `DMT%XWSNOW_TOWN` | m H2O | непроницаемая часть |
+| `teb_rsnow_town` | `DMT%XRSNOW_TOWN` | kg/m3 | площадь снега |
+| `teb_frsnow` | `DMT%XFRSNOW` | - | непроницаемая часть |
+| `teb_hsnow_town` | `DMT%XHSNOW_TOWN` | m | непроницаемая часть |
+| `teb_tch_town` | `DMT%XTCH_TOWN` | - | — |
+| `teb_shfl_snow` | `DMT%XSHFL_SNOW` | W/m2 | непроницаемая часть |
+| `teb_lhfl_snow` | `DMT%XLHFL_SNOW` | W/m2 | непроницаемая часть |
+| `teb_snow_melt` | `DMT%XSNOW_MELT` | kg/m2/s | непроницаемая часть |
+| `teb_alb_so` | `DMT%XALB_SO` | - | город |
+| `teb_emis_town` | `DMT%XEMIS_TOWN` | - | город |
+| `teb_hwaste` | `DMT%XH_WASTE` | W/m2 | город |
+| `teb_hvac_cool` | `DMT%XHVAC_COOL` | W/m2 | пятно здания |
+| `teb_hvac_heat` | `DMT%XHVAC_HEAT` | W/m2 | пятно здания |
+| `teb_dqs_town` | `DMT%XDQS_TOWN` | W/m2 | непроницаемая часть |
+| `teb_gflux` | `DMT%XGFLUX_TOWN` | W/m2 | город |
+| `teb_shfl_rf` | `DMT%XH_ROOF_FR` | W/m2 | взвешенный вклад |
+| `teb_shfl_rd` | `DMT%XH_ROAD_FR` | W/m2 | взвешенный вклад |
+| `teb_shfl_wl` | `DMT%XH_WALL_FR` | W/m2 | взвешенный вклад |
+| `teb_ac_rf` | `DMT%XAC_RF` | m/s | — |
+| `teb_ac_rd` | `DMT%CAN%PAC_ROAD` | m/s | — |
+| `teb_ac_wl` | `DMT%XAC_WL` | m/s | — |
+| `teb_ac_top` | `DMT%XAC_TOP` | m/s | — |
+| `teb_tch_rf` | `DMT%XTCH_RF` | - | — |
+| `teb_tch_rd` | `DMT%CAN%PCH_ROAD` | - | — |
+| `teb_tch_wl` | `DMT%XTCH_WL` | - | — |
+| `teb_tch_top` | `DMT%XTCH_TOP` | - | — |
+| `teb_wind_top` | `DMT%XWIND_TOP` | m/s | — |
+| `teb_cd_garden_atm` | `DMT%ATM%PCD_GARDEN` | - | — |
+| `teb_ch_garden_atm` | `DMT%ATM%PCH_GARDEN` | - | — |
+| `ahf_traffic_now` | `DMT%XAHF_TRAFFIC_NOW` | W/m2 | город |
 
-**Чего не делать.** Не оставлять `DMT` в `TEB_GARDEN_STRUCT` (текущее состояние: аллокация на
-подшаг плюс копирование наружу), не выделять его в `CALL_DRIVER` (вызывается по колонке, `nvec`
-ему неизвестен) и не трогать `call_teb_interface.F90` — это `PROGRAM` (тест: `nsteps = 3`,
-`nvec = 14`), а не боевой путь.
+«Город» — единица горизонтальной площади городского тайла; внешняя доля
+города COSMO повторно не включается в API. «Непроницаемая часть» — нормировка
+на крышу + дорогу. `teb_shfl_rf/rd/wl` уже содержат множители
+`XBLD`, `XROAD`, `XWALL_O_HOR` соответственно; источник стенового вклада —
+`XH_WALL_A`. `teb_hwaste` приведён физикой к площади города, тогда как
+`teb_hvac_cool/heat` сохраняют нормировку мощности BEM на пятно здания.
 
-**Работы по B** (порядок повторяет `A_dev`, фазы 4b–4d):
+Сток и таяние — потоки, без умножения на `dt`. Запасы воды/снега, уже выраженные
+в m H₂O, не требуют повторного множителя `0.001`. API возвращает эмиссивность
+`teb_emis_town`, а не тепловое альбедо. `CD/CH` безразмерны, `AC` — m/s;
+дорожные `teb_ac_rd/teb_tch_rd` относятся к ветви CAN, в том числе при CBS.
+Все знаки и площадные веса сохраняются как в TEB.
 
-1. перенести `modi_diag_misc_teb_util.F90` в `B:src_struct`; убрать локальный `DMT` из
-   `TEB_GARDEN_STRUCT` и `DMT` из `ALLOC_TEB_STRUCT`/`DEALLOC_TEB_STRUCT`; добавить локальный
-   `DMT` и `ALLOC`/`DEALLOC` в `teb_interface`; дописать `DMT` в конец подписи `CALL_DRIVER`;
-   обновить `Makefile`/`mkmf`;
-2. в `B:src_driver/call_driver.F90` заменить передачу 83 диагностических dummy на
-   `DMT%X…(i:i)` и убрать копирование `P… = DMT%X…` из физики; блок `XUNDEF` оставить только
-   для 15 полей (`TEB_MSU_containers.md`, §5);
-3. читать из контейнера всё, что B отдаёт хосту; внутренние носители, оставшиеся без
-   потребителя, удалить.
+`ahf_traffic` остаётся годовым входом; `ahf_traffic_now` — отдельный текущий
+выход. История городских `*_NOW` остаётся у хоста. `teb_troad_before` —
+снимок после загрузки/cold-start и до физики, остальные новые OUT — после шага.
 
-**Проверки.** Сборка B (`FC=gfortran`), тест `PROGRAM call_teb_interface` (3 шага) против
-`output_ref/`, затем длинный прогон; для варианта B — обязательная сверка «до/после» на одном
-форсинге.
+Неактивные режимы: при DEF мощности `teb_hvac_cool/heat` равны нулю без чтения
+неопределённых HVAC-полей DMT; физические контейнеры этим экспортом не меняются.
+Без снега температура/плотность снега возвращают `XUNDEF`, запасы и снежная
+доля — нули. Атмосферная пара сада берётся из URBAN_DRAG для типов EXT/EXT_NEU;
+в прокси-режимах она остаётся `XUNDEF`. При выключенном саде пару не применять,
+даже если URBAN_DRAG вычислил коэффициенты для выбранного внешнего типа.
 
----
+Садовый `teb_tcm_gd` — INOUT, `teb_tch_gd` — OUT; это каньонная пара,
+отличная от новых атмосферных выходов. Начальный CD сада предоставляет хост:
+`XUNDEF` включает штатную нейтральную формулу. `teb_lshade` — IN,
+`teb_albwin` — OUT, 30 полей состояния и два межшаговых входа сохраняют INOUT.
+`TEB_BIND_STATE` только читает аргументы хоста; `TEB_UNBIND_STATE` сохраняет
+INOUT для записи окна состояния и возвращает оконное альбедо как OUT.
 
-## 3. Матрица: `A_ctrl` и `A_dev` против B
+Проверки и измерения реализации — §0 `TEB_MSU_change_history.md`.
 
-Читается так: «величина (кто считает в B) — чем это в наших ветвях — вердикт для сопряжения».
+## 4. Физика `src_dev` и настройки первого сопряжённого варианта
 
-### 3.1 Сад
+### 4.1 Изменения, которые нужно сохранить
 
-| аспект | B | A_ctrl | A_dev | вердикт |
+* Обычная сборка A содержит исправления D1–D10, включая водный путь таяния,
+  веса потоков, защиту радиации выключенных поверхностей и согласованный
+  `H−zd` в аэродинамике. Замена контейнеров не должна возвращать прежнюю физику B.
+* `TEB_INIT_STATE` вынесена в API. На `ntstep==0` она разрешает `XUNDEF` для
+  температуры/влажности здания и якорит профили крыши/стен, пол и внутреннюю
+  массу на начальной `XTI_BLD` (`A:src_api/teb_host.F90:684`). Старый пункт
+  «в A не инициализируются пол/масса» снят. COSMO первоначально выделяет
+  `teb_ti_bld=0` (`H:src/src_allocation.f90:1942`), поэтому вызывающий код H обязан
+  задать физическое начальное значение или `XUNDEF` до cold-start: нуль не
+  распознаётся A как пропуск.
+* Cold-start выполнять один раз для каждой активной ячейки при `ntstep==0`,
+  после загрузки её входов; при restart с `nstart>0` не выполнять. Константы
+  `INI_CSTS` нужны до вычисления производных параметров и форсинга также при
+  restart. Масштабирование `XCAP_SYS_RAT` числом этажей нельзя повторять.
+  После физики на шаге 0 синхронизировать `XTSTOWN_S_NOW=XTSTOWN_S`, как в
+  `A:src_api/sfc_teb.F90:432`; начальную историю H также задать явно по своей
+  ячейке. Внутренние `DMT%…_NOW` в новый экспорт не включать.
+* Актуальная снежная защита есть в A и в B/H. В A `teb_snow_check` по умолчанию
+  `.FALSE.`, в B фильтр постоянный. Для coupling задать `.TRUE.` явно через
+  `MODD_SURF_PAR`: это не аргумент `TEB_FILL_PARAMS`. Порог нового покрова —
+  `1.e-8 kg/(m²·s)`; существующий снег принимает исходные осадки.
+* Городские температура и плотность снега нормируются на заснеженную площадь;
+  при отсутствии снега возвращается `XUNDEF`. Запас уже взвешен снежной долей,
+  повторный вес не вводится. Эти изменения согласованы в A и B; переносить
+  старую диагностическую формулу из прежнего чек-листа нельзя.
+* Сохранить исправления H из `C:docs/202611_snow_and_tile_physics_changes.md`:
+  отдельные поля снежного альбедо/эмиссивности дороги в обмене блоков,
+  проверку доли **и** запаса снега перед TERRA, защиту толщины снега,
+  сохранение воды/льда холостой городской TERRA и природный почвенный профиль
+  тайла 0 при `itype_urb=2`. Они не заменяются вместе с библиотекой TEB.
+
+### 4.2 Явная конфигурация и ожидаемые расхождения
+
+Предлагаемый первый опыт использует актуальную исправленную физику A с CBS off.
+Перечисленные настройки адаптера не следует брать неявно из offline-намлиста.
+
+| Настройка / аспект | Первый вариант / контроль | Следствие |
+| --- | --- | --- |
+| Сад | Флаг H + `CTYPE_GARDEN='EXT'`; при выключении — нулевая доля | Потоки рассчитывает TERRA; внутренние `PROXY_*` не подменяют внешний сад |
+| Кровля | Выключена до задания полного контракта §3.1; затем `CTYPE_GREENROOF='EXT'`, `LGREENROOF_EXT=.TRUE.` | Для положительной доли нужны согласованные `z0/qv/Ts/потоки` |
+| CBS | `LCBS_SCHEME=.FALSE.`; для следующих опытов `XTAU_HW_THRESH=0.5`, `XTAU_HW_WIDTH=0.25` | Затем отдельно проверить H/W=0.1/0.3/0.5/0.75 и обе ветви обмена |
+| `z0`, `zd` города | `'0.075H'`, `'H/3'` для первого сравнения с B | Дефолт offline A `'0.1H'` иначе добавляет расхождение; условие `H−zd>z0` обязательно |
+| `z0/z0h` сада/кровли | `4.` / `4.` | Сохранить тип `EXT`; `EXT_NEU` — отдельный диагностический опыт, не режим воспроизведения B |
+| Направление дорог и стены | `CROAD_DIR='UNIF'`, `CWALL_OPT='UNIF'`, направление `0.` | Как в B; ориентированный вариант проверяется позже |
+| Шторы, панели, полив | `.FALSE.`; доля панелей `0.` | Как в B; параметры неактивных опций всё равно задать детерминированно |
+| Использование здания | `XRESIDENTIAL=1`, `XDT_RES=XDT_OFF=0`, `XCAP_SYS_HEAT=90` | В B сдвиги уставок равны 0 K; offline A предлагает 3 K, это не эквивалентные дефолты |
+| Местное время трафика | Явно задать UTC-смещение эксперимента | Не путать с UTC-временем солнечной геометрии; в offline A дефолт `3` |
+| Трение внешних поверхностей | Сохранить A: моментный коэффициент своего режима, на первом подшаге нейтральный fallback | В B нейтральные формулы с жёсткими `z0=0.1/0.01 m`; точного равенства ожидать нельзя |
+| Крыша, толщина слоёв 2–4 | A: `0.098/0.132/0.098 m`; B: `0.1568/0.2112/0.1568 m` | Толщины заданы в заполнителях, не передаются нынешним интерфейсом H. Для изолированного сравнения нужен общий профиль материалов; это отдельное изменение |
+| BEM: `MECH` и разрешение вентиляции | A: `5.0` объёма/ч и порог `THEAT_TARGET+4 K`; B: `0.25` и `THEAT_TARGET` | Указать как ожидаемую физическую разницу; автоматическое выравнивание A под B не требуется |
+| Второй расчёт естественной вентиляции | В A внутри `IF (GNAT_VENT)` без повторного выбора `AUTO/MECH`, в B выбор режима сохраняется | Отдельный BEM-тест; CBS off не устраняет эту разницу |
+| MRT, пешеходный ветер | Сохранить зависимости `URBAN_MRT` и новых диагностик | MRT — диагностика; её наличие не означает обратного влияния на COSMO |
+
+Для сравнения влияния исправлений доступен `TEB_UPSTREAM_CONS_BUGS` в A
+(D1–D5, D10). Это исследовательская сборка в **отдельном** каталоге объектов;
+целевой вариант собирается без этого макроса. Макрос не воспроизводит всю B,
+её BEM, материалы или интерфейс. Неинициализированные чтения B также нельзя
+использовать как численный эталон, который нужно воспроизвести.
+
+## 5. Чек-лист обязательных условий
+
+Пункты относятся к будущей реализации; состояние исходников, уже учтённое
+при планировании, описано в §1–§4.
+
+- [ ] Зафиксирован один источник физики A и отдельная контрольная сборка B;
+  в линковке нет смешанных `.o/.mod`, второго `sfc_teb` и offline-программы.
+- [ ] На стыке H→A есть явные интерфейсы; `REAL` A соответствует `vpp` H
+  и общему ABI (§6, шаг 2).
+- [ ] H передаёт блок с `nvec=nproma`; общий API A обрабатывает только точки
+  `ivstart:ivend` с `sa_uc>0`, используя рабочий индекс 1. Пять слоёв проверяются;
+  INOUT вне маски окна сохраняются, OUT используются только в обработанных точках.
+- [ ] Полностью проведены состояние, все требуемые выходы §3.2 и межшаговая
+  память §2.3; нет чтений истории соседней ячейки.
+- [ ] Первый шаг, restart, начальные температуры, коэффициенты и глобальные
+  физические константы инициализируются в правильном порядке.
+- [ ] Внешние `z0/qv/Ts`, эмиссивности, знаки, площади нормировки, накопления
+  стока и таяния прошли проверки; B-входы кровли не подменены `qv=0.3`.
+- [ ] Включён исправленный фильтр следового снега A; сохранены новые защиты H.
+- [ ] Контракт радиации сада и диагностик `teb_ilmo_*` закрыт явно, без
+  заполнения отсутствующих выходов произвольными нулями.
+- [ ] Последовательный, многоколоночный и restart-стенды, затем короткий
+  сопряжённый прогон удовлетворяют критериям §7.2.
+
+## 6. Конкретный план дальнейшей работы
+
+**Цель — единый `A:sfc_teb::teb_interface` для offline и COSMO.**
+Аудит §9 и передача `teb_ustar_town`/`teb_cd_greenroof_atm` выполнены.
+**Шаги 1–6 выполнены**: контракт §3.4, явные INTENT, OPTIONAL OUT, блочная
+обёртка, отделение offline-форсинга и библиотечная сборка реализованы.
+Проверки шага 7 выполнены для автономной GNU/UCRT64-сборки и внешних
+потребителей библиотеки. Дополнительный блочный offline-драйвер и постоянные тесты
+реализованы в §7.3 (дополнение 7а); пределы проверки чувствительности памяти
+и открытый вопрос редкого FPE указаны там же. Совместимость с
+компилятором/ABI COSMO ещё предстоит проверить. Шаги 8–12 относятся
+к последующему переносу в COSMO. `src_ctrl` и физические формулы не менять.
+Все сборки, разовые стенды и результаты размещать вне репозитория по `AGENTS.md`.
+
+### 6.1 Первоочередная подготовка общего API в TEB-Ru
+
+Сохранён существующий плоский API. Новые результаты добавлены
+в конец подписи как именованные `OPTIONAL, INTENT(OUT)` массивы, заполняемые
+только при `PRESENT`. Существующие аргументы, их порядок и смысл сохранены,
+поэтому offline-хост может не запрашивать новые выходы. Набор, обязательный для
+COSMO, фиксируется в контракте и проверяется внешним потребителем API.
+`DMT` остаётся внутренним рабочим контейнером, а не объектом обмена с COSMO.
+
+| Шаг | Где и что сделать | Проверяемый результат |
+| --- | --- | --- |
+| 1 — выполнен | По матрице §3.2 определить имена недостающих выходов `A:src_api/sfc_teb.F90`, их типы, размерности, единицы, площади нормировки и значения в неактивных режимах. Разделить годовой вход трафика и его текущий выход; использовать смысловые имена `USTAR`, `CD/CH_GARDEN_ATM`. Историю `*_NOW` оставить хосту | Полный перечень выходов API с источниками A и отображением в H; нет неопределённых единиц или повторного экспорта 30 уже проведённых полей состояния |
+| 2 — выполнен | Оформить `INTENT` существующих аргументов в `sfc_teb`, `TEB_BIND_STATE/TEB_UNBIND_STATE` и `CALL_DRIVER`: `teb_tcm_gd` — INOUT, `teb_tch_gd/teb_albwin` — OUT, `teb_lshade` — IN, состояния — INOUT. Явно ограничить публичный экспорт модуля. Зафиксировать числовой kind API и требования к ABI | Модульный вызов и offline компилируются; компилятор проверяет направления. Для переноса отдельно подтверждается `kind/storage_size`: `REAL` A соответствует `vpp` H; флаги A не распространяются вслепую на COSMO |
+| 3 — выполнен | Добавить необязательные текущие выходы из `DMT`: городские и поверхностные потоки/температуры, снег и вода, солнечное альбедо и эмиссивность, ветер, коэффициенты обмена, BEM/HVAC и текущий трафик. Отдельно предусмотреть снимок дороги до физики (§3.2), заполняемый после cold-start/загрузки состояния. Передавать величины в единицах TEB; преобразования H оставить вызывающему коду | Каждый запрошенный выход соответствует своему источнику, моменту и режиму; `CD/CH` не подменены проводимостями или `ILMO`. Начальный профиль дороги не приходится повторно вычислять в H; старый offline-вызов без новых выходов даёт прежний результат |
+| 4 — выполнен | Подготовить блочный вход общего API по §2.2: проверять `nvec` и границы окна, поддержать пустое окно; перенести заполнение контейнеров, cold-start и возврат результатов внутрь цикла по городским точкам. Загружать каждую колонку в рабочее окно `1:1`, вызывать физику с `icell=1`; в `TEB_HOST_ENSURE` проверять рабочий размер 1 и пять слоёв. Сохранить контракт трёх межшаговых коэффициентов и разделить индексы хоста/рабочей памяти в логировании | Блочный вход допускает `nvec>1`, физика остаётся поколоночной. Каждая колонка получает своё состояние и cold-start; тёплое состояние не переинициализируется. INOUT вне городской маски окна сохраняются, OUT используются только для обработанных точек; ошибочная размерность обнаруживается до доступа к массивам |
+| 5 — выполнен | Удалить неиспользуемые `USE MODI_OL_*` из `CALL_DRIVER`; обновление `MODD_FORC_ATM%XZREF/XUREF` перенести в offline-хост с сохранением порядка относительно интерполяции форсинга. Отдельно проверить их инициализацию перед первой интерполяцией (примечание ниже). Проверить тихий вызов API с пустыми фильтрами логирования | Общий API не читает offline-файлы и не обновляет его форсинг; перенос зависимости сохраняет offline-результаты. Любая коррекция первой инициализации проверена отдельно; вызов без логирования не создаёт CSV |
+| 6 — выполнен | Перенесены девять offline-файлов в `src_offline/` без изменения содержимого. Добавлены явные манифесты библиотеки/offline и зависимости `USE`/include; цели `library`, `offline`, `all`. Offline линкуется с общей библиотекой; объекты/модули частей и платформенная поддержка разделены, все результаты вне репозитория | Библиотека собирается из комплекта без `src_offline/`; внешний потребитель импортирует только публичный `sfc_teb`. Все 18 CSV шести режимов совпали с контролем после шага 5; полный протокол — §0 истории |
+| 7 | Использовать существующие проверки и внешний стенд §9.7. Дополнить их блочными вызовами `nvec>1`: сравнить с отдельными вызовами каждой колонки, проверить AB/BA, `ivstart>1`, неполный блок, пустое окно и смешанную городскую маску. Проверить все OUT, пропуск OPTIONAL, cold-start/restart, три межшаговых коэффициента, освобождение рабочей памяти и адресацию/периодичность логирования. Выполнить необходимые A/B offline-прогоны | Под bounds/FPE-контролем блочный и отдельные вызовы дают одинаковые состояния и физические результаты; INOUT вне маски окна сохраняются, выходы и записи логов относятся к своей ячейке. Существующие схемы и формат CSV сохранены; стенды и результаты остаются вне репозитория |
+| 7а — реализован | Создать дополнительный диагностический offline-драйвер с настраиваемым `nvec>1`, однородными колонками и адресными изменениями входов отдельных ячеек. Собирать его отдельно через общую библиотеку; предусмотреть автоматический контроль равенства, физической реакции и независимости колонок. Подробности — §7.3 | Реализация и команды запуска — §7.3. Для одинаковых входов все ячейки совпадают с отдельным прогоном; изменённая ячейка совпадает со своим отдельным прогоном и показывает ожидаемую реакцию, остальные сохраняют базовый результат |
+
+**Уточнения к шагам 4–5.** При cold-start API уже задаёт начальные
+`teb_ustar_town` и `teb_cd_greenroof_atm`; начальный CD сада задаёт хост
+(`XUNDEF` включает штатный fallback). Это поведение сохраняется для каждой
+обрабатываемой колонки. Испытания шагов 1–3 используют отдельные вызовы
+`nvec=1`; блочная обёртка дополнительно проверена при `nvec=16`, с неполным
+окном, городской маской, перестановкой, пустыми окнами и файловым restart
+в новом процессе. Протокол — §0 `TEB_MSU_change_history.md`.
+
+В offline `run_teb_offline` задаёт `XZREF/XUREF` сразу после `OL_ALLOC_ATM`,
+до первой интерполяции. `CALL_DRIVER` больше не использует `MODD_FORC_ATM`
+и `MODI_OL_*`; зависимости Makefile согласованы. Механический перенос с прежним
+порядком и коррекция первой инициализации проверены отдельно. Последняя меняет
+плотность, передаваемую внешним эмуляторам в первом подшаге; её численный эффект
+зафиксирован в §0 истории. Итоговые результаты совпадают с исходным API,
+получившим ту же коррекцию инициализации. Это изменение offline-хоста,
+не формул физики TEB.
+
+**Реализация шага 6: библиотека и разделение каталогов.**
+Девять offline-файлов перенесены без изменения содержимого. Текущая структура:
+
+```text
+src_dev/
+    src_api/           общий публичный API, TEB_HOST и TEB_LOG
+    src_driver/        общий CALL_DRIVER, Wang, трафик и служебные зависимости
+    src_teb/           физика TEB/BEM
+    src_struct/        типы и управление контейнерами
+    src_proxi_SVAT/    общие физические функции сада и кровли
+    src_solar/         солнечная геометрия
+    src_offline/       только автономный хост и его ввод/интерполяция форсинга
+        run_teb_offline.F90
+        modd_forc_atm.F90
+        ol_alloc_atm.F90
+        ol_read_atm.F90
+        ol_read_atm_ascii.F90
+        ol_time_interp_atm.F90
+        read_surf_atm.F90
+        open_close_bin_asc_forc.F90
+        add_forecast_to_date_surf.F90
+```
+
+Перечень переноса проверен по фактическим `USE`/`CALL`. Граница
+определяется потребителями, а не названием текущего каталога `src_driver`.
+`call_driver.F90`, `wind_profile_wang.F90`, `ahf_traffic_now.F90`,
+`modd_reprod_oper.F90`, `modd_surf_conf.F90` и цепочка
+`abor1_sfx.F90` → `close_file.F90` →
+`close_file_asc.F90` остаются вне `src_offline`: они входят в зависимости
+общего ядра. `wrap_setlocale.c` также не относится исключительно к offline;
+его объект и флаги учитываются отдельно при финальной линковке Windows/GNU.
+Оставшиеся вспомогательные файлы, включая `mode_char2real.F90` и
+`modd_arch.F90`, учитывать по замыканию зависимостей; не включать весь
+`src_driver/` в архив автоматически и не переносить файлы без offline-потребителя.
+Встроенные эмуляторы внешнего сада/кровли перемещаются вместе с
+`run_teb_offline.F90`; вызываемые ими общие физические функции остаются
+в библиотеке. Другие каталоги физики на этом этапе не реорганизуются.
+
+Состав реализации и проверки:
+
+1. `make/teb_sources.mk` задаёт 138 общих Fortran-файлов, четыре общих
+   `.cdk` include-файла, девять offline-файлов и отдельный платформенный C-файл.
+   `mode_char2real.F90`/`modd_arch.F90` и экспериментальные копии физики
+   не входят в архив. `make/teb_dependencies.mk` задаёт фактические
+   зависимости модулей и include-файлов; ложная зависимость `TEB_LOG`
+   от `MODD_FORC_ATM` устранена.
+2. Цели `library`, `offline`, `all` и `platform` используют один общий архив
+   на профиль; общие и offline `.o/.mod` раздельны. Чистая библиотечная
+   сборка проверена на комплекте исходников, в котором нет `src_offline/`.
+   Внешний потребитель импортирует из модели только `teb_interface` и
+   `teb_real_kind`, выполняет cold/warm-вызовы без чтения namelist и CSV.
+3. Все выходные пути абсолютные и внешние относительно checkout. Профиль
+   записывает настройки компиляции/линковки и отклоняет несовместимое
+   повторное использование. Проверены инкрементальная сборка без пересборки,
+   восстановление удалённого `.mod` и безопасная очистка именованных
+   артефактов с сохранением постороннего файла. GNU Make >=4.0 и POSIX shell
+   нужны для response-файла архива и рецептов; команды — в README.
+4. Сохранены прежние числовые флаги GNU и Intel-профиля. Проверен GNU/UCRT64;
+   Intel/COSMO ещё не проверены. Windows/GNU `wrap_setlocale.c` и его флаги
+   применяются при финальной линковке, не включаются в архив физики.
+5. Относительно текущей версии после шага 5 все 18 CSV шести режимов
+   совпали побайтово. Внешние проверки повторены через библиотеку:
+   4704 сравнения отдельных колонок с обоими отрицательными контролями и
+   4032 блочных сравнения, маски, OPTIONAL, логирование и restart в новом
+   процессе. Протоколы — §0 `TEB_MSU_change_history.md`; новые стенды
+   остаются вне репозитория. Изменений инициализации/формул в шаге 6 нет.
+
+**Условие перехода к COSMO:** шаги 1–7 приняты; общий API возвращает требуемые
+результаты и проверен внешним потребителем. Подготовка не включает новые схемы,
+панели, векторизацию, OpenMP/GPU, изменение формул и перенос исправлений в `src_ctrl`.
+
+### 6.2 Последующее подключение в COSMO
+
+Этот этап требует отдельного перехода к работе в C. До изменения сборки сохранить
+контроль B: SHA, настройки, флаги, бинарник и минимальный COSMO-кейс.
+Каталог `C:TEB_Ru_src_dev` — предлагаемое место переноса исходников, сейчас он не создан.
+
+| Шаг | Где и что сделать | Проверяемый результат |
+| --- | --- | --- |
+| 8 | Подключить библиотеку A и единственный `A:sfc_teb`, исключив `H:src/sfc_teb.f90` и старые B-объекты. В `H:src/sfc_interface.f90` сохранить блочный вызов: `nvec=nproma`, окно `1:n_landgp(ib)`, `iblock=ib`; явно передать дату/настройки, все состояния и новые OUT. Провести сад `EXT` и `z0/qv` кровли; согласовать ε/альбедо, знаки, `dt` и площади | Общий API вызывается из COSMO; контейнеры и поколоночный цикл обслуживает A. Маска, хвосты блоков, типы, садовый тайл и новые буферы кровли корректны; нет смешанных `.o/.mod` |
+| 9 | Сохранить историю своей ячейки (`*_NOW`, `teb_troad_now`), провести два новых INOUT и существующий CD сада по ячейкам/блокам и в restart. Задать cold-start здания вместо 0 K, определить начальные диагностические значения и финализацию | Две неодинаковые колонки, перестановка и несколько блоков совпадают с отдельными вызовами API. Непрерывный расчёт и файловый restart совпадают; HVAC не масштабируется повторно |
+| 10 | Собрать и выполнить короткие CPU/MPI COSMO-прогоны: сухой, дождь, следовой снег, существующий покров, полное таяние; проверить сохранение исправлений H из §4.1 | Нет NaN/Inf и использования `XUNDEF` в активных вычислениях; обмен блоков и природный почвенный тайл корректны; сравнение с B объяснено по процессам |
+| 11 | После приёмки CBS off включить CBS в отдельных опытах, затем варианты BEM, Wang и `EXT_NEU`; для CBS проверить соответствие экспортируемой ветви реальному форсингу TERRA | Эффекты новых схем отделены от ошибок адаптера; зафиксирована область допустимых режимов |
+| 12 | По результатам обновить этот чек-лист, документацию сборки C и описание контракта/restart; записать численные протоколы в историю. Оптимизацию, OpenMP/GPU и векторизацию вынести в следующий этап | Принятый воспроизводимый coupled-вариант A с описанными ограничениями и способом вернуться к контролю B |
+
+## 7. Решения и критерии приёмки
+
+### 7.1 Решения перед реализацией
+
+| Вопрос | Предлагаемое решение / что проверить |
+| --- | --- |
+| Где адаптировать вызов? | Вызывать общий `A:sfc_teb::teb_interface` из `H:sfc_interface` один раз на блок с `nvec=nproma`. Поколоночный цикл, контейнеры размера 1 и cold-start обслуживает A; поля/единицы COSMO преобразует H. Модуль `H:sfc_teb` исключить из сборки |
+| Как экспортировать результаты A? | Сохранить плоский API; использовать добавленные в конец необязательные OUT (§3.4). Offline может их не запрашивать; COSMO обязан запросить свой согласованный набор. Прямой доступ H к `DMT` не использовать |
+| Память на блок или на колонку? | Массивы состояния и истории блоков принадлежат H; рабочие контейнеры A имеют размер 1 и загружаются заново для каждой городской колонки. Основные 30 полей и два новых INOUT уже проведены через A; restart-представление H проверить в шаге 9 |
+| Какая физика целевая? | Обычный исправленный A; для первого запуска CBS off и настройки §4.2. Сопоставимость с B не означает побитовое равенство разных физических реализаций |
+| Радиация TERRA_GARDEN | Сохранить садовые `XABS_SW/LW_GARDEN`: по фактическим аргументам их уже возвращает B. Проверять нормировку по площади сада; локальная смесь дороги и сада в B не является выходом этого стыка |
+| Нужна ли обратная связь коэффициентов кровли? | Текущий H заимствует потоки природного тайла и не имеет обратного выхода `CH/CD` кровли. Ввод `z0/qv` обеспечивает входной контракт A, но не создаёт самостоятельную двустороннюю модель зелёной крыши |
+| Что делать с `teb_ilmo_*`? | Сначала сохранить фактический контракт §9.5: `u*`, `CD_ATM`, `CH_ATM`. В новом API дать им соответствующие имена. Отдельные настоящие 1/L требуют собственного определённого экспорта; локальная формула `ZILMO_TOP_FLUX` задаёт L и не заменяет действующие выходы |
+| Профили материалов | Первое целевое поведение — профиль A; различие толщины крыши протоколировать. Для сравнения только влияния интерфейса использовать общий профиль и одинаковую инициализацию, а не относить всю разность к coupling |
+| BEM и трение `EXT` | Сохранить A и проверить отдельными опытами; возвращение констант/формул B — самостоятельный выбор физики, а не обязательная часть адаптера |
+
+### 7.2 Минимальная матрица испытаний
+
+| Проверка | Критерий |
+| --- | --- |
+| Внешний потребитель общего API / вызов из COSMO | Одинаковые входы, параметры, начальное состояние, компилятор и порядок операций → одинаковые сохраняемые состояния и выходы; при изменении порядка операций допуск обосновывается отдельно |
+| Две неоднородные колонки / перестановка / несколько блоков | Блочный вызов даёт результат отдельных прогонов каждой ячейки, включая сохраняемую в H историю `*_NOW`, `USTAR`, потоки и коэффициенты. INOUT вне городской маски окна сохраняются; OUT используются только для обработанных точек. Проверены пустое окно и неполный блок |
+| Сад off / сад EXT / кровля EXT / обе поверхности | Геометрия согласована с флагами, активные входы физичны, коэффициенты относятся к тому же тайлу и уровню воздуха; выключенные поверхности не вызывают арифметику с `XUNDEF` |
+| Сток, таяние, запасы при разных `dt` | Единицы §3.3 выполняются; интеграл потока равен переданному накоплению, водный бюджет учитывает дождь, снег, испарение, сток и полив без повторных площадных весов |
+| Снег | Нулевой запас; голая поверхность с `PSR=1.e-9`, `1.e-8`, `2.e-8`; снег только на дороге/кровле; существующий снег без осадков и с подпороговыми осадками; полное таяние. `XUNDEF` вне покрова не попадает в активную арифметику, свойства нормируются по заснеженной площади |
+| Cold-start / restart | Номер шага 0 инициализирует каждую ячейку один раз; `nstart>0` сохраняет прочитанное состояние. Непрерывный расчёт и restart дают одинаковое продолжение при той же декомпозиции |
+| BEM / Wang / CBS | Уставки, вентиляция, шторы и ветер проверены по отдельности; CBS включает случаи переходного τ и не меняет без объяснения контракт TERRA |
+| Короткий COSMO-прогон | Проверены `T_CANYON`, `Q_CANYON`, `RN_TOWN`, `TI_BLD`, `HVAC_*`, снег, водные запасы, потоки в атмосферу и сад, `tch/tcm`, радиационные свойства и естественный почвенный профиль тайла 0 |
+
+Существующие `container_ab_compare.py`, `container_ab_matrix.py`,
+`bem_option_sensitivity.py`, `compare_cbs_scheme.py` и эмуляторные стенды полезны
+как регрессия A, но не заменяют многоколоночный COSMO↔TEB-стенд и restart-тест.
+Протоколы текущих автономных проверок не следует выдавать за проверку нового coupling.
+
+### 7.3 Блочный диагностический offline-драйвер
+
+**Статус: реализован.** Контракт и критерии ниже сохранены из согласованного
+плана; команды и ограничения реализации приведены в конце раздела.
+Драйвер воспроизводит
+поступление массивов в публичный API, как при блочном вызове COSMO. Физика
+внутри общей библиотеки остаётся поколоночной. Текущий одиночный offline-драйвер
+сохраняется как самостоятельная программа; `src_ctrl` и COSMO не изменяются.
+Ранее выполненные внешние проверки `nvec=16` остаются регрессией API, но
+не заменяют запуск нового драйвера со своим формированием входов и состоянием.
+
+**Файлы и сборка.**
+
+| Файл / цель | Назначение |
+| --- | --- |
+| `src_dev/src_offline/run_teb_offline_block.F90` | Дополнительная main-программа: чтение конфигурации теста, цикл времени и блоков, вызов API и завершение расчёта |
+| `src_dev/src_offline/teb_offline_block_host.F90` | Массивы входов/состояний/выходов, заполнение однородных колонок, модификаторы отдельных ячеек, подготовка независимого одноколоночного случая и вывод проверяемых величин |
+| `python_tests/check_offline_block.py` | Постоянный запускатель и проверка сценариев; входные namelist, расчёты и отчёты создаются во внешнем рабочем каталоге |
+| Цель `offline-block` | Отдельный executable `TEB_offline_block_dev.exe`, слинкованный с той же `libteb.a`; стандартный `all` сохраняет обычный offline-executable |
+| Манифесты `src_dev/make/` и Makefile | Разделить общие offline-подпрограммы и две main-программы; не линковать два `PROGRAM` в один executable. Новые host-модули не включать в физическую библиотеку; объекты/модули блочного хоста хранить отдельно |
+
+Не копировать весь одиночный драйвер как второй независимо развивающийся
+источник defaults, парсера и физики. Новый драйвер — диагностический хост с
+явным, документированным набором базовых сценариев. Используется детерминированный синтетический форсинг с дневным прогревом,
+чтобы обеспечить активность проверяемого процесса. Подключены и обычные файлы
+форсинга через существующие `OL_*`, с проверкой совпадения `nvec=1` с обычным
+offline на одинаковых параметрах, начальном состоянии и форсинге. Полная
+совместимость со всеми namelist обычного драйвера не входит в контракт этой
+диагностической версии.
+
+**Контракт блочного хоста.**
+
+- `nvec` задаётся при запуске, не заменой константы и перекомпиляцией.
+  Основные размеры проверки: **1, 2, 7, 16, 31**. Дата, `dt`, число слоёв
+  и скалярные переключатели схем общие для блока; массивные параметры
+  и состояние могут отличаться по ячейкам.
+- На каждом подшаге выполняется один вызов `teb_interface` на блок с
+  массивами длины `nvec`. Эталонные вызовы `nvec=1` выполняются отдельно;
+  скрытый цикл внешнего хоста с `nvec=1` не считается блочным режимом.
+- Каждая ячейка хранит все 33 INOUT, включая `teb_tcm_gd`, `teb_ustar_town`
+  и `teb_cd_greenroof_atm`, а также состояние эмуляторов внешних поверхностей.
+  История выходов принадлежит хосту. Внутренний рабочий `DMT(1)` не используется
+  как массив результатов всех ячеек.
+- Однородность означает одинаковые значения по ячейкам **внутри каждого
+  входного поля**, включая геометрию, начальное состояние и коэффициенты.
+  Разные физические поля не приравниваются друг другу.
+- Модификатор применяется к явно заданной ячейке, параметру и моменту времени.
+  Производные величины форсинга рассчитываются по ячейкам после изменения
+  первичных входов. Особенно важно не размножать плотность базовой точки
+  при разных `t/qv/ps/hlev` и передавать согласованную плотность эмуляторам.
+- Для EXT-сценариев проверить все обращения к `(1)` в подготовке поверхностей:
+  ветер, радиация и коэффициенты должны относиться к своей ячейке. Обычный
+  драйвер сейчас, например, использует `teb_wind_canyon(1)`, `teb_sobs(1)` и
+  `teb_thbs(1)` внутри `PCD_GARDEN`; простого увеличения `nvec` недостаточно.
+- Параметры сценария включают как минимум размер блока, число шагов, `dt`,
+  профиль схем, режим однородности/модификатор, индекс ячейки и величину
+  изменения. Для расширенных проверок — окно, городская маска и число блоков.
+  Все входы и моменты изменений воспроизводимы; случайные значения в основной
+  приёмочной матрице не используются.
+
+**Основные сценарии и критерии.** Сначала подготовить базовый прогон `nvec=1`.
+Одноколоночные эталоны и блочный расчёт запускать в отдельных процессах,
+чтобы сохраняемая рабочая память не подменяла независимость проверки.
+
+| Сценарий | Входы | Что проверить |
+| --- | --- | --- |
+| Однородный блок | Во всех ячейках одна базовая конфигурация и один форсинг; `nvec=2,7,16,31` | На каждом подшаге все ячейки точно совпадают между собой и с отдельным `nvec=1`, включая состояния, потоки и три межшаговых коэффициента |
+| Изменение одного параметра одной ячейки | Базовый блок, в котором изменён только параметр ячейки `k`; повторить для первой, средней и последней позиции | Ячейка `k` совпадает с отдельным одноколоночным прогоном с тем же изменением и показывает заранее выбранную физическую реакцию; все остальные ячейки точно сохраняют базовый результат |
+| Разные значения одного параметра по блоку | Каждой ячейке задать своё допустимое значение, без изменения остальных входов | Каждая ячейка совпадает со своим одноколоночным эталоном; нет размножения результата первой или последней точки |
+| Перестановка ячеек | Переставить полный набор входов и состояния, сохранив соответствие идентификаторов | Выходы переставляются тем же образом; после обратной перестановки результаты точно совпадают |
+| Изменение на тёплом шаге | Несколько общих шагов, затем изменение входа/состояния только у `k` | До вмешательства результаты совпадают; после него меняется нужная ячейка. При проверке слоя дороги `teb_troad_before(k,:)` содержит переданный профиль |
+
+Для проверки реакции менять **по одному** полю, в режиме, где оно активно:
+
+| Изменение | Условия опыта | Основной признак реакции |
+| --- | --- | --- |
+| `ahf_traffic(k)` умножить на 2 | Ненулевой трафик, одинаковые дата и время | `ahf_traffic_now(k)` увеличивается ровно вдвое; дополнительно проверяется изменение городского теплового потока |
+| `urb_alb_rf_so(k)` увеличить, например на 0.15 | Дневной коротковолновый поток, ненулевая площадь обычной кровли, без снега и панелей | Меняется `teb_alb_so(k)`; после прогрева — температура кровли и/или тепловой поток |
+| `urb_hcap_rd(k)` умножить на 2 | Дневной прогрев, неизменные толщина и теплопроводность | Отличается траектория температуры дороги и её тепловой отклик |
+| `urb_h2w(k)` изменить | Фиксированные остальные входы; отдельные опыты CBS off/on | Меняются соответствующие ветру/обмену и тепловому балансу результаты; универсальную монотонность всех потоков не требовать |
+| `u(k)` увеличить, например на 1 m/s | Ненулевой ветер; отдельные опыты обычного профиля и Wang | Меняются ветер каньона и/или `teb_ustar_town(k)`, затем потоки обмена |
+| `t(k)` увеличить, например на 2 K | Допустимые неизменные `qv/ps`, согласованные производные форсинга | Отличаются температуры и sensible heat; соседние ячейки сохраняют базовый результат |
+| Температуру верхнего слоя дороги увеличить на 2 K | Только тёплый вызов: cold-start переинициализирует профиль дороги | Дорожный снимок до физики содержит ровно внесённое изменение; последующее состояние совпадает с изменённым отдельным прогоном |
+| Изменить `teb_ustar_town(k)` или `teb_cd_greenroof_atm(k)` | Тёплый шаг; Wang для первого коэффициента, активная внешняя кровля EXT для второго | Входное изменение, равенство отдельному прогону и загрузка перед физикой проверяются отдельно. Физическую чувствительность по публичным OUT здесь утверждать нельзя: ограничения приведены ниже |
+
+Величины изменений должны оставаться в допустимых физических пределах.
+Для чувствительных сравнений заранее выбрать наблюдаемые поля и порог,
+превышающий округление, с записью единиц и условий опыта. Прямые тождества
+(например, удвоение текущего трафика) проверять точно. Не считать печать
+изменённого входа доказательством реакции модели и не ослаблять критерий,
+если в выбранном режиме параметр не действует. `rho` не использовать как
+самостоятельный тест физической чувствительности ядра: этот аргумент API
+служит логированию, а физическая плотность вычисляется по первичным входам.
+
+**Полнота сравнения и расширения.** Сравнивать все 33 INOUT и все 53 OUT
+(включая запрос 44 OPTIONAL) на каждом модельном подшаге, а не только
+итоговый CSV или `H_TOWN`. Для профилей — все слои, для флагов — логическое
+равенство. Общий компилятор, точность и порядок операций должны обеспечивать
+точное равенство блочного и отдельных вызовов. Неопределённые OUT вне
+обработанной городской маски не читать; штатный `XUNDEF` в неактивной
+диагностике отличать от NaN/Inf в активном расчёте.
+
+После двух основных групп добавить маску с неурбанизированными точками,
+`ivstart>1`, хвост и пустое окно; проверить неизменность INOUT вне обработки.
+Затем — два чередующихся блока, повторное выделение рабочей памяти и restart.
+Профили физики: сначала простой сухой случай, затем Wang, CBS, BEM/DEF,
+сад/кровля EXT и EXT_NEU, осадки и снег. Скалярные флаги схем варьируются
+между опытами, не выдаются за независимые массивные параметры ячеек.
+
+**Результаты и порядок реализации.**
+
+1. Зафиксировать набор базовых входов и одноколоночный эталон. Добавить
+   отдельную цель сборки и минимальный блочный хост; проверить `nvec=1`.
+2. Реализовать однородный блок и точное сравнение каждого поля/шага.
+3. Добавить адресные модификаторы и одноколоночный эталон изменённой ячейки;
+   затем — разные значения по всему блоку и перестановки.
+4. Добавить расширенные сценарии масок, памяти, схем и внешних поверхностей,
+   используя уже имеющиеся внешние проверки API как дополнительную регрессию.
+5. Подключить файловый форсинг и проверить совпадение базового случая с
+   обычным offline при полностью согласованных входах. Повторить его
+   существующие контрольные прогоны, если затронуты общие offline-процедуры.
+
+Сценарии, сборки, namelist, расчёты и отчёты размещать под внешним
+`TEB_WORK_ROOT/TEB-Ru/<task>/`. Записывать фактически поданные входы и
+метаданные случая, полные состояния/выходы с точностью, достаточной для
+round-trip REAL64, и сводку PASS/FAIL. Для расхождения указывать первый шаг,
+блок, ячейку, поле/слой, ожидаемое и полученное значения; для чувствительности
+— максимальный отклик выбранных полей и неизменность контрольных ячеек.
+Обычного `TEB_LOG` недостаточно для полной проверки всех аргументов API:
+проверяемые состояния должен выгружать сам новый хост.
+
+Критерий готовности дополнения 7а: обе основные группы проходят для всех
+согласованных `nvec`, изменённая ячейка совпадает с независимым эталоном,
+контрольные ячейки не меняются, а проверка чувствительности отклоняет
+контрольную ошибку «копировать входы первой ячейки во весь блок».
+Запуски выполняются с контролем границ и FPE; текущий одиночный offline
+и библиотека сохраняют установленные результаты. Настоящая векторизация
+физики и перенос в COSMO в эту работу не входят.
+
+#### Реализованный интерфейс диагностического хоста
+
+Дополнение использует `src_offline/run_teb_offline_block.F90` и модуль
+`src_offline/teb_offline_block_host.F90`; постоянная проверка —
+`python_tests/check_offline_block.py`. Цель `offline-block` создаёт отдельный
+`TEB_offline_block_dev.exe` и линкует два новых объекта, восемь существующих
+offline-помощников и `libteb.a`. Объекты и `.mod` нового потребителя находятся
+в `offline-block/obj` и `offline-block/mod`; библиотека по-прежнему содержит
+только 138 общих объектов. Обычный `all`/`offline` не вызывает новый хост.
+Существующие Fortran-файлы, физические формулы и публичный API не изменены.
+
+Вызов: `TEB_offline_block_dev.exe -config <block_test.nml> -output <каталог>`.
+Каталог вывода должен существовать и находиться вне checkout. Пример содержимого
+конфигурации (сам файл создавать во внешнем каталоге):
+
+```fortran
+&block_test
+ nvec=16, nblocks=1, nsteps=48, dt=300.,
+ profile='CBS', scenario='SINGLE',
+ parameter='urb_h2w', perturb_column=8, delta=0.3, from_step=6,
+/
+```
+
+`nsteps` — число модельных подшагов, `from_step` — нулевой индекс подшага.
+Общие дата, шаг, числа слоёв и флаги схем остаются скалярными. `BLOCK` —
+штатный режим `layout`: один настоящий вызов API с `nvec` на блок/подшаг.
+Дополнительный `SERIAL` выполняет отдельные вызовы размера 1 для сравнения.
+Хост не обращается к `DMT`; из `TEB_HOST` используется только освобождение
+рабочей памяти для проверки `fresh_work`.
+
+| Настройка | Смысл |
+| --- | --- |
+| `profile` | `DEF`, `BEM`, `WANG`, `CBS`, `BEM_WANG`, `GARDEN_EXT`, `GARDEN_NEU`, `ROOF_EXT`, `ROOF_NEU`, `COMBINED_EXT`, `SNOW`; NEU означает EXT_NEU. Это фиксированные диагностические наборы входов |
+| `scenario` | `UNIFORM`; `SINGLE` — изменение логической колонки `perturb_column` в каждом блоке; `RAMP` — различные значения по логическим ID всего набора блоков |
+| `factor`, `delta` | Для SINGLE: `new=old*factor+delta`; для RAMP с весом `w=cell-1+(block-1)*source_nvec`: `new=old*(1+w*(factor-1))+w*delta` |
+| `parameter` | `ahf_traffic`, `urb_alb_rf_so`, `urb_hcap_rd`, `urb_h2w`, `teb_z0_gr`, `u`, `t`, `teb_troad_top`, `teb_ustar_town`, `teb_cd_greenroof_atm` |
+| `from_step` | Статические параметры изменяются один раз; `t/u` — при каждом новом форсинге начиная с этого шага. Состояние дороги и коэффициенты памяти изменяются однократным импульсом только на тёплом шаге |
+| `source_nvec`, `sample_column` | При `nvec=1` воспроизводят входы логической колонки исходного блока в независимом процессе, включая вес RAMP |
+| `ivstart`, `ivend`, `mask_stride` | Окно по исходным позициям; `ivend=-1` означает nvec, `ivend=ivstart-1` — пустое окно. Каждая mask_stride-я логическая точка неурбанизирована; 0 выключает эту маску |
+| `reverse`, `permute_step` | Разворот полного пакета и ID перед стартом либо на указанном тёплом шаге |
+| `nblocks`, `fresh_work` | Чередование независимых блоков; освобождение внутренних контейнеров перед каждым вызовом API |
+| `forcing_source`, `forcing_nml` | `SYNTHETIC` либо `FILE` с прежним `/tebforcing/`. В FILE используются существующие OL-читалки/интерполяция, дата/координаты/высота берутся из forcing namelist; `nsteps=0` выбирает все доступные подшаги |
+| `model_log` | Дополнительный обычный TEB_LOG для исходных `(block,position)`; полная проверка API использует собственный бинарный вывод хоста |
+| `checkpoint_file`, `stop_after`, `restart_file` | Полный пакет хоста после обновления эмуляторов. Для продолжения сохранить конфигурацию, кроме этих трёх полей. Это диагностический формат одного executable/платформы, не формат restart COSMO |
+| `test_fault` | `NONE`; `BROADCAST_FIRST` намеренно портит упаковку входов для отрицательного контроля проверяющего скрипта |
+
+В базовом наборе городская доля равна 1, как в обычном offline. При изменении
+воздушной температуры пересчитывается входная плотность; в FILE исходная
+плотность сохраняется у неизменённых точек. Состояния и потоки внешних сада
+и кровли принадлежат каждой ячейке хоста и обновляются отдельно существующей
+`GARDEN_PCD`. Это диагностическая эмуляция внешней модели, а не новый вариант
+физики TEB. Идентификаторы переставляются вместе с полным пакетом.
+
+Каждый расчёт сохраняет `config.txt`, согласованный `ordinary_parameters.nml`
+(при холодном старте), `fields.csv`, `records.bin` и `completed.txt`.
+Числовой stream-формат v1: четыре INT32 `[1413825073,1,NFIELDS,8]`, затем для
+каждой записи шесть INT32 `[step,block,logical_cell,position,active,phase]`
+и NFIELDS REAL64. На проверенной платформе используется little endian.
+Порядок, INTENT и типы 225 числовых полей задаёт schema; все слои сохраняются
+отдельно, логические значения кодируются 0/1. Общие строковые опции зафиксированы
+профилем и parameter namelist. Фаза 0 — перед API, фаза 1 — после API до
+обновления внешних эмуляторов. OUT вне обработки явно заменяются XUNDEF
+до чтения хостом; там проверяются только сохранённые INOUT.
+
+Автоматический запуск и сборка: `python -B python_tests/check_offline_block.py
+--out-root <новый внешний каталог>`. Скрипт использует только стандартную
+библиотеку Python и GNU-инструменты, явно включает REAL64, bounds/FPE,
+сохраняет параметры сборки, SHA executable, compiler version и сводку
+`checks/summary.json`. Он отклоняет пропуски ячеек/шагов, NaN/Inf и расхождения;
+первое отличие содержит шаг, блок, ID, поле/слой и оба значения. Пороги
+чувствительности записываются в родных единицах; точное равенство API не
+использует допуски. Ошибка процесса, включая FPE, даёт FAIL без повторного
+запуска. `--exe` использует существующую сборку; `--skip-memory-probe`
+явно исключает инструментированный аудит для запуска только с executable.
+
+**Уточнение критериев памяти.** При текущем `pres_grad=0` в Wang входной
+USTAR влияет на CL, но его вклад в итоговый профиль умножен на нулевой
+градиент давления. Поэтому положительная физическая проверка Wang меняет
+`u`, а импульс входного USTAR не должен менять публичный результат.
+У внешней кровли входной CD меняет локальный `ZUW_GR` и составной `PUW_RF`;
+эти потоки не экспортируются текущим API. Городской USTAR вычислен раньше,
+и по нему или H_TOWN нельзя проверять чувствительность к этому входному CD.
+Наблюдаемая положительная проверка кровли меняет `teb_z0_gr` и требует
+отклика её CD и городского теплового потока. Порог ни одного положительного
+теста не ослабляется. Для обеих межшаговых величин постоянный скрипт создаёт
+внешние инструментированные копии API: перед CALL_DRIVER проверяется фактическая
+загрузка, все публичные результаты должны совпасть с обычной библиотекой,
+а удаление каждой загрузки отдельно должно быть обнаружено. В рабочую
+библиотеку эти копии не входят.
+
+**Пределы проверки.** Внешние протоколы и результаты этого дополнения находятся
+в `W:\Work_TEB\TEB-Ru\20261114_offline_block`; выполненные серии описаны в §0
+истории. В повторных независимых запусках обнаружен редкий непостоянный FPE
+в районе ограничения влажности AVG_URBAN_FLUXES. Источник N4 устранён в
+рабочем src_dev: четыре OUT ветвевых снежных потоков обнуляются в общем
+начале URBAN_SNOW_EVOL, до проверки наличия снега. Теперь NaN из неинициализированной
+CAN/ATM-памяти не попадает в агрегацию через произведение на PDN_RD=0.
+Детерминированная диагностика и внесение правки описаны в §0 и N4 §5.6 истории.
+Рабочая сборка прошла полную матрицу из 322 запусков, прямой тест с NaN в
+выходах и все 11 профилей с signalling NaN в новой памяти. Все 18 обычных
+CSV совпали побайтово с эталонами до изменения. В src_ctrl этих CBS-выходов
+нет; существующие обычные потоки уже обнуляются, что подтверждено прямым
+тестом и тремя контрольными прогонами. Исходники ctrl сохранены.
+Протоколы — W:\Work_TEB\TEB-Ru\20261114_snow_out_fix; FPE-контроль включён,
+автоматических повторов нет. Сборка с COSMO, MPI/OpenMP,
+другими компиляторами и совместимый restart COSMO в данную проверку не входят.
+
+## 8. Достоверность и выполненная проверка документа
+
+При актуализации прочитаны исходники A/B/H, `C:Compilation`,
+`C:build/istok/build.sbatch`, `C:build/istok/Fopts` и
+`C:docs/202611_snow_and_tile_physics_changes.md`. Основные файлы C сверены
+с их Git-объектами HEAD с нормализацией CRLF→LF. Публичные подписи посчитаны
+по исходникам с удалением комментариев и учётом вложенных скобок.
+
+Выполненные статические проверки A:
+
+| Команда / проверка | Результат |
+| --- | --- |
+| `python python_tests/call_signature_inventory.py --strict --expect 27` | 27 аргументов, 14 временных + 11 контейнеров + 2 выхода, нарушений нет |
+| `python python_tests/check_diag_container.py --strict` | 231 поле; списки типа, NULLIFY, ALLOCATE, DEALLOCATE согласованы |
+| `python python_tests/check_diag_producers.py` | Производители проверены; единственное исключение `XIRRIG_GARDEN` обозначено reserved |
+| Внешний стенд из §9.7, протокол в §0 истории | Реальный API: инициализация двух новых INOUT, независимость двух колонок при вызовах `nvec=1`, повторное выделение рабочей памяти; оба контрольных удаления загрузки обнаружены |
+| Внешние проверки шагов 4–5, протокол в §0 истории | `nvec=16`: 4032 точных сравнения с отдельными колонками; маска, пустые окна, OPTIONAL, повторная аллокация, семь проверок неверных размеров; CSV по исходным индексам и restart в новом процессе |
+| Offline A/B шагов 4–5 | Механический перенос сохраняет результаты шести режимов; ранняя инициализация высот проверена отдельно на исходном API с тем же исправлением. Численный эффект сада EXT объяснён в §0 истории |
+| Библиотечная сборка шага 6 | 138 объектов; сборка без offline-исходников, публичный потребитель, общие/offline `.mod` раздельны; все 18 контрольных CSV идентичны. Протокол — §0 истории |
+| Блочный offline, дополнение 7а | Постоянный тест: 322 процесса, 13 729 248 точных сравнений, все 33 INOUT/53 OUT; nvec=1,2,7,16,31, чувствительность, маски, EXT, restart, отрицательные контроли. 18 обычных CSV идентичны; источник FPE N4 исправлен в рабочем src_dev, проверки повторены (§7.3 и §0 истории); ctrl не содержит этих CBS-выходов |
+| Ссылки на исходники, структура Markdown, UTF-8 без BOM, CRLF, `git diff --check` | Проверены для итогового текста, включая аудит §9; предлагаемые новые файлы отмечены отдельно |
+
+Числа 147/149/154/198 и 119/228 диагностик из прежних срезов не определяют
+текущий интерфейс. Для A актуальны 27/29/202 (158 обязательных + 44 OPTIONAL), для публичной обёртки H — 156, и проверенные
+231 поле `DMT`. Общие счётчики совпадающих с B файлов исключены: они не служат
+критерием работоспособности сопряжения после контейнеризации и исправлений физики.
+
+**Предел проверки:** выполнены анализ исходников, статические проверки,
+сборка A и автономные испытания §9.7. Общая библиотека собрана и проверена внешними потребителями; сборка COSMO с ней не выполнялась,
+COSMO ещё не переведён на общий API, сопряжённые и файловые restart-прогоны не выполнялись.
+Они входят в план §6.
+
+## 9. Аудит передачи межшаговых величин в `src_dev`
+
+### 9.1 Область и метод
+
+Задача аудита — проверить **полноту явных входов и выходов**, сохранив владение
+состоянием у COSMO/offline-хоста. Сам аудит не менял код. Реализация двух
+найденных зависимостей в публичном API и её проверки описаны в §9.7;
+остальные выводы ниже учитывают это дополнение.
+
+Проверена цепочка `teb_interface → TEB_BIND_STATE → CALL_DRIVER → TEB_GARDEN →
+TEB/URBAN_DRAG/BEM/SOLAR_PANEL → TEB_UNBIND_STATE`, включая вложенную
+`TEB_GARDEN2` и передачу компонент контейнеров отдельными аргументами.
+Разобраны обычная сборка без `TEB_UPSTREAM_CONS_BUGS`, используемая через API
+схема `MASC95`, однослойный снег, BEM/DEF, Wang, режимы сада/кровли и панели.
+`LAUTOSIZE` принудительно выключен в заполнителе A; его потенциальная память
+отмечена отдельно.
+
+Вспомогательный сканер использовал 149 путей исходников из зависимостей
+`A:Makefile`, сопоставил подписи/вызовы и сформировал перечень чтений `DMT`
+до первой найденной записи в порядке вызовов. Все восемь кандидатов разобраны
+вручную с учётом условий. Это статический аудит: линейная трасса объединяет
+ветви условий и не является доказательством определённости всех значений во
+всех возможных конфигурациях. Ветви `BRUT82/KAND07` с fixed-form
+`FLXSURF3BX` не входят в вывод о поддерживаемом через API `MASC95`.
+
+| Проверка | Результат |
+| --- | --- |
+| Аргументы `teb_interface` A | 202: **116 IN, 33 INOUT, 53 OUT**, из OUT 44 OPTIONAL |
+| Формально указанные `INTENT` в подписи A | Указаны для всех 202 аргументов; соответствуют строке выше |
+| Копирование состояния | 31 поле загружается, 31 выгружается; пересечение — **30 полей** |
+| Дополнительные поля вне пересечения | `LSHADE` загружается как опция; `XALB_WIN` выгружается как производная диагностика |
+| Числовые поля `DMT` в трассе | 230 из 231; оставшееся `XIRRIG_GARDEN` — reserved |
+| Подтверждённые чтения предыдущего `DMT` | 8: шесть источников `*_NOW`, `XUSTAR_TOWN`, `XPCD_GREENROOF_ATM` |
+| Дополнительная память вне `DMT` | Входной `PCD_GD` уже передаётся явно; панели и `TPN%XTHER_PRODC_DAY` отложены |
+| Позиционная сверка B↔H | Все 169 пар аргументов; существенные соответствия — §9.5 |
+
+Направления IN/INOUT/OUT в таблице — результат анализа использования. Это не
+готовая механическая правка объявлений: объявления уже согласованы
+по цепочке `teb_interface`, `TEB_BIND_STATE/TEB_UNBIND_STATE`, `CALL_DRIVER`.
+
+### 9.2 Состояние, которое уже полностью проходит через хост
+
+Для каждой строки обе операции реализованы в `A:src_api/teb_host.F90`:
+загрузка — строки 620–650, выгрузка — строки 778–807. Поля передаются также
+в действующей сигнатуре H; для них новый владелец памяти не нужен.
+
+| Число полей | Аргументы хоста | Компоненты контейнеров A | Направление |
+| --- | --- | --- | --- |
+| 4 | `teb_troof`, `teb_troad`, `teb_twalla`, `teb_twallb` | `TSTATE%XT_ROOF/XT_ROAD/XT_WALL_A/XT_WALL_B` | INOUT, все слои |
+| 2 | `teb_ws_roof`, `teb_ws_road` | `TSTATE%XWS_ROOF/XWS_ROAD` | INOUT |
+| 2 | `teb_tcanyon`, `teb_qcanyon` | `TSTATE%XT_CANYON/XQ_CANYON` | INOUT |
+| 6 | `teb_wsnow_roof`, `teb_tsnow_roof`, `teb_rsnow_roof`, `teb_asnow_roof`, `teb_esnow_roof`, `teb_tssnow_roof` | `TSTATE%TSNOW_ROOF%WSNOW/T/RHO/ALB/EMIS/TS` | INOUT |
+| 6 | Те же шесть аргументов с суффиксом `_road` | `TSTATE%TSNOW_ROAD%WSNOW/T/RHO/ALB/EMIS/TS` | INOUT |
+| 2 | `teb_ti_bld`, `teb_qi_bld` | `BSTATE%XTI_BLD/XQI_BLD` | INOUT |
+| 2 | `teb_tfloor`, `teb_tmass` | `BSTATE%XT_FLOOR/XT_MASS` | INOUT, все слои |
+| 2 | `teb_twin1`, `teb_twin2` | `BSTATE%XT_WIN1/XT_WIN2` | INOUT |
+| 2 | `teb_cap_sys_rat`, `teb_m_sys_rat` | `BSTATE%XCAP_SYS_RAT/XM_SYS_RAT` | INOUT; вместимость охлаждения при cold-start переводится на площадь здания один раз |
+| 2 | `teb_shad_day`, `teb_natvent_night` | `BSTATE%LSHAD_DAY/LNATVENT_NIGHT` | INOUT; суточные флаги сохраняются хостом |
+
+Всего **30** полей: 20 в `TSTATE`, 10 в `BSTATE`. Типовая категория `work` у
+`XCAP_SYS_RAT/XM_SYS_RAT` не отменяет их фактический INOUT-контракт.
+Для однослойной схемы остальные компоненты универсального `SURF_SNOW`, например
+`HEAT`, `DEPTH`, `AGE`, не используются как межшаговые входы. `SCHEME` задаётся
+при вызове, число слоёв определяется выделенными массивами.
+
+### 9.3 Подтверждённые дополнительные зависимости
+
+| ID | Что читается до обновления | Где и когда | Что уже есть у хоста / текущий пробел A | Что требуется на стыке |
 | --- | --- | --- | --- | --- |
-| стратифицированные коэффициенты | `URBAN_EXCH_COEF` безусловно (`B:src_teb/urban_drag.F90:589` → `IF (TOPTS%LGARDEN) THEN`, вызов `B:src_teb/urban_drag.F90:593` → `PU_LOWCAN, PZ0_GARDEN, ZRI, PCD_GARDEN, ZCDN_GARDEN,         &`) | то же в ветви флага (`src_teb/urban_drag.F90:618` → `IF (OGARDEN_EXT) THEN`, вызов `src_teb/urban_drag.F90:620` → `CALL URBAN_EXCH_COEF(TOPTS%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,`) | то же для `'EXT'`, но отношения z0/z0h из словника: `src_dev/src_teb/urban_drag.F90:792` → `CALL URBAN_EXCH_COEF(TOPTS%CZ0H, TOPTS%XZ0_O_Z0H_GD, PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,`, `'EXT_NEU'` — нейтральные (`src_dev/src_teb/urban_drag.F90:770` → `IF (TOPTS%CTYPE_GARDEN == 'EXT_NEU') THEN`) | ✅ совпадает при `urb_z0_o_z0h_gdn = 4.` (дефолт: `src_dev/src_proxi_SVAT/modd_proxi_svat_par.F90:86` → `XZ0_O_Z0H_GD = 4.0`); `'EXT_NEU'` аналога в B не имеет |
-| обнуление пары в EXT | пара не обнуляется (`B:src_teb/teb_garden.F90:172`) | **закрыто**: прокси не вызывается (`src_teb/teb_garden.F90:834`), пара остаётся от `URBAN_DRAG` | **закрыто** (`src_dev/src_teb/teb_garden.F90:1081` → `PCD_GD, PCH_GD, ZHU_AGG_GD`) | ✅ совпадает |
-| трение | нейтральная формула с жёстким z0 = 0.1 м (`B:src_proxi_SVAT/garden.F90:145` → `PUW_GARDEN(:) = - (XKARMAN/LOG(PZ_LOWCAN(:)/0.1))**2 * PU_LOWCAN(:)**2`) | **та же формула** (`src_proxi_SVAT/garden.F90:154` → `PUW_GARDEN(:) = - (XKARMAN/LOG(PZ_LOWCAN(:)/0.1))**2 * PU_LOWCAN(:)**2`) | моментный коэффициент режима (`src_dev/src_teb/teb_garden.F90:1100` → `ZUW_GD(:) = - PCD_GD(:) * PU_LOWCAN(:)**2`; фолбэк `src_dev/src_teb/teb_garden.F90:1102` → `PCD_GD(:) = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(:), PZ0_GARDEN_EXT(:))`) | ✅ `A_ctrl`; ❌ `A_dev` — см. §5 п.2 |
-| множитель влажности каньона | `clamp(q_v/q_sat(Ts))` в прокси (`B:src_proxi_SVAT/garden.F90:164`) | то же, но в `TEB_GARDEN` (`src_teb/teb_garden.F90:876` → `ZHU_AGG_GD(:) = PQV_GD_EXT(:)/ZQSAT_GD(:)`) | то же | ✅ совпадает |
-| внутренние режимы | — | прокси возвращает нули пары (`src_proxi_SVAT/garden.F90:183` → `PPCD_GD(:) = 0.`) и β = 0.8 (`src_proxi_SVAT/garden.F90:188` → `PHU_AGG_GARDEN(:) = XPHU_GD`, объявление `src_proxi_SVAT/modd_proxi_svat_par.F90:84` → `REAL, PARAMETER :: XPHU_GD  = 0.8`) | прокси возвращает пару и PHU модели (`src_dev/src_proxi_SVAT/garden.F90:604`, `src_dev/src_proxi_SVAT/modd_proxi_svat_par.F90:100` → `proxy_phu_gdn = 0.7             ! garden surface relative humidity (-)`) | в области сопряжения не участвуют |
-| проводимость сада | прокси не меняет (строка закомментирована: `B:src_proxi_SVAT/garden.F90:151` → `!PAC_GARDEN(:) = 0.`) | прокси обнуляет (`src_proxi_SVAT/garden.F90:160` → `PAC_GARDEN(:) = 0.`) | прокси возвращает `ZCA_GD` (`src_dev/src_proxi_SVAT/garden.F90:404`) | во внешнем режиме прокси не вызывается ⇒ влияния нет (§5 п.4) |
+| A1 | `DMT%XUSTAR_TOWN` предыдущего шага | `CALL_DRIVER` вызывает Wang до физики (`A:src_driver/call_driver.F90:575`); `beta=PUSTAR_TOWN/PU_TOP` в `A:src_driver/wind_profile_wang.F90:136` | **Реализован** INOUT `teb_ustar_town` A/offline. В H носитель уже есть под старым именем `teb_ilmo_road`, см. §9.5 | Адаптеру H загружать и возвращать `u*` своей колонки. Cold-start A задаёт `0.2 m/s` (`A:src_api/teb_host.F90:747`), тёплый вызов использует вход хоста. При ветре типа 0 предыдущий `u*` не нужен |
+| A2 | `DMT%XPCD_GREENROOF_ATM` | Трение внешней кровли до нового `URBAN_DRAG`: `A:src_teb/teb_garden.F90:1072` | **Реализован** INOUT `teb_cd_greenroof_atm` A/offline. Cold-start явно задаёт `XUNDEF`; отдельного носителя в текущем H нет | Адаптеру H хранить предыдущий/новый CD своей колонки, включая restart. При первом вызове `XUNDEF` включает предусмотренную нейтральную формулу; при последующих A использует сохранённый CD |
+| A3 | `TPN%XTHER_PRODC_DAY` | Суточный интеграл ограничивает тепловую продукцию панелей (`A:src_teb/solar_panel.F90:221`, `A:src_teb/solar_panel.F90:231`) | Не входит в подпись A и BIND/UNBIND; отдельного поля H не найдено. В A сохраняется в `TPN`, нулевое начало задаётся при аллокации (`A:src_struct/alloc_teb_struct.F90:206`) | **Отложено вместе с панелями.** При возобновлении этой работы определить передачу суточного накопления в J/m² панели на каждую ячейку. Сброс по солнечному времени уже выполняет физика (`A:src_teb/solar_panel.F90:144`) |
+| A4 | Входной `PCD_GD`, он же `ZCD_GD/teb_tcm_gd` | Трение сада `EXT/EXT_NEU` до нового расчёта коэффициента (`A:src_teb/teb_garden.F90:961`) | **Уже есть** отдельный аргумент A и поле H. Offline задаёт `XUNDEF` при объявлении (`A:src_offline/run_teb_offline.F90:396`). Направление INOUT согласовано в API, `CALL_DRIVER` и offline-драйвере | INOUT закреплён по всей цепочке. В `TEB_GARDEN` он уже `INTENT(INOUT)` (`A:src_teb/teb_garden.F90:129`). Новое поле состояния не требуется; на первом шаге допустим предусмотренный нейтральный fallback |
+| A5 | Шесть предыдущих агрегатов `DMT`: `XTSTOWN_S`, `XWSTOWN`, `XTSSNOW_TOWN`, `XWSNOW_TOWN`, `XRSNOW_TOWN`, `XHSNOW_TOWN` | Копирование в `*_NOW` в `A:src_driver/call_driver.F90:550` | H уже хранит эти агрегаты и передаёт их B. В API A они не передаются; offline сохраняет их внутри `DMT`. Получившиеся `*_NOW` физика этого шага не читает | Это **история выходных диагностик**, а не ещё шесть прогностических переменных. В выбранном варианте API отдаёт текущие агрегаты, а H хранит свою историю и формирует `*_NOW`. Увеличение физического состояния не требуется |
 
-### 3.2 Кровля
+Зависимости Wang и внешней кровли **A1, A2 закрыты в API A/offline**;
+адаптация H остаётся в плане. Панели **A3 отложены**, в текущие испытания не
+входят. A4 уже проведён, направление INOUT закреплено по цепочке. A5 нужен
+для выдачи истории H. Число основных полей состояния `TSTATE/BSTATE` остаётся 30.
 
-| аспект | B | A_ctrl | A_dev | вердикт |
-| --- | --- | --- | --- | --- |
-| прокси вызывается | да (`B:src_teb/teb_garden.F90:844` → `IF (TOPTS%LGREENROOF) THEN`) | да (`src_teb/teb_garden.F90:914`) | **нет** для `'EXT'`/`'EXT_NEU'`: ветвь прокси закрыта `ELSE` (`src_dev/src_teb/teb_garden.F90:1198`), мёртвая ветка `CASE` удалена | разная механика, одинаковый результат |
-| потоки, `T_s` | хостовые (`B:src_proxi_SVAT/greenroof.F90:136`, `B:src_proxi_SVAT/greenroof.F90:161` закомментированы) | хостовые (`src_teb/teb_garden.F90:930`) | хостовые (`src_dev/src_teb/teb_garden.F90:1236`) | ✅ совпадает |
-| проводимость | `0.` (`B:src_proxi_SVAT/greenroof.F90:155` → `PAC_GREENROOF(:) = 0.`) | `0.` (`src_proxi_SVAT/greenroof.F90:158`) | `0.` во внешнем режиме (`src_dev/src_teb/teb_garden.F90:1219` → `PAC_GR(:)     = 0.      ! no implicit coupling of an external surface (as in COSMO-TEB)`) | ✅ совпадает |
-| трение | нейтральная формула, жёсткий z0 = 0.01 м (`B:src_proxi_SVAT/greenroof.F90:149`) | та же формула со словниковым `urb_z0_grf` (`src_proxi_SVAT/greenroof.F90:152`), дефолт = 0.01 | коэффициент режима (`src_dev/src_teb/teb_garden.F90:1211` → `ZUW_GR(:) = - PCD_GREENROOF_ATM(:) * PVMOD(:)**2`; фолбэк `src_dev/src_teb/teb_garden.F90:1213`) | ✅ `A_ctrl`; ❌ `A_dev` |
-### 3.3 Общие расхождения (вне садовой области, но влияют на сопряжённый прогон)
+Для A5 cold-start задаёт только исходный `XTSTOWN_S` из температуры форсинга,
+а API на шаге 0 после физики заменяет `XTSTOWN_S_NOW` новым значением
+(`A:src_api/sfc_teb.F90:432`). Остальные пять агрегатов до первого копирования
+в `*_NOW` явно не инициализируются. Их начальные диагностические значения
+следует определять по состоянию соответствующей ячейки; при бесснежье
+температура/плотность снега могут законно быть `XUNDEF`.
 
-| аспект | B | у нас | вердикт |
+### 9.4 Поля и глобальные данные, которые не требуют нового состояния хоста
+
+| Кандидат | Фактическое поведение | Вывод |
+| --- | --- | --- |
+| `BSTATE%XALB_WIN/XABS_WIN/XTRAN_WIN/XUGG_WIN` | Пересчитываются в `TEB_FILL_DERIVED` через `WINDOW_DATA_STRUCT` (`A:src_api/teb_host.F90:365`). `teb_albwin` только выгружается | Производные параметры/диагностика, не дополнительные INOUT |
+| `BSTATE%XT_ADP` | Каждый вызов `CALL_DRIVER` задаёт `285.66 K` (`A:src_driver/call_driver.F90:337`) | Текущий параметр расчёта, предыдущий результат не требуется |
+| `BSTATE%XAUX_MAX` | Читается как максимум для autosize (`A:src_teb/bem.F90:532`), но `TEB_FILL_DERIVED` принудительно ставит `LAUTOSIZE=.FALSE.` (`A:src_api/teb_host.F90:234`) | Не скрытая активная память нынешнего публичного API. При будущем включении autosize понадобится отдельный INOUT максимума |
+| `BSTATE%XSHADE/XNATVENT` | Заполняются при cold-start, числовые зеркала не используются активной физикой | Reserved; сохранять их для продолжения физического расчёта не требуется |
+| `BSTATE%LSHADE`, аргумент `teb_lshade` | Опция загружается каждый вызов; обратного присваивания в хост нет | Фактический IN. Отличать от двух изменяемых флагов `LSHAD_DAY/LNATVENT_NIGHT` |
+| `FORC` и `EXT` | 22 и 18 полей заполняются из входов на каждом подшаге | Внешние входы шага. Их возможный лаг относится к порядку обновления хоста, а не к дополнительной внутренней памяти TEB |
+| `TOPTS%TTIME/XTSTEP`, расписания `TIR` | Дата, длительность шага и конфигурация заданы заново | Время и настройки; накопителя полива в используемом контракте нет |
+| `MODD_FORC_ATM%XZREF/XUREF` | Offline-хост задаёт высоты из `hlev_teb` после `OL_ALLOC_ATM`, до первой интерполяции; общий драйвер этот модуль не использует | Собственность offline-хоста; это не состояние городской поверхности и не межшаговая память общего API |
+| Физические константы, пороги, `CQSAT`, `teb_snow_check`, настройки прокси | Инициализация или конфигурация модулей; не результат предыдущего физического шага | Должны быть определены перед использованием. `INI_CSTS` в offline вызывается до API (`A:src_offline/run_teb_offline.F90:1127`); API также вызывает его перед параметрами/форсингом на любом шаге, включая первый вызов с ненулевым номером |
+| `TEB_LOG` и SAVE-коэффициенты функций Бесселя Wang | Счётчики/файлы вывода и постоянные аппроксимации | Отдельные вопросы вывода и потокобезопасности; не прогностическое состояние колонки |
+
+Кроме 44 необязательных выходов §3.4, обязательные OUT текущего API A — `teb_albwin`, `teb_tch_gd` и семь явно объявленных
+диагностик `teb_wind_canyon`, `teb_u_can_ped`, `teb_u_can_10m`, `teb_sobs`,
+`teb_thbs`, `teb_runoff_road`, `teb_runoff_roof`. Остальные входы — форсинг,
+геометрия, материалы, опции, часы, индексы и настройка вывода. `rho` используется
+для логирования; физическая плотность рассчитывается из `ps/t/qv/высоты`.
+
+### 9.5 Фактические носители COSMO: проверка по позициям
+
+Имена и комментарии полей H не всегда соответствуют данным. Сопоставлены
+169 dummy B (`B:src_driver/call_driver.F90:10`) и 169 actual H
+(`H:src/sfc_teb.f90:364`), с разбором вложенных скобок.
+
+| Позиция | Dummy B | Actual H | Фактическое значение / соответствие A |
 | --- | --- | --- | --- |
-| снежная коррекция альбедо/эмиссивности/`Ts` | активна безусловно (`B:src_teb/teb_garden.F90:519` → `WHERE ( WSNOW_ROAD_CHECK(:)<1.E-8 * PTSTEP )`, крыша — `B:src_teb/teb_garden.F90:527`) | за флагом `teb_snow_check = .FALSE.` (`src_dev/src_teb/modd_surf_par.F90:67` → `LOGICAL :: teb_snow_check = .FALSE.`; guard `src_dev/src_teb/teb_garden.F90:600` → `IF (teb_snow_check) THEN`; в `A_ctrl` тот же флаг и значение по умолчанию: `src_teb/modd_surf_par.F90:67`) | задать `.TRUE.` для сопоставимости |
-| первый подшаг | `IF (ntstep == 0) THEN` (`B:src_driver/call_driver.F90:944`) | `src_dev`: `TEB_INIT_STATE` вызывается из `teb_interface` при `ntstep == 0`, `CALL_DRIVER` больше не содержит cold-start; `A_ctrl`: cold-start остаётся в `CALL_DRIVER`, условия `IF (ntstep == 0)` (`src_driver/call_driver.F90:904`, `:917`, `:1379`), `run_teb_offline` передаёт `kstep_model` | `A_dev` и `A_ctrl` — 0-based, совпадают с B |
-| сток города | умножение на `dt` активно (`B:src_driver/call_driver.F90:1522` → `ZRUNOFF_TOWN  = ZRUNOFF_TOWN * dt`) | строка закомментирована (`src_dev/src_driver/call_driver.F90:1641` → `!ZRUNOFF_TOWN  = ZRUNOFF_TOWN * dt`, `A_ctrl` — `src_driver/call_driver.F90:1386`) | согласовать единицы |
-| шероховатость города | `ZZ0 = ZBLD_HEIGHT * 0.075` (`B:src_driver/call_driver.F90:671` → `ZZ0         = ZBLD_HEIGHT * 0.075   ! Roughness length (m)`) | из словника (дефолт `0.1H`): `A_ctrl` — `src_driver/call_driver.F90:673` → `CALL URB_AERO_PARAMS(urb_z0_town, urb_zd_town, ZBLD_HEIGHT, ZZ0, XZD_TOWN)`; `A_dev` — строки интерфейса, `src_dev/src_driver/call_driver.F90:829` → `CALL URB_AERO_PARAMS(HZ0_TOWN, HZD_TOWN, ZBLD_HEIGHT, ZBLD, ZFAI, ZZ0, ZZDU)` | конфигурация: `'0.075H'` |
-| инициализация пола и внутренней массы | `ZT_FLOOR(!:,1) = ZTCOOL_TARGET` (`B:src_driver/call_driver.F90:990`), `ZT_MASS` (`B:src_driver/call_driver.F90:996`) | присваиваний нет; инициализируются крыша и дорога (`src_dev/src_driver/call_driver.F90:1076` → `ZT_ROOF(:,1)   = t  ! roof layers temperatures`, `src_dev/src_driver/call_driver.F90:1083`) | выравнивать (§6 п.6) |
-| BEM: сурвентиляция | `0.25` объёма/час (`B:src_teb/bem.F90:410` → `ZNAT_VENT(JJ) =  0.25*T%XBLD_HEIGHT(JJ)/3600.`) | `5.0` объёма/час (`src_dev/src_teb/bem.F90:406` → `ZNAT_VENT(JJ) =  5.0*T%XBLD_HEIGHT(JJ)/3600.`) | выравнивать (§6 п.6) |
-| BEM: порог включения работы AC | `> XTHEAT_TARGET` (`B:src_teb/bem.F90:421` → `ZTI_BLD_OPEN(JJ) >  DMT%XTHEAT_TARGET (JJ))`) | `> XTHEAT_TARGET + 4.` (`src_dev/src_teb/bem.F90:417` → `ZTI_BLD_OPEN(JJ) >  DMT%XTHEAT_TARGET (JJ) + 4.)`) | выравнивать (§6 п.6) |
-| BEM: второй вызов `GET_NAT_VENT` | под разбором режима (`B:src_teb/bem.F90:465` → `IF (B%CNATVENT(JJ)=='AUTO') THEN`) | без разбора (`src_dev/src_teb/bem.F90:456` → `IF (GNAT_VENT(JJ)) THEN`) | вне садовой области, фиксируется здесь |
-| BEM: накопители тепла пола/массы | выходные аргументы (`B:src_teb/bem.F90:197` → `REAL, DIMENSION(:),   INTENT(OUT)  :: PDQS_FL`) | локальные `ZDQS_*` | вне садовой области |
-**Контракт `ntstep` (0-based).** Номер шага модели начинается с нуля; первый cold-start шаг — `ntstep == 0`. В `A_dev` `teb_interface` вызывает `TEB_INIT_STATE` при `ntstep == 0` до первого `CALL_DRIVER`; offline-драйвер передаёт `kstep_model = (nstep-1)*INB_ATM + (JSURF_STEP-1)`. В `A_ctrl` cold-start остаётся в `CALL_DRIVER`, но его условия также `ntstep == 0`, и `run_teb_offline` передаёт тот же `kstep_model`. В H/COSMO первый вызов идёт с `ntstep == 0` (`H:COSMO/lmorg.f90:1640`, `H:COSMO/sfc_interface.f90:2804–2805`, `H:COSMO/sfc_teb.f90:364`). При restart `nstart > 0` инициализация не выполняется.
----
+| 65 | `ZABS_SW_GARDEN` | `teb_sobs(i)` | Поглощённая коротковолновая радиация сада, `DMT%XABS_SW_GARDEN` |
+| 66 | `ZABS_LW_GARDEN` | `teb_thbs(i)` | Длинноволновый баланс сада, `DMT%XABS_LW_GARDEN` |
+| 166 | `ZUSTAR_TOWN` | `teb_ilmo_road(i)` | Скорость трения `u*`, `DMT%XUSTAR_TOWN`; по фактическому использованию B это INOUT для Wang |
+| 167 | `ZCD_TERRA` | `teb_ilmo_roof(i)` | Моментный коэффициент сада с атмосферой, `DMT%ATM%PCD_GARDEN` |
+| 168 | `ZCH_TERRA` | `teb_ilmo_top(i)` | Тепловой коэффициент сада с атмосферой, `DMT%ATM%PCH_GARDEN` |
 
-## 4. Чек-лист выравнивания для сопряжённого прогона
+В B атмосферная пара рассчитывается в
+`B:src_teb/urban_drag.F90:600`. Буфер `teb_ilmo_road` загружается H перед
+вызовом (`H:src/sfc_interface.f90:2621`) и сохраняется после него
+(`H:src/sfc_interface.f90:3694`). Следовательно, носитель предыдущего `u*`
+**уже существует в COSMO**, хотя поиск только по имени `ustar` его не обнаруживает.
+Общий API A уже экспортирует смысловые `teb_ustar_town`,
+`teb_cd_garden_atm`, `teb_ch_garden_atm`; вызывающий код H может временно сохранить
+прежние имена массивов. Заполнять их локальными настоящими `ILMO_*` означало бы
+изменить действующий контракт.
 
-**Обязательно (иначе прогон некорректен):**
+Эта сверка уточняет прежнюю трактовку двух мест чек-листа: садовая радиация
+уже передаётся напрямую, а три поля `teb_ilmo_*` в этом стыке не несут 1/L.
+Наличие носителя в H не доказывает его корректную запись и восстановление
+в restart-файле — это отдельная проверка шага 9 плана.
 
-1. **Адаптер вызова.** Хост дёргает B-интерфейс (§2.1): подать 23 (`A_ctrl`) или 29 (`A_dev`)
-   дополнительных аргумента, учесть суффикс `_ext` и завести заглушки под OUT-диагностики.
-2. **Шероховатость сада.** Подать `teb_z0_gd` (у H — `gz0_b`) в `PZ0_GARDEN_EXT`; нефизическое
-   значение при включённом внешнем саде уже останавливает прогон
-   (`src_driver/call_driver.F90:693`).
-3. **Входы кровли для `A_dev`.** Синтезировать `teb_z0_gr` и `teb_qs_gr` (аналоги `gz0_b`,
-   `qv_s_b`) либо подставить константы B (`0.01`, `0.3`) — §2.2, §5 п.3.
-4. **Пара коэффициентов сопряжения** `teb_tch_gd`/`teb_tcm_gd`: в обеих ветвях уже отдаётся
-   корректно, во внешнем режиме не обнуляется (§3.1).
-5. **Снежная коррекция.** `teb_snow_check = .TRUE.` (§3.3).
-6. **Шаг и единицы.** В `A_dev` и `A_ctrl` первый шаг уже 0-based (`ntstep == 0`), как в B.
-   Согласовать также умножение городского стока на `dt` (§3.3).
+### 9.6 Минимальные дальнейшие изменения по результатам аудита
 
-**Конфигурация (для численной сопоставимости с B):**
+1. Передача 30 полей состояния и владение ими у хоста сохранены.
+   Направления `teb_tcm_gd` — INOUT, `teb_lshade` — IN, `teb_albwin`
+   и `teb_tch_gd` — OUT согласованы по цепочке.
+2. Для Wang использовать реализованный `teb_ustar_town` A/offline и имеющийся
+   носитель H; передать аргумент через вызов общего API из COSMO и проверить restart.
+3. Для внешней кровли использовать реализованный `teb_cd_greenroof_atm` A/offline;
+   провести его по ячейкам H и в restart. Панели отложены.
+   Существующие `z0/qv` кровли — другие
+   входы, описанные в §3.1; они не заменяют её предыдущий CD.
+4. Экспорт текущих городских диагностик и атмосферной пары сада
+   через общий API реализован (§3.4). Использовать его в H. Историю `*_NOW` формировать из значений своей ячейки у хоста.
+   Сохранять весь диагностический контейнер для этого не требуется.
+5. Сохранить реализованный в A порядок инициализации констант/cold-start;
+   определить работу
+   offline-моста `XZREF/XUREF`. Состав состояния не расширять полями из §9.4,
+   которые пересчитываются или неактивны в поддерживаемом API.
+6. В вызывающем коде H повторить проверку двух чередуемых колонок, первых шагов и
+   продолжения после файлового restart. В A/offline независимость A1–A2 уже
+   проверена с включёнными Wang/внешней кровлей (§9.7); история `*_NOW`, блоки
+   COSMO и файловый restart этим стендом не покрываются.
 
-7. `urb_z0_town = '0.075H'`; толщины и теплофизика слоёв крыши/дороги — из конфигурации;
-   `teb_lshade = .FALSE.`; `urb_z0_o_z0h_gdn = 4.`; `urb_z0_grf = 0.01` (все — дефолты).
-8. Сад: `LGARDEN = .TRUE.` вместе с `LGARDEN_EXT = .TRUE.` (`A_ctrl`) или `TYPE_GARDEN = 'EXT'`
-   (`A_dev`); при выключенном саде внешний режим не включать.
-9. Кровля: `LGREENROOF = .TRUE.`; в `A_ctrl` внешняя кровля ведёт себя как в B (прокси
-   вызывается, β = 0.3), в `A_dev` — включать её только если адаптер подаёт `z0` и `q_v` кровли.
+Вывод аудита ограничен составом передаваемых величин и порядком их использования.
+Он не требует нового владельца состояния внутри TEB, общего контекста модели
+или немедленной векторизации. Дальнейшая работа в COSMO перечислена в §6;
+автономное дополнение интерфейса A описано ниже.
 
-**Осознанно оставляем своё (с записью в документации):**
+### 9.7 Реализованная передача `u*` и CD внешней кровли
 
-10. `ZTS_GROUND` — наш вариант инициализации (§5 п.1).
-11. Отсутствие `PAC_AGG_GARDEN`/`PAC_AGG_GREENROOF` и множитель влажности, возвращаемый прокси
-    во внутренних режимах, — числа сопряжённого прогона не меняют.
-12. Трение внешних поверхностей в `A_dev` — предмет решения (§5 п.2, §6 п.3).
+В конце подписи `A:teb_interface` добавлены два обязательных массива
+`REAL, DIMENSION(nvec), INTENT(INOUT)`: `teb_ustar_town` (m/s) и
+`teb_cd_greenroof_atm` (безразмерный). На cold-start `TEB_INIT_STATE` задаёт
+`0.2` и `XUNDEF`, поэтому входные значения этих двух массивов на шаге 0
+не используются. `XUNDEF` запускает существующий нейтральный fallback кровли.
+На всех последующих вызовах оба значения загружаются в `DMT` до физики;
+после `CALL_DRIVER` новые значения возвращаются хосту. Offline-драйвер хранит
+их между подшагами. `INI_CSTS` в API вызывается до подготовки параметров и
+форсинга независимо от номера шага. Формулы Wang, трения и `URBAN_DRAG`
+не изменены; подпись внутреннего `CALL_DRIVER` остаётся 27.
 
----
+Внешний стенд `W:\Work_TEB\20261112_coupling_memory\coupling_memory_check.py`
+(в репозиторий не входит) вызывает реальную физику, сравнивая
+полный числовой набор API и текущие городские потоки с отдельными расчётами
+двух неодинаковых колонок. Охвачены Wang, `EXT`, Wang+`EXT`, Wang+`EXT_NEU`,
+порядки AB/BA, подмена обоих рабочих полей перед вызовом, произвольные входы
+на cold-start и освобождение контейнеров между тёплыми вызовами. Наблюдатель
+на входе реального `CALL_DRIVER` проверяет именно загруженные значения;
+контрольные копии API без каждой из двух загрузок обязаны завершаться ошибкой.
 
-## 5. Осознанные и спорные расхождения
-
-| № | расхождение | где | обоснование | условие закрытия |
-| --- | --- | --- | --- | --- |
-| 1 | `ZTS_GROUND` инициализируется | `A_ctrl`, `A_dev` (`src_dev/src_teb/urban_drag.F90:601`) | в B величина читается неинициализированной (`B:src_teb/urban_drag.F90:524`) | решение авторов COSMO-TEB |
-| 2 | трение внешних поверхностей — по моментному коэффициенту режима | `A_dev` (`src_dev/src_teb/teb_garden.F90:1100`, `src_dev/src_teb/teb_garden.F90:1211`) | `URBAN_DRAG` в тех же режимах считает стратифицированный коэффициент; нейтральная формула B с жёстким z0 (0.1 м / 0.01 м) расходится с коэффициентами, которые сад отдаёт хосту | решение: оставить как улучшение (инвариант G14 of `TEB_MSU_garden_diagnostic_scheme.md`) или вернуть формулу B |
-| 3 | внешняя кровля берёт `q_v` и `z0` от хоста | `A_dev` (`src_dev/src_teb/teb_garden.F90:1216`, `src_dev/src_teb/urban_drag.F90:844`) | иначе состояние хоста подменяется константой: B считает β = 0.3, хотя хост подаёт свои потоки кровли | нужен вход в интерфейсе H (или константы в адаптере) |
-| 4 | прокси сада обнуляет проводимость `PAC_GARDEN` | `A_ctrl` (`src_proxi_SVAT/garden.F90:160`) | унаследовано от «первого» дерева; в B строка закомментирована (`B:src_proxi_SVAT/garden.F90:151`) | во внешнем режиме прокси не вызывается ⇒ не проявляется |
-| 5 | отношения z0/z0h сада берутся из словника, а не из жёсткого `4.` | `A_dev` (`src_dev/src_teb/urban_drag.F90:792`) | ключ согласует z0h диагностического сада и экспортируемые коэффициенты | держать дефолт `4.` для сопоставимости с B |
----
-
-## 6. Открытые вопросы
-
-| № | вопрос | владелец | как закрывается |
-| --- | --- | --- | --- |
-| 1 | адаптер `CALL_DRIVER` (23 аргумента для `A_ctrl`, 29 для `A_dev`) | мы + авторы COSMO-TEB | адаптер в дереве COSMO, прогон стенда |
-| 2 | входы кровли `z0`/`q_v` в H (нужны `A_dev`) | авторы COSMO-TEB | поля интерфейса по аналогии с `teb_z0_gd`/`teb_qs_gd` либо константы в адаптере |
-| 3 | трение внешних поверхностей в `A_dev` (§5 п.2) | мы | решение: оставить как улучшение (G14) или выровнять по B |
-| 4 | `teb_snow_check = .TRUE.` для сопоставимости | мы | значение по умолчанию или ключ адаптера |
-| 5 | нумерация первого шага и единицы городского стока | мы | согласование с хостом |
-| 6 | BEM (сурвентиляция, порог AC, инициализация пола/массы, `PDQS_*`) | мы + авторы COSMO-TEB | выравнивание либо явная фиксация расхождения |
-| 7 | количественная сверка коэффициентов сада «`A_ctrl` == B» при одинаковом `teb_z0_gd` | мы | одношаговый тест в сопряжённом стенде |
-| 8 | стенд сопряжения COSMO↔TEB (сравнение `T_CANYON`, `Q_CANYON`, `RN_TOWN`, `TI_BLD`, `HVAC_*`) | мы | прогон COSMO с нашим TEB; в репозитории такого стенда нет (в `python/`, `python_tests/` нет упоминаний COSMO) |
-| 9 | какой путь сопряжения считать целевым: `teb_interface` (так вызывает COSMO, `H:COSMO/sfc_interface.f90:2804`) или собственная копия `H:COSMO/sfc_teb.f90:364` → `CALL CALL_DRIVER` (в `sfc_interface` не используется) | мы + авторы COSMO-TEB | подтвердить состав сборки COSMO; при необходимости — вторая точка аллокации в обёртке вокруг `CALL_DRIVER` |
-| 10 | нужны ли COSMO сами 119 диагностик (вариант C, §2.3) или достаточно `teb_*_t` | мы + авторы COSMO-TEB | решение по §2.3; от него зависит, будет ли `DMT` аргументом `teb_interface` |
-| 11 | допустим ли перенос памяти диагностик между блоками и шагами (вариант B, §2.3) | мы | решение по §2.3; при критерии «бит-в-бит с текущим B» остаётся только вариант A |
-
----
-
-## 7. Различия файлов и артефакты
-
-Сравнение с B по каталогам физики (`src_teb`, `src_struct`, `src_proxi_SVAT`, `src_solar`) и файлам
-`src_driver/call_driver.F90`, `src_driver/sfc_teb.F90` (нормализация CRLF; класс «различаются» —
-различие по коду, а не только по комментариям и форматированию):
-
-| | общих файлов | совпадают побайтово | различаются по коду |
-| --- | --- | --- | --- |
-| `A_ctrl` | 126 | 106 | 20 |
-| `A_dev` | 126 | 96 | 30 |
-
-`A_dev` отличается от `A_ctrl` десятью дополнительными файлами — это CBS-схема дороги и снеговые
-модули (`alloc_teb_struct.F90`, `dealloc_teb_struct.F90`, `modd_diag_misc_tebn.F90`,
-`modd_teb_optionn.F90`, `modd_tebn.F90`, `modi_snow_cover_1layer.f90`, `modi_urban_snow_evol.f90`,
-`snow_cover_1layer.F90`, `urban_fluxes.F90`, `urban_snow_evol.F90`). Садовой области сопряжения они
-не касаются; они описаны в `TEB_MSU_CBS_scheme_T_CAN_reformulation.md` и в
-`TEB_MSU_change_history.md`.
-
-Только в наших деревьях: `src_proxi_SVAT/modd_proxi_svat_par.F90` (носитель ключей словника) и
-`src_teb/teb_garden_with_snow_correction.F90` (вне сборки; функционал реализован флагом
-`teb_snow_check`, §3.3). Только в B: `src_teb/urban_drag_test_diff_z0h.F90` (вне сборки). Прочие
-автономные драйверы стороны B (`call_teb_interface.F90`, `driver.F90`, `driver_original.F90`,
-`test_function3.f90`, `call_driver_with_comments!.F90`) в сравнение не входят: при сопряжении
-вызывается `CALL_DRIVER`.
-
----
-
-## 8. Контроль достоверности цитат
-
-Ссылки вида «файл:строка» проверены автоматически: для каждой ссылки проверено существование
-файла и строки, а при наличии якоря (запись «ссылка → `текст`») — что текст входит в указанную
-строку (сравнение по нормализованным пробелам, CRLF→LF). Сокращения `:NNN` не используются.
-
-**Результат: 132 ссылки (85 — с якорем), ошибок — 0.**
-
-Ссылки подраздела §2.3 и строк 9–11 §6 (15 пар «файл:строка») проверены отдельно по тем же
-правилам — файл существует, строка существует, якорь входит в неё; ошибок — 0.
-
-Ссылки на сторону A даны по состоянию коммита `6e5b46e`; ссылки на B и H — по рабочей копии
-`COSMO-TEB_vers_29_09_2026` (2026-09-29).
+Это **последовательные вызовы `nvec=1`**, а не векторный вызов двух колонок.
+Повторное выделение контейнеров подтверждает восстановление через аргументы
+хоста; сериализацию состояния в restart-файл проверять предстоит отдельно.
+Панели выключены, история выходных `*_NOW` в критерий не входит.
+Протокол и результаты — §0 `TEB_MSU_change_history.md`.
+COSMO, `src_ctrl`, namelist и набор колонок CSV не менялись.

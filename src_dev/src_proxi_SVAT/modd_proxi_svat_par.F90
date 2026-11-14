@@ -97,7 +97,7 @@ REAL, PARAMETER :: XZ0_O_Z0H_GD = 4.0
 !MV202609 proxy parameters to namelist (rename urb_phu_* -> proxy_phu_*)
 !* The default is a literal of this declaration only: the parameter is used
 !* nowhere else, so it does not need a named constant.
-REAL :: proxy_phu_gdn = 0.7             ! garden surface relative humidity (-)
+REAL :: proxy_phu_gdn = 0.7  ! garden surface relative humidity (-)
 !* Greenroof roughness length (m). Default of the namelist item urb_z0_grf
 !* (RUN_TEB_OFFLINE); the physical value is propagated as the PZ0_GR argument
 !* of the GREENROOF scheme (and as ZUW_GR to the roof momentum flux).
@@ -117,7 +117,7 @@ REAL, PARAMETER :: XZ0_O_Z0H_GR = 4.0
 !* and puts the surface into spurious daytime condensation instead of transpiration.
 !* To reproduce the base model bit for bit, set proxy_phu_grf = 0.3.
 !MV202609 proxy parameters to namelist (rename urb_phu_* -> proxy_phu_*)
-REAL :: proxy_phu_grf = 0.7             ! greenroof surface relative humidity (-)
+REAL :: proxy_phu_grf = 0.7  ! greenroof surface relative humidity (-)
 !
 !-------------------------------------------------------------------------------
 !

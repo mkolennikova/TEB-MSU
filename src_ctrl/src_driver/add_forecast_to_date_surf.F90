@@ -12,10 +12,10 @@
 INTERFACE
       SUBROUTINE ADD_FORECAST_TO_DATE_SURF(KYEAR,KMONTH,KDAY,PSEC)
 !
-INTEGER, INTENT(INOUT) :: KYEAR  ! year of date
-INTEGER, INTENT(INOUT) :: KMONTH ! month of date
-INTEGER, INTENT(INOUT) :: KDAY   ! day of date
-REAL,    INTENT(INOUT) :: PSEC   ! number of seconds since date at 00 UTC
+INTEGER, INTENT(INOUT) :: KYEAR   ! year of date
+INTEGER, INTENT(INOUT) :: KMONTH  ! month of date
+INTEGER, INTENT(INOUT) :: KDAY    ! day of date
+REAL,    INTENT(INOUT) :: PSEC    ! number of seconds since date at 00 UTC
 !
 END SUBROUTINE ADD_FORECAST_TO_DATE_SURF
 END INTERFACE
@@ -70,15 +70,15 @@ IMPLICIT NONE
 !
 !*       0.1   Declaration of arguments
 !              ------------------------
-INTEGER, INTENT(INOUT) :: KYEAR  ! year of date
-INTEGER, INTENT(INOUT) :: KMONTH ! month of date
-INTEGER, INTENT(INOUT) :: KDAY   ! day of date
-REAL,    INTENT(INOUT) :: PSEC   ! number of seconds since date at 00 UTC
+INTEGER, INTENT(INOUT) :: KYEAR   ! year of date
+INTEGER, INTENT(INOUT) :: KMONTH  ! month of date
+INTEGER, INTENT(INOUT) :: KDAY    ! day of date
+REAL,    INTENT(INOUT) :: PSEC    ! number of seconds since date at 00 UTC
 !
 !*       0.2   Declaration of local variables
 !              ------------------------------
 !
-INTEGER :: IDAYS ! number of days in KMONTH
+INTEGER :: IDAYS  ! number of days in KMONTH
 !-------------------------------------------------------------------------------
 !
 !*       1.    Return condition: less than one day to add
@@ -98,16 +98,16 @@ DO
 !              -------------------------
 !
   SELECT CASE (KMONTH)
-    CASE(4,6,9,11)
-      IDAYS=30
-    CASE(1,3,5,7:8,10,12)
-      IDAYS=31
-    CASE(2)
-      IF( ((MOD(KYEAR,4)==0).AND.(MOD(KYEAR,100)/=0)) .OR. (MOD(KYEAR,400)==0))THEN
-        IDAYS=29
-      ELSE
-        IDAYS=28
-      ENDIF
+  CASE(4,6,9,11)
+    IDAYS=30
+  CASE(1,3,5,7:8,10,12)
+    IDAYS=31
+  CASE(2)
+    IF( ((MOD(KYEAR,4)==0).AND.(MOD(KYEAR,100)/=0)) .OR. (MOD(KYEAR,400)==0))THEN
+      IDAYS=29
+    ELSE
+      IDAYS=28
+    ENDIF
   END SELECT
 !
 !*       2.2   Last day of the month

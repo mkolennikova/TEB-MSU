@@ -4,8 +4,8 @@
 !SFX_LIC for details. version 1.
 !     #########
     SUBROUTINE URBAN_HYDRO(PWS_ROOF_MAX,PWS_ROAD_MAX, PWS_ROOF, PWS_ROAD,  &
-                             PRR, PIRRIG_ROAD, PTSTEP, PBLD, PLE_ROOF,     &
-                             PLE_ROAD, PRUNOFF_STRLROOF, PRUNOFF_ROAD      )
+                           PRR, PIRRIG_ROAD, PTSTEP, PBLD, PLE_ROOF,     &
+                           PLE_ROAD, PRUNOFF_STRLROOF, PRUNOFF_ROAD      )
 !   ##########################################################################
 !
 !!****  *URBAN_HYDRO*  
@@ -67,8 +67,8 @@ IMPLICIT NONE
 !*      0.1    declarations of arguments
 !
 !
-REAL, DIMENSION(:), INTENT(IN) :: PWS_ROOF_MAX    ! maximum deepness of roof water reservoir
-REAL, DIMENSION(:), INTENT(IN) :: PWS_ROAD_MAX    ! maximum deepness of road water reservoir
+REAL, DIMENSION(:), INTENT(IN) :: PWS_ROOF_MAX  ! maximum deepness of roof water reservoir
+REAL, DIMENSION(:), INTENT(IN) :: PWS_ROAD_MAX  ! maximum deepness of road water reservoir
 
 REAL, DIMENSION(:), INTENT(INOUT) :: PWS_ROOF     ! roof water reservoir
 REAL, DIMENSION(:), INTENT(INOUT) :: PWS_ROAD     ! road water reservoir
@@ -79,8 +79,8 @@ REAL, DIMENSION(:), INTENT(IN)    :: PBLD         ! fraction of buildings
 REAL, DIMENSION(:), INTENT(IN)    :: PLE_ROOF     ! latent heat flux over roof
 REAL, DIMENSION(:), INTENT(IN)    :: PLE_ROAD     ! latent heat flux over road
 !
-REAL, DIMENSION(:), INTENT(OUT)   :: PRUNOFF_STRLROOF ! runoff (kg/m2/s)
-REAL, DIMENSION(:), INTENT(OUT)   :: PRUNOFF_ROAD ! runoff (kg/m2/s)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRUNOFF_STRLROOF  ! runoff (kg/m2/s)
+REAL, DIMENSION(:), INTENT(OUT)   :: PRUNOFF_ROAD      ! runoff (kg/m2/s)
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !
 !*      0.2    declarations of local variables
@@ -98,7 +98,7 @@ REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !
 IF (LHOOK) CALL DR_HOOK('URBAN_HYDRO',0,ZHOOK_HANDLE)
 PWS_ROOF(:) =  PWS_ROOF(:)                                   &
-               - PTSTEP * ( PLE_ROOF(:) / XLVTT - PRR(:) )  
+  - PTSTEP * ( PLE_ROOF(:) / XLVTT - PRR(:) )  
 !
 !                                           Ws_town must be positive
 !
@@ -122,7 +122,7 @@ PWS_ROOF(:) = MIN(PWS_ROOF(:), PWS_ROOF_MAX(:))
 !                                           PRR in kg/m2/s therefore PWS in mm
 !
 PWS_ROAD(:) =  PWS_ROAD(:)                                 &
-               - PTSTEP * ( PLE_ROAD(:) / XLVTT -  PRR(:) - PIRRIG_ROAD(:) )  
+  - PTSTEP * ( PLE_ROAD(:) / XLVTT -  PRR(:) - PIRRIG_ROAD(:) )  
 !
 !                                           Ws_town must be positive
 !

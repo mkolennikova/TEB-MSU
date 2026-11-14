@@ -3,11 +3,11 @@
 !SFX_LIC version 1. See LICENSE, CeCILL-C_V1-en.txt and CeCILL-C_V1-fr.txt  
 !SFX_LIC for details. version 1.
 SUBROUTINE DX_AIR_COOLING_COIL_CV(PT_CANYON, PQ_CANYON, PPS, PRHOA,    &
-                             PT_IN, PQ_IN, PCOP_RAT, PCAP_SYS_RAT,     &
-                             PT_ADP, PF_WATER_COND,                    &
-                             PM_SYS, PH_BLD_COOL, PH_WASTE, PLE_WASTE, &
-                             PCOP, PCAP_SYS,  PT_OUT, PQ_OUT,          &
-                             PDX_POWER,  PT_BLD_COOL      )
+                                  PT_IN, PQ_IN, PCOP_RAT, PCAP_SYS_RAT,     &
+                                  PT_ADP, PF_WATER_COND,                    &
+                                  PM_SYS, PH_BLD_COOL, PH_WASTE, PLE_WASTE, &
+                                  PCOP, PCAP_SYS,  PT_OUT, PQ_OUT,          &
+                                  PDX_POWER,  PT_BLD_COOL      )
 !
 USE MODE_THERMOS
 USE MODE_PSYCHRO
@@ -19,38 +19,38 @@ USE PARKIND1  ,ONLY : JPRB
 !
 ! Extracted from EP_Engineer_ref p. 518
 !
-REAL, INTENT(IN) :: PT_CANYON        ! Canyon air temperature [K]
-REAL, INTENT(IN) :: PQ_CANYON        ! Canyon air humidity ratio [kg kg-1]
-REAL, INTENT(IN) :: PPS              ! Canyon air pressure [Pa]
-REAL, INTENT(IN) :: PRHOA            ! Canyon air density [kg m-3]
-REAL, INTENT(IN) :: PT_IN            ! Actual inlet air temperature [K]
-REAL, INTENT(IN) :: PQ_IN            ! Actual inlet air humidity ratio [kg kg-1]
-REAL, INTENT(IN) :: PCOP_RAT         ! Rated COP
-REAL, INTENT(IN) :: PCAP_SYS_RAT     ! Rated capacity [W]
-REAL, INTENT(IN) :: PT_ADP           ! Apparatus dewpoint [K]
-REAL, INTENT(IN) :: PF_WATER_COND    ! fraction of evaporation of the condenser
-REAL, INTENT(INOUT) :: PM_SYS        ! HVAC air mass flow rate [kg s-1]
-REAL, INTENT(INOUT) :: PH_BLD_COOL   ! Sensible cooling load
-REAL, INTENT(OUT) :: PH_WASTE        ! Sensible heat rejected by the condenser [W]
-REAL, INTENT(OUT) :: PLE_WASTE       ! Latent heat rejected by the condenser [W]
-REAL, INTENT(OUT) :: PCOP            ! Actual COP
-REAL, INTENT(OUT) :: PCAP_SYS        ! Actual capacity [W]
-REAL, INTENT(OUT) :: PT_OUT          ! Actual outlet temperature [K]
-REAL, INTENT(OUT) :: PQ_OUT          ! Actual outlet humidity ratio [kg kg-1]
-REAL, INTENT(OUT) :: PDX_POWER       ! Electrical power consumed by the DX unit [W]
-REAL, INTENT(OUT) :: PT_BLD_COOL     ! Total energy supplied by the DX unit [W]
+REAL, INTENT(IN) :: PT_CANYON       ! Canyon air temperature [K]
+REAL, INTENT(IN) :: PQ_CANYON       ! Canyon air humidity ratio [kg kg-1]
+REAL, INTENT(IN) :: PPS             ! Canyon air pressure [Pa]
+REAL, INTENT(IN) :: PRHOA           ! Canyon air density [kg m-3]
+REAL, INTENT(IN) :: PT_IN           ! Actual inlet air temperature [K]
+REAL, INTENT(IN) :: PQ_IN           ! Actual inlet air humidity ratio [kg kg-1]
+REAL, INTENT(IN) :: PCOP_RAT        ! Rated COP
+REAL, INTENT(IN) :: PCAP_SYS_RAT    ! Rated capacity [W]
+REAL, INTENT(IN) :: PT_ADP          ! Apparatus dewpoint [K]
+REAL, INTENT(IN) :: PF_WATER_COND   ! fraction of evaporation of the condenser
+REAL, INTENT(INOUT) :: PM_SYS       ! HVAC air mass flow rate [kg s-1]
+REAL, INTENT(INOUT) :: PH_BLD_COOL  ! Sensible cooling load
+REAL, INTENT(OUT) :: PH_WASTE       ! Sensible heat rejected by the condenser [W]
+REAL, INTENT(OUT) :: PLE_WASTE      ! Latent heat rejected by the condenser [W]
+REAL, INTENT(OUT) :: PCOP           ! Actual COP
+REAL, INTENT(OUT) :: PCAP_SYS       ! Actual capacity [W]
+REAL, INTENT(OUT) :: PT_OUT         ! Actual outlet temperature [K]
+REAL, INTENT(OUT) :: PQ_OUT         ! Actual outlet humidity ratio [kg kg-1]
+REAL, INTENT(OUT) :: PDX_POWER      ! Electrical power consumed by the DX unit [W]
+REAL, INTENT(OUT) :: PT_BLD_COOL    ! Total energy supplied by the DX unit [W]
 !
-REAL :: ZTWB_CANYON   ! Canyon air wet-bulb temperature [ K]
-REAL :: ZCAPTEMP      ! Total cooling capacity modifier curve function of temperature
-REAL :: ZTW_IN        ! Wet-bulb temperature of the air entering the coil [ K]
-REAL :: ZT_COND       ! Dry-bulb or wet-bulb air temperature entering the condenser [K]
-REAL :: ZEIRTEMP      ! Energy input ratio modifier curve function of temperature
-REAL :: ZPLR          ! Part load ratio
-REAL :: ZPARTLOADF    ! Part load fraction correlation
-REAL :: ZSHR          ! Actual coil sensible heat rate
-REAL :: ZH_ADP        ! Enthalpy of air at ADP conditions [J/kg]
-REAL :: ZH_OUT        ! Enthalpy of air leaving the cooling coil [J/kg]
-REAL :: ZH_IN         ! Enthalpy of air entering the cooling coil [J/kg]
+REAL :: ZTWB_CANYON  ! Canyon air wet-bulb temperature [ K]
+REAL :: ZCAPTEMP     ! Total cooling capacity modifier curve function of temperature
+REAL :: ZTW_IN       ! Wet-bulb temperature of the air entering the coil [ K]
+REAL :: ZT_COND      ! Dry-bulb or wet-bulb air temperature entering the condenser [K]
+REAL :: ZEIRTEMP     ! Energy input ratio modifier curve function of temperature
+REAL :: ZPLR         ! Part load ratio
+REAL :: ZPARTLOADF   ! Part load fraction correlation
+REAL :: ZSHR         ! Actual coil sensible heat rate
+REAL :: ZH_ADP       ! Enthalpy of air at ADP conditions [J/kg]
+REAL :: ZH_OUT       ! Enthalpy of air leaving the cooling coil [J/kg]
+REAL :: ZH_IN        ! Enthalpy of air entering the cooling coil [J/kg]
 ! Performance curves coefficients
 REAL :: ZA1
 REAL :: ZB1
@@ -139,10 +139,10 @@ ZC5 = 0              !- Coefficient3 x**2
 !              ----------------------
 ! 
 IF (PM_SYS/PRHOA/PCAP_SYS_RAT < 0.00004027) THEN
-     PM_SYS = 0.00004027*PCAP_SYS_RAT*PRHOA
+  PM_SYS = 0.00004027*PCAP_SYS_RAT*PRHOA
 !     PRINT*,'ERROR: HVAC supply air flow rate must be greater than 0.00004027m3/s/W'
 ELSE IF (PM_SYS/PRHOA/PCAP_SYS_RAT > 0.00006041) THEN
-     PM_SYS = 0.00006041*PCAP_SYS_RAT*PRHOA
+  PM_SYS = 0.00006041*PCAP_SYS_RAT*PRHOA
 !     PRINT*,'ERROR: HVAC supply air flow rate must be lower than 0.00006041m3/s/W'
 END IF
 !
@@ -156,8 +156,8 @@ ZT_COND     = ZTWB_CANYON + (PT_CANYON - ZTWB_CANYON)*(1. - PF_WATER_COND)
 !
 ! Total cooling capacity modifier curve function of temperature
 ZCAPTEMP = ZA1 + (ZTW_IN -273.15) * (ZB1 + ZC1*(ZTW_IN -273.15)) &
-               + (ZT_COND-273.15) * (ZD1 + ZE1*(ZT_COND-273.15)) &
-               + (ZTW_IN -273.15) * (ZT_COND-273.15) * ZF1
+  + (ZT_COND-273.15) * (ZD1 + ZE1*(ZT_COND-273.15)) &
+  + (ZTW_IN -273.15) * (ZT_COND-273.15) * ZF1
 !
 ! Total cooling capacity
 PCAP_SYS = PCAP_SYS_RAT * ZCAPTEMP
@@ -182,7 +182,7 @@ IF (ZH_IN - ZH_ADP < 10.) THEN
   !
 ELSE
   !
-  ZSHR  = MIN(XCPD*(PT_IN - PT_ADP)/(ZH_IN - ZH_ADP), 1.) !
+  ZSHR  = MIN(XCPD*(PT_IN - PT_ADP)/(ZH_IN - ZH_ADP), 1.)  !
   !
   ! Thermal load limited by the system capacity
   IF ( PH_BLD_COOL > PCAP_SYS * ZSHR ) PH_BLD_COOL = PCAP_SYS * ZSHR
@@ -208,8 +208,8 @@ END IF
 ! 
 ! Energy input ratio modifier curve function of temperature
 ZEIRTEMP = ZA3 + (ZTW_IN -273.15) * (ZB3 + ZC3*(ZTW_IN -273.15))  &
-               + (ZT_COND-273.15) * (ZD3 + ZE3*(ZT_COND-273.15))  &
-               + (ZTW_IN -273.15) * (ZT_COND-273.15) * ZF3
+  + (ZT_COND-273.15) * (ZD3 + ZE3*(ZT_COND-273.15))  &
+  + (ZTW_IN -273.15) * (ZT_COND-273.15) * ZF3
 !
 ! HVAC coefficient of performance
 PCOP = PCOP_RAT / ZEIRTEMP

@@ -4,7 +4,7 @@
 !SFX_LIC for details. version 1.
 !   ##########################################################################
     SUBROUTINE ALLOC_TEB_STRUCT(KROOF_LAYER,KROAD_LAYER,KWALL_LAYER,KFLOOR_LAYER,&
-                               TOP,T,BOP,B,TPN,TIR,DMT                           )
+                                TOP,T,BOP,B,TPN,TIR,DMT                           )
 !   ##########################################################################
 !
 !!****  *ALLOC_TEB_STRUCT*
@@ -92,22 +92,22 @@ CALL BEM_OPTIONS_INIT(BOP)
 !
 ! Floor parameters
 !
-ALLOCATE(B%XHC_FLOOR(1,KFLOOR_LAYER)) ! floor layers heat capacity        (J/K/m3)
-ALLOCATE(B%XTC_FLOOR(1,KFLOOR_LAYER)) ! floor layers thermal conductivity (W/K/m)
-ALLOCATE(B%XD_FLOOR (1,KFLOOR_LAYER)) ! depth of floor layers             (m)
+ALLOCATE(B%XHC_FLOOR(1,KFLOOR_LAYER))  ! floor layers heat capacity        (J/K/m3)
+ALLOCATE(B%XTC_FLOOR(1,KFLOOR_LAYER))  ! floor layers thermal conductivity (W/K/m)
+ALLOCATE(B%XD_FLOOR (1,KFLOOR_LAYER))  ! depth of floor layers             (m)
 !
 ! HVAC parameters
 !
-ALLOCATE(B%XTCOOL_TARGET(1)) ! cooling setpoint of indoor air
-ALLOCATE(B%XTHEAT_TARGET(1)) ! heating setpoint of indoor air
-ALLOCATE(B%XF_WASTE_CAN (1)) ! fraction of waste heat released into the canyon
-ALLOCATE(B%XEFF_HEAT    (1)) ! efficiency of the heating system
+ALLOCATE(B%XTCOOL_TARGET(1))  ! cooling setpoint of indoor air
+ALLOCATE(B%XTHEAT_TARGET(1))  ! heating setpoint of indoor air
+ALLOCATE(B%XF_WASTE_CAN (1))  ! fraction of waste heat released into the canyon
+ALLOCATE(B%XEFF_HEAT    (1))  ! efficiency of the heating system
 !
 ! Indoor parameters
 !
 ALLOCATE(B%XTI_BLD(1))                    ! building interior temperature    (K)
-ALLOCATE(B%XT_FLOOR (1,KFLOOR_LAYER)) ! floor layer temperatures         (K)
-ALLOCATE(B%XT_MASS  (1,KFLOOR_LAYER)) ! Air cooled building internal th. mass temperature (K)
+ALLOCATE(B%XT_FLOOR (1,KFLOOR_LAYER))  ! floor layer temperatures         (K)
+ALLOCATE(B%XT_MASS  (1,KFLOOR_LAYER))  ! Air cooled building internal th. mass temperature (K)
 !
 ALLOCATE(B%XQIN(1))           ! internal heat gains [W m-2(floor)]
 ALLOCATE(B%XQIN_FRAD(1))      ! radiant fraction of internal heat gains
@@ -121,43 +121,43 @@ ALLOCATE(B%XINF(1))           ! infiltration/ventilation flow rate [AC/H]
 !
 ! New parameters
 !
-ALLOCATE(B%XF_WATER_COND(1)) ! fraction of evaporation for condensers (cooling system)
+ALLOCATE(B%XF_WATER_COND(1))  ! fraction of evaporation for condensers (cooling system)
 ALLOCATE(B%XAUX_MAX(1))      ! Auxiliar variable for autosize calcs
 ALLOCATE(B%XQIN_FLAT(1))     ! Latent franction of internal heat gains
 ALLOCATE(B%XHR_TARGET(1))    ! Relative humidity setpoint
 ALLOCATE(B%XT_WIN2(1))       ! Indoor window temperature [K]
 ALLOCATE(B%XQI_BLD(1))       ! Indoor air specific humidity [kg kg-1]
 ALLOCATE(B%XV_VENT(1))       ! Ventilation flow rate [AC/H]
-ALLOCATE(B%XCAP_SYS_HEAT(1)) ! Capacity of the heating system 
-                             ! [W m-2(bld)]
+ALLOCATE(B%XCAP_SYS_HEAT(1))  ! Capacity of the heating system 
+! [W m-2(bld)]
 ALLOCATE(B%XCAP_SYS_RAT(1))  ! Rated capacity of the cooling system
-                             ! [W m-2(bld)]
+! [W m-2(bld)]
 ALLOCATE(B%XT_ADP(1))        ! Apparatus dewpoint temperature of the
-                             ! cooling coil [K]
+! cooling coil [K]
 ALLOCATE(B%XM_SYS_RAT(1))    ! Rated HVAC mass flow rate 
-                             ! [kg s-1 m-2(bld)]
+! [kg s-1 m-2(bld)]
 ALLOCATE(B%XCOP_RAT(1))      ! Rated COP of the cooling system
 ALLOCATE(B%XT_WIN1(1))       ! outdoor window temperature [K]
 ALLOCATE(B%XALB_WIN(1))      ! window albedo
 ALLOCATE(B%XABS_WIN(1))      ! window absortance
 ALLOCATE(B%XT_SIZE_MAX(1))   ! Maximum outdoor air temperature for
-                             ! HVAC sizing [K]
+! HVAC sizing [K]
 ALLOCATE(B%XT_SIZE_MIN(1))   ! Minimum outdoor air temperature for
-                             ! HVAC sizing [K]
+! HVAC sizing [K]
 ALLOCATE(B%XUGG_WIN(1))      ! Window glass-to-glass U-factor [K m W-2]
 ALLOCATE(B%LSHADE(1))        ! flag to activate shading devices -> LOGICAL in the code
 ALLOCATE(B%XSHADE(1))        ! flag to activate shading devices -> REAL for i/o 0. or 1.
 ALLOCATE(B%CNATVENT(1))      ! flag to activate natural ventilation 'NONE', 'MANU', 'AUTO'
 ALLOCATE(B%XNATVENT(1))      ! flag to describe surventilation system for i/o 
-                             ! 0 for NONE, 1 for MANU and 2 for AUTO
+! 0 for NONE, 1 for MANU and 2 for AUTO
 ALLOCATE(B%LSHAD_DAY(1))     !Has shading been necessary this day ?
-ALLOCATE(B%LNATVENT_NIGHT(1))!Has nocturnal surventilation been necessary and possible this night ?
-  !
-  !indoor relative surfaces and view factors
+ALLOCATE(B%LNATVENT_NIGHT(1))  !Has nocturnal surventilation been necessary and possible this night ?
+!
+!indoor relative surfaces and view factors
 ALLOCATE(B%XN_FLOOR(1))        ! Number of floors     
 ALLOCATE(B%XGLAZ_O_BLD(1))     ! Window area [m2_win/m2_bld]
 ALLOCATE(B%XMASS_O_BLD(1))     ! Mass area [m2_mass/m2_bld]
-ALLOCATE(B%XFLOOR_HW_RATIO(1)) ! H/W ratio of 1 floor level
+ALLOCATE(B%XFLOOR_HW_RATIO(1))  ! H/W ratio of 1 floor level
 ALLOCATE(B%XF_FLOOR_MASS(1))   ! View factor floor-mass
 ALLOCATE(B%XF_FLOOR_WALL(1))   ! View factor floor-wall
 ALLOCATE(B%XF_FLOOR_WIN(1))    ! View factor floor-window
@@ -184,11 +184,11 @@ ALLOCATE(T%XGARDEN(1))       ! fraction of veg in the streets   (-)
 ALLOCATE(T%XGREENROOF(1))    ! fraction of greenroofs on roofs  (-)
 ALLOCATE(T%XBLD(1))          ! fraction of buildings            (-)
 ALLOCATE(T%XROAD(1))         ! fraction of roads                (-)
-ALLOCATE(T%XCAN_HW_RATIO(1)) ! canyon    h/W                    (-)
+ALLOCATE(T%XCAN_HW_RATIO(1))  ! canyon    h/W                    (-)
 ALLOCATE(T%XBLD_HEIGHT(1))   ! buildings height 'h'             (m)
 ALLOCATE(T%XWALL_O_HOR(1))   ! wall surf. / hor. surf.          (-)
 ALLOCATE(T%XROAD_O_GRND(1))  ! road surf. / (road + garden surf.) (-)
-ALLOCATE(T%XGARDEN_O_GRND(1))! gard. surf. / (road + garden surf.)(-)
+ALLOCATE(T%XGARDEN_O_GRND(1))  ! gard. surf. / (road + garden surf.)(-)
 ALLOCATE(T%XWALL_O_GRND(1))  ! wall surf. / (road + garden surf.) (-)
 ALLOCATE(T%XWALL_O_BLD(1))   ! wall surf. / bld surf. (-)
 ALLOCATE(T%XZ0_TOWN(1))      ! roughness length for momentum    (m)
@@ -314,31 +314,31 @@ ALLOCATE(TIR%XRD_24H_IRRIG(1))     ! roads : total irrigation over 24 hours (kg/
 !
 ALLOCATE(DMT%XZ0_TOWN(1))  ! town roughness length
 ALLOCATE(DMT%XQF_BLD(1))   ! domestic heating
-ALLOCATE(DMT%XFLX_BLD(1)) ! heat flux from bld
+ALLOCATE(DMT%XFLX_BLD(1))  ! heat flux from bld
 ALLOCATE(DMT%XQF_TOWN(1))  ! total anthropogenic heat
-ALLOCATE(DMT%XDQS_TOWN(1)) ! storage inside building
+ALLOCATE(DMT%XDQS_TOWN(1))  ! storage inside building
 !
 ALLOCATE(DMT%XH_WALL_A(1))   ! wall sensible heat flux          (W/m2)
 ALLOCATE(DMT%XH_WALL_B(1))   ! wall sensible heat flux          (W/m2)
 ALLOCATE(DMT%XH_ROOF(1))     ! roof sensible heat flux          (W/m2)
 ALLOCATE(DMT%XH_ROAD(1))     ! road sensible heat flux          (W/m2)
-ALLOCATE(DMT%XH_STRLROOF(1)) ! structural roof sens. heat flux  (W/m2)
+ALLOCATE(DMT%XH_STRLROOF(1))  ! structural roof sens. heat flux  (W/m2)
 ALLOCATE(DMT%XH_BLT(1))      ! built surf sensible heat flux    (W/m2)
 ALLOCATE(DMT%XRN_WALL_A(1))  ! net radiation at wall            (W/m2)
 ALLOCATE(DMT%XRN_WALL_B(1))  ! net radiation at wall            (W/m2)
 ALLOCATE(DMT%XRN_ROOF(1))    ! net radiation at roof            (W/m2)
 ALLOCATE(DMT%XRN_ROAD(1))    ! net radiation at road            (W/m2)
-ALLOCATE(DMT%XRN_STRLROOF(1)) !net radiation at structural roofs(W/m2)
+ALLOCATE(DMT%XRN_STRLROOF(1))  !net radiation at structural roofs(W/m2)
 ALLOCATE(DMT%XRN_BLT(1))     ! net radiation at built surf      (W/m2)
-ALLOCATE(DMT%XGFLUX_WALL_A(1)) !net wall conduction flux        (W/m2)
-ALLOCATE(DMT%XGFLUX_WALL_B(1)) !net wall conduction flux        (W/m2)
-ALLOCATE(DMT%XGFLUX_ROOF(1)) ! net roof conduction flux         (W/m2)                                         
-ALLOCATE(DMT%XGFLUX_ROAD(1)) ! net road conduction flux         (W/m2)
-ALLOCATE(DMT%XGFLUX_STRLROOF(1)) !net structural roof cond flux (W/m2)
+ALLOCATE(DMT%XGFLUX_WALL_A(1))  !net wall conduction flux        (W/m2)
+ALLOCATE(DMT%XGFLUX_WALL_B(1))  !net wall conduction flux        (W/m2)
+ALLOCATE(DMT%XGFLUX_ROOF(1))  ! net roof conduction flux         (W/m2)                                         
+ALLOCATE(DMT%XGFLUX_ROAD(1))  ! net road conduction flux         (W/m2)
+ALLOCATE(DMT%XGFLUX_STRLROOF(1))  !net structural roof cond flux (W/m2)
 ALLOCATE(DMT%XGFLUX_BLT(1))  ! net built surf conduction flux   (W/m2)
 ALLOCATE(DMT%XLE_ROOF(1))    ! roof latent heat flux            (W/m2)
 ALLOCATE(DMT%XLE_ROAD(1))    ! road latent heat flux            (W/m2)
-ALLOCATE(DMT%XLE_STRLROOF(1)) !structural roof latent heat flux (W/m2)
+ALLOCATE(DMT%XLE_STRLROOF(1))  !structural roof latent heat flux (W/m2)
 ALLOCATE(DMT%XLE_BLT(1))     ! built surf latent heat flux      (W/m2)
 !
 ALLOCATE(DMT%XRUNOFF_TOWN(1))      ! aggregated water runoff for town      (kg/m2/s)
@@ -350,22 +350,22 @@ ALLOCATE(DMT%XRUNOFF_STRLROOF(1))  ! water runoff for structural roofs     (kg/m
 ALLOCATE(DMT%XIRRIG_GREENROOF(1))  ! summer ground irrigation rate         (kg/m2/s)
 !
 ALLOCATE(DMT%XABS_SW_ROOF(1))      ! absorbed shortwave radiation over roofs
-ALLOCATE(DMT%XABS_SW_SNOW_ROOF(1)) ! absorbed longwave radiation over roofs
+ALLOCATE(DMT%XABS_SW_SNOW_ROOF(1))  ! absorbed longwave radiation over roofs
 ALLOCATE(DMT%XABS_LW_ROOF(1))      ! absorbed shortwave radiation over roofs
-ALLOCATE(DMT%XABS_LW_SNOW_ROOF(1)) ! absorbed longwave radiation over roofs
+ALLOCATE(DMT%XABS_LW_SNOW_ROOF(1))  ! absorbed longwave radiation over roofs
 ALLOCATE(DMT%XABS_SW_ROAD(1))      ! absorbed shortwave radiation over roads
-ALLOCATE(DMT%XABS_SW_SNOW_ROAD(1)) ! absorbed longwave radiation over roads
+ALLOCATE(DMT%XABS_SW_SNOW_ROAD(1))  ! absorbed longwave radiation over roads
 ALLOCATE(DMT%XABS_LW_ROAD(1))      ! absorbed shortwave radiation over roads
-ALLOCATE(DMT%XABS_LW_SNOW_ROAD(1)) ! absorbed longwave radiation over roads
+ALLOCATE(DMT%XABS_LW_SNOW_ROAD(1))  ! absorbed longwave radiation over roads
 ALLOCATE(DMT%XABS_SW_WALL_A(1))    ! absorbed shortwave radiation over walls
 ALLOCATE(DMT%XABS_SW_WALL_B(1))    ! absorbed shortwave radiation over walls
 ALLOCATE(DMT%XABS_LW_WALL_A(1))    ! absorbed shortwave radiation over walls
 ALLOCATE(DMT%XABS_LW_WALL_B(1))    ! absorbed shortwave radiation over walls
 ALLOCATE(DMT%XABS_SW_GARDEN(1))    ! absorbed shortwave radiation over green areas
 ALLOCATE(DMT%XABS_LW_GARDEN(1))    ! absorbed shortwave radiation over green areas
-ALLOCATE(DMT%XABS_SW_GREENROOF(1)) ! absorbed shortwave radiation over green roofs
-ALLOCATE(DMT%XABS_LW_GREENROOF(1)) ! absorbed shortwave radiation over green roofs
-ALLOCATE(DMT%XG_GREENROOF_ROOF(1)) ! Heat flux between green roof and structural roof
+ALLOCATE(DMT%XABS_SW_GREENROOF(1))  ! absorbed shortwave radiation over green roofs
+ALLOCATE(DMT%XABS_LW_GREENROOF(1))  ! absorbed shortwave radiation over green roofs
+ALLOCATE(DMT%XG_GREENROOF_ROOF(1))  ! Heat flux between green roof and structural roof
 ALLOCATE(DMT%XABS_SW_PANEL(1))     ! absorbed shortwave radiation over solar panels
 ALLOCATE(DMT%XABS_LW_PANEL(1))     ! absorbed longwave  radiation over solar panels
 !
@@ -378,32 +378,32 @@ ALLOCATE(DMT%XTHER_PROD_BLD(1))    ! thermal      production of   solar panels (
 ALLOCATE(DMT%XPHOT_PROD_BLD(1))    ! photovoltaic production of   solar panels (W/m2 bld)
 
 ALLOCATE(DMT%XH_BLD_COOL(1))       ! Sensible cooling energy demand  
-                                                     ! of the building [W m-2(bld)]
+! of the building [W m-2(bld)]
 ALLOCATE(DMT%XT_BLD_COOL(1))       ! Total cooling energy demand  
-                                                     ! of the building [W m-2(bld)]
+! of the building [W m-2(bld)]
 ALLOCATE(DMT%XH_BLD_HEAT(1))       ! Heating energy demand       
-                                                     ! of the building [W m-2(bld)]
+! of the building [W m-2(bld)]
 ALLOCATE(DMT%XLE_BLD_COOL(1))      ! Latent cooling energy demand 
-                                                     ! of the building [W m-2(bld)]
+! of the building [W m-2(bld)]
 ALLOCATE(DMT%XLE_BLD_HEAT(1))      ! Latent heating energy demand 
-                                                     ! of the building [W m-2(bld)]
+! of the building [W m-2(bld)]
 ALLOCATE(DMT%XH_WASTE(1))          ! Sensible waste heat from HVAC system
-                                                     ! [W m-2(tot)]
+! [W m-2(tot)]
 ALLOCATE(DMT%XLE_WASTE(1))         ! Latent waste heat from HVAC system
-                                                     ! [W m-2(tot)]
+! [W m-2(tot)]
 ALLOCATE(DMT%XHVAC_COOL(1))        ! Energy consumption of the cooling system
-                                                     ! [W m-2(bld)]
+! [W m-2(bld)]
 ALLOCATE(DMT%XHVAC_HEAT(1))        ! Energy consumption of the heating system
-                                                     ! [W m-2(bld)]
+! [W m-2(bld)]
 ALLOCATE(DMT%XCAP_SYS(1))          ! Actual capacity of the cooling system
-                                                     ! [W m-2(bld)] 
+! [W m-2(bld)] 
 ALLOCATE(DMT%XM_SYS(1))            ! Actual HVAC mass flow rate 
-                                                     ! [kg s-1 m-2(bld)]
+! [kg s-1 m-2(bld)]
 ALLOCATE(DMT%XCOP(1))              ! COP of the cooling system
 ALLOCATE(DMT%XQ_SYS(1))            ! Supply air specific humidity [kg kg-1]
 ALLOCATE(DMT%XT_SYS(1))            ! Supply air temperature [K]
 ALLOCATE(DMT%XTR_SW_WIN(1))        ! Solar radiation transmitted throught
-                                                     ! windows [W m-2(bld)]
+! windows [W m-2(bld)]
 ALLOCATE(DMT%XFAN_POWER(1))        ! HVAC fan power
 ALLOCATE(DMT%XABS_SW_WIN(1))       ! window absorbed shortwave radiation [W m-2] 
 ALLOCATE(DMT%XABS_LW_WIN(1))       ! absorbed infrared rad. [W m-2]

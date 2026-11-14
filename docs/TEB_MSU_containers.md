@@ -7,6 +7,8 @@
 `run_teb_offline → teb_interface → CALL_DRIVER → TEB_GARDEN`. Обёртка
 `TEB_GARDEN_STRUCT` удалена: `CALL_DRIVER` вызывает физику `TEB_GARDEN` напрямую.
 
+> Состояние кода: `main`, коммит `0287dfa` и рабочая копия `src_dev`.
+
 Смежные документы:
 
 * `TEB_MSU_CBS_scheme_T_CAN_reformulation.md` — CBS-схема дороги (диагностики
@@ -30,7 +32,7 @@
 * **состояние** (прогностические температуры, влажности, снег) — переносится
   между подшагами и шагами форсинга;
 * **диагностика** (потоки, поглощения, агрегаты города) — считается физикой
-  только для вывода в CSV и накоплений драйвера;
+  для хоста и вывода; два поля `DMT` также служат входами следующего подшага (§3);
 * **форсинг подшага** (метеорологические входы хоста и их производные) —
   обновляется каждый подшаг и только читается физикой;
 * **внешние поверхности** (состояние и потоки внешнего сада и зелёной крыши,
@@ -58,7 +60,7 @@
 
 | имя | тип | файл | состав (полей) | роль |
 | --- | --- | --- | --- | --- |
-| `DMT` | `DIAG_MISC_TEB_t` | `src_struct/modd_diag_misc_tebn.F90` | 228 | диагностика: потоки, поглощения, агрегаты города, снег, сад/кровля, MRT пешехода на дороге и на крыше (вывод CSV) |
+| `DMT` | `DIAG_MISC_TEB_t` | `src_struct/modd_diag_misc_tebn.F90` | 231 | диагностика: потоки, поглощения, агрегаты города, снег, сад/кровля, MRT пешехода на дороге и на крыше; два межшаговых входа (§3) |
 | `TOPTS` | `TEB_OPTIONS_t` | `src_struct/modd_teb_optionn.F90` | 22 param + 2 work + 3 reserved | опции TEB (схемы, флаги, тип сада/кровли) |
 | `TPARAMS` | `TEB_PARAMS_t` | `src_struct/modd_teb_paramsn.F90` | 38 param + 4 flux | статические параметры TEB (геометрия, материалы, антропогенные потоки) |
 | `TSTATE` | `TEB_t` | `src_struct/modd_tebn.F90` | 10 state + 1 reserved | прогностическое состояние TEB (крыша, дорога, стены, каньон, снег) |
@@ -70,7 +72,7 @@
 | `FORC` | `TEB_FORCING_t` | `src_struct/modd_teb_forcingn.F90` | 22 work | форсинг подшага: 14 сырых величин хоста + 8 производных (давление и функции Экнера, плотность, скорость ветра, солнечное время и положение солнца, прямая/рассеянная SW) |
 | `EXT` | `TEB_EXT_SURF_t` | `src_struct/modd_teb_ext_surfn.F90` | 18 work | внешние поверхности: состояние и потоки внешнего сада и зелёной крыши, рассчитанные хостом (шероховатость, альбедо, эмиссивность, температура, влажность, потоки, испарение, сток) |
 
-Итого **436 полей** в одиннадцати контейнерах (228 `DMT` + 208 в десяти типах стенда
+Итого **439 полей** в одиннадцати контейнерах (231 `DMT` + 208 в десяти типах стенда
 `container_fields_inventory.py`). Категории (`param`/`flux`/`state`/
 `work`/`reserved`) — контракт из `python_tests/container_fields_inventory.py`;
 `DMT` отслеживается отдельным стендом `python_tests/check_diag_container.py`.
@@ -104,9 +106,9 @@ TYPE(TEB_EXT_SURF_t), SAVE :: EXT       ! external garden / greenroof surface (h
 | `TEB_FILL_DERIVED(KSTART, KEND, …)` | производные статические параметры (геометрия, СВФ, морфология BEM, оптика окон) |
 | `TEB_FILL_FORCING(KSTART, KEND, …)` | форсинг подшага: сырые величины хоста и производные (`FORC`) |
 | `TEB_FILL_EXT(KSTART, KEND, PDT, …)` | внешние поверхности: состояние и потоки сада/кровли от хоста (`EXT`), сток приводится к потоку (`/PDT`) |
-| `TEB_BIND_STATE(KSTART, KEND, …)` | привязка указателей `TSTATE`/`BSTATE` к окну хоста `teb_*` |
+| `TEB_BIND_STATE(KSTART, KEND, …)` | копирование состояния хоста в окно `TSTATE`/`BSTATE` |
 | `TEB_INIT_STATE(KSTART, KEND)` | cold-start состояния на первом модельном шаге (`ntstep == 0`); вызывается из `teb_interface` до `CALL_DRIVER` |
-| `TEB_UNBIND_STATE(KSTART, KEND, …)` | отвязка указателей после шага |
+| `TEB_UNBIND_STATE(KSTART, KEND, …)` | копирование обновлённого состояния обратно хосту |
 | `TEB_HOST_FINAL` | деаллокация всех контейнеров (конец прогона) |
 
 **Аллокация.** `TEB_HOST_ENSURE` вызывает `ALLOC_TEB_STRUCT` (для `TOPTS`,
@@ -122,39 +124,97 @@ TYPE(TEB_EXT_SURF_t), SAVE :: EXT       ! external garden / greenroof surface (h
 присваивания, которые считаются из его локальных переменных
 (`TEB_FILL_DERIVED`, записи 63–67 истории).
 
-**Состояние.** `TEB_BIND_STATE` привязывает 26 dummy-полей `TSTATE`/`BSTATE` к
-окну `KSTART:KEND` через указатели (`BSTATE%LSHADE(KSTART:KEND) = teb_lshade` и
-т.д.); физика читает/пишет состояние через ссылки, `TEB_UNBIND_STATE` отвязывает
-после шага. Это убирает копирование «аргумент → контейнер» из физики.
+**Состояние.** `TEB_BIND_STATE` и `TEB_UNBIND_STATE` копируют значения оператором
+`=`, хотя поля контейнеров объявлены указателями. Через обе процедуры проходят
+30 полей состояния хоста (20 в `TSTATE`, 10 в `BSTATE`, с учётом компонент снега).
+Дополнительно `LSHADE` загружается как опция, а `XALB_WIN` выгружается как
+производная диагностика. Владельцем состояния всех колонок остаётся хост.
+
+**Межшаговые коэффициенты.** Обязательная часть подписи `teb_interface` завершается
+два обязательных массива `REAL, DIMENSION(nvec), INTENT(INOUT)`:
+
+| аргумент | рабочее поле | начальное значение при `ntstep == 0` | использование следующего подшага |
+| --- | --- | --- | --- |
+| `teb_ustar_town` | `DMT%XUSTAR_TOWN` | `0.2 m/s` | вход схемы Wang до нового расчёта `u*` |
+| `teb_cd_greenroof_atm` | `DMT%XPCD_GREENROOF_ATM` | `XUNDEF` | трение внешней кровли; на первом подшаге срабатывает нейтральная формула |
+
+При `ntstep > 0` оба значения копируются из массивов хоста в `DMT` перед
+`CALL_DRIVER`; после физики возвращаются хосту. Cold-start задаёт значения из
+таблицы независимо от входных массивов. Offline-драйвер хранит их между всеми
+модельными подшагами. Хост при restart восстанавливает оба массива вместе с
+остальным состоянием и передаёт ненулевой номер шага; формат restart в этот API
+не входит. Внешняя кровля не требует отдельной копии всего `DMT`.
+
+**Необязательные выходы.** После обязательных аргументов API содержит 44
+`OPTIONAL, INTENT(OUT)` массива: текущие результаты из `DMT` и снимок дороги
+после загрузки/cold-start, до физики (`teb_troad_before`). Пропуск этих выходов
+не меняет шаг модели. Экспорт сохраняет единицы и площадную нормировку TEB;
+для DEF мощности HVAC выдаются нулями без чтения неопределённой диагностики.
+Полный контракт, неактивные режимы и отображение в COSMO — §3.4
+`TEB_MSU_coupling_checklist.md`. Внешний хост не получает внутренний `DMT` через
+`sfc_teb`: модуль публично экспортирует только `teb_interface` и
+`teb_real_kind = KIND(0.0)`; входы, состояния и результаты имеют явные INTENT.
+
+**Колонки.** Публичный API принимает блок с `nvec>=1` и окном
+`ivstart:ivend`; обрабатываются только точки с `sa_uc(i)>0`. Физические
+контейнеры имеют размер 1. Для каждой городской колонки `teb_interface`
+загружает её параметры, форсинг, внешние поверхности и состояние в рабочую
+позицию 1, вызывает `CALL_DRIVER(icell=1)` и возвращает результаты в позицию
+`i` хоста. INOUT вне городской маски окна сохраняются; OUT определены только
+для обработанных точек. Пустое окно задаётся как `ivend=ivstart-1`, при
+`1<=ivstart<=nvec+1`; физика для него не вызывается. Offline использует `nvec=1`.
+
+Границы окна и пять слоёв крыши/дороги/стены/пола проверяются до заполнения
+контейнеров. `TEB_HOST_ENSURE` принимает только рабочий размер 1 и проверяет
+размеры при повторном использовании памяти. Политика вызова из COSMO — §2.2
+`TEB_MSU_coupling_checklist.md`. Физические процедуры остаются поколоночными.
 
 **Cold-start.** `TEB_INIT_STATE(KSTART, KEND)` заполняет состояние окна на первом
-модельном шаге. Вызов находится в `teb_interface` под условием `ntstep == 0`, до
-цикла `CALL_DRIVER`; отдельной маски/флага нет. Offline-драйвер передаёт
+модельном шаге. Вызов находится внутри городского цикла `teb_interface`,
+под условием `ntstep == 0`, перед `CALL_DRIVER` для данной колонки.
+Offline-драйвер передаёт
 `(nstep-1)*INB_ATM + (JSURF_STEP-1)`, coupled-хост — свой номер шага, начинающийся
-с нуля. При restart `nstart > 0` процедура не вызывается. Перед cold-start
-`teb_interface` вызывает `INI_CSTS`; после цикла `CALL_DRIVER` при `ntstep == 0`
+с нуля. При restart `nstart > 0` процедура не вызывается. `teb_interface` вызывает
+`INI_CSTS` перед подготовкой параметров и форсинга на любом шаге, в том числе при
+первом вызове с городскими точками и ненулевым номером шага; после `CALL_DRIVER` данной колонки при `ntstep == 0`
 синхронизирует `DMT%XTSTOWN_S_NOW` с пост-`TEB_GARDEN` значением `DMT%XTSTOWN_S`. Начальные профили слоёв крыши/стены, температура внутреннего окна и `XT_FLOOR`/`XT_MASS` якорятся на `XTI_BLD` (начальная температура здания из `teb_ti_bld_init`, при отсутствии — `XTCOOL_TARGET`); разрешение `XUNDEF` для `XTI_BLD`/`XQI_BLD` выполняется до заполнения состояния. В `src_ctrl` тот же порядок реализован в `CALL_DRIVER` под `IF (ntstep == 0)`.
 
 ---
 
 ## 4. Путь контейнеров по цепочке вызовов
 
+Общая цепочка API и физики собирается в статическую библиотеку `libteb.a`.
+Offline-хост находится в `src_dev/src_offline/` и линкуется с этой библиотекой;
+его массивы `MODD_FORC_ATM` и процедуры чтения/интерполяции в библиотеку
+не входят. Общие `.mod` и объекты отделены от offline `.mod` и объектов.
+Состав исходников и include-файлов задан в `src_dev/make/teb_sources.mk`,
+зависимости модулей — в `src_dev/make/teb_dependencies.mk`. Пути сборки
+задаются внешним `BUILD_ROOT`; команды и требования к компилятору — в README.
+
 ```
 run_teb_offline
-  → teb_interface (154 аргумента)                    src_api/sfc_teb.F90
-      → TEB_HOST_ENSURE      аллокация 11 контейнеров (первый вызов)
-      → TEB_FILL_PARAMS      TOPTS/TPARAMS/BOPTS/BPARAMS/TPN/TIR ← неймлист
-      → TEB_FILL_DERIVED     производная статика (морфология, оптика окон)
-      → TEB_FILL_FORCING     FORC ← форсинг подшага (сырые + производные)
-      → TEB_FILL_EXT         EXT ← внешние поверхности сада/кровли (хост -> TEB)
-      → TEB_BIND_STATE       TSTATE/BSTATE ⇒ окно teb_* (указатели)
-      → TEB_INIT_STATE       cold-start, только ntstep == 0
-      → CALL_DRIVER (27 dummy)  [по ячейке]          src_driver/call_driver.F90
-          → TEB_GARDEN (29 аргументов)               src_teb/teb_garden.F90
-              читает/пишет TOPTS/TPARAMS/TSTATE/BOPTS/BPARAMS/BSTATE/TPN/TIR/DMT
-              читает FORC и EXT
-      → TEB_UNBIND_STATE     отвязка TSTATE/BSTATE
-      → TEB_LOG_EMIT         строка CSV из DMT + состояния + FORC
+  → teb_interface (202: 158 обязательных + 44 OPTIONAL)                   src_api/sfc_teb.F90
+      → проверка блока/слоёв; маска ivstart:ivend, sa_uc>0
+      → TEB_LOG_AT_CADENCE(ntstep)   одно решение для всех блоков шага
+      → INI_CSTS             физические константы
+      → TEB_HOST_ENSURE(1,…) аллокация 11 контейнеров (первый непустой вызов)
+      → цикл по городским колонкам i:
+          → TEB_FILL_PARAMS      TOPTS/TPARAMS/BOPTS/BPARAMS/TPN/TIR ← входы i
+          → TEB_FILL_DERIVED     производная статика (морфология, оптика окон)
+          → TEB_FILL_FORCING     FORC ← форсинг колонки i
+          → TEB_FILL_EXT         EXT ← внешние поверхности колонки i
+          → TEB_BIND_STATE       TSTATE/BSTATE ← состояние колонки i
+          → TEB_INIT_STATE       cold-start, только ntstep == 0
+            или загрузка         предыдущие u* и CD кровли, ntstep > 0
+          → снимок дороги        OPTIONAL teb_troad_before, после cold-start
+          → CALL_DRIVER (27 dummy), icell=1       src_driver/call_driver.F90
+              → TEB_GARDEN (29 аргументов)         src_teb/teb_garden.F90
+                  читает/пишет TOPTS/TPARAMS/TSTATE/BOPTS/BPARAMS/BSTATE/TPN/TIR/DMT
+                  читает FORC и EXT
+          → выгрузка u*/CD       значения для следующего подшага хоста
+          → TEB_UNBIND_STATE     состояние колонки i ← TSTATE/BSTATE
+          → OPTIONAL OUT         текущие результаты в позицию i хоста
+          → TEB_LOG_EMIT         KHOST_CELL=i, данные из рабочей позиции 1
   → TEB_HOST_FINAL           деаллокация (конец прогона)
 ```
 
@@ -166,11 +226,11 @@ run_teb_offline
 
 | род | путь | пишет | читает |
 | --- | --- | --- | --- |
-| статика `TOPTS/TPARAMS/BOPTS/BPARAMS/TPN/TIR` | `TEB_FILL_PARAMS`/`TEB_FILL_DERIVED` в `teb_interface` → `CALL_DRIVER` → `TEB_GARDEN` | слой `TEB_HOST` (один раз на окно) | физика (`TEB_GARDEN` и её подпрограммы) |
-| состояние `TSTATE/BSTATE` | `TEB_BIND_STATE` ⇒ окно хоста → `CALL_DRIVER` → `TEB_GARDEN` | физика | физика и `TEB_LOG_EMIT` |
+| статика `TOPTS/TPARAMS/BOPTS/BPARAMS/TPN/TIR` | `TEB_FILL_PARAMS`/`TEB_FILL_DERIVED` в `teb_interface` → `CALL_DRIVER` → `TEB_GARDEN` | слой `TEB_HOST` (для каждой городской колонки подшага) | физика (`TEB_GARDEN` и её подпрограммы) |
+| состояние `TSTATE/BSTATE` | хост → `TEB_BIND_STATE` → `CALL_DRIVER` → `TEB_GARDEN` → `TEB_UNBIND_STATE` → хост | хост и физика | физика и `TEB_LOG_EMIT` |
 | диагностика `DMT` | `TEB_HOST_ENSURE` (аллокация) → `CALL_DRIVER` → `TEB_GARDEN` | физика (`TEB_GARDEN` и её подпрограммы) | `TEB_LOG_EMIT` (CSV), `CALL_DRIVER` (агрегаты) |
-| форсинг `FORC` | `ALLOC_TEB_FORCING` ⇒ `TEB_FILL_FORCING` (раз на подшаг) → `CALL_DRIVER` → `TEB_GARDEN` | слой `TEB_HOST` | физика (`TEB_GARDEN` и её подпрограммы), `TEB_LOG_EMIT` (колонки `P_CANYON`, `SOLAR_*`) |
-| внешние поверхности `EXT` | `ALLOC_TEB_EXT_SURF` ⇒ `TEB_FILL_EXT` (раз на подшаг) → `CALL_DRIVER` → `TEB_GARDEN` | слой `TEB_HOST` | физика (`TEB_GARDEN` и её подпрограммы), `CALL_DRIVER` (агрегаты альбедо/проверка z0) |
+| форсинг `FORC` | `ALLOC_TEB_FORCING` ⇒ `TEB_FILL_FORCING` (для каждой колонки подшага) → `CALL_DRIVER` → `TEB_GARDEN` | слой `TEB_HOST` | физика (`TEB_GARDEN` и её подпрограммы), `TEB_LOG_EMIT` (колонки `P_CANYON`, `SOLAR_*`) |
+| внешние поверхности `EXT` | `ALLOC_TEB_EXT_SURF` ⇒ `TEB_FILL_EXT` (для каждой колонки подшага) → `CALL_DRIVER` → `TEB_GARDEN` | слой `TEB_HOST` | физика (`TEB_GARDEN` и её подпрограммы), `CALL_DRIVER` (агрегаты альбедо/проверка z0) |
 
 `TEB_GARDEN` получает все одиннадцать контейнеров; `TPARAMS`, `FORC` и `EXT`
 объявлены `INTENT(IN)` (только чтение), остальные восемь — `INTENT(INOUT)`.
@@ -180,16 +240,17 @@ run_teb_offline
 
 ## 5. Контейнеры в деталях
 
-### 5.1 `DMT` — диагностика (`DIAG_MISC_TEB_t`, 228 полей)
+### 5.1 `DMT` — диагностика (`DIAG_MISC_TEB_t`, 231 поле)
 
-Единственный контейнер, который заполняет **физика** и читает **вывод**.
+Контейнер заполняет **физика**, читают **хост и вывод**; два межшаговых поля
+восстанавливаются из аргументов хоста перед физикой (§3).
 Поля — `REAL, POINTER, DIMENSION(:)`; длина задаётся при аллокации (`KNVEC`,
 в offline-драйвере 1). Состав: поля SURFEX (`XH_WALL_A`, `XRN_ROOF`, `XGFLUX_*`,
 `XHVAC_*`), поля TEB-MSU (CBS-диагностики дороги, сад/кровля, снежная ветка) и
 запись диагностик ветвей CBS-схемы, использованная дважды (см. ниже).
 
 * аллокация — `DIAG_MISC_TEB_ALLOC(DMT, KNVEC)` (в `TEB_HOST_ENSURE`);
-* `NULLIFY`/`ALLOCATE`/`DEALLOCATE` — три зеркальных списка (228/228/228),
+* `NULLIFY`/`ALLOCATE`/`DEALLOCATE` — три зеркальных списка (231/231/231),
   проверяются стендом `check_diag_container.py`;
 * у каждого поля есть **производитель** — прямое присваивание либо dummy
   `INTENT(OUT/INOUT)` (в легаси-объявлениях — маркер `!OUT`); это проверяет
@@ -324,12 +385,15 @@ HVAC-уставки (`XTCOOL_TARGET`, `XTHEAT_TARGET`, `XCAP_SYS_HEAT`, `XCOP_RA
   `CALL_DRIVER`, включая порядок «плотность и давление форсинга считаются до
   подстановки запасного давления».
 
-**Мост `XZREF`/`XUREF`.** `OL_TIME_INTERP_ATM` строит плотность своей
-атмосферы по `XZREF` модуля `MODD_FORC_ATM`, а хост переводит абсолютную
-влажность форсинга через неё (`qv = XQA/XRHOA`, `rho = XRHOA`). Раньше эти два
-поля обновлял `CALL_DRIVER`; теперь он копирует их из контейнера
-(`XZREF(1:1) = FORC%XZREF(icell:icell)`), иначе влажность и плотность хоста
-застывают на `XUNDEF` (поймано первым прогоном A/B).
+**Offline-высоты `XZREF`/`XUREF`.** `OL_TIME_INTERP_ATM` строит плотность своей
+атмосферы по `XZREF` модуля `MODD_FORC_ATM`, а offline-хост переводит абсолютную
+влажность через неё (`qv = XQA/XRHOA`, `rho = XRHOA`). Поэтому
+`run_teb_offline` задаёт обе высоты из `hlev_teb` сразу после `OL_ALLOC_ATM`,
+до первой интерполяции. Общий `CALL_DRIVER` не использует `MODD_FORC_ATM`
+и `MODI_OL_*`; физика получает высоты через `FORC`. Для CSV исходный индекс
+ячейки передаётся отдельно как `KHOST_CELL`, а данные читаются из рабочей
+позиции 1. Периодичность вывода определяется номером модельного шага с отсчётом от нуля,
+общим для всех блоков; пустые списки фильтров не создают CSV.
 
 
 ---
@@ -362,7 +426,7 @@ HVAC-уставки (`XTCOOL_TARGET`, `XTHEAT_TARGET`, `XCAP_SYS_HEAT`, `XCOP_RA
 
 | процедура | файл | аргументы |
 | --- | --- | --- |
-| `teb_interface` | `src_api/sfc_teb.F90` | **154** (стык с coupled-моделью: числовые массивы + выходные скаляры `teb_wind_canyon`/`teb_sobs`/`teb_thbs`/`teb_runoff_*`) |
+| `teb_interface` | `src_api/sfc_teb.F90` | **202** (158 обязательных + 44 OPTIONAL OUT), включая обязательные INOUT `teb_ustar_town`/`teb_cd_greenroof_atm` и выходные массивы ветра, радиации и стока; собственный интерфейс COSMO описан в чек-листе |
 | `CALL_DRIVER` | `src_driver/call_driver.F90` | **27** dummy = 14 transient + 2 host-export + 11 container |
 | `TEB_GARDEN` | `src_teb/teb_garden.F90` | **29** = 2 индекса + 11 контейнеров + 5 флагов/строк + 4 коэффициента связи + 1 `KSW` + 2 (`PH_TRAFFIC`, `PTSTEP`) + 2 (`KDAY`, `PTIME`) + 2 проводимости (`PCH_GD`, `PCD_GD`) |
 
@@ -370,8 +434,7 @@ HVAC-уставки (`XTCOOL_TARGET`, `XTHEAT_TARGET`, `XCAP_SYS_HEAT`, `XCOP_RA
 компилятором на каждом вызове. Одиннадцать dummy-контейнеров —
 `DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, FORC, EXT`; 14 transient — часы,
 индексы ячейки, координаты и городская доля; 2 host-export — проводимости сада
-`ZCH_GD`/`ZCD_GD`, которые TEB пишет, а хост читает (обратное направление по
-сравнению с `EXT`).
+`ZCH_GD` (OUT) и `ZCD_GD` (INOUT: предыдущий CD хоста и новый результат).
 
 Пять флагов/строк `TEB_GARDEN` (`OGREENROOF_EXT`, `HIMPLICIT_WIND`, `PBEM_AC`,
 `HSNOW_ROOF`, `HSNOW_ROAD`) — опции/параметры вызова, не вынесенные в
@@ -385,7 +448,7 @@ HVAC-уставки (`XTCOOL_TARGET`, `XTHEAT_TARGET`, `XCAP_SYS_HEAT`, `XCOP_RA
 
 | стенд | что проверяет |
 | --- | --- |
-| `python_tests/check_diag_container.py` | три списка полей `DMT` (тип, `NULLIFY`, `ALLOCATE`, `DEALLOCATE`): 228/228/228, включая компоненты записи `TEB_CBS_BRANCH_t` для обоих экземпляров (`CAN`, `ATM`); расхождение — ошибка |
+| `python_tests/check_diag_container.py` | списки полей `DMT` (тип, `NULLIFY`, `ALLOCATE`, `DEALLOCATE`): по 231 полю, включая компоненты записи `TEB_CBS_BRANCH_t` для обоих экземпляров (`CAN`, `ATM`); расхождение — ошибка |
 | `python_tests/check_diag_producers.py` | производитель каждого поля `DMT` (плоского и двухуровневого `CAN%…`/`ATM%…`): прямое присваивание или `INTENT(OUT/INOUT)` (легаси `!OUT`) dummy; `= XUNDEF` производителем не считается; `XIRRIG_GARDEN` — `reserved` |
 | `python_tests/container_fields_inventory.py` | категории полей десяти типов (`param`/`flux`/`state`/`work`/`reserved`/`dead`), включая `FORC` (22 `work`) и `EXT` (18 `work`), и сверка контракта в обе стороны: необъявленное поле — `UNCLASSIFIED`, объявленное, но не упомянутое нигде — `dead`, исчезнувшее из кода — `STALE TABLE`; `--strict` — `dead` как ошибка, `--enforce-param` — `param`/`flux` пишет только драйвер или слой `TEB_HOST`. Сейчас `RESULT: OK` во всех трёх режимах (27/11/42/5/19/40/5/19/22/18 поля) |
 | `python_tests/call_signature_inventory.py` | подпись `CALL_DRIVER`: классы `transient`/`container`/`host-export`/`deferred`/`violation`; `--strict --expect 27` |
@@ -448,8 +511,8 @@ python python_tests/bem_option_sensitivity.py      # опции BEM: A/B + чу�
 
 Итоговые счётчики: `TEB_GARDEN_STRUCT` был 411 → 326 → 304 → 83 → 68 аргументов
 и затем удалён; `TEB_GARDEN` — **29** аргументов (было 46/65); `CALL_DRIVER` — **27**
-dummy (было 44/57; 11 контейнеров); `teb_interface` — **154** (стык с coupled-моделью
-сохранён). `DMT` вырос до **208** полей, после удаления незаполняемых `XSOBS`/`XTHBS`/`XALB_TH`
+dummy (было 44/57; 11 контейнеров); `teb_interface` на этапе дедупликации — **154**
+(текущая подпись — 202, §6). `DMT` вырос до **208** полей, после удаления незаполняемых `XSOBS`/`XTHBS`/`XALB_TH`
 (см. `TEB_MSU_change_history.md`, §5.6, N3) — **205**, после объединения диагностик
 ветвей CBS-схемы в запись `TEB_CBS_BRANCH_t` — **207**. Вся дедупликация побитово
 идентична эталону: полный A/B (18 000 шагов) — `IDENTICAL`, SHA-256 CSV `30499e1f…`.

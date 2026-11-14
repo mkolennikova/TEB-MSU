@@ -43,12 +43,12 @@ INTEGER :: NBUGFIX   ! bugfix number of this version
 REAL,    PARAMETER :: XUNDEF = 1.E+20
 #else 
 #ifdef MNH_MPI_DOUBLE_PRECISION
-REAL,    PARAMETER :: XUNDEF = 1.E+20! HUGE(XUNDEF) ! Z'7FFFFFFFFFFFFFFF' !  undefined value
+REAL,    PARAMETER :: XUNDEF = 1.E+20  ! HUGE(XUNDEF) ! Z'7FFFFFFFFFFFFFFF' !  undefined value
 #else
-REAL,    PARAMETER :: XUNDEF = 1.E+6 ! HUGE(XUNDEF) ! Z'7FBFFFFF' ! undefined value
+REAL,    PARAMETER :: XUNDEF = 1.E+6  ! HUGE(XUNDEF) ! Z'7FBFFFFF' ! undefined value
 #endif
 #endif
-INTEGER, PARAMETER :: NUNDEF = 1E+9   !  HUGE(NUNDEF) !  undefined value
+INTEGER, PARAMETER :: NUNDEF = 1E+9                           !  HUGE(NUNDEF) !  undefined value
 REAL,    PARAMETER :: XSURF_EPSILON = EPSILON(XSURF_EPSILON)  ! minimum 
 REAL,    PARAMETER :: XSURF_HUGE    = HUGE(XSURF_HUGE) 
 REAL,    PARAMETER :: XSURF_TINY    = TINY(XSURF_TINY) 
@@ -57,7 +57,7 @@ REAL,    PARAMETER :: XSURF_TINY    = TINY(XSURF_TINY)
 !* When enabled, snowfall below XTEB_SNOW_RATE_MIN cannot create snow cover
 !* on a bare road or roof. Existing cover receives the full snowfall rate.
 LOGICAL :: teb_snow_check = .FALSE.
-REAL, PARAMETER :: XTEB_SNOW_RATE_MIN = 1.E-8 ! kg m-2 s-1
+REAL, PARAMETER :: XTEB_SNOW_RATE_MIN = 1.E-8  ! kg m-2 s-1
 
 !-----------------------------------------------------------------------------------------------------
 !

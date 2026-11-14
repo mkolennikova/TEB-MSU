@@ -13,48 +13,48 @@ USE MODD_BEM_n, ONLY : BEM_t
 IMPLICIT NONE
 TYPE(TEB_t), INTENT(INOUT) :: T
 TYPE(BEM_t), INTENT(INOUT) :: B
-REAL, DIMENSION(:),   INTENT(IN)    :: PT_LWCN  ! LWCN air temperature
-REAL, DIMENSION(:),   INTENT(IN)    :: PQ_LWCN  ! LWCN air specific humidity
-REAL, DIMENSION(:),   INTENT(IN)    :: PU_LWCN  ! LWCN hor. wind
-REAL, DIMENSION(:),   INTENT(IN)    :: PTS_RF   ! roof surface temperature
-REAL, DIMENSION(:),   INTENT(IN)    :: PTS_RD   ! road surface temperature
-REAL, DIMENSION(:),   INTENT(IN)    :: PTS_WL_A ! wall surface temperature
-REAL, DIMENSION(:),   INTENT(IN)    :: PTS_WL_B ! wall surface temperature
-REAL, DIMENSION(:), INTENT(IN)    :: PPS      ! pressure at the surface
-REAL, DIMENSION(:), INTENT(IN)    :: PTA      ! temperature at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PQA      ! specific humidity
-REAL, DIMENSION(:), INTENT(IN)    :: PVMOD    ! module of the horizontal wind
-REAL, DIMENSION(:), INTENT(IN)    :: PRHOA    ! air density at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PLW_RAD  ! atmospheric infrared radiation
-REAL, DIMENSION(:), INTENT(IN)    :: PSR      ! snow rate
-REAL, DIMENSION(:), INTENT(IN)    :: PZREF    ! reference height of the first
-REAL, DIMENSION(:), INTENT(IN)    :: PUREF    ! reference height of the first
-REAL,               INTENT(IN)    :: PTSTEP   ! time step
-REAL, DIMENSION(:), INTENT(IN)    :: PZ_LWCN  ! height of forcing
-REAL, DIMENSION(:), INTENT(INOUT) :: PDN_RF          ! snow-covered roof frac.
-REAL, DIMENSION(:), INTENT(IN)    :: PABS_SW_SN_RF ! SW absorbed by roof snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW_SN_RF ! absorbed IR rad by snow on roof
-REAL, DIMENSION(:), INTENT(INOUT) :: PDN_RD          ! snow-covered road frac.
-REAL, DIMENSION(:), INTENT(IN)    :: PABS_SW_SN_RD ! SW absorbed by road snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW_SN_RD ! absorbed IR rad by snow on road
-REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RF ! net radiation over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RF  ! sensible heat flux over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RF ! latent heat flux over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PGSN_RF  ! flux under the snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RF   ! snow melt
-REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RD ! net radiation over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD  ! sensible heat flux over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD ! latent heat flux over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PGSN_RD  ! flux under the snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RD   ! snow melt
-REAL, DIMENSION(:), INTENT(IN)    :: PLW_WA_TO_NR        ! LW contrib. wall       -> road(snow)
-REAL, DIMENSION(:), INTENT(IN)    :: PLW_WB_TO_NR        ! LW contrib. wall       -> road(snow)
-REAL, DIMENSION(:), INTENT(IN)    :: PLW_S_TO_NR         ! LW contrib. sky        -> road(snow)
-REAL, DIMENSION(:), INTENT(IN)    :: PLW_WIN_TO_NR       ! LW contrib. win       -> road(snow)
-REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SN_RF ! Heat storage in snowpack on roofs
-REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SN_RD ! Heat storage in snowpack on roads
-REAL, DIMENSION(:), INTENT(OUT)   :: PSNOWD_RF  ! snow depth on roofs
-REAL, DIMENSION(:), INTENT(OUT)   :: PSNOWD_RD  ! snow depth on roads
+REAL, DIMENSION(:),   INTENT(IN)    :: PT_LWCN      ! LWCN air temperature
+REAL, DIMENSION(:),   INTENT(IN)    :: PQ_LWCN      ! LWCN air specific humidity
+REAL, DIMENSION(:),   INTENT(IN)    :: PU_LWCN      ! LWCN hor. wind
+REAL, DIMENSION(:),   INTENT(IN)    :: PTS_RF       ! roof surface temperature
+REAL, DIMENSION(:),   INTENT(IN)    :: PTS_RD       ! road surface temperature
+REAL, DIMENSION(:),   INTENT(IN)    :: PTS_WL_A     ! wall surface temperature
+REAL, DIMENSION(:),   INTENT(IN)    :: PTS_WL_B     ! wall surface temperature
+REAL, DIMENSION(:), INTENT(IN)    :: PPS            ! pressure at the surface
+REAL, DIMENSION(:), INTENT(IN)    :: PTA            ! temperature at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PQA            ! specific humidity
+REAL, DIMENSION(:), INTENT(IN)    :: PVMOD          ! module of the horizontal wind
+REAL, DIMENSION(:), INTENT(IN)    :: PRHOA          ! air density at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PLW_RAD        ! atmospheric infrared radiation
+REAL, DIMENSION(:), INTENT(IN)    :: PSR            ! snow rate
+REAL, DIMENSION(:), INTENT(IN)    :: PZREF          ! reference height of the first
+REAL, DIMENSION(:), INTENT(IN)    :: PUREF          ! reference height of the first
+REAL,               INTENT(IN)    :: PTSTEP         ! time step
+REAL, DIMENSION(:), INTENT(IN)    :: PZ_LWCN        ! height of forcing
+REAL, DIMENSION(:), INTENT(INOUT) :: PDN_RF         ! snow-covered roof frac.
+REAL, DIMENSION(:), INTENT(IN)    :: PABS_SW_SN_RF  ! SW absorbed by roof snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW_SN_RF  ! absorbed IR rad by snow on roof
+REAL, DIMENSION(:), INTENT(INOUT) :: PDN_RD         ! snow-covered road frac.
+REAL, DIMENSION(:), INTENT(IN)    :: PABS_SW_SN_RD  ! SW absorbed by road snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW_SN_RD  ! absorbed IR rad by snow on road
+REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RF       ! net radiation over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RF        ! sensible heat flux over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RF       ! latent heat flux over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PGSN_RF        ! flux under the snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RF       ! snow melt
+REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RD       ! net radiation over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD        ! sensible heat flux over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD       ! latent heat flux over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PGSN_RD        ! flux under the snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RD       ! snow melt
+REAL, DIMENSION(:), INTENT(IN)    :: PLW_WA_TO_NR   ! LW contrib. wall       -> road(snow)
+REAL, DIMENSION(:), INTENT(IN)    :: PLW_WB_TO_NR   ! LW contrib. wall       -> road(snow)
+REAL, DIMENSION(:), INTENT(IN)    :: PLW_S_TO_NR    ! LW contrib. sky        -> road(snow)
+REAL, DIMENSION(:), INTENT(IN)    :: PLW_WIN_TO_NR  ! LW contrib. win       -> road(snow)
+REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SN_RF     ! Heat storage in snowpack on roofs
+REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SN_RD     ! Heat storage in snowpack on roads
+REAL, DIMENSION(:), INTENT(OUT)   :: PSNOWD_RF      ! snow depth on roofs
+REAL, DIMENSION(:), INTENT(OUT)   :: PSNOWD_RD      ! snow depth on roads
 
 END SUBROUTINE URBAN_SNOW_EVOL
 END INTERFACE

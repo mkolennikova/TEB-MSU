@@ -25,9 +25,9 @@ USE MODI_URB_AERO_PARAMS, ONLY : URB_AERO_PARAMS
 IMPLICIT NONE
 CONTAINS
 SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, IMIN, ISEC, &
-                 ZTIME, FR_URB, ZLON, ZLAT, FORC, EXT, ZCH_GD, ZCD_GD, &
-                 DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, &
-                 BSTATE, TPN, TIR)
+                        ZTIME, FR_URB, ZLON, ZLAT, FORC, EXT, ZCH_GD, ZCD_GD, &
+                        DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, &
+                        BSTATE, TPN, TIR)
 							
 ! ======================================================================
 ! 
@@ -70,16 +70,12 @@ USE MODD_SURF_PAR, ONLY: XUNDEF
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 USE MODD_TEB_FORCING_n,  ONLY : TEB_FORCING_t
 USE MODD_TEB_EXT_SURF_n, ONLY : TEB_EXT_SURF_t
-USE MODD_FORC_ATM,       ONLY : XZREF, XUREF
 USE MODD_TYPE_DATE_SURF
 USE MODE_THERMOS
 USE MODD_REPROD_OPER, ONLY : CQSAT
 !
 USE MODI_INIT_SURFCONSPHY
 USE MODI_SUNPOS
-USE MODI_OL_READ_ATM
-USE MODI_OL_ALLOC_ATM
-USE MODI_OL_TIME_INTERP_ATM
 USE MODI_TEB_GARDEN
 USE MODI_URBAN_MRT
 USE MODI_WINDOW_DATA_STRUCT
@@ -105,28 +101,29 @@ TYPE(BEM_PARAMS_t),  INTENT(INOUT) :: BPARAMS
 ! ---------------------------------------------------------------
 ! Declaration of variables 
 ! ---------------------------------------------------------------
-! Input variables from COSMO
-INTEGER                           :: ntstep            !IN timestep
-INTEGER                           :: icell             !IN number of cell in the block
-INTEGER                           :: iblock            !IN number of block
-REAL                              :: dt                !IN integration timestep
-INTEGER                           :: IYEAR             !IN Current year (UTC)
-INTEGER                           :: IMONTH            !IN Current month (UTC)
-INTEGER                           :: IDAY              !IN Current day (UTC)
-INTEGER                           :: IHOUR             !IN Current hour (UTC)
-INTEGER                           :: IMIN              !IN Current minute (UTC)
-INTEGER                           :: ISEC              !IN Current seconds (UTC)
-REAL                              :: ZTIME             !IN Current duration since start of the run(s)
-REAL,DIMENSION(1)                 :: FR_URB            !IN fraction of urban area (need for AHF_TRAFFIC calculation)   
-REAL,DIMENSION(1)                 :: ZLON              !IN Longitude (deg)
-REAL,DIMENSION(1)                 :: ZLAT              !IN Latitude (deg)
-TYPE(TEB_FORCING_t), INTENT(IN)   :: FORC              !IN atmospheric forcing of the sub-step
+!MV202611 explicit transient inputs and garden coefficient directions
+! Input variables from the host
+INTEGER, INTENT(IN) :: ntstep              !IN timestep
+INTEGER, INTENT(IN) :: icell               !IN number of cell in the block
+INTEGER, INTENT(IN) :: iblock              !IN number of block
+REAL, INTENT(IN) :: dt                     !IN integration timestep
+INTEGER, INTENT(IN) :: IYEAR               !IN Current year (UTC)
+INTEGER, INTENT(IN) :: IMONTH              !IN Current month (UTC)
+INTEGER, INTENT(IN) :: IDAY                !IN Current day (UTC)
+INTEGER, INTENT(IN) :: IHOUR               !IN Current hour (UTC)
+INTEGER, INTENT(IN) :: IMIN                !IN Current minute (UTC)
+INTEGER, INTENT(IN) :: ISEC                !IN Current seconds (UTC)
+REAL, INTENT(IN) :: ZTIME                  !IN Current duration since start of the run(s)
+REAL,DIMENSION(1), INTENT(IN) :: FR_URB    !IN fraction of urban area (need for AHF_TRAFFIC calculation)
+REAL,DIMENSION(1), INTENT(IN) :: ZLON      !IN Longitude (deg)
+REAL,DIMENSION(1), INTENT(IN) :: ZLAT      !IN Latitude (deg)
+TYPE(TEB_FORCING_t), INTENT(IN)   :: FORC  !IN atmospheric forcing of the sub-step
 
 ! Input urban parameters
-                                                       ! 'UNIF' : uniform roads                       
-                                                       ! 'ORIE' : specified road orientation          
-                                                       ! 'UNIF' : uniform walls                       
-									                   ! 'TWO ' : 2 opposite  walls
+! 'UNIF' : uniform roads                       
+! 'ORIE' : specified road orientation          
+! 'UNIF' : uniform walls                       
+! 'TWO ' : 2 opposite  walls
 !MV202609 z0 and zd to namelist
 !MV202609 garden thermal roughness (z0h)
 !MV202609 greenroof model type, thermal roughness and surface humidity
@@ -134,13 +131,13 @@ TYPE(TEB_FORCING_t), INTENT(IN)   :: FORC              !IN atmospheric forcing o
 ! Input parameters for BEM                                                                                                                                       ! ||   ||
 
 ! Wind calculation
-													   ! 0 - default; 1 - Wang scheme
+! 0 - default; 1 - Wang scheme
 
 ! external garden / greenroof surface state and fluxes of the host (TEB_EXT_SURF_t);
 !* the garden conductances ZCH_GD/ZCD_GD flow the other way (TEB -> host) and stay flat
 TYPE(TEB_EXT_SURF_t), INTENT(IN) :: EXT
-REAL,DIMENSION(1)                 :: ZCH_GD            !OUT garden transfer coefficient for heat (external model)
-REAL,DIMENSION(1)                 :: ZCD_GD            !OUT garden  surf. exchange coefficient (external model)
+REAL,DIMENSION(1), INTENT(OUT) :: ZCH_GD    !OUT garden transfer coefficient for heat (external model)
+REAL,DIMENSION(1), INTENT(INOUT) :: ZCD_GD  !INOUT previous/new garden momentum coefficient (external model)
 
 ! (P-C4) solar-panel and road-irrigation inputs moved into TPN/TIR by TEB_FILL_PARAMS
 
@@ -149,11 +146,11 @@ REAL,DIMENSION(1)                 :: ZCD_GD            !OUT garden  surf. exchan
 ! Input/Output prognostic variables
 
 ! Output diagnostic variables
-REAL,DIMENSION(1)                 :: ZTS_TOWN_S        !OUT town surface temperature from flux calculation  
-REAL,DIMENSION(1)                 :: ZABS_SW_GRND      !OUT Shortwave radiation absorbed by ground
-REAL,DIMENSION(1)                 :: ZABS_LW_GRND      !OUT Longwave radiation absorbed by ground
-REAL,DIMENSION(1)                 :: ZILMO_TOP_FLUX         ! 1/length of Monin-Obukov (from fluxes)
-REAL,DIMENSION(1)                 :: ZLMO_TOP          !OUT 1/length of Monin-Obukov 
+REAL,DIMENSION(1)                 :: ZTS_TOWN_S      !OUT town surface temperature from flux calculation  
+REAL,DIMENSION(1)                 :: ZABS_SW_GRND    !OUT Shortwave radiation absorbed by ground
+REAL,DIMENSION(1)                 :: ZABS_LW_GRND    !OUT Longwave radiation absorbed by ground
+REAL,DIMENSION(1)                 :: ZILMO_TOP_FLUX  ! 1/length of Monin-Obukov (from fluxes)
+REAL,DIMENSION(1)                 :: ZLMO_TOP        !OUT 1/length of Monin-Obukov 
 !MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !MV202609 CBS scheme of the road (revision: three-temperature construction)
 !MV202609 CBS scheme of the road
@@ -169,12 +166,12 @@ REAL,DIMENSION(1)                 :: ZLMO_TOP          !OUT 1/length of Monin-Ob
 ! ---------------------------------------------------------------
 ! Local parameters:
 ! ---------------------------------------------------------------
-INTEGER            :: KSW         = 1   ! number of spectral bands in SW forcing
-REAL               :: ZTIME_BEG         ! Time at beginning of time step   
+INTEGER            :: KSW         = 1        ! number of spectral bands in SW forcing
+REAL               :: ZTIME_BEG              ! Time at beginning of time step   
 REAL               :: XTSTEP_SURF       
-INTEGER            :: JLOOP             ! loop counter 
+INTEGER            :: JLOOP                  ! loop counter 
 TYPE(DATE_TIME)    :: TPTIME
-TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT   ! diagnostics container (owned by the driver)
+TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT  ! diagnostics container (owned by the driver)
 TYPE(TEB_t),         INTENT(INOUT) :: TSTATE
 TYPE(BEM_t),         INTENT(INOUT) :: BSTATE
 TYPE(TEB_PANEL_t),   INTENT(INOUT) :: TPN
@@ -183,31 +180,31 @@ TYPE(TEB_IRRIG_t),   INTENT(INOUT) :: TIR
 ! Canyon geometry                                                                     
 
 ! Urban options                                                                                                                   
-CHARACTER(LEN=3)   :: HIMPLICIT_WIND='NEW' ! Implicitation option for wind fluxes
-CHARACTER(LEN=3)   :: HSNOW_ROOF = "1-L"! Option for roof snow                        
-CHARACTER(LEN=3)   :: HSNOW_ROAD = "1-L"! Option for road snow 
+CHARACTER(LEN=3)   :: HIMPLICIT_WIND='NEW'  ! Implicitation option for wind fluxes
+CHARACTER(LEN=3)   :: HSNOW_ROOF = "1-L"    ! Option for roof snow                        
+CHARACTER(LEN=3)   :: HSNOW_ROAD = "1-L"    ! Option for road snow 
 
 ! Canyon thermal properties
-INTEGER            :: NWALL_LAYER       ! number of wall layers                           
-INTEGER            :: NROOF_LAYER       ! number of roof layers                          
-INTEGER            :: NROAD_LAYER       ! number of road layers                           
-INTEGER            :: NFLOOR_LAYER      ! number of floor layers
-REAL,DIMENSION(1)  :: ZD_WALL_LAYERS         ! Thickness            of 1-4 wall layers                                                        
-REAL,DIMENSION(1)  :: ZD_ROOF_LAYERS         ! Thickness            of 1-4 roof layers                                                        
+INTEGER            :: NWALL_LAYER     ! number of wall layers                           
+INTEGER            :: NROOF_LAYER     ! number of roof layers                          
+INTEGER            :: NROAD_LAYER     ! number of road layers                           
+INTEGER            :: NFLOOR_LAYER    ! number of floor layers
+REAL,DIMENSION(1)  :: ZD_WALL_LAYERS  ! Thickness            of 1-4 wall layers                                                        
+REAL,DIMENSION(1)  :: ZD_ROOF_LAYERS  ! Thickness            of 1-4 roof layers                                                        
 
 ! Wind calculation
-REAL,DIMENSION(1)  :: ZDIR             ! Wind direction (degrees)
+REAL,DIMENSION(1)  :: ZDIR            ! Wind direction (degrees)
 REAL               :: XPII
-REAL,DIMENSION(1:9):: ZU_CANYON_WANG   ! hor. wind in canyon due to Wang
-REAL,DIMENSION(1)  :: ZU_CAN_PED       ! hor. wind at pedestrian height (1.1 m) due to Wang
-REAL,DIMENSION(1)  :: ZU_CAN_10M       ! hor. wind at 10 m height due to Wang
+REAL,DIMENSION(1:9):: ZU_CANYON_WANG  ! hor. wind in canyon due to Wang
+REAL,DIMENSION(1)  :: ZU_CAN_PED      ! hor. wind at pedestrian height (1.1 m) due to Wang
+REAL,DIMENSION(1)  :: ZU_CAN_10M      ! hor. wind at 10 m height due to Wang
 
-REAL,DIMENSION(1)  :: ZVMOD_TS         ! Wind speed at forcing level limited with wind_threshold (m/s)
+REAL,DIMENSION(1)  :: ZVMOD_TS  ! Wind speed at forcing level limited with wind_threshold (m/s)
 ! Urban variables    
-REAL,DIMENSION(1)  :: ZPEW_A_COEF       ! implicit coefficients                        
-REAL,DIMENSION(1)  :: ZPEW_B_COEF       ! for wind coupling                            
-REAL,DIMENSION(1)  :: ZPEW_A_COEF_LOWCAN!                                             
-REAL,DIMENSION(1)  :: ZPEW_B_COEF_LOWCAN!                                             
+REAL,DIMENSION(1)  :: ZPEW_A_COEF         ! implicit coefficients                        
+REAL,DIMENSION(1)  :: ZPEW_B_COEF         ! for wind coupling                            
+REAL,DIMENSION(1)  :: ZPEW_A_COEF_LOWCAN  !                                             
+REAL,DIMENSION(1)  :: ZPEW_B_COEF_LOWCAN  !                                             
 !MV202609 CBS scheme of the road (revision: puddle diagnostics)
 !MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 !MV202609 garden diagnostics
@@ -217,25 +214,25 @@ REAL,DIMENSION(1)  :: ZPEW_B_COEF_LOWCAN!
 !MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 
 ! Urban fluxes variables                                                              
-REAL,DIMENSION(1)  :: DELTA_TROOF       ! temperature difference between roof and air in sensible heat flux 
-REAL,DIMENSION(1)  :: DELTA_TROAD       ! temperature difference between road and air in sensible heat flux
-REAL,DIMENSION(1)  :: DELTA_TWALL       ! temperature difference between wall and air in sensible heat flux               
-REAL,DIMENSION(1)  :: ZH_TRAFFIC_NOW_CAN! heat fluxes due to traffic at current time-step to the canyon
+REAL,DIMENSION(1)  :: DELTA_TROOF         ! temperature difference between roof and air in sensible heat flux 
+REAL,DIMENSION(1)  :: DELTA_TROAD         ! temperature difference between road and air in sensible heat flux
+REAL,DIMENSION(1)  :: DELTA_TWALL         ! temperature difference between wall and air in sensible heat flux               
+REAL,DIMENSION(1)  :: ZH_TRAFFIC_NOW_CAN  ! heat fluxes due to traffic at current time-step to the canyon
 
 ! Radiative variables                                                                
                        
-REAL,DIMENSION(1)  :: ZALB_TH_RED       ! thermal albedo reduction factor for the urban fabric 
+REAL,DIMENSION(1)  :: ZALB_TH_RED  ! thermal albedo reduction factor for the urban fabric 
                 
-REAL :: ZPDN_RF_DIAG, ZPDN_RD_DIAG      ! snow fractions for end-of-step state diagnostics
+REAL :: ZPDN_RF_DIAG, ZPDN_RD_DIAG  ! snow fractions for end-of-step state diagnostics
 REAL :: ZTSSNOW_RF_TERM, ZTSSNOW_RD_TERM
 REAL :: ZRSNOW_RF_TERM, ZRSNOW_RD_TERM
 
-REAL,DIMENSION(1)  :: ZWAKE             ! reduction of average wind speed                
+REAL,DIMENSION(1)  :: ZWAKE  ! reduction of average wind speed                
 
 ! Anthropogenic heat fluxes                                                                           
 
 ! New arguments created after BEM                                                                                                                                       ! ||   ||            
-REAL, DIMENSION(1) :: PFLOOR_HEIGHT      ! Floor height (m)                           
+REAL, DIMENSION(1) :: PFLOOR_HEIGHT  ! Floor height (m)                           
 !MV202609 anthropogenic heat diagnostics
 !* latent waste heat of the buildings, per horizontal surface area (as the
 !* sensible one DMT%XH_WASTE(1)): it is added to the wall/roof latent fluxes and to the
@@ -249,7 +246,7 @@ REAL, DIMENSION(1) :: PFLOOR_HEIGHT      ! Floor height (m)
 ! Road watering                                                                       
                                                                                 
 ! New arguments for shading, schedule or natural ventilation                          
-REAL, DIMENSION(1)  :: ZN_FLOOR          ! Number of floors                           
+REAL, DIMENSION(1)  :: ZN_FLOOR  ! Number of floors                           
 
 !                                                                                    
 !                                                                                     
@@ -373,82 +370,82 @@ BSTATE%XT_ADP = 285.66  ! Apparatus dewpoint temperature of the
 !===========================================================================
 
 !MV202610 cold-start state: initialized by TEB_INIT_STATE at ntstep == 0
-	IF (TEB_LOG_VERBOSE_FIRST()) THEN
-		!-------------------------------------------------------------------
-		! Print configuration parameters: once per run and only when the host
-		! asked for it (TEB_LOG_SET_VERBOSE) - the loop is per cell and per call
-		!-------------------------------------------------------------------
-		PRINT*, '=================================================='
-		PRINT*, 'TEB-MSU Configuration Parameters (from namelists):'
-		PRINT*, '  Geometry:'
-		PRINT*, '    TPARAMS%XBLD(icell:icell)          = ', TPARAMS%XBLD(icell)
-		PRINT*, '    TPARAMS%XGARDEN(icell:icell)       = ', TPARAMS%XGARDEN(icell)
-		PRINT*, '    TPARAMS%XCAN_HW_RATIO(icell:icell) = ', TPARAMS%XCAN_HW_RATIO(icell)
-		PRINT*, '    TPARAMS%XBLD_HEIGHT(icell:icell)   = ', TPARAMS%XBLD_HEIGHT(icell)
-		PRINT*, '    TPARAMS%XROAD_DIR(icell:icell)     = ', TPARAMS%XROAD_DIR(icell)
-		PRINT*, '    TOPTS%CROAD_DIR     = ', TOPTS%CROAD_DIR
-		PRINT*, '    TOPTS%CWALL_OPT     = ', TOPTS%CWALL_OPT
-		PRINT*, '  Thermal properties:'
-		PRINT*, '    ZHC_ROAD_S    = ', TPARAMS%XHC_ROAD(icell,1)
-		PRINT*, '    ZHC_ROOF_S    = ', TPARAMS%XHC_ROOF(icell,1)
-		PRINT*, '    ZHC_WALL_S    = ', TPARAMS%XHC_WALL(icell,1)
-		PRINT*, '    ZTC_ROAD_S    = ', TPARAMS%XTC_ROAD(icell,1)
-		PRINT*, '    ZTC_ROOF_S    = ', TPARAMS%XTC_ROOF(icell,1)
-		PRINT*, '    ZTC_WALL_S    = ', TPARAMS%XTC_WALL(icell,1)
-		PRINT*, '    TPARAMS%XALB_ROAD(icell:icell)     = ', TPARAMS%XALB_ROAD(icell)
-		PRINT*, '    TPARAMS%XALB_ROOF(icell:icell)     = ', TPARAMS%XALB_ROOF(icell)
-		PRINT*, '    TPARAMS%XALB_WALL(icell:icell)     = ', TPARAMS%XALB_WALL(icell)
-		PRINT*, '    TPARAMS%XEMIS_ROAD(icell:icell)    = ', TPARAMS%XEMIS_ROAD(icell)
-		PRINT*, '    TPARAMS%XEMIS_ROOF(icell:icell)    = ', TPARAMS%XEMIS_ROOF(icell)
-		PRINT*, '    TPARAMS%XEMIS_WALL(icell:icell)    = ', TPARAMS%XEMIS_WALL(icell)
-		PRINT*, '  BEM parameters:'
-		PRINT*, '    TOPTS%CBEM          = ', TOPTS%CBEM
-		PRINT*, '    BOPTS%LBEM_AC       = ', BOPTS%LBEM_AC
-		PRINT*, '    BPARAMS%XTCOOL_TARGET(icell:icell) = ', BPARAMS%XTCOOL_TARGET(icell)
-		PRINT*, '    BPARAMS%XTHEAT_TARGET(icell:icell) = ', BPARAMS%XTHEAT_TARGET(icell)
-		PRINT*, '    BPARAMS%XV_VENT(icell:icell)       = ', BPARAMS%XV_VENT(icell)
-		PRINT*, '    BPARAMS%XINF(icell:icell)          = ', BPARAMS%XINF(icell)
-		PRINT*, '    BPARAMS%XCOP_RAT(icell:icell)      = ', BPARAMS%XCOP_RAT(icell)
-		PRINT*, '    BPARAMS%XGR(icell:icell)           = ', BPARAMS%XGR(icell)
-		PRINT*, '    TPARAMS%XRESIDENTIAL(icell:icell)  = ', TPARAMS%XRESIDENTIAL(icell)
-		PRINT*, '    TPARAMS%XDT_RES       = ', TPARAMS%XDT_RES
-		PRINT*, '    TPARAMS%XDT_OFF       = ', TPARAMS%XDT_OFF
-		PRINT*, '    BPARAMS%XCAP_SYS_HEAT(icell:icell) = ', BPARAMS%XCAP_SYS_HEAT(icell)
-		PRINT*, '    BPARAMS%CNATVENT(icell:icell)      = ', BPARAMS%CNATVENT(icell:icell)
-		PRINT*, '    BOPTS%CCOOL_COIL    = ', BOPTS%CCOOL_COIL
-		PRINT*, '    BOPTS%CHEAT_COIL    = ', BOPTS%CHEAT_COIL
-		PRINT*, '  Green roofs:'
-		PRINT*, '    TOPTS%LGREENROOF    = ', TOPTS%LGREENROOF
-		PRINT*, '    TPARAMS%XGREENROOF(icell:icell)      = ', TPARAMS%XGREENROOF(icell)
-		PRINT*, '    TOPTS%LGREENROOF_EXT= ', TOPTS%LGREENROOF_EXT
-		PRINT*, '  Gardens:'
-		PRINT*, '    TOPTS%LGARDEN       = ', TOPTS%LGARDEN
-		PRINT*, '    TOPTS%CTYPE_GARDEN   = ', TOPTS%CTYPE_GARDEN
-		PRINT*, '  Solar panels:'
-		PRINT*, '    TOPTS%LSOLAR_PANEL  = ', TOPTS%LSOLAR_PANEL
-		PRINT*, '    TPN%XFRAC_PANEL = ', TPN%XFRAC_PANEL(1)
-		PRINT*, '  Irrigation:'
-		PRINT*, '    TIR%LPAR_RD_IRRIG = ', TIR%LPAR_RD_IRRIG
-		PRINT*, '    TIR%XRD_START_MONTH = ', TIR%XRD_START_MONTH(1)
-		PRINT*, '    TIR%XRD_END_MONTH   = ', TIR%XRD_END_MONTH(1)
-		PRINT*, '    TIR%XRD_START_HOUR  = ', TIR%XRD_START_HOUR(1)
-		PRINT*, '    TIR%XRD_END_HOUR    = ', TIR%XRD_END_HOUR(1)
-		PRINT*, '    TIR%XRD_24H_IRRIG   = ', TIR%XRD_24H_IRRIG(1)
-		PRINT*, '  Wind:'
-		PRINT*, '    TOPTS%ITYPE_WIND    = ', TOPTS%ITYPE_WIND
-		PRINT*, '    TPARAMS%XFAI(icell:icell,:)          = ', TPARAMS%XFAI(icell,:)
+IF (TEB_LOG_VERBOSE_FIRST()) THEN
+  !-------------------------------------------------------------------
+  ! Print configuration parameters: once per run and only when the host
+  ! asked for it (TEB_LOG_SET_VERBOSE) - the loop is per cell and per call
+  !-------------------------------------------------------------------
+  PRINT*, '=================================================='
+  PRINT*, 'TEB-MSU Configuration Parameters (from namelists):'
+  PRINT*, '  Geometry:'
+  PRINT*, '    TPARAMS%XBLD(icell:icell)          = ', TPARAMS%XBLD(icell)
+  PRINT*, '    TPARAMS%XGARDEN(icell:icell)       = ', TPARAMS%XGARDEN(icell)
+  PRINT*, '    TPARAMS%XCAN_HW_RATIO(icell:icell) = ', TPARAMS%XCAN_HW_RATIO(icell)
+  PRINT*, '    TPARAMS%XBLD_HEIGHT(icell:icell)   = ', TPARAMS%XBLD_HEIGHT(icell)
+  PRINT*, '    TPARAMS%XROAD_DIR(icell:icell)     = ', TPARAMS%XROAD_DIR(icell)
+  PRINT*, '    TOPTS%CROAD_DIR     = ', TOPTS%CROAD_DIR
+  PRINT*, '    TOPTS%CWALL_OPT     = ', TOPTS%CWALL_OPT
+  PRINT*, '  Thermal properties:'
+  PRINT*, '    ZHC_ROAD_S    = ', TPARAMS%XHC_ROAD(icell,1)
+  PRINT*, '    ZHC_ROOF_S    = ', TPARAMS%XHC_ROOF(icell,1)
+  PRINT*, '    ZHC_WALL_S    = ', TPARAMS%XHC_WALL(icell,1)
+  PRINT*, '    ZTC_ROAD_S    = ', TPARAMS%XTC_ROAD(icell,1)
+  PRINT*, '    ZTC_ROOF_S    = ', TPARAMS%XTC_ROOF(icell,1)
+  PRINT*, '    ZTC_WALL_S    = ', TPARAMS%XTC_WALL(icell,1)
+  PRINT*, '    TPARAMS%XALB_ROAD(icell:icell)     = ', TPARAMS%XALB_ROAD(icell)
+  PRINT*, '    TPARAMS%XALB_ROOF(icell:icell)     = ', TPARAMS%XALB_ROOF(icell)
+  PRINT*, '    TPARAMS%XALB_WALL(icell:icell)     = ', TPARAMS%XALB_WALL(icell)
+  PRINT*, '    TPARAMS%XEMIS_ROAD(icell:icell)    = ', TPARAMS%XEMIS_ROAD(icell)
+  PRINT*, '    TPARAMS%XEMIS_ROOF(icell:icell)    = ', TPARAMS%XEMIS_ROOF(icell)
+  PRINT*, '    TPARAMS%XEMIS_WALL(icell:icell)    = ', TPARAMS%XEMIS_WALL(icell)
+  PRINT*, '  BEM parameters:'
+  PRINT*, '    TOPTS%CBEM          = ', TOPTS%CBEM
+  PRINT*, '    BOPTS%LBEM_AC       = ', BOPTS%LBEM_AC
+  PRINT*, '    BPARAMS%XTCOOL_TARGET(icell:icell) = ', BPARAMS%XTCOOL_TARGET(icell)
+  PRINT*, '    BPARAMS%XTHEAT_TARGET(icell:icell) = ', BPARAMS%XTHEAT_TARGET(icell)
+  PRINT*, '    BPARAMS%XV_VENT(icell:icell)       = ', BPARAMS%XV_VENT(icell)
+  PRINT*, '    BPARAMS%XINF(icell:icell)          = ', BPARAMS%XINF(icell)
+  PRINT*, '    BPARAMS%XCOP_RAT(icell:icell)      = ', BPARAMS%XCOP_RAT(icell)
+  PRINT*, '    BPARAMS%XGR(icell:icell)           = ', BPARAMS%XGR(icell)
+  PRINT*, '    TPARAMS%XRESIDENTIAL(icell:icell)  = ', TPARAMS%XRESIDENTIAL(icell)
+  PRINT*, '    TPARAMS%XDT_RES       = ', TPARAMS%XDT_RES
+  PRINT*, '    TPARAMS%XDT_OFF       = ', TPARAMS%XDT_OFF
+  PRINT*, '    BPARAMS%XCAP_SYS_HEAT(icell:icell) = ', BPARAMS%XCAP_SYS_HEAT(icell)
+  PRINT*, '    BPARAMS%CNATVENT(icell:icell)      = ', BPARAMS%CNATVENT(icell:icell)
+  PRINT*, '    BOPTS%CCOOL_COIL    = ', BOPTS%CCOOL_COIL
+  PRINT*, '    BOPTS%CHEAT_COIL    = ', BOPTS%CHEAT_COIL
+  PRINT*, '  Green roofs:'
+  PRINT*, '    TOPTS%LGREENROOF    = ', TOPTS%LGREENROOF
+  PRINT*, '    TPARAMS%XGREENROOF(icell:icell)      = ', TPARAMS%XGREENROOF(icell)
+  PRINT*, '    TOPTS%LGREENROOF_EXT= ', TOPTS%LGREENROOF_EXT
+  PRINT*, '  Gardens:'
+  PRINT*, '    TOPTS%LGARDEN       = ', TOPTS%LGARDEN
+  PRINT*, '    TOPTS%CTYPE_GARDEN   = ', TOPTS%CTYPE_GARDEN
+  PRINT*, '  Solar panels:'
+  PRINT*, '    TOPTS%LSOLAR_PANEL  = ', TOPTS%LSOLAR_PANEL
+  PRINT*, '    TPN%XFRAC_PANEL = ', TPN%XFRAC_PANEL(1)
+  PRINT*, '  Irrigation:'
+  PRINT*, '    TIR%LPAR_RD_IRRIG = ', TIR%LPAR_RD_IRRIG
+  PRINT*, '    TIR%XRD_START_MONTH = ', TIR%XRD_START_MONTH(1)
+  PRINT*, '    TIR%XRD_END_MONTH   = ', TIR%XRD_END_MONTH(1)
+  PRINT*, '    TIR%XRD_START_HOUR  = ', TIR%XRD_START_HOUR(1)
+  PRINT*, '    TIR%XRD_END_HOUR    = ', TIR%XRD_END_HOUR(1)
+  PRINT*, '    TIR%XRD_24H_IRRIG   = ', TIR%XRD_24H_IRRIG(1)
+  PRINT*, '  Wind:'
+  PRINT*, '    TOPTS%ITYPE_WIND    = ', TOPTS%ITYPE_WIND
+  PRINT*, '    TPARAMS%XFAI(icell:icell,:)          = ', TPARAMS%XFAI(icell,:)
 !MV202609 z0 and zd to namelist
-		PRINT*, '  Aerodynamics of the urban surface:'
-		PRINT*, '    urb_z0_town   = ', ' -> z0   = ', TPARAMS%XZ0_TOWN(icell), ' m'
-		PRINT*, '    urb_zd_town   = ', ' -> zd   = ', TPARAMS%XZD_TOWN(icell), ' m'
-		PRINT*, '  Anthropogenic heat:'
-		PRINT*, '    TPARAMS%XH_TRAFFIC_MEAN(icell:icell)    = ', TPARAMS%XH_TRAFFIC_MEAN(icell)
-		PRINT*, '    ZH_INDUSTRY   = ', TPARAMS%XH_INDUSTRY(icell)
-		PRINT*, '    TOPTS%NUTC_HOUR     = ', TOPTS%NUTC_HOUR
-		PRINT*, '  Shading flag:'
-		PRINT*, '    BSTATE%LSHADE(icell:icell)        = ', BSTATE%LSHADE(icell:icell)
-		PRINT*, '=================================================='
-	END IF
+  PRINT*, '  Aerodynamics of the urban surface:'
+  PRINT*, '    urb_z0_town   = ', ' -> z0   = ', TPARAMS%XZ0_TOWN(icell), ' m'
+  PRINT*, '    urb_zd_town   = ', ' -> zd   = ', TPARAMS%XZD_TOWN(icell), ' m'
+  PRINT*, '  Anthropogenic heat:'
+  PRINT*, '    TPARAMS%XH_TRAFFIC_MEAN(icell:icell)    = ', TPARAMS%XH_TRAFFIC_MEAN(icell)
+  PRINT*, '    ZH_INDUSTRY   = ', TPARAMS%XH_INDUSTRY(icell)
+  PRINT*, '    TOPTS%NUTC_HOUR     = ', TOPTS%NUTC_HOUR
+  PRINT*, '  Shading flag:'
+  PRINT*, '    BSTATE%LSHADE(icell:icell)        = ', BSTATE%LSHADE(icell:icell)
+  PRINT*, '=================================================='
+END IF
 
 !===========================================================================
 !===========================================================================
@@ -498,7 +495,7 @@ END IF
 !
 !
 ! multi layer option
-  ! is canopy active ?  ** DO NOT CHANGE **
+! is canopy active ?  ** DO NOT CHANGE **
 !
 ! initialization of physical constants
 !
@@ -506,14 +503,14 @@ CALL INI_CSTS
 !
 CALL INIT_SURFCONSPHY
 !
-CQSAT='OLD' ! saturation is computed relative to water above 0°C, and relative to ice below 0°C
+CQSAT='OLD'  ! saturation is computed relative to water above 0°C, and relative to ice below 0°C
 !
 !* various thresholds
 !
 XCISMIN = 0.5     ! minimum wind shear
 XVMODMIN = 0.5    ! minimum wind speed
 LALDTHRES = .FALSE.    ! activate aladin threshold for wind
-XRIMAX = 0.2 ! Maximum richardson number for exchange coefficients computations
+XRIMAX = 0.2  ! Maximum richardson number for exchange coefficients computations
 !
 
 !
@@ -545,48 +542,40 @@ ENDIF
 !* level, wind speed, solar time and sun position, circumsolar partition of the
 !* shortwave) is filled once per sub-step by TEB_FILL_FORCING of TEB_HOST;
 !* only the previous-step copies and the clock are set here
-!* bridge to the forcing module of the offline host (MODD_FORC_ATM):
-!* OL_TIME_INTERP_ATM builds the density and the pressure of its atmosphere with
-!* the forcing height XZREF/XUREF of that module and the host converts the
-!* absolute humidity with them (qv = XQA/XRHOA, rho = XRHOA); the CSV writer
-!* reads the solar time and the sun position there. CALL_DRIVER refreshed these
-!* five fields at every sub-step; they are now copied from the container at the
-!* same point of the step, so the host keeps seeing the same values
-XZREF  (1:1) = FORC%XZREF(icell:icell)
-XUREF  (1:1) = FORC%XUREF(icell:icell)
-DMT%XTS_ROOF(1:1)    = 0.
-DMT%XTS_ROAD(1:1)    = 0.
-DMT%XTS_WALL_A(1:1)  = 0.
-DMT%XTS_WALL_B(1:1)  = 0.
-DMT%XTSTOWN_S_NOW(1:1)   = DMT%XTSTOWN_S(1:1)
-DMT%XWSTOWN_NOW(1:1)     = DMT%XWSTOWN(1:1)
+!MV202611 offline forcing heights and interpolation are owned by the host.
+DMT%XTS_ROOF(1:1)         = 0.
+DMT%XTS_ROAD(1:1)         = 0.
+DMT%XTS_WALL_A(1:1)       = 0.
+DMT%XTS_WALL_B(1:1)       = 0.
+DMT%XTSTOWN_S_NOW(1:1)    = DMT%XTSTOWN_S(1:1)
+DMT%XWSTOWN_NOW(1:1)      = DMT%XWSTOWN(1:1)
 DMT%XTSSNOW_TOWN_NOW(1:1) = DMT%XTSSNOW_TOWN(1:1)
 DMT%XWSNOW_TOWN_NOW(1:1)  = DMT%XWSNOW_TOWN(1:1)
 DMT%XRSNOW_TOWN_NOW(1:1)  = DMT%XRSNOW_TOWN(1:1)
 DMT%XHSNOW_TOWN_NOW(1:1)  = DMT%XHSNOW_TOWN(1:1)
-ZTIME_BEG = ZTIME           ! time at beginning of time step
-XTSTEP_SURF = dt
-TPTIME%TIME= ZTIME
-TPTIME%TDATE%YEAR =IYEAR
-TPTIME%TDATE%MONTH=IMONTH
-TPTIME%TDATE%DAY  =IDAY
+ZTIME_BEG                 = ZTIME  ! time at beginning of time step
+XTSTEP_SURF               = dt
+TPTIME%TIME               = ZTIME
+TPTIME%TDATE%YEAR         = IYEAR
+TPTIME%TDATE%MONTH        = IMONTH
+TPTIME%TDATE%DAY          = IDAY
 ! Calculation of Wind Speed inside the canyon
 ! -----------------------------------------------------------
 ! Wind speed at the top of the canyon (roof level), from the logarithmic
 ! profile referenced to the displacement height TPARAMS%XZD_TOWN(icell:icell)
 DMT%XWIND_TOP(1:1) = FORC%XVMOD(1:1) * LOG( (        TPARAMS%XBLD_HEIGHT(icell:icell) - TPARAMS%XZD_TOWN(icell:icell)) / TPARAMS%XZ0_TOWN(icell:icell))   &
-	/ LOG( (FORC%XZREF(1:1) + TPARAMS%XBLD_HEIGHT(icell:icell) - TPARAMS%XZD_TOWN(icell:icell)) / TPARAMS%XZ0_TOWN(icell:icell))
+  / LOG( (FORC%XZREF(1:1) + TPARAMS%XBLD_HEIGHT(icell:icell) - TPARAMS%XZD_TOWN(icell:icell)) / TPARAMS%XZ0_TOWN(icell:icell))
 IF (TOPTS%ITYPE_WIND == 0) THEN
-	ZWAKE = 1. + (2./XPI-1.) * 2. * (TPARAMS%XCAN_HW_RATIO(icell:icell)-0.5)
-	ZWAKE = MAX(MIN(ZWAKE,1.),2./XPI)
-	DMT%XWIND_CANYON(1:1) = ZWAKE * EXP(-TPARAMS%XCAN_HW_RATIO(icell:icell)/4.) * DMT%XWIND_TOP(1)
-	DMT%XU_CAN_PED(1:1)   = DMT%XWIND_CANYON(1:1)
-	DMT%XU_CAN_10M(1:1)   = DMT%XWIND_CANYON(1:1)
+  ZWAKE                 = 1. + (2./XPI-1.) * 2. * (TPARAMS%XCAN_HW_RATIO(icell:icell)-0.5)
+  ZWAKE                 = MAX(MIN(ZWAKE,1.),2./XPI)
+  DMT%XWIND_CANYON(1:1) = ZWAKE * EXP(-TPARAMS%XCAN_HW_RATIO(icell:icell)/4.) * DMT%XWIND_TOP(1)
+  DMT%XU_CAN_PED(1:1)   = DMT%XWIND_CANYON(1:1)
+  DMT%XU_CAN_10M(1:1)   = DMT%XWIND_CANYON(1:1)
 ELSEIF (TOPTS%ITYPE_WIND == 1) THEN
-	CALL WIND_CALCULATION_WANG(icell, iblock, TPARAMS%XBLD_HEIGHT(icell:icell), DMT%XUSTAR_TOWN(1:1), DMT%XWIND_TOP(1:1), FORC%XU(1:1), FORC%XV(1:1), TPARAMS%XFAI(icell:icell,:), ZU_CANYON_WANG, ZU_CAN_PED, ZU_CAN_10M)
-	DMT%XWIND_CANYON(1:1) = ZU_CANYON_WANG(5)
-	DMT%XU_CAN_PED(1:1)   = ZU_CAN_PED(1:1)
-	DMT%XU_CAN_10M(1:1)   = ZU_CAN_10M(1:1)
+  CALL WIND_CALCULATION_WANG(icell, iblock, TPARAMS%XBLD_HEIGHT(icell:icell), DMT%XUSTAR_TOWN(1:1), DMT%XWIND_TOP(1:1), FORC%XU(1:1), FORC%XV(1:1), TPARAMS%XFAI(icell:icell,:), ZU_CANYON_WANG, ZU_CAN_PED, ZU_CAN_10M)
+  DMT%XWIND_CANYON(1:1) = ZU_CANYON_WANG(5)
+  DMT%XU_CAN_PED(1:1)   = ZU_CAN_PED(1:1)
+  DMT%XU_CAN_10M(1:1)   = ZU_CAN_10M(1:1)
 ENDIF
 
 ! Calculate Wind Direction from U and V components
@@ -608,9 +597,9 @@ ZPEW_B_COEF_LOWCAN = DMT%XWIND_CANYON(1:1)
 CALL H_TRAFFIC_NOW(icell, iblock, TPARAMS%XH_TRAFFIC_MEAN(icell:icell), IHOUR, IMIN, ISEC, TOPTS%NUTC_HOUR, DMT%XAHF_TRAFFIC_NOW(1:1)) 
 ZH_TRAFFIC_NOW_CAN = DMT%XAHF_TRAFFIC_NOW(1:1)
 IF (FR_URB(1) >= 0.25) THEN
-	ZH_TRAFFIC_NOW_CAN = ZH_TRAFFIC_NOW_CAN / FR_URB
+  ZH_TRAFFIC_NOW_CAN = ZH_TRAFFIC_NOW_CAN / FR_URB
 ELSE
-	ZH_TRAFFIC_NOW_CAN = 0.
+  ZH_TRAFFIC_NOW_CAN = 0.
 ENDIF	
 
 
@@ -636,31 +625,31 @@ CALL TEB_GARDEN (icell, iblock, TOPTS, TSTATE, BOPTS, BSTATE, TPN, TIR, DMT, &
                  HSNOW_ROAD, ZPEW_A_COEF, ZPEW_B_COEF, ZPEW_A_COEF_LOWCAN, ZPEW_B_COEF_LOWCAN, &
                  KSW, ZH_TRAFFIC_NOW_CAN, XTSTEP_SURF, IDAY, ZTIME_BEG, &
                  ZCH_GD, ZCD_GD, TPARAMS, BPARAMS)
-    BSTATE%XTI_BLD(icell)               = BSTATE%XTI_BLD(icell)
-    BSTATE%XQI_BLD(icell)               = BSTATE%XQI_BLD(icell)
-    BSTATE%XT_WIN1(icell)               = BSTATE%XT_WIN1(icell)
-    BSTATE%XT_WIN2(icell)               = BSTATE%XT_WIN2(icell)
-    BSTATE%XCAP_SYS_RAT(icell)          = BSTATE%XCAP_SYS_RAT(icell)
-    BSTATE%XM_SYS_RAT(icell)            = BSTATE%XM_SYS_RAT(icell)
-    BSTATE%LSHAD_DAY(icell)             = BSTATE%LSHAD_DAY(icell)
-    BSTATE%LNATVENT_NIGHT(icell)        = BSTATE%LNATVENT_NIGHT(icell)
-    TSTATE%XT_ROOF(icell,:)             = TSTATE%XT_ROOF(icell,:)
-    TSTATE%XT_ROAD(icell,:)             = TSTATE%XT_ROAD(icell,:)
-    TSTATE%XT_WALL_A(icell,:)           = TSTATE%XT_WALL_A(icell,:)
-    TSTATE%XT_WALL_B(icell,:)           = TSTATE%XT_WALL_B(icell,:)
-    TSTATE%XWS_ROOF(icell)              = TSTATE%XWS_ROOF(icell)
-    TSTATE%TSNOW_ROOF%WSNOW(icell,:)         = TSTATE%TSNOW_ROOF%WSNOW(icell,:)
-    TSTATE%TSNOW_ROOF%T(icell,:)         = TSTATE%TSNOW_ROOF%T(icell,:)
-    TSTATE%TSNOW_ROOF%RHO(icell,:)         = TSTATE%TSNOW_ROOF%RHO(icell,:)
-    TSTATE%TSNOW_ROOF%ALB(icell)           = TSTATE%TSNOW_ROOF%ALB(icell)
-    TSTATE%TSNOW_ROOF%EMIS(icell)           = TSTATE%TSNOW_ROOF%EMIS(icell)
-    TSTATE%TSNOW_ROOF%TS(icell)          = TSTATE%TSNOW_ROOF%TS(icell)
-    TSTATE%TSNOW_ROAD%WSNOW(icell,:)         = TSTATE%TSNOW_ROAD%WSNOW(icell,:)
-    TSTATE%TSNOW_ROAD%T(icell,:)         = TSTATE%TSNOW_ROAD%T(icell,:)
-    TSTATE%TSNOW_ROAD%RHO(icell,:)         = TSTATE%TSNOW_ROAD%RHO(icell,:)
-    TSTATE%TSNOW_ROAD%ALB(icell)           = TSTATE%TSNOW_ROAD%ALB(icell)
-    TSTATE%TSNOW_ROAD%EMIS(icell)           = TSTATE%TSNOW_ROAD%EMIS(icell)
-    TSTATE%TSNOW_ROAD%TS(icell)          = TSTATE%TSNOW_ROAD%TS(icell)
+BSTATE%XTI_BLD(icell)            = BSTATE%XTI_BLD(icell)
+BSTATE%XQI_BLD(icell)            = BSTATE%XQI_BLD(icell)
+BSTATE%XT_WIN1(icell)            = BSTATE%XT_WIN1(icell)
+BSTATE%XT_WIN2(icell)            = BSTATE%XT_WIN2(icell)
+BSTATE%XCAP_SYS_RAT(icell)       = BSTATE%XCAP_SYS_RAT(icell)
+BSTATE%XM_SYS_RAT(icell)         = BSTATE%XM_SYS_RAT(icell)
+BSTATE%LSHAD_DAY(icell)          = BSTATE%LSHAD_DAY(icell)
+BSTATE%LNATVENT_NIGHT(icell)     = BSTATE%LNATVENT_NIGHT(icell)
+TSTATE%XT_ROOF(icell,:)          = TSTATE%XT_ROOF(icell,:)
+TSTATE%XT_ROAD(icell,:)          = TSTATE%XT_ROAD(icell,:)
+TSTATE%XT_WALL_A(icell,:)        = TSTATE%XT_WALL_A(icell,:)
+TSTATE%XT_WALL_B(icell,:)        = TSTATE%XT_WALL_B(icell,:)
+TSTATE%XWS_ROOF(icell)           = TSTATE%XWS_ROOF(icell)
+TSTATE%TSNOW_ROOF%WSNOW(icell,:) = TSTATE%TSNOW_ROOF%WSNOW(icell,:)
+TSTATE%TSNOW_ROOF%T(icell,:)     = TSTATE%TSNOW_ROOF%T(icell,:)
+TSTATE%TSNOW_ROOF%RHO(icell,:)   = TSTATE%TSNOW_ROOF%RHO(icell,:)
+TSTATE%TSNOW_ROOF%ALB(icell)     = TSTATE%TSNOW_ROOF%ALB(icell)
+TSTATE%TSNOW_ROOF%EMIS(icell)    = TSTATE%TSNOW_ROOF%EMIS(icell)
+TSTATE%TSNOW_ROOF%TS(icell)      = TSTATE%TSNOW_ROOF%TS(icell)
+TSTATE%TSNOW_ROAD%WSNOW(icell,:) = TSTATE%TSNOW_ROAD%WSNOW(icell,:)
+TSTATE%TSNOW_ROAD%T(icell,:)     = TSTATE%TSNOW_ROAD%T(icell,:)
+TSTATE%TSNOW_ROAD%RHO(icell,:)   = TSTATE%TSNOW_ROAD%RHO(icell,:)
+TSTATE%TSNOW_ROAD%ALB(icell)     = TSTATE%TSNOW_ROAD%ALB(icell)
+TSTATE%TSNOW_ROAD%EMIS(icell)    = TSTATE%TSNOW_ROAD%EMIS(icell)
+TSTATE%TSNOW_ROAD%TS(icell)      = TSTATE%TSNOW_ROAD%TS(icell)
 !*****************************************************************************
 !*****************************************************************************
 !*****************************************************************************
@@ -711,10 +700,10 @@ ELSE
   DMT%XRSNOW_TOWN(1:1) = (ZRSNOW_RF_TERM + ZRSNOW_RD_TERM) / ((TPARAMS%XBLD(icell) + TPARAMS%XROAD(icell)) * DMT%XFRSNOW(1))
 ENDIF
 ! Snow amounts already include their covered fractions after URBAN_SNOW_EVOL.
-DMT%XWSNOW_TOWN(1:1)   = (TSTATE%TSNOW_ROOF%WSNOW(icell,1) * TPARAMS%XBLD(icell:icell) + TSTATE%TSNOW_ROAD%WSNOW(icell,1) * TPARAMS%XROAD(icell:icell)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell)) * 0.001
-DMT%XSHFL_SNOW(1:1)   = (DMT%XH_SNOW_ROOF(1) * TPARAMS%XBLD(icell:icell) * DMT%XPDN_RF(1) + DMT%XH_SNOW_ROAD(1) * TPARAMS%XROAD(icell:icell) * DMT%XPDN_RD(1)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell))
+DMT%XWSNOW_TOWN(1:1) = (TSTATE%TSNOW_ROOF%WSNOW(icell,1) * TPARAMS%XBLD(icell:icell) + TSTATE%TSNOW_ROAD%WSNOW(icell,1) * TPARAMS%XROAD(icell:icell)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell)) * 0.001
+DMT%XSHFL_SNOW(1:1)  = (DMT%XH_SNOW_ROOF(1) * TPARAMS%XBLD(icell:icell) * DMT%XPDN_RF(1) + DMT%XH_SNOW_ROAD(1) * TPARAMS%XROAD(icell:icell) * DMT%XPDN_RD(1)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell))
 DMT%XLHFL_SNOW(1:1)  = (DMT%XLE_SNOW_ROOF(1) * TPARAMS%XBLD(icell:icell) * DMT%XPDN_RF(1) + DMT%XLE_SNOW_ROAD(1) * TPARAMS%XROAD(icell:icell) * DMT%XPDN_RD(1)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell))
-DMT%XHSNOW_TOWN(1:1)   = (DMT%XSNOWD_ROOF(1) * TPARAMS%XBLD(icell:icell) * DMT%XPDN_RF(1) + DMT%XSNOWD_ROAD(1) * TPARAMS%XROAD(icell:icell) * DMT%XPDN_RD(1)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell))
+DMT%XHSNOW_TOWN(1:1) = (DMT%XSNOWD_ROOF(1) * TPARAMS%XBLD(icell:icell) * DMT%XPDN_RF(1) + DMT%XSNOWD_ROAD(1) * TPARAMS%XROAD(icell:icell) * DMT%XPDN_RD(1)) / (TPARAMS%XBLD(icell:icell) + TPARAMS%XROAD(icell:icell))
 
 !  Instantaneous diagnostics
 DMT%XTS_ROOF(1:1) = TSTATE%XT_ROOF(icell,1)
@@ -774,9 +763,9 @@ ZABS_LW_GRND = TPARAMS%XROAD(icell:icell) /(TPARAMS%XROAD(icell:icell) + TPARAMS
 ZILMO_TOP_FLUX = -(DMT%XUSTAR_TOWN(1)**3 * FORC%XTA(1:1)) / (XKARMAN * XG * DMT%XH_TOWN(1) / (XCPD * FORC%XRHOA(1:1)))
 
 IF (ZILMO_TOP_FLUX(1) < 0.) THEN
-	ZILMO_TOP_FLUX = MIN(-TPARAMS%XBLD_HEIGHT(icell:icell) / 150., ZILMO_TOP_FLUX)
+  ZILMO_TOP_FLUX = MIN(-TPARAMS%XBLD_HEIGHT(icell:icell) / 150., ZILMO_TOP_FLUX)
 ELSE
-	ZILMO_TOP_FLUX = MAX(TPARAMS%XBLD_HEIGHT(icell:icell) / 150., ZILMO_TOP_FLUX)
+  ZILMO_TOP_FLUX = MAX(TPARAMS%XBLD_HEIGHT(icell:icell) / 150., ZILMO_TOP_FLUX)
 ENDIF
 
 ! --------------------------------------------------------------------------------------

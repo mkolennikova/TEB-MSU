@@ -65,9 +65,9 @@ TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
 !
 TYPE(TEB_t), INTENT(INOUT) :: TSTATE
 !
-REAL              ,   INTENT(IN)  :: PTSTEP      ! time step
+REAL              ,   INTENT(IN)  :: PTSTEP  ! time step
 REAL, DIMENSION(:),   INTENT(OUT) :: PTDEEP_A, PTDEEP_B     
-                                              ! Deep soil temperature (prescribed)
+! Deep soil temperature (prescribed)
 !                                      PTDEEP_A = Deep soil temperature
 !                                                 coefficient depending on flux
 !                                      PTDEEP_B = Deep soil temperature (prescribed)
@@ -81,18 +81,18 @@ REAL, DIMENSION(:),   INTENT(OUT) :: PTDEEP_A, PTDEEP_B
 !
 !*      0.2    Local variables
 !
-REAL :: ZIMPL = 1.0        ! implicit coefficient
-INTEGER :: JK              ! loop counter
+REAL :: ZIMPL = 1.0  ! implicit coefficient
+INTEGER :: JK        ! loop counter
 INTEGER :: ILAYER
 !
-REAL, DIMENSION(SIZE(PTDEEP_A),SIZE(TSTATE%XT_ROOF,2)) :: ZA,& ! lower diag.
-                                               ZB,& ! main  diag.
-                                               ZC,& ! upper diag.
-                                               ZY   ! r.h.s.
+REAL, DIMENSION(SIZE(PTDEEP_A),SIZE(TSTATE%XT_ROOF,2)) :: ZA,&  ! lower diag.
+  ZB,&                                              ! main  diag.
+  ZC,&                                              ! upper diag.
+  ZY                                                ! r.h.s.
 
-REAL, DIMENSION(SIZE(PTDEEP_A))             :: ZDET ! work array
-REAL, DIMENSION(SIZE(PTDEEP_A),SIZE(TSTATE%XT_ROOF,2)) :: ZW   ! work array
-REAL, DIMENSION(SIZE(PTDEEP_A),SIZE(TSTATE%XT_ROOF,2)) :: ZT   ! guess of T
+REAL, DIMENSION(SIZE(PTDEEP_A))             :: ZDET           ! work array
+REAL, DIMENSION(SIZE(PTDEEP_A),SIZE(TSTATE%XT_ROOF,2)) :: ZW  ! work array
+REAL, DIMENSION(SIZE(PTDEEP_A),SIZE(TSTATE%XT_ROOF,2)) :: ZT  ! guess of T
 !
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
@@ -103,8 +103,8 @@ IF (LHOOK) CALL DR_HOOK('ROOF_IMPL_COEF',0,ZHOOK_HANDLE)
 !
 ILAYER = SIZE(TSTATE%XT_ROOF,2)
 !
- CALL LAYER_E_BUDGET_GET_COEF(TSTATE%XT_ROOF, PTSTEP, ZIMPL, TPARAMS%XHC_ROOF, TPARAMS%XTC_ROOF, TPARAMS%XD_ROOF, &
-                              ZA, ZB, ZC, ZY )
+CALL LAYER_E_BUDGET_GET_COEF(TSTATE%XT_ROOF, PTSTEP, ZIMPL, TPARAMS%XHC_ROOF, TPARAMS%XTC_ROOF, TPARAMS%XD_ROOF, &
+                             ZA, ZB, ZC, ZY )
 !
 !-------------------------------------------------------------------------------
 !
@@ -120,9 +120,9 @@ ZT  (:,ILAYER) = ZY(:,ILAYER) / ZDET(:)
 ! internal layers & top layer (but without the external heat flux term)
 !
 DO JK=ILAYER-1,1,-1
-  ZW  (:,JK)  = ZA(:,JK+1)/ZDET(:)
-  ZDET(:)     = ZB(:,JK  ) - ZC(:,JK)*ZW(:,JK)
-  ZT  (:,JK)  = ( ZY(:,JK) - ZC(:,JK)*ZT(:,JK+1) ) / ZDET(:) ! + FLUX / ZDET
+  ZW  (:,JK) = ZA(:,JK+1)/ZDET(:)
+  ZDET(:)    = ZB(:,JK  ) - ZC(:,JK)*ZW(:,JK)
+  ZT  (:,JK) = ( ZY(:,JK) - ZC(:,JK)*ZT(:,JK+1) ) / ZDET(:)   ! + FLUX / ZDET
   !                                                          ! for layer 1
   !                                                          ! because the external
   !                                                          ! flux would be

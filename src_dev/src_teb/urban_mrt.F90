@@ -105,10 +105,10 @@ CHARACTER(LEN=*),      INTENT(IN), OPTIONAL :: CBODY
 !*      0.2    declarations of local variables
 !
 !MV202610 pedestrian constants (see the scheme document)
-REAL, PARAMETER :: XZ_PED      = 1.1    ! height of the centre of the pedestrian (m)
-REAL, PARAMETER :: XABS_BODY   = 0.70   ! shortwave absorption of the body (-)
-REAL, PARAMETER :: XEMIS_BODY  = 0.97   ! longwave emissivity of the body (-)
-REAL, PARAMETER :: XCOSZ_MIN   = 0.02   ! lower bound of cos(zenith) (88.9 deg)
+REAL, PARAMETER :: XZ_PED      = 1.1   ! height of the centre of the pedestrian (m)
+REAL, PARAMETER :: XABS_BODY   = 0.70  ! shortwave absorption of the body (-)
+REAL, PARAMETER :: XEMIS_BODY  = 0.97  ! longwave emissivity of the body (-)
+REAL, PARAMETER :: XCOSZ_MIN   = 0.02  ! lower bound of cos(zenith) (88.9 deg)
 !MV202610 projection factor of the direct beam: body = sphere or standing person
 !* sphere: 0.25 (the projected area of a sphere is a quarter of its surface);
 !* person: f_p = 0.308*cos(elev*(1 - elev^2/48402)) with the solar elevation in
@@ -117,9 +117,9 @@ REAL, PARAMETER :: XCOSZ_MIN   = 0.02   ! lower bound of cos(zenith) (88.9 deg)
 !* PyBiometeo (mrt_utils.calcsolarfv). 0.308 is the value at the horizon and the
 !* fitted argument keeps 0.08 at the zenith (the top view of a standing body);
 !* only the beam uses it, the diffuse and longwave view factors stay spherical.
-REAL, PARAMETER :: XF_DIR_SPHERE = 0.25   ! projected area factor of a sphere (-)
-REAL, PARAMETER :: XF_PERSON_A   = 0.308  ! projection factor of a standing person at the horizon (-)
-REAL, PARAMETER :: XF_PERSON_C   = 48402. ! fitted constant of the projection factor (deg^2)
+REAL, PARAMETER :: XF_DIR_SPHERE = 0.25    ! projected area factor of a sphere (-)
+REAL, PARAMETER :: XF_PERSON_A   = 0.308   ! projection factor of a standing person at the horizon (-)
+REAL, PARAMETER :: XF_PERSON_C   = 48402.  ! fitted constant of the projection factor (deg^2)
 !
 REAL :: ZH_CAN, ZA_RATIO, ZA_EFF, ZPSI, ZB, ZSKY, ZROAD, ZWALL
 REAL :: ZCOSZ, ZSUNLIT, ZIDIR, ZIDIR_SUN, ZISKY, ZIWALL, ZSW_REF, ZIROAD
@@ -174,15 +174,15 @@ IF (ZH_CAN > 0. .AND. ZA_RATIO > 0.) THEN
   ZSKY   = 0.5 * ZPSI
   !* the road fills the lower cap of the sphere down to the elevation of the
   !* wall bases, tan(phi_b) = 2*z_p/(H/a) = 2*z_p*a/H
-  ZB     = 2. * XZ_PED * ZA_RATIO / ZH_CAN
-  ZROAD  = 0.5 * (1. - ZB/SQRT(1. + ZB**2))
-  ZWALL  = MAX(0., 1. - ZSKY - ZROAD)
+  ZB    = 2. * XZ_PED * ZA_RATIO / ZH_CAN
+  ZROAD = 0.5 * (1. - ZB/SQRT(1. + ZB**2))
+  ZWALL = MAX(0., 1. - ZSKY - ZROAD)
 ELSE
   !* no buildings: open surface (sky and road split the sphere in two halves)
-  ZPSI   = 1.
-  ZSKY   = 0.5
-  ZROAD  = 0.5
-  ZWALL  = 0.
+  ZPSI  = 1.
+  ZSKY  = 0.5
+  ZROAD = 0.5
+  ZWALL = 0.
 ENDIF
 !
 DMT%XMRT_F_SKY (KICELL) = ZSKY
@@ -258,7 +258,7 @@ DMT%XMRT_SW_ROAD(KICELL) = XABS_BODY * MAX(ZIROAD,0.)
 ZL_SKY  = FORC%XLW(KICELL)
 ZL_WALL = 0.5 * ZEMIS_WL * XSTEFAN * (DMT%XTS_WALL_A(KICELL)**4 + DMT%XTS_WALL_B(KICELL)**4)
 ZL_ROAD = (1. - ZPDN) * ZEMIS_RD * XSTEFAN * ZT_ROAD**4                       &
-        +          ZPDN  * ZEMIS_SN * XSTEFAN * ZT_SNOW**4
+  +          ZPDN  * ZEMIS_SN * XSTEFAN * ZT_SNOW**4
 !
 DMT%XMRT_LW_SKY (KICELL) = XEMIS_BODY * ZSKY  * ZL_SKY
 DMT%XMRT_LW_WALL(KICELL) = XEMIS_BODY * ZWALL * ZL_WALL
@@ -269,7 +269,7 @@ DMT%XMRT_LW_ROAD(KICELL) = XEMIS_BODY * ZROAD * ZL_ROAD
 !
 ZQ_LW = DMT%XMRT_LW_SKY(KICELL) + DMT%XMRT_LW_WALL(KICELL) + DMT%XMRT_LW_ROAD(KICELL)
 ZQ_SW = DMT%XMRT_SW_DIR(KICELL) + DMT%XMRT_SW_SKY(KICELL)   &
-      + DMT%XMRT_SW_WALL(KICELL) + DMT%XMRT_SW_ROAD(KICELL)
+  + DMT%XMRT_SW_WALL(KICELL) + DMT%XMRT_SW_ROAD(KICELL)
 !
 !* sunlit variant: replace the area-averaged beam by the full one (only when
 !* the sun reaches the road at all, otherwise the two values coincide exactly)
@@ -367,15 +367,15 @@ CHARACTER(LEN=*),      INTENT(IN), OPTIONAL :: CBODY
 !*      0.2    declarations of local variables
 !
 !MV202610 pedestrian constants (the same as in URBAN_MRT) and the roof geometry
-REAL, PARAMETER :: XABS_BODY  = 0.70    ! shortwave absorption of the body (-)
-REAL, PARAMETER :: XEMIS_BODY = 0.97    ! longwave emissivity of the body (-)
-REAL, PARAMETER :: XCOSZ_MIN  = 0.02    ! lower bound of cos(zenith) (88.9 deg)
-REAL, PARAMETER :: XF_SKY     = 0.5     ! sky view factor on a flat infinite roof (-)
-REAL, PARAMETER :: XF_ROOF    = 0.5     ! roof view factor on a flat infinite roof (-)
+REAL, PARAMETER :: XABS_BODY  = 0.70  ! shortwave absorption of the body (-)
+REAL, PARAMETER :: XEMIS_BODY = 0.97  ! longwave emissivity of the body (-)
+REAL, PARAMETER :: XCOSZ_MIN  = 0.02  ! lower bound of cos(zenith) (88.9 deg)
+REAL, PARAMETER :: XF_SKY     = 0.5   ! sky view factor on a flat infinite roof (-)
+REAL, PARAMETER :: XF_ROOF    = 0.5   ! roof view factor on a flat infinite roof (-)
 !MV202610 projection factor of the direct beam (see URBAN_MRT for the references)
-REAL, PARAMETER :: XF_DIR_SPHERE = 0.25   ! projected area factor of a sphere (-)
-REAL, PARAMETER :: XF_PERSON_A   = 0.308  ! projection factor of a standing person at the horizon (-)
-REAL, PARAMETER :: XF_PERSON_C   = 48402. ! fitted constant of the projection factor (deg^2)
+REAL, PARAMETER :: XF_DIR_SPHERE = 0.25    ! projected area factor of a sphere (-)
+REAL, PARAMETER :: XF_PERSON_A   = 0.308   ! projection factor of a standing person at the horizon (-)
+REAL, PARAMETER :: XF_PERSON_C   = 48402.  ! fitted constant of the projection factor (deg^2)
 !
 REAL :: ZCOSZ, ZIDIR, ZISKY, ZIROOF
 REAL :: ZPDN, ZALB_RF, ZALB_SN, ZEMIS_RF, ZEMIS_SN, ZT_ROOF, ZT_SNOW
@@ -437,7 +437,7 @@ ZISKY = XF_SKY * DMT%XSW_SKY_ROOF(KICELL)
 !
 !* roof reflection: the albedo of the surface the pedestrian actually sees
 ZIROOF = XF_ROOF * ((1. - ZPDN) * ZALB_RF + ZPDN * ZALB_SN) &
-       * MAX(DMT%XSW_TOT_ROOF(KICELL),0.)
+  * MAX(DMT%XSW_TOT_ROOF(KICELL),0.)
 !
 ZQ_SW = XABS_BODY * (MAX(ZIDIR,0.) + MAX(ZISKY,0.) + MAX(ZIROOF,0.))
 !
@@ -446,7 +446,7 @@ ZQ_SW = XABS_BODY * (MAX(ZIDIR,0.) + MAX(ZISKY,0.) + MAX(ZIROOF,0.))
 !
 ZL_SKY  = FORC%XLW(KICELL)
 ZL_ROOF = (1. - ZPDN) * ZEMIS_RF * XSTEFAN * ZT_ROOF**4 &
-        +          ZPDN  * ZEMIS_SN * XSTEFAN * ZT_SNOW**4
+  +          ZPDN  * ZEMIS_SN * XSTEFAN * ZT_SNOW**4
 !
 ZQ_LW = XEMIS_BODY * (XF_SKY * ZL_SKY + XF_ROOF * ZL_ROOF)
 !

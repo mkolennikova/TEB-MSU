@@ -54,15 +54,15 @@ TYPE BEM_t
 !
 ! Indoor state, workspace and ventilation / shading flags
 !
-  REAL, POINTER, DIMENSION(:)   :: XTI_BLD       ! building interior temperature    (K)
-  REAL, POINTER, DIMENSION(:,:) :: XT_FLOOR      ! floor layer temperatures         (K)
-  REAL, POINTER, DIMENSION(:,:) :: XT_MASS       ! Air cooled building internal th. mass temperature (K)
-  REAL, POINTER, DIMENSION(:)   :: XT_WIN1       ! outdoor window temperature [K]
-  REAL, POINTER, DIMENSION(:)   :: XT_WIN2       ! Indoor window temperature [K]
-  REAL, POINTER, DIMENSION(:)   :: XQI_BLD       ! Indoor air specific humidity [kg kg-1]
-  LOGICAL, POINTER, DIMENSION(:):: LSHADE        ! flag to activate shading devices -> LOGICAL in the code
-  LOGICAL, POINTER, DIMENSION(:):: LSHAD_DAY     !Has shading been necessary this day ?
-  LOGICAL, POINTER, DIMENSION(:):: LNATVENT_NIGHT !Has nocturnal surventilation been necessary and possible this night ?
+  REAL, POINTER, DIMENSION(:)   :: XTI_BLD         ! building interior temperature    (K)
+  REAL, POINTER, DIMENSION(:,:) :: XT_FLOOR        ! floor layer temperatures         (K)
+  REAL, POINTER, DIMENSION(:,:) :: XT_MASS         ! Air cooled building internal th. mass temperature (K)
+  REAL, POINTER, DIMENSION(:)   :: XT_WIN1         ! outdoor window temperature [K]
+  REAL, POINTER, DIMENSION(:)   :: XT_WIN2         ! Indoor window temperature [K]
+  REAL, POINTER, DIMENSION(:)   :: XQI_BLD         ! Indoor air specific humidity [kg kg-1]
+  LOGICAL, POINTER, DIMENSION(:):: LSHADE          ! flag to activate shading devices -> LOGICAL in the code
+  LOGICAL, POINTER, DIMENSION(:):: LSHAD_DAY       !Has shading been necessary this day ?
+  LOGICAL, POINTER, DIMENSION(:):: LNATVENT_NIGHT  !Has nocturnal surventilation been necessary and possible this night ?
 !
 ! WORK VARIABLES: not prognostic, recomputed at every call
 !
@@ -70,12 +70,12 @@ TYPE BEM_t
   REAL, POINTER, DIMENSION(:)   :: XT_ADP        ! Apparatus dewpoint temperature of the cooling coil [K]
   REAL, POINTER, DIMENSION(:)   :: XCAP_SYS_RAT  ! Rated capacity of the cooling system [W m-2(bld)]
 !                                                  ! (recalibrated by the autosize block of BEM)
-  REAL, POINTER, DIMENSION(:)   :: XM_SYS_RAT    ! Rated HVAC mass flow rate [kg s-1 m-2(bld)]
+  REAL, POINTER, DIMENSION(:)   :: XM_SYS_RAT  ! Rated HVAC mass flow rate [kg s-1 m-2(bld)]
 !                                                  ! (recalibrated by the autosize block of BEM)
-  REAL, POINTER, DIMENSION(:)   :: XALB_WIN      ! window albedo      (derived from XU_WIN/XSHGC)
-  REAL, POINTER, DIMENSION(:)   :: XABS_WIN      ! window absortance  (derived)
-  REAL, POINTER, DIMENSION(:)   :: XTRAN_WIN     ! window transmittance (derived)
-  REAL, POINTER, DIMENSION(:)   :: XUGG_WIN      ! Window glass-to-glass U-factor (derived)
+  REAL, POINTER, DIMENSION(:)   :: XALB_WIN   ! window albedo      (derived from XU_WIN/XSHGC)
+  REAL, POINTER, DIMENSION(:)   :: XABS_WIN   ! window absortance  (derived)
+  REAL, POINTER, DIMENSION(:)   :: XTRAN_WIN  ! window transmittance (derived)
+  REAL, POINTER, DIMENSION(:)   :: XUGG_WIN   ! Window glass-to-glass U-factor (derived)
 !
 ! RESERVED: i/o mirrors of the ventilation and shading flags. The physics uses
 ! LSHADE and CNATVENT (the logical and the character flags); these REAL mirrors are
@@ -83,8 +83,8 @@ TYPE BEM_t
 ! TODO: decide whether they are needed at all (kept for now as the SURFEX i/o
 ! interface).
 !
-  REAL,    POINTER, DIMENSION(:):: XSHADE        ! flag to activate shading devices -> REAL for i/o 0. or 1.
-  REAL,    POINTER, DIMENSION(:):: XNATVENT      ! flag to describe surventilation system for i/o
+  REAL,    POINTER, DIMENSION(:):: XSHADE    ! flag to activate shading devices -> REAL for i/o 0. or 1.
+  REAL,    POINTER, DIMENSION(:):: XNATVENT  ! flag to describe surventilation system for i/o
 !                                                  ! 0 for NONE, 1 for MANU and 2 for AUTO
 !
 END TYPE BEM_t
@@ -103,25 +103,25 @@ SUBROUTINE BEM_INIT(YBEM)
 TYPE(BEM_t), INTENT(INOUT) :: YBEM
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 IF (LHOOK) CALL DR_HOOK("MODD_BEM_N:BEM_INIT",0,ZHOOK_HANDLE)
-  NULLIFY(YBEM%XTI_BLD)
-  NULLIFY(YBEM%XT_FLOOR)
-  NULLIFY(YBEM%XT_MASS)
-  NULLIFY(YBEM%XAUX_MAX)
-  NULLIFY(YBEM%XCAP_SYS_RAT)
-  NULLIFY(YBEM%XM_SYS_RAT)
-  NULLIFY(YBEM%XALB_WIN)
-  NULLIFY(YBEM%XABS_WIN)
-  NULLIFY(YBEM%XTRAN_WIN)
-  NULLIFY(YBEM%XUGG_WIN)
-  NULLIFY(YBEM%XT_WIN2)
-  NULLIFY(YBEM%XQI_BLD)
-  NULLIFY(YBEM%XT_ADP)
-  NULLIFY(YBEM%XT_WIN1)
-  NULLIFY(YBEM%LSHAD_DAY)
-  NULLIFY(YBEM%LNATVENT_NIGHT)
-  NULLIFY(YBEM%LSHADE)
-  NULLIFY(YBEM%XSHADE)
-  NULLIFY(YBEM%XNATVENT)
+NULLIFY(YBEM%XTI_BLD)
+NULLIFY(YBEM%XT_FLOOR)
+NULLIFY(YBEM%XT_MASS)
+NULLIFY(YBEM%XAUX_MAX)
+NULLIFY(YBEM%XCAP_SYS_RAT)
+NULLIFY(YBEM%XM_SYS_RAT)
+NULLIFY(YBEM%XALB_WIN)
+NULLIFY(YBEM%XABS_WIN)
+NULLIFY(YBEM%XTRAN_WIN)
+NULLIFY(YBEM%XUGG_WIN)
+NULLIFY(YBEM%XT_WIN2)
+NULLIFY(YBEM%XQI_BLD)
+NULLIFY(YBEM%XT_ADP)
+NULLIFY(YBEM%XT_WIN1)
+NULLIFY(YBEM%LSHAD_DAY)
+NULLIFY(YBEM%LNATVENT_NIGHT)
+NULLIFY(YBEM%LSHADE)
+NULLIFY(YBEM%XSHADE)
+NULLIFY(YBEM%XNATVENT)
 IF (LHOOK) CALL DR_HOOK("MODD_BEM_N:BEM_INIT",1,ZHOOK_HANDLE)
 END SUBROUTINE BEM_INIT
 !

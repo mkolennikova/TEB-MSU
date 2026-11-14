@@ -10,13 +10,13 @@
                           PQA, PPS, PRHOA,PZREF, PUREF, PVMOD, PWS_ROOF_MAX,       &
                           PWS_ROAD_MAX, PPEW_A_COEF, PPEW_B_COEF,                  &
                           PPEW_A_COEF_LOWCAN, PPEW_B_COEF_LOWCAN, PZ0_GARDEN_EXT,  &
-						  PTSRAD_GR, PRUNOFF_GR, PQSAT_ROOF,      &
+                          PTSRAD_GR, PRUNOFF_GR, PQSAT_ROOF,      &
                           PQSAT_ROAD, PDELT_ROOF, PDELT_ROAD, PCD, PCDN, PAC_ROOF, &
                           PAC_ROOF_WAT, PAC_WALL, PAC_ROAD, PAC_ROAD_WAT, PAC_TOP, &
                           PAC_GARDEN, PRI, PUW_ROAD, PUW_ROOF, PDUWDU_ROAD,        &
                           PDUWDU_ROOF, PUSTAR_TOWN, PAC_WIN, PCH_GARDEN,           &
-						  PCD_GARDEN, PCH_ROAD, PCH_ROOF, PCH_WALL, PCH_TOP,       &
-                          ILMO_ROAD, ILMO_ROOF, ILMO_TOP, PCD_TERRA, PCH_TERRA	  ) 
+                          PCD_GARDEN, PCH_ROAD, PCH_ROOF, PCH_WALL, PCH_TOP,       &
+                          ILMO_ROAD, ILMO_ROOF, ILMO_TOP, PCD_TERRA, PCH_TERRA ) 
 !   ##########################################################################
 !
 !!****  *URBAN_DRAG*  
@@ -104,94 +104,94 @@ TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
 TYPE(TEB_t), INTENT(INOUT) :: T
 TYPE(BEM_t), INTENT(INOUT) :: B
 !
- LOGICAL,              INTENT(IN)  :: OGARDEN_EXT         ! Flag to use EXTERNAL garden model inside the canyon
- CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
+LOGICAL,              INTENT(IN)  :: OGARDEN_EXT     ! Flag to use EXTERNAL garden model inside the canyon
+CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND  ! wind implicitation option
 !                                                     ! 'OLD' = direct
 !                                                     ! 'NEW' = Taylor serie, order 1
 !
-REAL,               INTENT(IN)    :: PTSTEP         ! time-step
-REAL, INTENT(IN)    :: PTIME          ! current time since midnight (UTC, s)
-REAL, DIMENSION(:), INTENT(IN)    :: PT_CANYON      ! canyon air temperature
-REAL, DIMENSION(:), INTENT(IN)    :: PQ_CANYON      ! canyon air specific humidity.
-REAL, DIMENSION(:), INTENT(IN)    :: PU_CANYON      ! hor. wind in canyon
-REAL, DIMENSION(:), INTENT(IN)    :: PU_LOWCAN     ! wind near the road
-REAL, DIMENSION(:), INTENT(IN)    :: PT_LOWCAN     ! temp. near the road
-REAL, DIMENSION(:), INTENT(IN)    :: PQ_LOWCAN     ! hum. near the road
-REAL, DIMENSION(:), INTENT(IN)    :: PZ_LOWCAN     ! height of atm. var. near the road
-REAL, DIMENSION(:), INTENT(IN)    :: PTS_ROOF       ! surface temperature
-REAL, DIMENSION(:), INTENT(IN)    :: PTS_ROAD       ! surface temperature
-REAL, DIMENSION(:), INTENT(IN)    :: PTS_WALL       ! surface temperature
-REAL, DIMENSION(:), INTENT(IN)    :: PTS_GARDEN     ! surface temperature
-REAL, DIMENSION(:), INTENT(IN)    :: PQS_GARDEN     ! surface humidity
-REAL, DIMENSION(:), INTENT(IN)    :: PDELT_SNOW_ROOF! fraction of snow on roof
-REAL, DIMENSION(:), INTENT(IN)    :: PDELT_SNOW_ROAD! fraction of snow on road
-REAL, DIMENSION(:), INTENT(IN)    :: PEXNS          ! surface exner function
-REAL, DIMENSION(:), INTENT(IN)    :: PTA            ! temperature at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PQA            ! specific humidity
-                                                    ! at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PVMOD          ! module of the horizontal wind
-REAL, DIMENSION(:), INTENT(IN)    :: PPS            ! pressure at the surface
-REAL, DIMENSION(:), INTENT(IN)    :: PEXNA          ! exner function
-                                                    ! at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PRHOA          ! air density
-REAL, DIMENSION(:), INTENT(IN)    :: PZREF          ! reference height of the first
-                                                    ! atmospheric level (temperature)
-REAL, DIMENSION(:), INTENT(IN)    :: PUREF          ! reference height of the first
-                                                    ! atmospheric level (wind)
-REAL, DIMENSION(:), INTENT(IN)    :: PWS_ROOF_MAX   ! maximum deepness of roof
-REAL, DIMENSION(:), INTENT(IN)    :: PWS_ROAD_MAX   ! and water reservoirs (kg/m2)
-REAL, DIMENSION(:), INTENT(IN)    :: PPEW_A_COEF    ! implicit coefficients (m2s/kg)
-REAL, DIMENSION(:), INTENT(IN)    :: PPEW_B_COEF    ! for wind coupling     (m/s)
-REAL, DIMENSION(:), INTENT(IN)    :: PPEW_A_COEF_LOWCAN ! implicit coefficients for wind coupling (m2s/kg)
-REAL, DIMENSION(:), INTENT(IN)    :: PPEW_B_COEF_LOWCAN ! between low canyon wind and road (m/s)
-REAL, DIMENSION(:), INTENT(IN)    :: PZ0_GARDEN_EXT     ! garden roughness length (external model)
-REAL, DIMENSION(:), INTENT(IN)    :: PTSRAD_GR     !
-REAL, DIMENSION(:), INTENT(IN)    :: PRUNOFF_GR     !
+REAL,               INTENT(IN)    :: PTSTEP              ! time-step
+REAL, INTENT(IN)    :: PTIME                             ! current time since midnight (UTC, s)
+REAL, DIMENSION(:), INTENT(IN)    :: PT_CANYON           ! canyon air temperature
+REAL, DIMENSION(:), INTENT(IN)    :: PQ_CANYON           ! canyon air specific humidity.
+REAL, DIMENSION(:), INTENT(IN)    :: PU_CANYON           ! hor. wind in canyon
+REAL, DIMENSION(:), INTENT(IN)    :: PU_LOWCAN           ! wind near the road
+REAL, DIMENSION(:), INTENT(IN)    :: PT_LOWCAN           ! temp. near the road
+REAL, DIMENSION(:), INTENT(IN)    :: PQ_LOWCAN           ! hum. near the road
+REAL, DIMENSION(:), INTENT(IN)    :: PZ_LOWCAN           ! height of atm. var. near the road
+REAL, DIMENSION(:), INTENT(IN)    :: PTS_ROOF            ! surface temperature
+REAL, DIMENSION(:), INTENT(IN)    :: PTS_ROAD            ! surface temperature
+REAL, DIMENSION(:), INTENT(IN)    :: PTS_WALL            ! surface temperature
+REAL, DIMENSION(:), INTENT(IN)    :: PTS_GARDEN          ! surface temperature
+REAL, DIMENSION(:), INTENT(IN)    :: PQS_GARDEN          ! surface humidity
+REAL, DIMENSION(:), INTENT(IN)    :: PDELT_SNOW_ROOF     ! fraction of snow on roof
+REAL, DIMENSION(:), INTENT(IN)    :: PDELT_SNOW_ROAD     ! fraction of snow on road
+REAL, DIMENSION(:), INTENT(IN)    :: PEXNS               ! surface exner function
+REAL, DIMENSION(:), INTENT(IN)    :: PTA                 ! temperature at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PQA                 ! specific humidity
+                                                         ! at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PVMOD               ! module of the horizontal wind
+REAL, DIMENSION(:), INTENT(IN)    :: PPS                 ! pressure at the surface
+REAL, DIMENSION(:), INTENT(IN)    :: PEXNA               ! exner function
+                                                         ! at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PRHOA               ! air density
+REAL, DIMENSION(:), INTENT(IN)    :: PZREF               ! reference height of the first
+                                                         ! atmospheric level (temperature)
+REAL, DIMENSION(:), INTENT(IN)    :: PUREF               ! reference height of the first
+                                                         ! atmospheric level (wind)
+REAL, DIMENSION(:), INTENT(IN)    :: PWS_ROOF_MAX        ! maximum deepness of roof
+REAL, DIMENSION(:), INTENT(IN)    :: PWS_ROAD_MAX        ! and water reservoirs (kg/m2)
+REAL, DIMENSION(:), INTENT(IN)    :: PPEW_A_COEF         ! implicit coefficients (m2s/kg)
+REAL, DIMENSION(:), INTENT(IN)    :: PPEW_B_COEF         ! for wind coupling     (m/s)
+REAL, DIMENSION(:), INTENT(IN)    :: PPEW_A_COEF_LOWCAN  ! implicit coefficients for wind coupling (m2s/kg)
+REAL, DIMENSION(:), INTENT(IN)    :: PPEW_B_COEF_LOWCAN  ! between low canyon wind and road (m/s)
+REAL, DIMENSION(:), INTENT(IN)    :: PZ0_GARDEN_EXT      ! garden roughness length (external model)
+REAL, DIMENSION(:), INTENT(IN)    :: PTSRAD_GR           !
+REAL, DIMENSION(:), INTENT(IN)    :: PRUNOFF_GR          !
 
 !
-REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_ROOF     ! qsat(Ts)
-REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_ROAD     ! qsat(Ts)
-REAL, DIMENSION(:), INTENT(OUT)   :: PDELT_ROOF     ! water fraction on
-REAL, DIMENSION(:), INTENT(OUT)   :: PDELT_ROAD     ! snow-free surfaces
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD            ! drag coefficient
-REAL, DIMENSION(:), INTENT(OUT)   :: PCDN           ! neutral drag coefficient
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROOF       ! aerodynamical conductance
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROOF_WAT   ! aerodynamical conductance (for water)
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_WALL       ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_ROOF    ! qsat(Ts)
+REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_ROAD    ! qsat(Ts)
+REAL, DIMENSION(:), INTENT(OUT)   :: PDELT_ROOF    ! water fraction on
+REAL, DIMENSION(:), INTENT(OUT)   :: PDELT_ROAD    ! snow-free surfaces
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD           ! drag coefficient
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN          ! neutral drag coefficient
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROOF      ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROOF_WAT  ! aerodynamical conductance (for water)
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_WALL      ! aerodynamical conductance
 !                                                   ! between canyon air and
 !                                                   ! walls 
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD       ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD  ! aerodynamical conductance
 !                                                   ! between canyon air and
 !                                                   ! roads
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_WAT   ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_WAT  ! aerodynamical conductance
 !                                                   ! between canyon air and
 !                                                   ! road (for water)
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GARDEN     ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GARDEN  ! aerodynamical conductance
 !                                                   ! between canyon air and
 !                                                   ! garden
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_TOP        ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_TOP  ! aerodynamical conductance
 !                                                   ! between canyon top and atm.
 !REAL, DIMENSION(:), INTENT(IN)    :: PAC_GARDEN     ! aerodynamical conductance
 !                                                   ! between canyon air and GARDEN areas
-REAL, DIMENSION(:), INTENT(OUT)   :: PRI            ! Town Richardson number
+REAL, DIMENSION(:), INTENT(OUT)   :: PRI  ! Town Richardson number
 !
-REAL, DIMENSION(:), INTENT(OUT)   :: PUW_ROAD       ! Momentum flux for roads
-REAL, DIMENSION(:), INTENT(OUT)   :: PUW_ROOF       ! Momentum flux for roofs
-REAL, DIMENSION(:), INTENT(OUT)   :: PDUWDU_ROAD    ! 
-REAL, DIMENSION(:), INTENT(OUT)   :: PDUWDU_ROOF    ! 
-REAL, DIMENSION(:), INTENT(OUT)   :: PUSTAR_TOWN    ! Fraction velocity for town
+REAL, DIMENSION(:), INTENT(OUT)   :: PUW_ROAD     ! Momentum flux for roads
+REAL, DIMENSION(:), INTENT(OUT)   :: PUW_ROOF     ! Momentum flux for roofs
+REAL, DIMENSION(:), INTENT(OUT)   :: PDUWDU_ROAD  ! 
+REAL, DIMENSION(:), INTENT(OUT)   :: PDUWDU_ROOF  ! 
+REAL, DIMENSION(:), INTENT(OUT)   :: PUSTAR_TOWN  ! Fraction velocity for town
 !
-REAL, DIMENSION(:), INTENT(OUT)   :: PAC_WIN        ! aerodynamical conductance for window
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN     ! drag coeifficient for heat
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GARDEN     ! garden  surf. exchange coefficient
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROAD       ! drag coeifficient for heat
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROOF       ! drag coeifficient for heat
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_WALL       ! drag coeifficient for heat
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_TOP        ! drag coeifficient for heat
+REAL, DIMENSION(:), INTENT(OUT)   :: PAC_WIN     ! aerodynamical conductance for window
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN  ! drag coeifficient for heat
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GARDEN  ! garden  surf. exchange coefficient
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROAD    ! drag coeifficient for heat
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROOF    ! drag coeifficient for heat
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_WALL    ! drag coeifficient for heat
+REAL, DIMENSION(:), INTENT(OUT)   :: PCH_TOP     ! drag coeifficient for heat
 
-REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_ROAD      ! 1/length of Monin-Obukov
-REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_ROOF      ! 1/length of Monin-Obukov
-REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_TOP       ! 1/length of Monin-Obukov
+REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_ROAD  ! 1/length of Monin-Obukov
+REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_ROOF  ! 1/length of Monin-Obukov
+REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_TOP   ! 1/length of Monin-Obukov
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_TERRA
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_TERRA
 
@@ -199,22 +199,22 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PCH_TERRA
 !*      0.2    declarations of local variables
 !
 !
-REAL, DIMENSION(SIZE(PTA)) :: ILMO_GARDEN  ! 1/length of Monin-Obukov
-REAL, DIMENSION(SIZE(PTA)) :: ILMO_TOWN    ! 1/length of Monin-Obukov
-REAL, DIMENSION(SIZE(PTA)) :: ZTS_TOWN     ! town averaged temp.
-REAL, DIMENSION(SIZE(PTA)) :: ZQ_TOWN      ! town averaged hum.
-REAL, DIMENSION(SIZE(PTA)) :: ZAVDELT_ROOF ! averaged water frac.
-REAL, DIMENSION(SIZE(PTA)) :: ZQ_ROOF      ! roof spec. hum.
-REAL, DIMENSION(SIZE(PTA)) :: ZZ0_ROOF     ! roof roughness length
-REAL, DIMENSION(SIZE(PTA)) :: ZZ0_ROAD     ! road roughness length
-REAL, DIMENSION(SIZE(PTA)) :: ZPZ0_GARDEN  ! garden roughness length
-REAL, DIMENSION(SIZE(PTA)) :: ZW_CAN       ! ver. wind in canyon
-REAL, DIMENSION(SIZE(PTA)) :: ZRI          ! Richardson number
-REAL, DIMENSION(SIZE(PTA)) :: ZLE_MAX      ! maximum latent heat flux available
-REAL, DIMENSION(SIZE(PTA)) :: ZLE          ! actual latent heat flux
-REAL, DIMENSION(SIZE(PTA)) :: ZRA_ROOF     ! aerodynamical resistance
+REAL, DIMENSION(SIZE(PTA)) :: ILMO_GARDEN   ! 1/length of Monin-Obukov
+REAL, DIMENSION(SIZE(PTA)) :: ILMO_TOWN     ! 1/length of Monin-Obukov
+REAL, DIMENSION(SIZE(PTA)) :: ZTS_TOWN      ! town averaged temp.
+REAL, DIMENSION(SIZE(PTA)) :: ZQ_TOWN       ! town averaged hum.
+REAL, DIMENSION(SIZE(PTA)) :: ZAVDELT_ROOF  ! averaged water frac.
+REAL, DIMENSION(SIZE(PTA)) :: ZQ_ROOF       ! roof spec. hum.
+REAL, DIMENSION(SIZE(PTA)) :: ZZ0_ROOF      ! roof roughness length
+REAL, DIMENSION(SIZE(PTA)) :: ZZ0_ROAD      ! road roughness length
+REAL, DIMENSION(SIZE(PTA)) :: ZPZ0_GARDEN   ! garden roughness length
+REAL, DIMENSION(SIZE(PTA)) :: ZW_CAN        ! ver. wind in canyon
+REAL, DIMENSION(SIZE(PTA)) :: ZRI           ! Richardson number
+REAL, DIMENSION(SIZE(PTA)) :: ZLE_MAX       ! maximum latent heat flux available
+REAL, DIMENSION(SIZE(PTA)) :: ZLE           ! actual latent heat flux
+REAL, DIMENSION(SIZE(PTA)) :: ZRA_ROOF      ! aerodynamical resistance
 !REAL, DIMENSION(SIZE(PTA)) :: ZCH_ROOF     ! drag coefficient for heat
-REAL, DIMENSION(SIZE(PTA)) :: ZRA_TOP      ! aerodynamical resistance
+REAL, DIMENSION(SIZE(PTA)) :: ZRA_TOP  ! aerodynamical resistance
 !REAL, DIMENSION(SIZE(PTA)) :: ZCH_TOP      ! drag coefficient for heat
 REAL, DIMENSION(SIZE(PTA)) :: ZRA_ROAD     ! aerodynamical resistance
 REAL, DIMENSION(SIZE(PTA)) :: ZRA_GARDEN   ! aerodynamical resistance
@@ -227,11 +227,11 @@ REAL, DIMENSION(SIZE(PTA)) :: ZCH          ! town drag coefficient for heat (not
 REAL, DIMENSION(SIZE(PTA)) :: ZCD          ! any surf. exchange coefficient (not used)
 REAL, DIMENSION(SIZE(PTA)) :: ZCDN         ! any surf. neutral exch. coef.  (not used)
 !
-REAL, DIMENSION(SIZE(PTA)) :: ZU_STAR, ZW_STAR !! 
-REAL, DIMENSION(SIZE(PTA)) :: ZQ0              !! 
+REAL, DIMENSION(SIZE(PTA)) :: ZU_STAR, ZW_STAR  !! 
+REAL, DIMENSION(SIZE(PTA)) :: ZQ0               !! 
 !
-REAL, DIMENSION(SIZE(PTA)) :: ZUSTAR2      ! square of friction velocity (m2/s2
-REAL, DIMENSION(SIZE(PTA)) :: ZVMOD        ! module of the horizontal wind at t+1
+REAL, DIMENSION(SIZE(PTA)) :: ZUSTAR2  ! square of friction velocity (m2/s2
+REAL, DIMENSION(SIZE(PTA)) :: ZVMOD    ! module of the horizontal wind at t+1
 !
 ! for calculation of momentum fluxes
 REAL, DIMENSION(SIZE(PTA)) :: ZLMO         ! Monin-Obukhov length
@@ -240,11 +240,11 @@ REAL, DIMENSION(SIZE(PTA)) :: ZUSTAR_ROOF  ! friction velocity for roofs
 REAL, DIMENSION(SIZE(PTA)) :: ZUSTAR_TOWN  !
 !
 REAL, DIMENSION(SIZE(PTA)) :: ZZ0_TOP      ! roughness length for zac_top calculation
-REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_TOP      ! roughness length for zac_top calculation
-REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_ROOF      ! roughness length for zac_top calculation
-REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_ROAD      ! roughness length for zac_top calculation
-REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_GARDEN    ! roughness length for zac_top calculation
-REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_TOWN      ! roughness length for zac_top calculation
+REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_TOP     ! roughness length for zac_top calculation
+REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_ROOF    ! roughness length for zac_top calculation
+REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_ROAD    ! roughness length for zac_top calculation
+REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_GARDEN  ! roughness length for zac_top calculation
+REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_TOWN    ! roughness length for zac_top calculation
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCN_WIN   ! natural convective heat transfer coef. for window [W/(m2.K)]
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCN_ROOF  ! natural convective heat transfer coef. for roof [W/(m2.K)]
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCS_ROOF  ! forced convective heat transfer coef. for smooth roof [W/(m2.K)]
@@ -274,7 +274,7 @@ CHARACTER(LEN=*), PARAMETER       :: ZZ0H_ROAD1 = 'output/ZZ0H_ROAD1.txt'
 
 
 !
-INTEGER                   ::  JLOOP, JJ            !! 
+INTEGER                   ::  JLOOP, JJ  !! 
 !
 REAL :: ZZ0_O_Z0H = 200.  ! z0/z0h ratio used in Mascart (1995) formulation.
 !                         ! It is set to the maximum value acceptable by
@@ -285,8 +285,8 @@ REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !
 IF (LHOOK) CALL DR_HOOK('URBAN_DRAG',0,ZHOOK_HANDLE)
 !
-ZZ0_ROOF(:)    = 0.15                      ! z0 for roofs
-ZZ0_ROAD(:)    = MIN(0.05,0.1*PZ_LOWCAN(:))! z0 for roads
+ZZ0_ROOF(:) = 0.15                         ! z0 for roofs
+ZZ0_ROAD(:) = MIN(0.05,0.1*PZ_LOWCAN(:))     ! z0 for roads
 !ZZ0_GARDEN(:)  = 0.1   
 ZPZ0_GARDEN(:)  = 1.                       ! z0 for gardens
 !
@@ -411,14 +411,14 @@ ENDIF
 
 
 IF (TOP%CCH_BEM == "DOE-2") THEN
-   ZCHTCN_ROOF = CHTC_UP_DOE(PTS_ROOF, PTA)
-   ZCHTCS_ROOF = CHTC_SMOOTH_WIND_DOE(ZCHTCN_ROOF, PVMOD)
-   PAC_ROOF = CHTC_ROUGH_DOE(ZCHTCN_ROOF, ZCHTCS_ROOF, T%XROUGH_ROOF) / PRHOA / XCPD
+  ZCHTCN_ROOF = CHTC_UP_DOE(PTS_ROOF, PTA)
+  ZCHTCS_ROOF = CHTC_SMOOTH_WIND_DOE(ZCHTCN_ROOF, PVMOD)
+  PAC_ROOF = CHTC_ROUGH_DOE(ZCHTCN_ROOF, ZCHTCS_ROOF, T%XROUGH_ROOF) / PRHOA / XCPD
 ELSE
    
-   CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROOF, ZQ_ROOF, PEXNS, PEXNA, PTA, PQA, &
-                        PZREF, PUREF, PVMOD, ZZ0_ROOF, ZRI, ZCD, ZCDN, PAC_ROOF,        &
-                        ZRA_ROOF, PCH_ROOF, ZZ0H_ROOF, ILMO_ROOF               )
+  CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROOF, ZQ_ROOF, PEXNS, PEXNA, PTA, PQA, &
+                       PZREF, PUREF, PVMOD, ZZ0_ROOF, ZRI, ZCD, ZCDN, PAC_ROOF,        &
+                       ZRA_ROOF, PCH_ROOF, ZZ0H_ROOF, ILMO_ROOF               )
 
 
 ENDIF
@@ -433,7 +433,7 @@ ENDIF
 DO JJ=1,SIZE(PTA)
   ZLE_MAX(JJ)     = T%XWS_ROOF(JJ) / PTSTEP * XLVTT
   ZLE    (JJ)     =(PQSAT_ROOF(JJ) - PQA(JJ)) &
-                 * PAC_ROOF(JJ) * PDELT_ROOF(JJ) * XLVTT * PRHOA(JJ)
+    * PAC_ROOF(JJ) * PDELT_ROOF(JJ) * XLVTT * PRHOA(JJ)
 !
   PAC_ROOF_WAT(JJ) = PAC_ROOF(JJ)
 !
@@ -453,8 +453,8 @@ ENDDO
 IF (.NOT. TOP%LCANOPY) THEN 
 
   CALL URBAN_EXCH_COEF('MASC95', 1., PT_CANYON, PQ_CANYON, PEXNS, PEXNA, PTA, PQA,    &
-                      PZREF+T%XBLD_HEIGHT-PZ_LOWCAN, PUREF+T%XBLD_HEIGHT-PZ_LOWCAN, &
-                      PVMOD, ZZ0_TOP,  ZRI, ZCD, ZCDN, PAC_TOP, ZRA_TOP, PCH_TOP, ZZ0H_TOP, ILMO_TOP  )
+                       PZREF+T%XBLD_HEIGHT-PZ_LOWCAN, PUREF+T%XBLD_HEIGHT-PZ_LOWCAN, &
+                       PVMOD, ZZ0_TOP,  ZRI, ZCD, ZCDN, PAC_TOP, ZRA_TOP, PCH_TOP, ZZ0H_TOP, ILMO_TOP  )
 
 !  CALL URBAN_EXCH_COEF(TOP%CZ0H, 1., PT_CANYON, PQ_CANYON, PEXNS, PEXNA, PTA, PQA,    &
 !                        PZREF+T%XBLD_HEIGHT-PZ_LOWCAN, PUREF+T%XBLD_HEIGHT-PZ_LOWCAN, &
@@ -507,7 +507,7 @@ ZQ0(:)     = 0.
 !
 !
 DO JLOOP=1,3
- !
+  !
   ZW_CAN(:)   = ZW_STAR(:)
 !
 !MV202609 base-model defect (uninitialised read, D9): ZTS_GROUND (surface
@@ -520,7 +520,7 @@ DO JLOOP=1,3
 !* URBAN_SOLAR_ABS).
   WHERE (T%XROAD(:) + T%XGARDEN(:) > 0.)
     ZTS_GROUND(:) = PTS_ROAD(:)   * T%XROAD(:)   / (T%XROAD(:) + T%XGARDEN(:)) &
-                  + PTS_GARDEN(:) * T%XGARDEN(:) / (T%XROAD(:) + T%XGARDEN(:))
+      + PTS_GARDEN(:) * T%XGARDEN(:) / (T%XROAD(:) + T%XGARDEN(:))
   ELSEWHERE
     ZTS_GROUND(:) = PTS_ROAD(:)
   END WHERE
@@ -534,9 +534,9 @@ DO JLOOP=1,3
 !  ZZ0_GROUND(:) = ZZ0_ROAD(:) * T%XROAD  (:)/(T%XROAD(:)+T%XGARDEN(:)) + ZZ0_GARDEN(:) * T%XGARDEN  (:)/(T%XROAD(:)+T%XGARDEN(:))
    
   CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQ_LOWCAN, PEXNS, PEXNA,  &
-						PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
-						PU_LOWCAN+ZW_CAN, ZZ0_ROAD, ZRI, ZCD_ROAD, ZCDN,         &
-						PAC_ROAD, ZRA_ROAD, PCH_ROAD, ZZ0H_ROAD, ILMO_ROAD        )
+                       PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
+                       PU_LOWCAN+ZW_CAN, ZZ0_ROAD, ZRI, ZCD_ROAD, ZCDN,         &
+                       PAC_ROAD, ZRA_ROAD, PCH_ROAD, ZZ0H_ROAD, ILMO_ROAD        )
   
   !
   !CALL URBAN_EXCH_COEF('MASC95', ZZ0_O_Z0H, ZTS_GROUND, PQ_LOWCAN, PEXNS, PEXNA,  &
@@ -555,7 +555,7 @@ DO JLOOP=1,3
 !* above), so the canyon momentum budget read stack garbage. The original term
 !* is restored here: ZTS_GROUND is now computed above the URBAN_EXCH_COEF call.
       ZQ0(JJ)   = ZQ0(JJ)                                                        &
-            + (ZTS_GROUND  (JJ) - PT_LOWCAN(JJ)) * PAC_ROAD  (JJ)
+        + (ZTS_GROUND  (JJ) - PT_LOWCAN(JJ)) * PAC_ROAD  (JJ)
     ENDIF
 ! 
     IF (ZQ0(JJ) >= 0.) THEN
@@ -593,7 +593,7 @@ DO JJ=1,SIZE(PTA)
   !
   ZLE_MAX(JJ)     = T%XWS_ROAD(JJ) / PTSTEP * XLVTT
   ZLE    (JJ)     = ( PQSAT_ROAD(JJ) - PQ_LOWCAN(JJ) )                   &
-                   *   PAC_ROAD(JJ) * PDELT_ROAD(JJ) * XLVTT * PRHOA(JJ)
+    *   PAC_ROAD(JJ) * PDELT_ROAD(JJ) * XLVTT * PRHOA(JJ)
   !
   PAC_ROAD_WAT(JJ) = PAC_ROAD(JJ)
   !
@@ -608,8 +608,8 @@ DO JJ=1,SIZE(PTA)
   ZCHTCN_WIN(JJ) = CHTC_VERT_DOE(B%XT_WIN1(JJ), PT_CANYON(JJ))
   !
   PAC_WIN(JJ) = 0.5 * (CHTC_SMOOTH_LEE_DOE(ZCHTCN_WIN(JJ), PU_CANYON(JJ)) + &
-                      CHTC_SMOOTH_WIND_DOE(ZCHTCN_WIN(JJ), PU_CANYON(JJ)) ) &
-                   / PRHOA(JJ) / XCPD
+                       CHTC_SMOOTH_WIND_DOE(ZCHTCN_WIN(JJ), PU_CANYON(JJ)) ) &
+    / PRHOA(JJ) / XCPD
 				   
 				   
   !-------------------------------------------------------------------------------
@@ -620,22 +620,22 @@ DO JJ=1,SIZE(PTA)
 
 
 !IF (TOP%LGARDEN) THEN
-IF (OGARDEN_EXT) THEN
+  IF (OGARDEN_EXT) THEN
    
-   CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
-                       PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
-                       PU_LOWCAN, PZ0_GARDEN_EXT, ZRI, PCD_GARDEN, ZCDN_GARDEN,         &
-                       PAC_GARDEN, ZRA_GARDEN, PCH_GARDEN, ZZ0H_GARDEN, ILMO_GARDEN        )	
+    CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
+                         PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
+                         PU_LOWCAN, PZ0_GARDEN_EXT, ZRI, PCD_GARDEN, ZCDN_GARDEN,         &
+                         PAC_GARDEN, ZRA_GARDEN, PCH_GARDEN, ZZ0H_GARDEN, ILMO_GARDEN        )	
    
 !   CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTSRAD_GR, PRUNOFF_GR, PEXNS, PEXNA,  &
 !                       PTA, PQA, PZREF, PZREF,              &
 !                       PVMOD, PZ0_GARDEN, ZRI, PCD_TERRA, ZCDN_TERRA,         &
 !                       ZAC_TERRA, ZRA_TERRA, PCH_TERRA, ZZ0H_TERRA, ILMO_TERRA        )
-   CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
-                       PTA, PQA, PZREF, PZREF,              &
-                       PVMOD, PZ0_GARDEN_EXT, ZRI, PCD_TERRA, ZCDN_TERRA,         &
-                       ZAC_TERRA, ZRA_TERRA, PCH_TERRA, ZZ0H_TERRA, ILMO_TERRA        )					   
-ENDIF
+    CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
+                         PTA, PQA, PZREF, PZREF,              &
+                         PVMOD, PZ0_GARDEN_EXT, ZRI, PCD_TERRA, ZCDN_TERRA,         &
+                         ZAC_TERRA, ZRA_TERRA, PCH_TERRA, ZZ0H_TERRA, ILMO_TERRA        )					   
+  ENDIF
 		
 	
 
@@ -678,11 +678,11 @@ ENDIF
     IF(HIMPLICIT_WIND=='OLD')THEN
       !   old implicitation
       ZUSTAR2(JJ) = (ZCD_ROAD(JJ)*PU_LOWCAN(JJ)*PPEW_B_COEF_LOWCAN(JJ))/              &
-                    (1.0-PRHOA(JJ)*ZCD_ROAD(JJ)*PU_LOWCAN(JJ)*PPEW_A_COEF_LOWCAN(JJ))
+        (1.0-PRHOA(JJ)*ZCD_ROAD(JJ)*PU_LOWCAN(JJ)*PPEW_A_COEF_LOWCAN(JJ))
     ELSE
       !   new implicitation
       ZUSTAR2(JJ) = (ZCD_ROAD(JJ)*PU_LOWCAN(JJ)*(2.*PPEW_B_COEF_LOWCAN(JJ)-PU_LOWCAN(JJ)))/  &
-                    (1.0-2.0*PRHOA(JJ)*ZCD_ROAD(JJ)*PU_LOWCAN(JJ)*PPEW_A_COEF_LOWCAN(JJ))
+        (1.0-2.0*PRHOA(JJ)*ZCD_ROAD(JJ)*PU_LOWCAN(JJ)*PPEW_A_COEF_LOWCAN(JJ))
       !                   
       ZVMOD(JJ) = PRHOA(JJ)*PPEW_A_COEF_LOWCAN(JJ)*ZUSTAR2(JJ) + PPEW_B_COEF_LOWCAN(JJ)
       ZVMOD(JJ) = MAX(ZVMOD(JJ),0.)
@@ -696,7 +696,7 @@ ENDIF
     !
     PUW_ROAD(JJ) = - ZUSTAR2(JJ)
     !
-    PDUWDU_ROAD(JJ) = 0. ! implicitation already taken into account in PUW_ROAD
+    PDUWDU_ROAD(JJ) = 0.  ! implicitation already taken into account in PUW_ROAD
     !
     !*      9.2    For roofs
     !              ---------
@@ -721,11 +721,11 @@ ENDIF
     IF(HIMPLICIT_WIND=='OLD')THEN
       !   old implicitation
       ZUSTAR2(JJ) = (PCD(JJ)*PVMOD(JJ)*PPEW_B_COEF(JJ))/            &
-                    (1.0-PRHOA(JJ)*PCD(JJ)*PVMOD(JJ)*PPEW_A_COEF(JJ))
+        (1.0-PRHOA(JJ)*PCD(JJ)*PVMOD(JJ)*PPEW_A_COEF(JJ))
     ELSE
       !   new implicitation
       ZUSTAR2(JJ) = (PCD(JJ)*PVMOD(JJ)*(2.*PPEW_B_COEF(JJ)-PVMOD(JJ)))/ &
-                    (1.0-2.0*PRHOA(JJ)*PCD(JJ)*PVMOD(JJ)*PPEW_A_COEF(JJ)) 
+        (1.0-2.0*PRHOA(JJ)*PCD(JJ)*PVMOD(JJ)*PPEW_A_COEF(JJ)) 
       ! 
       ZVMOD(JJ) = PRHOA(JJ)*PPEW_A_COEF(JJ)*ZUSTAR2(JJ) + PPEW_B_COEF(JJ)
       ZVMOD(JJ) = MAX(ZVMOD(JJ),0.)
@@ -737,7 +737,7 @@ ENDIF
     ENDIF
     !
     PUSTAR_TOWN(JJ) = SQRT(ZUSTAR2(JJ))
-	PUSTAR_TOWN(JJ) = MAX(PUSTAR_TOWN(JJ), 0.1)
+    PUSTAR_TOWN(JJ) = MAX(PUSTAR_TOWN(JJ), 0.1)
     !
   ENDIF
   !
@@ -758,40 +758,40 @@ IF (LHOOK) CALL DR_HOOK('URBAN_DRAG',1,ZHOOK_HANDLE)
 contains
  
 FUNCTION sigmoida(PUSTAR_TOWN)
-    REAL, DIMENSION(1) :: sigmoida
-	REAL, DIMENSION(1) :: f_night     
-	REAL, DIMENSION(1) :: f_day     
-	REAL, DIMENSION(1) :: arg_night
-	REAL, DIMENSION(1) :: arg_day
-	REAL, DIMENSION(1) :: s_u
-	REAL, DIMENSION(1) :: u0
-	REAL, DIMENSION(1) :: PUSTAR_TOWN
+REAL, DIMENSION(1) :: sigmoida
+REAL, DIMENSION(1) :: f_night     
+REAL, DIMENSION(1) :: f_day     
+REAL, DIMENSION(1) :: arg_night
+REAL, DIMENSION(1) :: arg_day
+REAL, DIMENSION(1) :: s_u
+REAL, DIMENSION(1) :: u0
+REAL, DIMENSION(1) :: PUSTAR_TOWN
 
-	REAL, DIMENSION(1) :: k_min        ! Asymptote when U* -> 0
-	REAL, DIMENSION(1) :: k_max        ! Asymptote when U* -> ∞
-	REAL, DIMENSION(1) :: M            ! Multiplier when U* = 0.55
-	REAL, DIMENSION(1) :: u_night      ! U* night
-	REAL, DIMENSION(1) :: u_day        ! U* day
+REAL, DIMENSION(1) :: k_min    ! Asymptote when U* -> 0
+REAL, DIMENSION(1) :: k_max    ! Asymptote when U* -> ∞
+REAL, DIMENSION(1) :: M        ! Multiplier when U* = 0.55
+REAL, DIMENSION(1) :: u_night  ! U* night
+REAL, DIMENSION(1) :: u_day    ! U* day
 
-	! constants for calculation of anthropogenic heat, see Flanner, 2009
-	k_min        = 0.9   
-	k_max        = 3.
-	M            = 2.      
-	u_night      = 0.3 
-	u_day        = 0.55    
+! constants for calculation of anthropogenic heat, see Flanner, 2009
+k_min   = 0.9
+k_max   = 3.
+M       = 2.
+u_night = 0.3
+u_day   = 0.55
      
-    ! Sigmoida calculation
-    f_night = (1.0 - k_min) / (k_max - k_min)
-    f_day   = (M - k_min) / (k_max - k_min)
-    arg_night = LOG(f_night / (1.0 - f_night))
-    arg_day   = LOG(f_day   / (1.0 - f_day))
+! Sigmoida calculation
+f_night   = (1.0 - k_min) / (k_max - k_min)
+f_day     = (M - k_min) / (k_max - k_min)
+arg_night = LOG(f_night / (1.0 - f_night))
+arg_day   = LOG(f_day   / (1.0 - f_day))
     
-    s_u = (u_day - u_night) / (arg_day - arg_night)
-    u0 = u_night - s_u * arg_night
+s_u = (u_day - u_night) / (arg_day - arg_night)
+u0 = u_night - s_u * arg_night
 	
-	sigmoida = k_min + (k_max - k_min) / (1.0 + EXP(-(PUSTAR_TOWN - u0) / s_u))
+sigmoida = k_min + (k_max - k_min) / (1.0 + EXP(-(PUSTAR_TOWN - u0) / s_u))
 
-	return
+return
 END FUNCTION sigmoida
 
 

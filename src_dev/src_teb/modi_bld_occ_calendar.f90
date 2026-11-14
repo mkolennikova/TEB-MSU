@@ -12,13 +12,13 @@ TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
 TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 
 TYPE(DATE_TIME), INTENT(INOUT) :: TPTIME
-REAL,   DIMENSION(:) , INTENT(IN) :: PTSUN         ! current solar time  (s, UTC)
+REAL,   DIMENSION(:) , INTENT(IN) :: PTSUN          ! current solar time  (s, UTC)
 TYPE(TEB_t), INTENT(INOUT) :: TSTATE
 TYPE(BEM_t), INTENT(INOUT) :: BSTATE
-REAL,                INTENT(IN)  :: PQIN_FRAC        ! Fraction of internal gains when unoccupied (-)
-REAL, DIMENSION(:) , INTENT(OUT)  :: PTCOOL_TARGET ! Cooling setpoint of HVAC system [K]
-REAL, DIMENSION(:) , INTENT(OUT)  :: PTHEAT_TARGET ! Heating setpoint of HVAC system [K]
-REAL, DIMENSION(:) , INTENT(OUT)  :: PQIN          ! Internal heat gains [W m-2(floor)]
+REAL,                INTENT(IN)  :: PQIN_FRAC       ! Fraction of internal gains when unoccupied (-)
+REAL, DIMENSION(:) , INTENT(OUT)  :: PTCOOL_TARGET  ! Cooling setpoint of HVAC system [K]
+REAL, DIMENSION(:) , INTENT(OUT)  :: PTHEAT_TARGET  ! Heating setpoint of HVAC system [K]
+REAL, DIMENSION(:) , INTENT(OUT)  :: PQIN           ! Internal heat gains [W m-2(floor)]
 END SUBROUTINE BLD_OCC_CALENDAR
 END INTERFACE
 END MODULE MODI_BLD_OCC_CALENDAR

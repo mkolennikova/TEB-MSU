@@ -79,47 +79,47 @@ TYPE(TEB_t), INTENT(INOUT) :: T
 REAL, DIMENSION(:), INTENT(IN)  :: PLW_RAD  ! incoming LW radiation
 REAL, DIMENSION(:), INTENT(IN)  :: PEMIS_G  ! GARDEN area emissivity
 !
-REAL, DIMENSION(:), INTENT(IN)  :: PTS_G    ! garden surface temperature
-REAL, DIMENSION(:), INTENT(IN)  :: PTS_SR   ! snow surface temperature
+REAL, DIMENSION(:), INTENT(IN)  :: PTS_G   ! garden surface temperature
+REAL, DIMENSION(:), INTENT(IN)  :: PTS_SR  ! snow surface temperature
 !
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WA_TO_WB! L.W. interactions wall->opposite wall
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WA_TO_R  ! L.W. interactions wall->road for road balance 
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WB_TO_R  ! L.W. interactions wall->road for road balance 
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WA_TO_NR ! L.W. interactions wall->snow for snow balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WB_TO_NR ! L.W. interactions wall->snow for snow balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WA_TO_G  ! L.W. interactions wall->GARDEN areas for garden balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WB_TO_G  ! L.W. interactions wall->GARDEN areas for garden balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WA_TO_WIN! L.W. interactions wall->win for window balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WB_TO_WIN! L.W. interactions wall->win for window balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WA_TO_WB   ! L.W. interactions wall->opposite wall
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WA_TO_R    ! L.W. interactions wall->road for road balance 
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WB_TO_R    ! L.W. interactions wall->road for road balance 
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WA_TO_NR   ! L.W. interactions wall->snow for snow balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WB_TO_NR   ! L.W. interactions wall->snow for snow balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WA_TO_G    ! L.W. interactions wall->GARDEN areas for garden balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WB_TO_G    ! L.W. interactions wall->GARDEN areas for garden balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WA_TO_WIN  ! L.W. interactions wall->win for window balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WB_TO_WIN  ! L.W. interactions wall->win for window balance
 !
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_R_TO_WA ! L.W. interactions road->wall for wall balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_R_TO_WB ! L.W. interactions road->wall for wall balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_R_TO_WA   ! L.W. interactions road->wall for wall balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_R_TO_WB   ! L.W. interactions road->wall for wall balance
 REAL, DIMENSION(:), INTENT(OUT) :: PLW_R_TO_WIN  ! L.W. interactions road->win for win balance
 !
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_G_TO_WA ! L.W. interactions GARDEN areas->wall for wall balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_G_TO_WB ! L.W. interactions GARDEN areas->wall for wall balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_G_TO_WA   ! L.W. interactions GARDEN areas->wall for wall balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_G_TO_WB   ! L.W. interactions GARDEN areas->wall for wall balance
 REAL, DIMENSION(:), INTENT(OUT) :: PLW_G_TO_WIN  ! L.W. interactions GARDEN areas->road for window balance
 !
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_S_TO_WA ! L.W. interactions sky->wall for wall balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_S_TO_WB ! L.W. interactions sky->wall for wall balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_S_TO_R  ! L.W. interactions sky->road for raod balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_S_TO_NR ! L.W. interactions sky->snow for snow balance 
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_S_TO_G  ! L.W. interactions sky->GARDEN areas for garden balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_S_TO_WIN ! L.W. interactions sky->win for window balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_S_TO_WA   ! L.W. interactions sky->wall for wall balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_S_TO_WB   ! L.W. interactions sky->wall for wall balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_S_TO_R    ! L.W. interactions sky->road for raod balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_S_TO_NR   ! L.W. interactions sky->snow for snow balance 
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_S_TO_G    ! L.W. interactions sky->GARDEN areas for garden balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_S_TO_WIN  ! L.W. interactions sky->win for window balance
 !
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WIN_TO_WA ! L.W. interactions win->wall for wall balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WIN_TO_WB ! L.W. interactions win->wall for wall balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WIN_TO_R  ! L.W. interactions win->road for road balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WIN_TO_NR ! L.W. interactions win->GARDEN areas for snow balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_WIN_TO_G  ! L.W. interactions win->GARDEN areas for garden balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WIN_TO_WA  ! L.W. interactions win->wall for wall balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WIN_TO_WB  ! L.W. interactions win->wall for wall balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WIN_TO_R   ! L.W. interactions win->road for road balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WIN_TO_NR  ! L.W. interactions win->GARDEN areas for snow balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_WIN_TO_G   ! L.W. interactions win->GARDEN areas for garden balance
 !
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_NR_TO_WA! L.W. interactions snow(road)->wall for wall balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_NR_TO_WB! L.W. interactions snow(road)->wall for wall balance
-REAL, DIMENSION(:), INTENT(OUT) :: PLW_NR_TO_WIN ! L.W. interactions snow(road)->WIN areas for window balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_NR_TO_WA   ! L.W. interactions snow(road)->wall for wall balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_NR_TO_WB   ! L.W. interactions snow(road)->wall for wall balance
+REAL, DIMENSION(:), INTENT(OUT) :: PLW_NR_TO_WIN  ! L.W. interactions snow(road)->WIN areas for window balance
 !
 !*      0.2    declarations of local variables
 !
-REAL, DIMENSION(SIZE(T%XBLD))  :: ZT_S        ! sky temperature
+REAL, DIMENSION(SIZE(T%XBLD))  :: ZT_S  ! sky temperature
 !
 REAL, DIMENSION(SIZE(T%XBLD))  :: ZEMIS_WIN
 REAL, DIMENSION(SIZE(T%XBLD))  :: ZF_W_W
@@ -148,26 +148,26 @@ ZT_S(:) = (PLW_RAD(:)/XSTEFAN)**0.25
 !
 DO JJ=1,SIZE(T%XROAD)
   !
-  ZEMIS_WIN(JJ) = 0.84 !from Energy Plus Engineering Reference, p219
-    ! see http://apps1.eere.energy.gov/buildings/energyplus/
+  ZEMIS_WIN(JJ) = 0.84  !from Energy Plus Engineering Reference, p219
+  ! see http://apps1.eere.energy.gov/buildings/energyplus/
   !
-  ZF_W_R(JJ)     = T%XSVF_WALL(JJ) * (T%XROAD(JJ)    /(1.-T%XBLD(JJ)))
-  ZF_W_G(JJ)     = T%XSVF_WALL(JJ) * (T%XGARDEN(JJ)  /(1.-T%XBLD(JJ)))
-  ZF_W_NR(JJ)    = T%XSVF_WALL(JJ)    
+  ZF_W_R(JJ)  = T%XSVF_WALL(JJ) * (T%XROAD(JJ)    /(1.-T%XBLD(JJ)))
+  ZF_W_G(JJ)  = T%XSVF_WALL(JJ) * (T%XGARDEN(JJ)  /(1.-T%XBLD(JJ)))
+  ZF_W_NR(JJ) = T%XSVF_WALL(JJ)
   !  
-  ZF_WIN_R(JJ)   = ZF_W_R(JJ)
-  ZF_WIN_G(JJ)   = ZF_W_G(JJ)
-  ZF_WIN_NR(JJ)  = ZF_W_NR(JJ)
+  ZF_WIN_R(JJ)  = ZF_W_R(JJ)
+  ZF_WIN_G(JJ)  = ZF_W_G(JJ)
+  ZF_WIN_NR(JJ) = ZF_W_NR(JJ)
   !
-  ZF_R_W(JJ)     = (1 - T%XSVF_ROAD(JJ))*(1.-B%XGR(JJ)) * 0.5
-  ZF_R_WIN(JJ)   = (1 - T%XSVF_ROAD(JJ))*B%XGR(JJ)
+  ZF_R_W(JJ)   = (1 - T%XSVF_ROAD(JJ))*(1.-B%XGR(JJ)) * 0.5
+  ZF_R_WIN(JJ) = (1 - T%XSVF_ROAD(JJ))*B%XGR(JJ)
   !
-  ZF_G_W(JJ)     = ZF_R_W(JJ) 
-  ZF_G_WIN(JJ)   = ZF_R_WIN(JJ)    
+  ZF_G_W(JJ)   = ZF_R_W(JJ)
+  ZF_G_WIN(JJ) = ZF_R_WIN(JJ)
   !
-  ZF_WIN_W(JJ)   = (1.-2.*T%XSVF_WALL(JJ))*(1.-B%XGR(JJ))
-  ZF_W_W  (JJ)   = (1.-2.*T%XSVF_WALL(JJ))*(1.-B%XGR(JJ))
-  ZF_W_WIN(JJ)   = (1.-2.*T%XSVF_WALL(JJ))*B%XGR(JJ)
+  ZF_WIN_W(JJ) = (1.-2.*T%XSVF_WALL(JJ))*(1.-B%XGR(JJ))
+  ZF_W_W  (JJ) = (1.-2.*T%XSVF_WALL(JJ))*(1.-B%XGR(JJ))
+  ZF_W_WIN(JJ) = (1.-2.*T%XSVF_WALL(JJ))*B%XGR(JJ)
   !
   !
   PLW_WA_TO_WB(JJ)=ZLW(T%XEMIS_WALL(JJ),T%XEMIS_WALL(JJ),ZF_W_W(JJ),T%XT_WALL_A(JJ,1),T%XT_WALL_B(JJ,1))
@@ -230,8 +230,8 @@ DO JJ=1,SIZE(T%XROAD)
   !
   PLW_S_TO_WIN(JJ) = ZLW(1.,ZEMIS_WIN(JJ),T%XSVF_WALL(JJ),ZT_S(JJ),B%XT_WIN1(JJ))
   !
-  PLW_S_TO_WA(JJ)  = ZLW(1.,T%XEMIS_WALL(JJ),T%XSVF_WALL(JJ),ZT_S(JJ),T%XT_WALL_A(JJ,1))
-  PLW_S_TO_WB(JJ)  = ZLW(1.,T%XEMIS_WALL(JJ),T%XSVF_WALL(JJ),ZT_S(JJ),T%XT_WALL_B(JJ,1))
+  PLW_S_TO_WA(JJ) = ZLW(1.,T%XEMIS_WALL(JJ),T%XSVF_WALL(JJ),ZT_S(JJ),T%XT_WALL_A(JJ,1))
+  PLW_S_TO_WB(JJ) = ZLW(1.,T%XEMIS_WALL(JJ),T%XSVF_WALL(JJ),ZT_S(JJ),T%XT_WALL_B(JJ,1))
   !
   IF (SIZE(PTS_G)>0) THEN
     PLW_S_TO_G(JJ)  = ZLW(1.,PEMIS_G(JJ),T%XSVF_ROAD(JJ),ZT_S(JJ),PTS_G(JJ))

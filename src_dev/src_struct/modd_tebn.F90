@@ -53,29 +53,29 @@ TYPE TEB_t
 !
 ! Prognostic variables:
 !
-  REAL, POINTER, DIMENSION(:)   :: XWS_ROOF      ! roof water reservoir             (kg/m2)
-  REAL, POINTER, DIMENSION(:)   :: XWS_ROAD      ! road water reservoir             (kg/m2)
-  REAL, POINTER, DIMENSION(:,:) :: XT_ROOF       ! roof layer temperatures          (K)
-  REAL, POINTER, DIMENSION(:,:) :: XT_ROAD       ! road layer temperatures          (K)
-  REAL, POINTER, DIMENSION(:,:) :: XT_WALL_A     ! wall layer temperatures          (K)
-  REAL, POINTER, DIMENSION(:,:) :: XT_WALL_B     ! wall layer temperatures          (K)
+  REAL, POINTER, DIMENSION(:)   :: XWS_ROOF   ! roof water reservoir             (kg/m2)
+  REAL, POINTER, DIMENSION(:)   :: XWS_ROAD   ! road water reservoir             (kg/m2)
+  REAL, POINTER, DIMENSION(:,:) :: XT_ROOF    ! roof layer temperatures          (K)
+  REAL, POINTER, DIMENSION(:,:) :: XT_ROAD    ! road layer temperatures          (K)
+  REAL, POINTER, DIMENSION(:,:) :: XT_WALL_A  ! wall layer temperatures          (K)
+  REAL, POINTER, DIMENSION(:,:) :: XT_WALL_B  ! wall layer temperatures          (K)
 !
 ! Semi-prognostic variables:
 !
-  REAL, POINTER, DIMENSION(:)   :: XT_CANYON     ! canyon air temperature           (K)
-  REAL, POINTER, DIMENSION(:)   :: XQ_CANYON     ! canyon air specific humidity     (kg/kg)
+  REAL, POINTER, DIMENSION(:)   :: XT_CANYON  ! canyon air temperature           (K)
+  REAL, POINTER, DIMENSION(:)   :: XQ_CANYON  ! canyon air specific humidity     (kg/kg)
 !
 !
 ! Prognostic snow:
 !
-  TYPE(SURF_SNOW)                 :: TSNOW_ROOF      ! snow state on roofs: 
+  TYPE(SURF_SNOW)                 :: TSNOW_ROOF  ! snow state on roofs: 
 !                                                  ! scheme type/option               (-)
 !                                                  ! number of layers                 (-)
 !                                                  ! snow (& liq. water) content      (kg/m2)
 !                                                  ! heat content                     (J/m2)
 !                                                  ! temperature                      (K)
 !                                                  ! density                          (kg m-3)
-  TYPE(SURF_SNOW)                 :: TSNOW_ROAD      ! snow state on roads: 
+  TYPE(SURF_SNOW)                 :: TSNOW_ROAD  ! snow state on roads: 
 !                                                  ! scheme type/option               (-)
 !                                                  ! number of layers                 (-)
 !                                                  ! snow (& liq. water) content      (kg/m2)
@@ -83,7 +83,7 @@ TYPE TEB_t
 !                                                  ! temperature                      (K)
 !                                                  ! density                          (kg m-3)
 !                                                  ! density                          (kg m-3)
-  TYPE(SURF_SNOW)                 :: TSNOW_GARDEN    ! snow state on green areas:
+  TYPE(SURF_SNOW)                 :: TSNOW_GARDEN  ! snow state on green areas:
 !                                                  ! scheme type/option               (-)
 !                                                  ! number of layers                 (-)
 !                                                  ! snow (& liq. water) content      (kg/m2)
@@ -106,14 +106,14 @@ SUBROUTINE TEB_INIT(YTEB)
 TYPE(TEB_t), INTENT(INOUT) :: YTEB
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 IF (LHOOK) CALL DR_HOOK("MODD_TEB_N:TEB_INIT",0,ZHOOK_HANDLE)
-  NULLIFY(YTEB%XWS_ROOF)
-  NULLIFY(YTEB%XWS_ROAD)
-  NULLIFY(YTEB%XT_ROOF)
-  NULLIFY(YTEB%XT_ROAD)
-  NULLIFY(YTEB%XT_WALL_A)
-  NULLIFY(YTEB%XT_WALL_B)
-  NULLIFY(YTEB%XT_CANYON)
-  NULLIFY(YTEB%XQ_CANYON)
+NULLIFY(YTEB%XWS_ROOF)
+NULLIFY(YTEB%XWS_ROAD)
+NULLIFY(YTEB%XT_ROOF)
+NULLIFY(YTEB%XT_ROAD)
+NULLIFY(YTEB%XT_WALL_A)
+NULLIFY(YTEB%XT_WALL_B)
+NULLIFY(YTEB%XT_CANYON)
+NULLIFY(YTEB%XQ_CANYON)
 IF (LHOOK) CALL DR_HOOK("MODD_TEB_N:TEB_INIT",1,ZHOOK_HANDLE)
 END SUBROUTINE TEB_INIT
 !

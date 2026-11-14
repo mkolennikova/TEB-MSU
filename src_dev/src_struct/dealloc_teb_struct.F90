@@ -84,8 +84,8 @@ TYPE(TEB_IRRIG_t),     INTENT(INOUT) :: TIR
 ! Indoor parameters
 !
 DEALLOCATE(BSTATE%XTI_BLD)                    ! building interior temperature    (K)
-DEALLOCATE(BSTATE%XT_FLOOR ) ! floor layer temperatures         (K)
-DEALLOCATE(BSTATE%XT_MASS  ) ! Air cooled building internal th. mass temperature (K)
+DEALLOCATE(BSTATE%XT_FLOOR )  ! floor layer temperatures         (K)
+DEALLOCATE(BSTATE%XT_MASS  )  ! Air cooled building internal th. mass temperature (K)
 !
 DEALLOCATE(BSTATE%XTRAN_WIN)      ! window transmittance (-)
 !
@@ -94,13 +94,13 @@ DEALLOCATE(BSTATE%XTRAN_WIN)      ! window transmittance (-)
 DEALLOCATE(BSTATE%XAUX_MAX)      ! Auxiliar variable for autosize calcs
 DEALLOCATE(BSTATE%XT_WIN2)       ! Indoor window temperature [K]
 DEALLOCATE(BSTATE%XQI_BLD)       ! Indoor air specific humidity [kg kg-1]
-                             ! [W m-2(bld)]
+! [W m-2(bld)]
 DEALLOCATE(BSTATE%XCAP_SYS_RAT)  ! Rated capacity of the cooling system
-                             ! [W m-2(bld)]
+! [W m-2(bld)]
 DEALLOCATE(BSTATE%XT_ADP)        ! Apparatus dewpoint temperature of the
-                             ! cooling coil [K]
+! cooling coil [K]
 DEALLOCATE(BSTATE%XM_SYS_RAT)    ! Rated HVAC mass flow rate 
-                             ! [kg s-1 m-2(bld)]
+! [kg s-1 m-2(bld)]
 DEALLOCATE(BSTATE%XT_WIN1)       ! outdoor window temperature [K]
 DEALLOCATE(BSTATE%XALB_WIN)      ! window albedo
 DEALLOCATE(BSTATE%XABS_WIN)      ! window absortance
@@ -108,11 +108,11 @@ DEALLOCATE(BSTATE%XUGG_WIN)      ! Window glass-to-glass U-factor [K m W-2]
 DEALLOCATE(BSTATE%LSHADE)        ! flag to activate shading devices -> LOGICAL in the code
 DEALLOCATE(BSTATE%XSHADE)        ! flag to activate shading devices -> REAL for i/o 0. or 1.
 DEALLOCATE(BSTATE%XNATVENT)      ! flag to describe surventilation system for i/o 
-                             ! 0 for NONE, 1 for MANU and 2 for AUTO
+! 0 for NONE, 1 for MANU and 2 for AUTO
 DEALLOCATE(BSTATE%LSHAD_DAY)     !Has shading been necessary this day ?
-DEALLOCATE(BSTATE%LNATVENT_NIGHT)!Has nocturnal surventilation been necessary and possible this night ?
-  !
-  !indoor relative surfaces and view factors
+DEALLOCATE(BSTATE%LNATVENT_NIGHT)  !Has nocturnal surventilation been necessary and possible this night ?
+!
+!indoor relative surfaces and view factors
 !
 ! Static parameters of the building (component P)
 !
@@ -218,18 +218,18 @@ DEALLOCATE(TIR%XRD_24H_IRRIG)     ! roads : total irrigation over 24 hours (kg/m
 !
 !
 
-                                                     ! of the building [W m-2(bld)]
-                                                     ! of the building [W m-2(bld)]
-                                                     ! of the building [W m-2(bld)]
-                                                     ! of the building [W m-2(bld)]
-                                                     ! of the building [W m-2(bld)]
-                                                     ! [W m-2(tot)]
-                                                     ! [W m-2(tot)]
-                                                     ! [W m-2(bld)]
-                                                     ! [W m-2(bld)]
-                                                     ! [W m-2(bld)] 
-                                                     ! [kg s-1 m-2(bld)]
-                                                     ! windows [W m-2(bld)]
+! of the building [W m-2(bld)]
+! of the building [W m-2(bld)]
+! of the building [W m-2(bld)]
+! of the building [W m-2(bld)]
+! of the building [W m-2(bld)]
+! [W m-2(tot)]
+! [W m-2(tot)]
+! [W m-2(bld)]
+! [W m-2(bld)]
+! [W m-2(bld)] 
+! [kg s-1 m-2(bld)]
+! windows [W m-2(bld)]
 
 !
 

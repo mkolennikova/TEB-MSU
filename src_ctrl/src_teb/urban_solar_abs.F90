@@ -9,7 +9,7 @@
                                PREC_SW_SN_RD, PREC_SW_WL_A, PREC_SW_WL_B,           &
                                PREC_SW_GD, PREC_SW_RF, PDIR_ALB_TWN, PSCA_ALB_TWN,  &
                                PSO_ALB_TWN, ZSW_UP_SO, PSW_RAD_GD, PREC_SW_WIN, PREF_SW_GRND,  &
-							   PREF_SW_FAC, PE_SHADING, OSHAD_DAY, OSHADE, OALB_ONLY )  
+                               PREF_SW_FAC, PE_SHADING, OSHAD_DAY, OSHADE, OALB_ONLY )  
 !   ##########################################################################
 !
 !!****  *URBAN_SOLAR_ABS*  
@@ -196,57 +196,57 @@ IMPLICIT NONE
 !*      0.1    declarations of arguments
 !
 TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
-              ! 'UNIF' : classical TEB version, all walls are identical
-              ! 'TWO ' : the two opposite walls are different & receive different solar energy
+! 'UNIF' : classical TEB version, all walls are identical
+! 'TWO ' : the two opposite walls are different & receive different solar energy
 TYPE(TEB_t), INTENT(INOUT) :: T
 TYPE(BEM_t), INTENT(INOUT) :: B
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 !
-REAL, DIMENSION(:), INTENT(IN)    :: PDIR_SW           ! incoming direct solar radiation
-REAL, DIMENSION(:), INTENT(IN)    :: PSCA_SW           ! scattered incoming solar rad.
-REAL, DIMENSION(:), INTENT(IN)    :: PZENITH           ! solar zenithal angle
-REAL, DIMENSION(:), INTENT(IN)    :: PAZIM             ! solar azimuthal angle
+REAL, DIMENSION(:), INTENT(IN)    :: PDIR_SW  ! incoming direct solar radiation
+REAL, DIMENSION(:), INTENT(IN)    :: PSCA_SW  ! scattered incoming solar rad.
+REAL, DIMENSION(:), INTENT(IN)    :: PZENITH  ! solar zenithal angle
+REAL, DIMENSION(:), INTENT(IN)    :: PAZIM    ! solar azimuthal angle
 !                                                      ! (radian from N, clockwise)
-REAL, DIMENSION(:), INTENT(IN)    :: PFRAC_PANEL       ! Fraction of solar panel on roofs (-)
-REAL, DIMENSION(:), INTENT(IN)    :: PALB_PANEL        ! Albedo     of solar panels (-)
-REAL, DIMENSION(:), INTENT(IN)    :: PALB_GD       ! GD areas albedo
-REAL, DIMENSION(:), INTENT(IN)    :: PSVF_GD       ! GD areas sky view factor
-REAL, DIMENSION(:), INTENT(IN)    :: PALB_GRF      ! green roof albedo
-REAL, DIMENSION(:), INTENT(IN)    :: PDN_RF          ! snow-covered roof fraction
-REAL, DIMENSION(:), INTENT(IN)    :: PDF_RF          ! snow-free    roof fraction
-REAL, DIMENSION(:), INTENT(IN)    :: PDN_RD          ! snow-covered road fraction
-REAL, DIMENSION(:), INTENT(IN)    :: PDF_RD          ! snow-free    road fraction
+REAL, DIMENSION(:), INTENT(IN)    :: PFRAC_PANEL  ! Fraction of solar panel on roofs (-)
+REAL, DIMENSION(:), INTENT(IN)    :: PALB_PANEL   ! Albedo     of solar panels (-)
+REAL, DIMENSION(:), INTENT(IN)    :: PALB_GD      ! GD areas albedo
+REAL, DIMENSION(:), INTENT(IN)    :: PSVF_GD      ! GD areas sky view factor
+REAL, DIMENSION(:), INTENT(IN)    :: PALB_GRF     ! green roof albedo
+REAL, DIMENSION(:), INTENT(IN)    :: PDN_RF       ! snow-covered roof fraction
+REAL, DIMENSION(:), INTENT(IN)    :: PDF_RF       ! snow-free    roof fraction
+REAL, DIMENSION(:), INTENT(IN)    :: PDN_RD       ! snow-covered road fraction
+REAL, DIMENSION(:), INTENT(IN)    :: PDF_RD       ! snow-free    road fraction
 !
 !new arguments for shading
-REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_RD     ! solar radiation received
+REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_RD  ! solar radiation received
 !                                                      ! by snow-free roads
-REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_WL_A   ! solar radiation received
-REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_WL_B   ! solar radiation received
+REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_WL_A  ! solar radiation received
+REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_WL_B  ! solar radiation received
 !                                                    ! by snow-free walls
-REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_GD     ! solar radiation received
+REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_GD  ! solar radiation received
 !                                                    ! by GD areas
-REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_RF     ! solar radiation received
+REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_RF  ! solar radiation received
 !                                                    ! by RF areas (below solar panels if any)
 REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_SN_RD  ! solar radiation received
 !                                                    ! by snow-covered roads
-REAL, DIMENSION(:), INTENT(OUT)    :: PDIR_ALB_TWN   ! town direct albedo
-REAL, DIMENSION(:), INTENT(OUT)    :: PSCA_ALB_TWN   ! town diffuse albedo
-REAL, DIMENSION(:), INTENT(OUT)    :: PSO_ALB_TWN    ! town solar albedo
-REAL, DIMENSION(:), INTENT(OUT)    :: ZSW_UP_SO      ! outgoing solar radiation
+REAL, DIMENSION(:), INTENT(OUT)    :: PDIR_ALB_TWN  ! town direct albedo
+REAL, DIMENSION(:), INTENT(OUT)    :: PSCA_ALB_TWN  ! town diffuse albedo
+REAL, DIMENSION(:), INTENT(OUT)    :: PSO_ALB_TWN   ! town solar albedo
+REAL, DIMENSION(:), INTENT(OUT)    :: ZSW_UP_SO     ! outgoing solar radiation
 
 !
-REAL, DIMENSION(:), INTENT(OUT)    :: PSW_RAD_GD     ! solar radiation reaching GD areas
-REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_WIN      ! solar radiation received by windows
+REAL, DIMENSION(:), INTENT(OUT)    :: PSW_RAD_GD   ! solar radiation reaching GD areas
+REAL, DIMENSION(:), INTENT(OUT)    :: PREC_SW_WIN  ! solar radiation received by windows
 
-REAL, DIMENSION(:), INTENT(OUT)    :: PREF_SW_GRND     ! total solar radiation reflected by ground
-REAL, DIMENSION(:), INTENT(OUT)    :: PREF_SW_FAC      ! total solar radiation reflected by wall
+REAL, DIMENSION(:), INTENT(OUT)    :: PREF_SW_GRND  ! total solar radiation reflected by ground
+REAL, DIMENSION(:), INTENT(OUT)    :: PREF_SW_FAC   ! total solar radiation reflected by wall
 !new arguments for shading
-REAL, DIMENSION(:), INTENT(OUT)    :: PE_SHADING       ! Energy that is not reflected 
-                                                       ! by the shading, nor transmitted through
-                                                       ! the bld, nor absorbed by the
-                                                       ! [W/m2(win)]
-LOGICAL, DIMENSION(:),INTENT(INOUT):: OSHAD_DAY        ! has shading been necessary this day ?
-LOGICAL, DIMENSION(:),INTENT(IN)   :: OSHADE           ! are building conditions favorable for 
+REAL, DIMENSION(:), INTENT(OUT)    :: PE_SHADING  ! Energy that is not reflected 
+                                                  ! by the shading, nor transmitted through
+                                                  ! the bld, nor absorbed by the
+                                                  ! [W/m2(win)]
+LOGICAL, DIMENSION(:),INTENT(INOUT):: OSHAD_DAY   ! has shading been necessary this day ?
+LOGICAL, DIMENSION(:),INTENT(IN)   :: OSHADE      ! are building conditions favorable for 
 !                                                      ! shading (independantly of solar irradiance) ?
 !
 LOGICAL, INTENT(IN), OPTIONAL :: OALB_ONLY
@@ -254,65 +254,65 @@ LOGICAL, INTENT(IN), OPTIONAL :: OALB_ONLY
 !*      0.2    declarations of local variables
 !
 !                                                           
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDIR_SW               ! direct and diffuse incoming radiation
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZSCA_SW               ! with a minimum to compute albedo
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZTANZEN               ! tangente of solar zenithal angle
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZTHETA0               ! canyon angle for
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDIR_SW  ! direct and diffuse incoming radiation
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZSCA_SW  ! with a minimum to compute albedo
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZTANZEN  ! tangente of solar zenithal angle
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZTHETA0  ! canyon angle for
 !                                                       ! which solar
 !                                                       ! radiation
 !                                                       ! reaches the road
 !
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZSW_UP_DIR     ! outgoing solar radiation
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZSW_UP_SCA     ! outgoing solar radiation
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZSW_UP_DIR  ! outgoing solar radiation
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZSW_UP_SCA  ! outgoing solar radiation
 
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZAALB_RD            ! averaged albedo
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDIR_SW_RD          ! direct radiation reaching
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDIR_SW_WL_A        ! road, wall A,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDIR_SW_WL_B        ! wall B,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDIR_SW_GD          ! GD areas,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDIR_SW_WL          ! and on average on 2 walls
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZSCA_SW_RD          ! diffuse radiation reaching
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZSCA_SW_WL          ! road, wall,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZSCA_SW_GD          ! and GD areas
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZAALB_RD      ! averaged albedo
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDIR_SW_RD    ! direct radiation reaching
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDIR_SW_WL_A  ! road, wall A,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDIR_SW_WL_B  ! wall B,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDIR_SW_GD    ! GD areas,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDIR_SW_WL    ! and on average on 2 walls
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZSCA_SW_RD    ! diffuse radiation reaching
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZSCA_SW_WL    ! road, wall,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZSCA_SW_GD    ! and GD areas
 !
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_RF      ! solar radiation
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_RD      ! absorbed by roofs,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_WL_A    ! road, wall A,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_WL_B    ! wall B,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_WL      ! both walls on average,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_GD      ! GD areas,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_GRF     ! green roof areas,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_PANEL     ! solar panels,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_WIN       ! window (abs+trans), and snow
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_SN_RF ! over roof, wall,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_SN_RD ! and GD areas
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_RF      ! solar radiation
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_RD      ! absorbed by roofs,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_WL      ! road, wall,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_GD    ! GD areas,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_GRF   ! green roof areas,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_PANEL     ! solar panels,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_WIN       ! window (abs+trans), and snow
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_SN_RF ! over roof and wall,
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_SN_RD ! coming from diffuse rad.
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDW                   ! difference of radiation
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_RF     ! solar radiation
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_RD     ! absorbed by roofs,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_WL_A   ! road, wall A,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_WL_B   ! wall B,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_WL     ! both walls on average,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_GD     ! GD areas,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_GRF    ! green roof areas,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_PANEL  ! solar panels,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_WIN    ! window (abs+trans), and snow
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_SN_RF  ! over roof, wall,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_DIR_SW_SN_RD  ! and GD areas
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_RF     ! solar radiation
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_RD     ! absorbed by roofs,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_WL     ! road, wall,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_GD     ! GD areas,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_GRF    ! green roof areas,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_PANEL  ! solar panels,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_WIN    ! window (abs+trans), and snow
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_SN_RF  ! over roof and wall,
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_SCA_SW_SN_RD  ! coming from diffuse rad.
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZDW                ! difference of radiation
 !                                                       ! absorbed by the 2 walls
 !
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZRD                 !
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZRD_DIR             ! Road direction
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZRD      !
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZRD_DIR  ! Road direction
 !                                                     ! (radian from N, clockwise)
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZGD               !
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZGD  !
 !
 REAL, DIMENSION(SIZE(PDIR_SW)) :: ZREC_DIR_SW_WIN
 REAL, DIMENSION(SIZE(PDIR_SW)) :: ZREC_SCA_SW_WIN
 REAL, DIMENSION(SIZE(PDIR_SW)) :: ZAALB_WL
 !
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZTRAN_WIN             ! solar transmittivity of windows
-REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_WIN              ! solar transmittivity of windows
-LOGICAL, DIMENSION(SIZE(PDIR_SW)) :: G_EFF_SHAD         !TRUE if shading should be active considering actual rad
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZTRAN_WIN      ! solar transmittivity of windows
+REAL, DIMENSION(SIZE(PDIR_SW)) :: ZABS_WIN       ! solar transmittivity of windows
+LOGICAL, DIMENSION(SIZE(PDIR_SW)) :: G_EFF_SHAD  !TRUE if shading should be active considering actual rad
 !
 LOGICAL :: GALB_ONLY
-INTEGER                        :: JJ                    ! loop index
+INTEGER                        :: JJ  ! loop index
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 !
@@ -329,7 +329,7 @@ ZRD_DIR = T%XROAD_DIR(:) * XPI/180.
 DO JJ=1,SIZE(T%XROAD)
 !
   IF (T%XROAD(JJ)+T%XGARDEN(JJ).NE.0.) THEN
-    ZRD(JJ)   = T%XROAD(JJ) / (T%XROAD(JJ)+T%XGARDEN(JJ))
+    ZRD(JJ) = T%XROAD(JJ) / (T%XROAD(JJ)+T%XGARDEN(JJ))
     ZGD(JJ) = T%XGARDEN(JJ) / (T%XROAD(JJ)+T%XGARDEN(JJ))
   ELSE
     ZRD(JJ)=0.
@@ -387,46 +387,46 @@ DO JJ=1,SIZE(T%XROAD)
 !*      2.1    radiation coefficients
 !              ----------------------
 !
-IF (TOP%CROAD_DIR=='UNIF') THEN
-  ZTHETA0(JJ) = ASIN( MIN(ABS( 1./ZTANZEN(JJ))/T%XCAN_HW_RATIO(JJ), 1. ) )
+    IF (TOP%CROAD_DIR=='UNIF') THEN
+      ZTHETA0(JJ) = ASIN( MIN(ABS( 1./ZTANZEN(JJ))/T%XCAN_HW_RATIO(JJ), 1. ) )
 !
 !*      2.2    direct solar radiation received by roads and GARDEN areas
 !               -------------------------------------------------------
 !
-  ZDIR_SW_RD (JJ) = (  ZDIR_SW(JJ) * 2. * ZTHETA0(JJ) / XPI                 &
-                     - ZDIR_SW(JJ) * 2. * ZTANZEN(JJ) / XPI                 &
-                        * T%XCAN_HW_RATIO(JJ) * (1.-COS(ZTHETA0(JJ)))  )  
+      ZDIR_SW_RD (JJ) = (  ZDIR_SW(JJ) * 2. * ZTHETA0(JJ) / XPI                 &
+                           - ZDIR_SW(JJ) * 2. * ZTANZEN(JJ) / XPI                 &
+                           * T%XCAN_HW_RATIO(JJ) * (1.-COS(ZTHETA0(JJ)))  )  
 !
-  ZDIR_SW_GD(JJ) = ( ZDIR_SW(JJ) * 2. * ZTHETA0(JJ) / XPI                 &
-                   - ZDIR_SW(JJ) * 2. * ZTANZEN(JJ) / XPI                 &
-                       * T%XCAN_HW_RATIO(JJ) * (1.-COS(ZTHETA0(JJ)))  )  
-ELSE
-  ZDIR_SW_RD (JJ) = ZDIR_SW(JJ) * &
-          MAX(0.,1.-T%XCAN_HW_RATIO(JJ)*ZTANZEN(JJ)*ABS(SIN(PAZIM(JJ)-ZRD_DIR(JJ))))
-  ZDIR_SW_GD(JJ) = ZDIR_SW_RD(JJ)
+      ZDIR_SW_GD(JJ) = ( ZDIR_SW(JJ) * 2. * ZTHETA0(JJ) / XPI                 &
+                         - ZDIR_SW(JJ) * 2. * ZTANZEN(JJ) / XPI                 &
+                         * T%XCAN_HW_RATIO(JJ) * (1.-COS(ZTHETA0(JJ)))  )  
+    ELSE
+      ZDIR_SW_RD (JJ) = ZDIR_SW(JJ) * &
+        MAX(0.,1.-T%XCAN_HW_RATIO(JJ)*ZTANZEN(JJ)*ABS(SIN(PAZIM(JJ)-ZRD_DIR(JJ))))
+      ZDIR_SW_GD(JJ) = ZDIR_SW_RD(JJ)
 
-END IF
+    END IF
 !
 !*      2.3    direct solar radiation received by walls
 !              ----------------------------------------
 !
-  ZDIR_SW_WL(JJ) = (ZDIR_SW(JJ) - (ZDIR_SW_RD(JJ)*ZRD(JJ)+ZDIR_SW_GD(JJ)*ZGD(JJ))) &
-                      * 0.5 / T%XCAN_HW_RATIO(JJ)  
+    ZDIR_SW_WL(JJ) = (ZDIR_SW(JJ) - (ZDIR_SW_RD(JJ)*ZRD(JJ)+ZDIR_SW_GD(JJ)*ZGD(JJ))) &
+      * 0.5 / T%XCAN_HW_RATIO(JJ)  
 !
 
   ELSE
 !
-   ZDIR_SW_RD (JJ) = ZDIR_SW(JJ)
-   ZDIR_SW_GD (JJ) = ZDIR_SW(JJ)
-   ZDIR_SW_WL (JJ) = 0.
+    ZDIR_SW_RD (JJ) = ZDIR_SW(JJ)
+    ZDIR_SW_GD (JJ) = ZDIR_SW(JJ)
+    ZDIR_SW_WL (JJ) = 0.
 !
   ENDIF
 !
-IF (TOP%CROAD_DIR=='UNIF' .OR. TOP%CWALL_OPT=='UNIF') THEN
+  IF (TOP%CROAD_DIR=='UNIF' .OR. TOP%CWALL_OPT=='UNIF') THEN
 !* if walls are averaged, then
-  ZDIR_SW_WL_A(JJ) = ZDIR_SW_WL(JJ)
-  ZDIR_SW_WL_B(JJ) = ZDIR_SW_WL(JJ)
-ELSE
+    ZDIR_SW_WL_A(JJ) = ZDIR_SW_WL(JJ)
+    ZDIR_SW_WL_B(JJ) = ZDIR_SW_WL(JJ)
+  ELSE
 !* if walls are separated, then radiation reaches the wall facing sun
 ! Note that wall A is the one facing mostly to the South (depending to
 ! road orientation), and wall B in the one facing mostly to the North
@@ -435,14 +435,14 @@ ELSE
 !                  and wall B is the East  wall (= West-facing  wall)
 ! In case of E-W road, wall A is the North wall (= South-facing wall), 
 !                  and wall B is the South wall (= North-facing wall)
-  IF (SIN(PAZIM(JJ)-ZRD_DIR(JJ))>0.) THEN
-    ZDIR_SW_WL_A(JJ) = 2.* ZDIR_SW_WL(JJ)
-    ZDIR_SW_WL_B(JJ) = 0.
-  ELSE
-    ZDIR_SW_WL_A(JJ) = 0.
-    ZDIR_SW_WL_B(JJ) = 2.* ZDIR_SW_WL(JJ)
+    IF (SIN(PAZIM(JJ)-ZRD_DIR(JJ))>0.) THEN
+      ZDIR_SW_WL_A(JJ) = 2.* ZDIR_SW_WL(JJ)
+      ZDIR_SW_WL_B(JJ) = 0.
+    ELSE
+      ZDIR_SW_WL_A(JJ) = 0.
+      ZDIR_SW_WL_B(JJ) = 2.* ZDIR_SW_WL(JJ)
+    END IF
   END IF
-END IF
 !
 !
 !
@@ -482,21 +482,21 @@ ENDDO
 !              -------------------------------------
 !
 IF (TOP%CBEM=='BEM') THEN
-    !
-    ZTRAN_WIN(:) = B%XTRAN_WIN(:)
-    !
-	! MT deactivation of shading devices
-    G_EFF_SHAD(:) = OSHADE(:).AND.(ZDIR_SW_WL(:) + ZSCA_SW_WL(:) > XWIN_SW_MAX) 
-	!G_EFF_SHAD(:) = .FALSE.
-    !
+  !
+  ZTRAN_WIN(:) = B%XTRAN_WIN(:)
+  !
+  ! MT deactivation of shading devices
+  G_EFF_SHAD(:) = OSHADE(:).AND.(ZDIR_SW_WL(:) + ZSCA_SW_WL(:) > XWIN_SW_MAX) 
+  !G_EFF_SHAD(:) = .FALSE.
+  !
 	
-	! MT deactivation of shading devices
-	OSHAD_DAY(:)  = G_EFF_SHAD(:) .OR. OSHAD_DAY(:)
-	!OSHAD_DAY(:) = .FALSE.
-    !
-    CALL WINDOW_SHADING(B%XSHGC, B%XSHGC_SH, OSHAD_DAY, T%XALB_WALL, &
-                        B%XABS_WIN, ZABS_WIN, B%XALB_WIN, ZTRAN_WIN      )
-    !
+  ! MT deactivation of shading devices
+  OSHAD_DAY(:)  = G_EFF_SHAD(:) .OR. OSHAD_DAY(:)
+  !OSHAD_DAY(:) = .FALSE.
+  !
+  CALL WINDOW_SHADING(B%XSHGC, B%XSHGC_SH, OSHAD_DAY, T%XALB_WALL, &
+                      B%XABS_WIN, ZABS_WIN, B%XALB_WIN, ZTRAN_WIN      )
+  !
 ELSE
   !
   ZABS_WIN (:) = 0.
@@ -511,9 +511,9 @@ ZAALB_WL(:) =  B%XGR(:) * B%XALB_WIN(:) + (1.-B%XGR(:)) * T%XALB_WALL(:)
 !              ---------------------------------------------
 !
 !
- CALL SOLAR_REFLECTIONS(ZDIR_SW_RD, ZDIR_SW_WL, ZDIR_SW_GD, ZABS_DIR_SW_RD, &
-                        ZABS_DIR_SW_SN_RD, ZABS_DIR_SW_WL, ZABS_DIR_SW_GD,  &
-                        ZABS_DIR_SW_WIN    )  
+CALL SOLAR_REFLECTIONS(ZDIR_SW_RD, ZDIR_SW_WL, ZDIR_SW_GD, ZABS_DIR_SW_RD, &
+                       ZABS_DIR_SW_SN_RD, ZABS_DIR_SW_WL, ZABS_DIR_SW_GD,  &
+                       ZABS_DIR_SW_WIN    )  
 !
 IF (TOP%CROAD_DIR=='UNIF' .OR. TOP%CWALL_OPT=='UNIF') THEN
 !* if walls are averaged, then
@@ -524,9 +524,9 @@ ELSE
 ! Note that wall A is the one facing mostly to the North (depending to
 ! road orientation), and wall B in the one facing mostly to the South.
   ZDW = (1.-T%XALB_WALL(:)) * ZAALB_WL(:) * (1.-2.*T%XSVF_WALL(:)) &
-       / (1.+ZAALB_WL(:)*(1.-2.*T%XSVF_WALL(:)))                 &
-       * 0.5 * (ZDIR_SW_WL_A(:)-ZDIR_SW_WL_B(:))            &
-       + 0.5 * (1.-T%XALB_WALL(:)) * (ZDIR_SW_WL_A-ZDIR_SW_WL_B)
+    / (1.+ZAALB_WL(:)*(1.-2.*T%XSVF_WALL(:)))                 &
+    * 0.5 * (ZDIR_SW_WL_A(:)-ZDIR_SW_WL_B(:))            &
+    + 0.5 * (1.-T%XALB_WALL(:)) * (ZDIR_SW_WL_A-ZDIR_SW_WL_B)
   ZABS_DIR_SW_WL_A = ZABS_DIR_SW_WL + ZDW
   ZABS_DIR_SW_WL_B = ZABS_DIR_SW_WL - ZDW
 END IF
@@ -534,9 +534,9 @@ END IF
 !*      2.9    absorption of diffuse incoming solar radiation
 !              ----------------------------------------------
 !
- CALL SOLAR_REFLECTIONS(ZSCA_SW_RD,ZSCA_SW_WL, ZSCA_SW_GD,              &
-                        ZABS_SCA_SW_RD, ZABS_SCA_SW_SN_RD,              &
-                        ZABS_SCA_SW_WL, ZABS_SCA_SW_GD, ZABS_SCA_SW_WIN    )  
+CALL SOLAR_REFLECTIONS(ZSCA_SW_RD,ZSCA_SW_WL, ZSCA_SW_GD,              &
+                       ZABS_SCA_SW_RD, ZABS_SCA_SW_SN_RD,              &
+                       ZABS_SCA_SW_WL, ZABS_SCA_SW_GD, ZABS_SCA_SW_WIN    )  
 !
 ! solar flux reflected for wall and road
 !
@@ -546,7 +546,7 @@ IF (TOP%LGARDEN) THEN
 ENDIF
 !
 PREF_SW_FAC = (1 - B%XGR) * T%XALB_WALL / (1.-T%XALB_WALL) * (ZABS_DIR_SW_WL + ZABS_SCA_SW_WL)    &
-            +      B%XGR  * B%XALB_WIN  / (1 - B%XALB_WIN) * (ZABS_DIR_SW_WIN + ZABS_SCA_SW_WIN)
+  +      B%XGR  * B%XALB_WIN  / (1 - B%XALB_WIN) * (ZABS_DIR_SW_WIN + ZABS_SCA_SW_WIN)
 !
 !-------------------------------------------------------------------------------
 !
@@ -556,27 +556,27 @@ PREF_SW_FAC = (1 - B%XGR) * T%XALB_WALL / (1.-T%XALB_WALL) * (ZABS_DIR_SW_WL + Z
 !*      3.1    direct albedo
 !              -------------
 !
- CALL TOWN_ALBEDO(ZDIR_SW,ZABS_DIR_SW_RF,ZABS_DIR_SW_SN_RF,           &
-                   ZABS_DIR_SW_RD, ZABS_DIR_SW_SN_RD,ZABS_DIR_SW_WL,  &
-                   ZABS_DIR_SW_GD, ZABS_DIR_SW_GRF, ZABS_DIR_SW_WIN,  &
-                   ZABS_DIR_SW_PANEL, PDIR_ALB_TWN, ZSW_UP_DIR                    )  
+CALL TOWN_ALBEDO(ZDIR_SW,ZABS_DIR_SW_RF,ZABS_DIR_SW_SN_RF,           &
+                 ZABS_DIR_SW_RD, ZABS_DIR_SW_SN_RD,ZABS_DIR_SW_WL,  &
+                 ZABS_DIR_SW_GD, ZABS_DIR_SW_GRF, ZABS_DIR_SW_WIN,  &
+                 ZABS_DIR_SW_PANEL, PDIR_ALB_TWN, ZSW_UP_DIR                    )  
 !
 !*      3.2    direct albedo
 !              -------------
 !
- CALL TOWN_ALBEDO(ZSCA_SW,ZABS_SCA_SW_RF,ZABS_SCA_SW_SN_RF,           &
-                   ZABS_SCA_SW_RD, ZABS_SCA_SW_SN_RD,ZABS_SCA_SW_WL,  &
-                   ZABS_SCA_SW_GD, ZABS_SCA_SW_GRF, ZABS_SCA_SW_WIN,  &
-                   ZABS_SCA_SW_PANEL, PSCA_ALB_TWN, ZSW_UP_SCA                    ) 
+CALL TOWN_ALBEDO(ZSCA_SW,ZABS_SCA_SW_RF,ZABS_SCA_SW_SN_RF,           &
+                 ZABS_SCA_SW_RD, ZABS_SCA_SW_SN_RD,ZABS_SCA_SW_WL,  &
+                 ZABS_SCA_SW_GD, ZABS_SCA_SW_GRF, ZABS_SCA_SW_WIN,  &
+                 ZABS_SCA_SW_PANEL, PSCA_ALB_TWN, ZSW_UP_SCA                    ) 
 
 !
 !*      3.3    solar albedo !MT
 !              -------------
 !
- CALL TOWN_ALBEDO(ZDIR_SW+ZSCA_SW,ZABS_DIR_SW_RF+ZABS_SCA_SW_RF,ZABS_DIR_SW_SN_RF+ZABS_SCA_SW_SN_RF,           &
-                   ZABS_DIR_SW_RD+ZABS_SCA_SW_RD, ZABS_DIR_SW_SN_RD+ZABS_SCA_SW_SN_RD,ZABS_DIR_SW_WL+ZABS_SCA_SW_WL,  &
-                   ZABS_DIR_SW_GD+ZABS_SCA_SW_GD, ZABS_DIR_SW_GRF+ZABS_SCA_SW_GRF, ZABS_DIR_SW_WIN+ZABS_SCA_SW_WIN,  &
-                   ZABS_DIR_SW_PANEL+ZABS_SCA_SW_PANEL, PSO_ALB_TWN, ZSW_UP_SO                   ) 				   
+CALL TOWN_ALBEDO(ZDIR_SW+ZSCA_SW,ZABS_DIR_SW_RF+ZABS_SCA_SW_RF,ZABS_DIR_SW_SN_RF+ZABS_SCA_SW_SN_RF,           &
+                 ZABS_DIR_SW_RD+ZABS_SCA_SW_RD, ZABS_DIR_SW_SN_RD+ZABS_SCA_SW_SN_RD,ZABS_DIR_SW_WL+ZABS_SCA_SW_WL,  &
+                 ZABS_DIR_SW_GD+ZABS_SCA_SW_GD, ZABS_DIR_SW_GRF+ZABS_SCA_SW_GRF, ZABS_DIR_SW_WIN+ZABS_SCA_SW_WIN,  &
+                 ZABS_DIR_SW_PANEL+ZABS_SCA_SW_PANEL, PSO_ALB_TWN, ZSW_UP_SO                   ) 				   
 !
 WHERE (PDIR_ALB_TWN==XUNDEF) PDIR_ALB_TWN = PSCA_ALB_TWN
 !
@@ -742,20 +742,20 @@ CONTAINS
 SUBROUTINE SOLAR_REFLECTIONS(ZSW_RD,ZSW_WL, ZSW_GD, ZABS_SW_RD,ZABS_SW_SN_RD, &
                              ZABS_SW_WL, ZABS_SW_GD, ZABS_SW_WIN             )  
 !
-REAL, DIMENSION(:), INTENT(IN) :: ZSW_RD          ! solar radiation received by road,
-REAL, DIMENSION(:), INTENT(IN) :: ZSW_WL          ! wall, and GD areas 
-REAL, DIMENSION(:), INTENT(IN) :: ZSW_GD        ! before reflection
-REAL, DIMENSION(:), INTENT(OUT):: ZABS_SW_RD      ! solar radiation absorbed by
-REAL, DIMENSION(:), INTENT(OUT):: ZABS_SW_SN_RD ! solar radiation absorbed by
-REAL, DIMENSION(:), INTENT(OUT):: ZABS_SW_WL      ! road, snow over road, and wall 
-REAL, DIMENSION(:), INTENT(OUT):: ZABS_SW_GD    ! solar radiation absorbed by garden
-REAL, DIMENSION(:), INTENT(OUT):: ZABS_SW_WIN       ! solar radiation absorbed by window
+REAL, DIMENSION(:), INTENT(IN) :: ZSW_RD         ! solar radiation received by road,
+REAL, DIMENSION(:), INTENT(IN) :: ZSW_WL         ! wall, and GD areas 
+REAL, DIMENSION(:), INTENT(IN) :: ZSW_GD         ! before reflection
+REAL, DIMENSION(:), INTENT(OUT):: ZABS_SW_RD     ! solar radiation absorbed by
+REAL, DIMENSION(:), INTENT(OUT):: ZABS_SW_SN_RD  ! solar radiation absorbed by
+REAL, DIMENSION(:), INTENT(OUT):: ZABS_SW_WL     ! road, snow over road, and wall 
+REAL, DIMENSION(:), INTENT(OUT):: ZABS_SW_GD     ! solar radiation absorbed by garden
+REAL, DIMENSION(:), INTENT(OUT):: ZABS_SW_WIN    ! solar radiation absorbed by window
 !
-REAL, DIMENSION(SIZE(ZSW_RD)) :: ZREF0_SW_RD    ! first solar reflection
-REAL, DIMENSION(SIZE(ZSW_RD)) :: ZREF0_SW_WL    ! against road, wall
+REAL, DIMENSION(SIZE(ZSW_RD)) :: ZREF0_SW_RD  ! first solar reflection
+REAL, DIMENSION(SIZE(ZSW_RD)) :: ZREF0_SW_WL  ! against road, wall
 REAL, DIMENSION(SIZE(ZSW_RD)) :: ZREF0_SW_GD  ! and GD areas
-REAL, DIMENSION(SIZE(ZSW_RD)) :: ZSREF_SW_RD    ! sum of all reflections
-REAL, DIMENSION(SIZE(ZSW_RD)) :: ZSREF_SW_WL    ! against road, wall,
+REAL, DIMENSION(SIZE(ZSW_RD)) :: ZSREF_SW_RD  ! sum of all reflections
+REAL, DIMENSION(SIZE(ZSW_RD)) :: ZSREF_SW_WL  ! against road, wall,
 REAL, DIMENSION(SIZE(ZSW_RD)) :: ZSREF_SW_GD  ! and GD areas
 !
 REAL, DIMENSION(SIZE(ZSW_RD)) :: ZWORK1, ZWORK2, ZDENOM
@@ -780,10 +780,10 @@ DO JJ=1,SIZE(ZSW_RD)
 !
 
   ZDENOM(JJ) = 1. - (1.-2.*T%XSVF_WALL(JJ)) * T%XALB_WALL(JJ) - (1. - T%XSVF_ROAD(JJ))* &
-                T%XSVF_WALL(JJ)*T%XALB_WALL(JJ)*ZAALB_RD(JJ)*ZRD(JJ)
+    T%XSVF_WALL(JJ)*T%XALB_WALL(JJ)*ZAALB_RD(JJ)*ZRD(JJ)
   IF (TOP%LGARDEN) THEN
     ZDENOM(JJ) = ZDENOM(JJ) - (1. - PSVF_GD(JJ)) * &
-                 T%XSVF_WALL(JJ)*T%XALB_WALL(JJ)*PALB_GD(JJ)*ZGD(JJ)
+      T%XSVF_WALL(JJ)*T%XALB_WALL(JJ)*PALB_GD(JJ)*ZGD(JJ)
   ENDIF
 
   ZWORK1(JJ) = T%XSVF_WALL(JJ) * T%XALB_WALL(JJ) * ZRD(JJ)
@@ -791,19 +791,19 @@ DO JJ=1,SIZE(ZSW_RD)
 !
 !
   ZSREF_SW_WL(JJ) = (  ZREF0_SW_WL(JJ) + ZWORK1(JJ) *ZREF0_SW_RD(JJ)   &
-                        + ZWORK2(JJ) *ZREF0_SW_GD(JJ)) / ZDENOM(JJ)  
+                       + ZWORK2(JJ) *ZREF0_SW_GD(JJ)) / ZDENOM(JJ)  
 
   ZSREF_SW_RD(JJ) = ((1.- T%XSVF_ROAD(JJ)) * ZAALB_RD(JJ) * ZREF0_SW_WL(JJ) &
                     +(1.- T%XSVF_ROAD(JJ)) * ZAALB_RD(JJ) * ZWORK1(JJ) * ZREF0_SW_RD(JJ)  &
                     +(1.- T%XSVF_ROAD(JJ)) * ZAALB_RD(JJ) * ZWORK2(JJ) * ZREF0_SW_GD(JJ)) &
-                      / ZDENOM(JJ) + ZREF0_SW_RD(JJ)   
+    / ZDENOM(JJ) + ZREF0_SW_RD(JJ)   
 
   ZSREF_SW_GD(JJ) = 0.
   IF (TOP%LGARDEN) THEN
     ZSREF_SW_GD(JJ) = ((1.- PSVF_GD(JJ)) * PALB_GD(JJ) * ZREF0_SW_WL(JJ) &
-                       +(1.- PSVF_GD(JJ)) * PALB_GD(JJ) * ZWORK1(JJ) * ZREF0_SW_RD(JJ) &
-                       +(1.- PSVF_GD(JJ)) * PALB_GD(JJ) * ZWORK2(JJ) * ZREF0_SW_GD(JJ)) &
-                         / ZDENOM(JJ) + ZREF0_SW_GD(JJ)
+                      +(1.- PSVF_GD(JJ)) * PALB_GD(JJ) * ZWORK1(JJ) * ZREF0_SW_RD(JJ) &
+                      +(1.- PSVF_GD(JJ)) * PALB_GD(JJ) * ZWORK2(JJ) * ZREF0_SW_GD(JJ)) &
+      / ZDENOM(JJ) + ZREF0_SW_GD(JJ)
   ENDIF
 !
 !*      C.     total solar radiation received by roads and GD areas
@@ -813,7 +813,7 @@ DO JJ=1,SIZE(ZSW_RD)
 !
   ZABS_SW_SN_RD(JJ) = 0.
   IF (PDN_RD(JJ) > 0.) ZABS_SW_SN_RD(JJ) = (1.-T%TSNOW_ROAD%ALB(JJ)) * &
-                        (ZSW_RD(JJ) + ZSREF_SW_WL(JJ) * (1.-T%XSVF_ROAD(JJ)))
+    (ZSW_RD(JJ) + ZSREF_SW_WL(JJ) * (1.-T%XSVF_ROAD(JJ)))
 !
   ZABS_SW_GD(JJ) = 0.
   IF (TOP%LGARDEN) ZABS_SW_GD(JJ) = (1.-PALB_GD(JJ)) * (ZSW_GD(JJ) + ZSREF_SW_WL(JJ) * (1.-PSVF_GD(JJ)))
@@ -823,16 +823,16 @@ DO JJ=1,SIZE(ZSW_RD)
 !              ---------------------------------------
 !
   ZABS_SW_WL(JJ)      = (1.-T%XALB_WALL(JJ))                                  &
-                         * (ZSW_WL(JJ)                                        &
-                           + ZSREF_SW_RD(JJ) *        T%XSVF_WALL(JJ)*ZRD(JJ) &
-                           + ZSREF_SW_GD(JJ) *        T%XSVF_WALL(JJ)*ZGD(JJ) &
-                           + ZSREF_SW_WL(JJ) * (1.-2.*T%XSVF_WALL(JJ))          )  
+    * (ZSW_WL(JJ)                                        &
+         + ZSREF_SW_RD(JJ) *        T%XSVF_WALL(JJ)*ZRD(JJ) &
+         + ZSREF_SW_GD(JJ) *        T%XSVF_WALL(JJ)*ZGD(JJ) &
+         + ZSREF_SW_WL(JJ) * (1.-2.*T%XSVF_WALL(JJ))          )  
 !
   ZABS_SW_WIN (JJ)      = (1.-B%XALB_WIN (JJ))                                  &
-                         * (ZSW_WL(JJ)                                          &
-                           + ZSREF_SW_RD(JJ)   *        T%XSVF_WALL(JJ)*ZRD(JJ) &
-                           + ZSREF_SW_GD(JJ) *          T%XSVF_WALL(JJ)*ZGD(JJ) &
-                           + ZSREF_SW_WL(JJ)   * (1.-2.*T%XSVF_WALL(JJ))          )  
+    * (ZSW_WL(JJ)                                          &
+         + ZSREF_SW_RD(JJ)   *        T%XSVF_WALL(JJ)*ZRD(JJ) &
+         + ZSREF_SW_GD(JJ) *          T%XSVF_WALL(JJ)*ZGD(JJ) &
+         + ZSREF_SW_WL(JJ)   * (1.-2.*T%XSVF_WALL(JJ))          )  
 !
 ENDDO
 !
@@ -844,21 +844,21 @@ END SUBROUTINE SOLAR_REFLECTIONS
 !
 SUBROUTINE TOWN_ALBEDO(ZSW,ZABS_SW_RF,ZABS_SW_SN_RF,ZABS_SW_RD,ZABS_SW_SN_RD,&
                        ZABS_SW_WL,ZABS_SW_GD, ZABS_SW_GRF, ZABS_SW_WIN,      &
-                         ZABS_SW_PANEL, ZALBEDO,  ZSW_UP                        )  
+                       ZABS_SW_PANEL, ZALBEDO,  ZSW_UP                        )  
 !
-REAL, DIMENSION(:), INTENT(IN) :: ZSW               ! incoming solar radiation
-REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_RF      ! solar radiation absorbed by roofs
-REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_RD      ! solar radiation absorbed by roads
-REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_WL      ! solar radiation absorbed by walls
-REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_WIN       ! solar radiation absorbed & transmitted by windows
-REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_GD    ! solar radiation absorbed by GARDEN areas
-REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_GRF ! solar radiation absorbed by green roof areas
-REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_SN_RF ! solar radiation absorbed by roof snow
-REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_SN_RD ! solar radiation absorbed by road snow
-REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_PANEL     ! solar radiation absorbed by solar panels
-REAL, DIMENSION(:), INTENT(OUT):: ZALBEDO           ! town averaged albedo
+REAL, DIMENSION(:), INTENT(IN) :: ZSW            ! incoming solar radiation
+REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_RF     ! solar radiation absorbed by roofs
+REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_RD     ! solar radiation absorbed by roads
+REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_WL     ! solar radiation absorbed by walls
+REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_WIN    ! solar radiation absorbed & transmitted by windows
+REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_GD     ! solar radiation absorbed by GARDEN areas
+REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_GRF    ! solar radiation absorbed by green roof areas
+REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_SN_RF  ! solar radiation absorbed by roof snow
+REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_SN_RD  ! solar radiation absorbed by road snow
+REAL, DIMENSION(:), INTENT(IN) :: ZABS_SW_PANEL  ! solar radiation absorbed by solar panels
+REAL, DIMENSION(:), INTENT(OUT):: ZALBEDO        ! town averaged albedo
 
-REAL, DIMENSION(:), INTENT(OUT):: ZSW_UP            ! outgoing solar radiation
+REAL, DIMENSION(:), INTENT(OUT):: ZSW_UP  ! outgoing solar radiation
 !REAL, DIMENSION(SIZE(ZSW))     :: ZSW_UP            ! outgoing solar radiation
 INTEGER :: JJ
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
@@ -867,15 +867,15 @@ IF (LHOOK) CALL DR_HOOK('TOWN_ALBEDO',0,ZHOOK_HANDLE)
 DO JJ=1,SIZE(ZSW)
 
   ZSW_UP(JJ) = ZSW(JJ)                                                           &
-            - ( T%XBLD(JJ)   *(1.-T%XGREENROOF(JJ))*PDF_RF(JJ) *ZABS_SW_RF   (JJ)&
-               +T%XBLD(JJ)   *(1.-T%XGREENROOF(JJ))*PDN_RF(JJ) *ZABS_SW_SN_RF(JJ)&
-               +T%XBLD(JJ)   *    T%XGREENROOF(JJ)             *ZABS_SW_GRF   (JJ)&
-               +T%XBLD(JJ)   *    PFRAC_PANEL(JJ)              *ZABS_SW_PANEL (JJ)&
-               +T%XROAD(JJ)                        *PDF_RD(JJ) *ZABS_SW_RD (JJ)    &
-               +T%XROAD(JJ)                        *PDN_RD(JJ) *ZABS_SW_SN_RD(JJ)&
-               +T%XGARDEN(JJ)                                  *ZABS_SW_GD(JJ)   &
-               +T%XWALL_O_HOR(JJ)              *(1.-B%XGR(JJ)) *ZABS_SW_WL(JJ)     &
-               +T%XWALL_O_HOR(JJ)              *    B%XGR(JJ)  *ZABS_SW_WIN (JJ)     )  
+    - ( T%XBLD(JJ)   *(1.-T%XGREENROOF(JJ))*PDF_RF(JJ) *ZABS_SW_RF   (JJ)&
+          +T%XBLD(JJ)   *(1.-T%XGREENROOF(JJ))*PDN_RF(JJ) *ZABS_SW_SN_RF(JJ)&
+          +T%XBLD(JJ)   *    T%XGREENROOF(JJ)             *ZABS_SW_GRF   (JJ)&
+          +T%XBLD(JJ)   *    PFRAC_PANEL(JJ)              *ZABS_SW_PANEL (JJ)&
+          +T%XROAD(JJ)                        *PDF_RD(JJ) *ZABS_SW_RD (JJ)    &
+          +T%XROAD(JJ)                        *PDN_RD(JJ) *ZABS_SW_SN_RD(JJ)&
+          +T%XGARDEN(JJ)                                  *ZABS_SW_GD(JJ)   &
+          +T%XWALL_O_HOR(JJ)              *(1.-B%XGR(JJ)) *ZABS_SW_WL(JJ)     &
+          +T%XWALL_O_HOR(JJ)              *    B%XGR(JJ)  *ZABS_SW_WIN (JJ)     )  
 !
   IF (ZSW(JJ)>0.) THEN
     ZALBEDO(JJ)  = ZSW_UP(JJ) / ZSW(JJ)

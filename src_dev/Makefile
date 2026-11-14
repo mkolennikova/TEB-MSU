@@ -1,261 +1,175 @@
-# Makefile created by mkmf.pl $Id: mkmf,v 14.0 2007/03/20 22:13:27 fms Exp $ 
+# MV202611 common static library and offline consumer (GNU Make / POSIX shell).
+# Keep generated files outside the checkout; use a separate BUILD_ROOT for each
+# compiler/flag profile. See README.md for Windows and Linux examples.
+.DEFAULT_GOAL := all
+ifneq (,$(filter 0 1 2 3,$(firstword $(subst ., ,$(MAKE_VERSION)))))
+$(error GNU Make 4.0 or newer is required for response-file generation)
+endif
 
-# The build is run from this directory (src_dev/), from the repository root:
-#
-#     make -C src_dev clean
-#     make -C src_dev
-#
-# All the dependencies below (src_teb/..., ../build/obj_dev/...) are therefore relative
-# to src_dev/. The object files, the module files and the executable are written to the
-# repository-level build/ directory, which is created automatically and is not
-# tracked. The executable is started from the repository root, next to namelist/,
-# input/ and output/, because the driver reads those with relative paths (cwd of the run).
-#
-# This is the DEV tree (physics of MV_devs + the modern I/O): it builds
-# ../build/TEB_offline_dev.exe into ../build/obj_dev/. The control tree (the physics of
-# the first commit plus the same I/O) lives in src_ctrl/ and builds
-# ../build/TEB_offline_ctrl.exe into ../build/obj_ctrl/.
 include gfortran_args
-EXEC = ../build/TEB_offline_dev.exe
-OBJDIR = ../build/obj_dev
+include make/teb_sources.mk
 
-# Ensure module files go to OBJDIR and include paths are set
-ifeq ($(FC),ifort)
-    FFLAGS += -module $(OBJDIR) -I. -Isrc_teb
-else
-    FFLAGS += -J$(OBJDIR) -I. -Isrc_teb
-endif
+# Native Windows defaults to the workstation's external work root. On other
+# machines select TEB_WORK_ROOT or BUILD_ROOT explicitly. Legacy absolute
+# OBJDIR/EXEC overrides remain supported; an explicit OBJDIR owns its profile.
 ifeq ($(OS),Windows_NT)
-    $(shell if not exist "$(OBJDIR)" mkdir "$(OBJDIR)")
+TEB_WORK_ROOT ?= W:/Work_TEB
+endif
+PROFILE ?= $(notdir $(FC))-dev
+ifeq ($(strip $(BUILD_ROOT)),)
+ifneq ($(strip $(OBJDIR)),)
+BUILD_ROOT := $(abspath $(subst \,/,$(OBJDIR)))
+else ifneq ($(strip $(TEB_WORK_ROOT)),)
+BUILD_ROOT := $(TEB_WORK_ROOT)/TEB-Ru/default/build/$(PROFILE)
+endif
+endif
+
+OBJDIR ?= $(BUILD_ROOT)/common/obj
+MODDIR ?= $(BUILD_ROOT)/common/mod
+OFFLINE_OBJDIR ?= $(BUILD_ROOT)/offline/obj
+OFFLINE_MODDIR ?= $(BUILD_ROOT)/offline/mod
+BLOCK_OBJDIR ?= $(BUILD_ROOT)/offline-block/obj
+BLOCK_MODDIR ?= $(BUILD_ROOT)/offline-block/mod
+PLATFORM_OBJDIR ?= $(BUILD_ROOT)/platform/obj
+LIB ?= $(BUILD_ROOT)/lib/libteb.a
+EXEC ?= $(BUILD_ROOT)/bin/TEB_offline_dev.exe
+BLOCK_EXEC ?= $(BUILD_ROOT)/bin/TEB_offline_block_dev.exe
+
+# A relative or in-checkout output path would violate AGENTS.md. Validate every
+# override before any recipe (including clean) can write or remove a file.
+REPO_ROOT := $(abspath ..)
+ACTIVE_GOALS := $(if $(MAKECMDGOALS),$(filter-out help,$(MAKECMDGOALS)),all)
+ifneq ($(strip $(ACTIVE_GOALS)),)
+ifeq ($(strip $(BUILD_ROOT)),)
+$(error Set BUILD_ROOT or TEB_WORK_ROOT to an absolute external directory)
+endif
+define validate_output
+$(if $(or $(filter /%,$(subst \,/,$($(1)))),$(findstring :/,$(subst \,/,$($(1))))),,$(error $(1) must be an absolute external path))
+$(if $(filter $(REPO_ROOT) $(REPO_ROOT)/%,$(abspath $(subst \,/,$($(1))))),$(error $(1) must be outside the repository),)
+endef
+$(foreach name,BUILD_ROOT OBJDIR MODDIR OFFLINE_OBJDIR OFFLINE_MODDIR BLOCK_OBJDIR BLOCK_MODDIR PLATFORM_OBJDIR LIB EXEC BLOCK_EXEC,$(eval $(call validate_output,$(name))))
+endif
+
+# Use one canonical slash spelling in Make targets and compiler arguments.
+override BUILD_ROOT := $(subst \,/,$(BUILD_ROOT))
+override OBJDIR := $(subst \,/,$(OBJDIR))
+override MODDIR := $(subst \,/,$(MODDIR))
+override OFFLINE_OBJDIR := $(subst \,/,$(OFFLINE_OBJDIR))
+override OFFLINE_MODDIR := $(subst \,/,$(OFFLINE_MODDIR))
+override BLOCK_OBJDIR := $(subst \,/,$(BLOCK_OBJDIR))
+override BLOCK_MODDIR := $(subst \,/,$(BLOCK_MODDIR))
+override PLATFORM_OBJDIR := $(subst \,/,$(PLATFORM_OBJDIR))
+override LIB := $(subst \,/,$(LIB))
+override EXEC := $(subst \,/,$(EXEC))
+override BLOCK_EXEC := $(subst \,/,$(BLOCK_EXEC))
+
+COMMON_STEMS := $(basename $(notdir $(COMMON_SRC)))
+OFFLINE_STEMS := $(basename $(notdir $(OFFLINE_SRC)))
+BLOCK_STEMS := $(basename $(notdir $(BLOCK_SRC)))
+COMMON_OBJ := $(addprefix $(OBJDIR)/,$(addsuffix .o,$(COMMON_STEMS)))
+OFFLINE_OBJ := $(addprefix $(OFFLINE_OBJDIR)/,$(addsuffix .o,$(OFFLINE_STEMS)))
+OFFLINE_SUPPORT_OBJ := $(filter-out $(OFFLINE_OBJDIR)/run_teb_offline.o,$(OFFLINE_OBJ))
+BLOCK_OBJ := $(addprefix $(BLOCK_OBJDIR)/,$(addsuffix .o,$(BLOCK_STEMS)))
+include make/teb_dependencies.mk
+
+FC_NAME := $(notdir $(firstword $(FC)))
+ifneq (,$(filter ifort ifort.exe,$(FC_NAME)))
+COMMON_MODFLAGS = -module $(MODDIR) -I$(MODDIR)
+OFFLINE_MODFLAGS = -module $(OFFLINE_MODDIR) -I$(MODDIR) -I$(OFFLINE_MODDIR)
+BLOCK_MODFLAGS = -module $(BLOCK_MODDIR) -I$(MODDIR) -I$(OFFLINE_MODDIR) -I$(BLOCK_MODDIR)
 else
-    $(shell mkdir -p $(OBJDIR))
+COMMON_MODFLAGS = -J$(MODDIR) -I$(MODDIR)
+OFFLINE_MODFLAGS = -J$(OFFLINE_MODDIR) -I$(MODDIR) -I$(OFFLINE_MODDIR)
+BLOCK_MODFLAGS = -J$(BLOCK_MODDIR) -I$(MODDIR) -I$(OFFLINE_MODDIR) -I$(BLOCK_MODDIR)
 endif
 
-
-.DEFAULT:
-	-touch $@
-all: $(EXEC)
-$(OBJDIR)/abor1_sfx.o: src_driver/abor1_sfx.F90 $(OBJDIR)/close_file.o $(OBJDIR)/modd_surf_conf.o
-$(OBJDIR)/add_forecast_to_date_surf.o: src_driver/add_forecast_to_date_surf.F90
-$(OBJDIR)/ahf_traffic_now.o: src_driver/ahf_traffic_now.F90
-$(OBJDIR)/alloc_teb_struct.o: src_struct/alloc_teb_struct.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/avg_urban_fluxes.o: src_teb/avg_urban_fluxes.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_csts.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/bem.o: src_teb/bem.F90 $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_csts.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/mode_psychro.o $(OBJDIR)/modi_dx_air_cooling_coil_cv.o $(OBJDIR)/modi_floor_layer_e_budget.o $(OBJDIR)/modi_mass_layer_e_budget.o $(OBJDIR)/mode_conv_DOE.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/bem_morpho.o: src_teb/bem_morpho.F90 $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_bem_paramsn.o
-$(OBJDIR)/bem_morpho_struct.o: src_struct/bem_morpho_struct.F90 $(OBJDIR)/modi_bem_morpho.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_paramsn.o
-$(OBJDIR)/bld_e_budget.o: src_teb/bld_e_budget.F90 $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/hook.o
-$(OBJDIR)/bld_occ_calendar.o: src_teb/bld_occ_calendar.F90 $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modi_day_of_week.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/circumsolar_rad.o: src_solar/circumsolar_rad.F90 $(OBJDIR)/hook.o $(OBJDIR)/modd_csts.o
-$(OBJDIR)/close_file.o: src_driver/close_file.F90
-$(OBJDIR)/close_file_asc.o: src_driver/close_file_asc.F90
-$(OBJDIR)/day_of_week.o: src_teb/day_of_week.F90 $(OBJDIR)/hook.o
-$(OBJDIR)/dealloc_teb_struct.o: src_struct/dealloc_teb_struct.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/call_driver.o: src_driver/call_driver.F90 $(OBJDIR)/modd_teb_ext_surfn.o $(OBJDIR)/urb_aero_params.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_atm.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/modd_reprod_oper.o $(OBJDIR)/modi_init_surfconsphy.o $(OBJDIR)/sunpos.o $(OBJDIR)/ol_read_atm.o $(OBJDIR)/ol_alloc_atm.o $(OBJDIR)/ol_time_interp_atm.o $(OBJDIR)/modi_teb_garden.o $(OBJDIR)/modi_window_data_struct.o $(OBJDIR)/modi_bem_morpho_struct.o $(OBJDIR)/circumsolar_rad.o $(OBJDIR)/modd_forc_atm.o $(OBJDIR)/wind_profile_wang.o $(OBJDIR)/modi_wind_threshold.o $(OBJDIR)/ahf_traffic_now.o $(OBJDIR)/teb_log.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_teb_paramsn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modi_urban_mrt.o
-$(OBJDIR)/sfc_teb.o: src_api/sfc_teb.F90 $(OBJDIR)/call_driver.o $(OBJDIR)/teb_host.o $(OBJDIR)/teb_log.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/run_teb_offline.o: src_driver/run_teb_offline.F90 $(OBJDIR)/sfc_teb.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_proxi_svat_par.o $(OBJDIR)/modd_surf_atm.o $(OBJDIR)/ol_read_atm.o $(OBJDIR)/ol_alloc_atm.o $(OBJDIR)/ol_time_interp_atm.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modi_garden.o $(OBJDIR)/garden.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/modi_diag_misc_teb_util.o $(OBJDIR)/teb_log.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_forc_atm.o $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/dx_air_cooling_coil_cv.o: src_teb/dx_air_cooling_coil_cv.F90 $(OBJDIR)/mode_thermos.o $(OBJDIR)/mode_psychro.o $(OBJDIR)/modd_csts.o $(OBJDIR)/hook.o
-$(OBJDIR)/facade_e_budget.o: src_teb/facade_e_budget.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modi_wall_layer_e_budget.o $(OBJDIR)/modi_window_e_budget.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/floor_layer_e_budget.o: src_teb/floor_layer_e_budget.F90 $(OBJDIR)/modd_bemn.o $(OBJDIR)/modi_layer_e_budget_get_coef.o $(OBJDIR)/modi_layer_e_budget.o $(OBJDIR)/mode_conv_DOE.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o
-$(OBJDIR)/flxsurf3bx.o: src_teb/flxsurf3bx.F
-$(OBJDIR)/garden.o: src_proxi_SVAT/garden.F90 $(OBJDIR)/modd_csts.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/modi_garden.o $(OBJDIR)/modd_proxi_svat_par.o
-$(OBJDIR)/greenroof.o: src_proxi_SVAT/greenroof.F90 $(OBJDIR)/modd_csts.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/garden.o $(OBJDIR)/modd_proxi_svat_par.o
-$(OBJDIR)/hook.o: src_teb/hook.F90
-$(OBJDIR)/ini_csts.o: src_teb/ini_csts.F90 $(OBJDIR)/modd_csts.o $(OBJDIR)/hook.o
-$(OBJDIR)/init_surfconsphy.o: src_teb/init_surfconsphy.F
-$(OBJDIR)/layer_e_budget.o: src_teb/layer_e_budget.F90 $(OBJDIR)/modi_tridiag_ground.o $(OBJDIR)/hook.o
-$(OBJDIR)/layer_e_budget_get_coef.o: src_teb/layer_e_budget_get_coef.F90 $(OBJDIR)/hook.o
-$(OBJDIR)/mass_layer_e_budget.o: src_teb/mass_layer_e_budget.F90 $(OBJDIR)/modd_bemn.o $(OBJDIR)/modi_layer_e_budget_get_coef.o $(OBJDIR)/modi_layer_e_budget.o $(OBJDIR)/mode_conv_DOE.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o
-$(OBJDIR)/modd_arch.o: src_driver/modd_arch.F90
-$(OBJDIR)/modd_bem_cst.o: src_teb/modd_bem_cst.F90
-$(OBJDIR)/modd_bem_optionn.o: src_struct/modd_bem_optionn.F90 $(OBJDIR)/hook.o
-$(OBJDIR)/modd_bemn.o: src_struct/modd_bemn.F90 $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/hook.o
-$(OBJDIR)/modd_bem_paramsn.o: src_struct/modd_bem_paramsn.F90 $(OBJDIR)/hook.o
-$(OBJDIR)/modd_teb_ext_surfn.o: src_struct/modd_teb_ext_surfn.F90
-$(OBJDIR)/modd_teb_forcingn.o: src_struct/modd_teb_forcingn.F90
-$(OBJDIR)/modd_teb_paramsn.o: src_struct/modd_teb_paramsn.F90 $(OBJDIR)/hook.o
-$(OBJDIR)/teb_host.o: src_api/teb_host.F90 $(OBJDIR)/modd_teb_ext_surfn.o $(OBJDIR)/modd_teb_forcingn.o $(OBJDIR)/urb_aero_params.o $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_teb_paramsn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modi_alloc_teb_struct.o $(OBJDIR)/modi_dealloc_teb_struct.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modi_diag_misc_teb_util.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modi_bem_morpho_struct.o $(OBJDIR)/modi_window_data_struct.o $(OBJDIR)/sunpos.o $(OBJDIR)/circumsolar_rad.o
-$(OBJDIR)/urb_aero_params.o: src_api/urb_aero_params.F90 $(OBJDIR)/modd_csts.o
-$(OBJDIR)/teb_log.o: src_api/teb_log.F90 $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_forc_atm.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o
-$(OBJDIR)/modd_csts.o: src_teb/modd_csts.F90
-$(OBJDIR)/modd_proxi_svat_par.o: src_proxi_SVAT/modd_proxi_svat_par.F90
-$(OBJDIR)/modd_diag_misc_tebn.o: src_struct/modd_diag_misc_tebn.F90 $(OBJDIR)/hook.o
-$(OBJDIR)/modd_flood_par.o: src_teb/modd_flood_par.F90
-$(OBJDIR)/modd_forc_atm.o: src_driver/modd_forc_atm.F90
-$(OBJDIR)/modd_reprod_oper.o: src_driver/modd_reprod_oper.F90
-$(OBJDIR)/modd_snow_par.o: src_teb/modd_snow_par.F90
-$(OBJDIR)/modd_surf_atm.o: src_teb/modd_surf_atm.F90
-$(OBJDIR)/modd_surf_conf.o: src_driver/modd_surf_conf.F90
-$(OBJDIR)/modd_surf_par.o: src_teb/modd_surf_par.F90
-$(OBJDIR)/modd_teb_irrign.o: src_struct/modd_teb_irrign.F90 $(OBJDIR)/hook.o
-#MV202609 garden thermal roughness (z0h): modd_teb_optionn and teb_garden use the
-# shared neutral formulation of the garden (modd_proxi_svat_par, garden)
-$(OBJDIR)/modd_teb_optionn.o: src_struct/modd_teb_optionn.F90 $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/hook.o $(OBJDIR)/modd_proxi_svat_par.o
-$(OBJDIR)/modd_teb_paneln.o: src_struct/modd_teb_paneln.F90 $(OBJDIR)/hook.o
-$(OBJDIR)/modd_tebn.o: src_struct/modd_tebn.F90 $(OBJDIR)/modd_type_snow.o $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/modd_teb_paramsn.o $(OBJDIR)/hook.o
-$(OBJDIR)/modd_type_date_surf.o: src_teb/modd_type_date_surf.F90
-$(OBJDIR)/modd_type_snow.o: src_struct/modd_type_snow.F90
-$(OBJDIR)/modd_water_par.o: src_teb/modd_water_par.F90
-$(OBJDIR)/mode_char2real.o: src_driver/mode_char2real.F90 $(OBJDIR)/modd_arch.o
-$(OBJDIR)/mode_conv_DOE.o: src_teb/mode_conv_DOE.F90 $(OBJDIR)/hook.o
-$(OBJDIR)/mode_psychro.o: src_teb/mode_psychro.F90 $(OBJDIR)/hook.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/mode_thermos.o
-$(OBJDIR)/mode_surf_snow_frac.o: src_teb/mode_surf_snow_frac.F90 $(OBJDIR)/hook.o $(OBJDIR)/modd_snow_par.o
-$(OBJDIR)/mode_thermos.o: src_teb/mode_thermos.F90 $(OBJDIR)/hook.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_reprod_oper.o $(OBJDIR)/modd_surf_par.o
-$(OBJDIR)/modi_alloc_teb_struct.o: src_struct/modi_alloc_teb_struct.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_diag_misc_teb_util.o: src_struct/modi_diag_misc_teb_util.F90 $(OBJDIR)/modd_diag_misc_tebn.o
-$(OBJDIR)/modi_avg_urban_fluxes.o: src_teb/modi_avg_urban_fluxes.f90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_bem.o: src_teb/modi_bem.f90 $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_bem_morpho.o: src_teb/modi_bem_morpho.f90 $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_bem_paramsn.o
-$(OBJDIR)/modi_bem_morpho_struct.o: src_struct/modi_bem_morpho_struct.f90
-$(OBJDIR)/modi_bld_e_budget.o: src_teb/modi_bld_e_budget.f90
-$(OBJDIR)/modi_bld_occ_calendar.o: src_teb/modi_bld_occ_calendar.f90 $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_day_of_week.o: src_teb/modi_day_of_week.f90
-$(OBJDIR)/modi_dealloc_teb_struct.o: src_struct/modi_dealloc_teb_struct.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_dx_air_cooling_coil_cv.o: src_teb/modi_dx_air_cooling_coil_cv.f90
-$(OBJDIR)/modi_facade_e_budget.o: src_teb/modi_facade_e_budget.f90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_floor_layer_e_budget.o: src_teb/modi_floor_layer_e_budget.f90 $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_bem_paramsn.o
-$(OBJDIR)/modi_flxsurf3bx.o: src_teb/modi_flxsurf3bx.f
-$(OBJDIR)/modi_garden.o: src_proxi_SVAT/modi_garden.F90
-$(OBJDIR)/modi_greenroof.o: src_proxi_SVAT/modi_greenroof.F90 $(OBJDIR)/modd_type_date_surf.o
-$(OBJDIR)/modi_ini_csts.o: src_teb/modi_ini_csts.f90
-$(OBJDIR)/modi_init_surfconsphy.o: src_teb/modi_init_surfconsphy.f
-$(OBJDIR)/modi_layer_e_budget.o: src_teb/modi_layer_e_budget.f90
-$(OBJDIR)/modi_layer_e_budget_get_coef.o: src_teb/modi_layer_e_budget_get_coef.f90
-$(OBJDIR)/modi_mass_layer_e_budget.o: src_teb/modi_mass_layer_e_budget.f90 $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_bem_paramsn.o
-$(OBJDIR)/modi_road_layer_e_budget.o: src_teb/modi_road_layer_e_budget.f90 $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_roof_impl_coef.o: src_teb/modi_roof_impl_coef.f90 $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_roof_layer_e_budget.o: src_teb/modi_roof_layer_e_budget.f90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_snow_cover_1layer.o: src_teb/modi_snow_cover_1layer.f90 $(OBJDIR)/modd_type_snow.o
-$(OBJDIR)/modi_solar_panel.o: src_teb/modi_solar_panel.f90 $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_diag_misc_tebn.o
-$(OBJDIR)/modi_surface_aero_cond.o: src_teb/modi_surface_aero_cond.f90
-$(OBJDIR)/modi_surface_cd.o: src_teb/modi_surface_cd.f90
-$(OBJDIR)/modi_surface_ri.o: src_teb/modi_surface_ri.f90
-$(OBJDIR)/modi_teb.o: src_teb/modi_teb.f90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_teb_garden.o: src_teb/modi_teb_garden.f90 $(OBJDIR)/modd_teb_ext_surfn.o $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_teb_irrig.o: src_teb/modi_teb_irrig.f90
-$(OBJDIR)/modi_teb_veg_properties.o: src_proxi_SVAT/modi_teb_veg_properties.F90
-$(OBJDIR)/modi_tridiag_ground.o: src_teb/modi_tridiag_ground.f90
-$(OBJDIR)/modi_urban_drag.o: src_teb/modi_urban_drag.f90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_urban_exch_coef.o: src_teb/modi_urban_exch_coef.f90
-$(OBJDIR)/modi_urban_fluxes.o: src_teb/modi_urban_fluxes.f90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_urban_hydro.o: src_teb/modi_urban_hydro.f90
-$(OBJDIR)/modi_urban_lw_coef.o: src_teb/modi_urban_lw_coef.f90 $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_urban_mrt.o: src_teb/modi_urban_mrt.F90 $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_teb_paramsn.o $(OBJDIR)/modd_teb_forcingn.o $(OBJDIR)/modd_teb_ext_surfn.o
-$(OBJDIR)/modi_urban_snow_evol.o: src_teb/modi_urban_snow_evol.f90 $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_urban_solar_abs.o: src_teb/modi_urban_solar_abs.f90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_wall_layer_e_budget.o: src_teb/modi_wall_layer_e_budget.f90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/modi_wind_threshold.o: src_teb/modi_wind_threshold.f90
-$(OBJDIR)/modi_window_data.o: src_teb/modi_window_data.f90 $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_bem_paramsn.o
-$(OBJDIR)/modi_window_data_struct.o: src_struct/modi_window_data_struct.f90
-$(OBJDIR)/modi_window_e_budget.o: src_teb/modi_window_e_budget.f90 $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_bem_paramsn.o
-$(OBJDIR)/modi_window_shading.o: src_teb/modi_window_shading.f90
-$(OBJDIR)/modi_window_shading_availability.o: src_teb/modi_window_shading_availability.f90
-$(OBJDIR)/ol_alloc_atm.o: src_driver/ol_alloc_atm.F90 $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_forc_atm.o
-$(OBJDIR)/ol_read_atm.o: src_driver/ol_read_atm.F90 $(OBJDIR)/ol_read_atm_ascii.o $(OBJDIR)/mode_thermos.o
-$(OBJDIR)/ol_read_atm_ascii.o: src_driver/ol_read_atm_ascii.F90 $(OBJDIR)/read_surf_atm.o
-$(OBJDIR)/ol_time_interp_atm.o: src_driver/ol_time_interp_atm.F90 $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_forc_atm.o
-$(OBJDIR)/open_close_bin_asc_forc.o: src_driver/open_close_bin_asc_forc.F90
-$(OBJDIR)/read_surf_atm.o: src_driver/read_surf_atm.F90
-$(OBJDIR)/road_layer_e_budget.o: src_teb/road_layer_e_budget.F90 $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_csts.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/modi_layer_e_budget.o $(OBJDIR)/modi_layer_e_budget_get_coef.o $(OBJDIR)/hook.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/roof_impl_coef.o: src_teb/roof_impl_coef.F90 $(OBJDIR)/modd_tebn.o $(OBJDIR)/hook.o $(OBJDIR)/modi_layer_e_budget_get_coef.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/roof_layer_e_budget.o: src_teb/roof_layer_e_budget.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_csts.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/modi_layer_e_budget.o $(OBJDIR)/modi_layer_e_budget_get_coef.o $(OBJDIR)/mode_conv_DOE.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/snow_cover_1layer.o: src_teb/snow_cover_1layer.F90 $(OBJDIR)/modd_type_snow.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_snow_par.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/modi_surface_ri.o $(OBJDIR)/modi_surface_aero_cond.o $(OBJDIR)/hook.o
-$(OBJDIR)/solar_panel.o: src_teb/solar_panel.F90 $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_csts.o $(OBJDIR)/hook.o
-$(OBJDIR)/sunpos.o: src_solar/sunpos.F90 $(OBJDIR)/modd_csts.o
-$(OBJDIR)/surface_aero_cond.o: src_teb/surface_aero_cond.F90 $(OBJDIR)/modd_csts.o $(OBJDIR)/modi_wind_threshold.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/hook.o
-$(OBJDIR)/surface_cd.o: src_teb/surface_cd.F90 $(OBJDIR)/modd_csts.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/hook.o
-$(OBJDIR)/surface_ri.o: src_teb/surface_ri.F90 $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_atm.o $(OBJDIR)/modi_wind_threshold.o $(OBJDIR)/hook.o
-$(OBJDIR)/teb.o: src_teb/teb.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_snow_par.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/mode_surf_snow_frac.o $(OBJDIR)/modi_snow_cover_1layer.o $(OBJDIR)/modi_urban_drag.o $(OBJDIR)/modi_urban_snow_evol.o $(OBJDIR)/modi_roof_layer_e_budget.o $(OBJDIR)/modi_road_layer_e_budget.o $(OBJDIR)/modi_facade_e_budget.o $(OBJDIR)/modi_urban_fluxes.o $(OBJDIR)/modi_urban_hydro.o $(OBJDIR)/modi_bld_e_budget.o $(OBJDIR)/modi_wind_threshold.o $(OBJDIR)/modi_bem.o $(OBJDIR)/modi_teb_irrig.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/teb_garden.o: src_teb/teb_garden.F90 $(OBJDIR)/modd_teb_ext_surfn.o $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bem_optionn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_teb_paneln.o $(OBJDIR)/modd_teb_irrign.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_type_date_surf.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_snow_par.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/mode_surf_snow_frac.o $(OBJDIR)/modi_solar_panel.o $(OBJDIR)/modi_teb_veg_properties.o $(OBJDIR)/modi_window_shading_availability.o $(OBJDIR)/modi_urban_solar_abs.o $(OBJDIR)/modi_urban_lw_coef.o $(OBJDIR)/modi_garden.o $(OBJDIR)/modi_greenroof.o $(OBJDIR)/modi_teb.o $(OBJDIR)/modi_avg_urban_fluxes.o $(OBJDIR)/modi_bld_occ_calendar.o $(OBJDIR)/hook.o $(OBJDIR)/garden.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/teb_irrig.o: src_teb/teb_irrig.F90 $(OBJDIR)/hook.o
-$(OBJDIR)/teb_veg_properties.o: src_proxi_SVAT/teb_veg_properties.F90
-$(OBJDIR)/tridiag_ground.o: src_teb/tridiag_ground.F90 $(OBJDIR)/hook.o
-$(OBJDIR)/urban_drag.o: src_teb/urban_drag.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_csts.o $(OBJDIR)/mode_thermos.o $(OBJDIR)/modi_urban_exch_coef.o $(OBJDIR)/mode_conv_DOE.o $(OBJDIR)/hook.o $(OBJDIR)/modi_wind_threshold.o $(OBJDIR)/garden.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/urban_exch_coef.o: src_teb/urban_exch_coef.F90 $(OBJDIR)/modi_surface_ri.o $(OBJDIR)/modi_surface_cd.o $(OBJDIR)/modi_surface_aero_cond.o $(OBJDIR)/modi_wind_threshold.o $(OBJDIR)/modd_csts.o $(OBJDIR)/hook.o $(OBJDIR)/modi_flxsurf3bx.o
-$(OBJDIR)/urban_fluxes.o: src_teb/urban_fluxes.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_csts.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/urban_hydro.o: src_teb/urban_hydro.F90 $(OBJDIR)/modd_csts.o $(OBJDIR)/hook.o
-$(OBJDIR)/urban_lw_coef.o: src_teb/urban_lw_coef.F90 $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/urban_mrt.o: src_teb/urban_mrt.F90 $(OBJDIR)/modi_urban_mrt.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/hook.o
-$(OBJDIR)/urban_snow_evol.o: src_teb/urban_snow_evol.F90 $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_snow_par.o $(OBJDIR)/modd_csts.o $(OBJDIR)/mode_surf_snow_frac.o $(OBJDIR)/modi_roof_impl_coef.o $(OBJDIR)/modi_snow_cover_1layer.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/hook.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/urban_solar_abs.o: src_teb/urban_solar_abs.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_diag_misc_tebn.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modd_bem_cst.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modi_window_shading.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/vslog.o: src_teb/vslog.f
-$(OBJDIR)/wall_layer_e_budget.o: src_teb/wall_layer_e_budget.F90 $(OBJDIR)/modd_teb_optionn.o $(OBJDIR)/modd_tebn.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modi_layer_e_budget_get_coef.o $(OBJDIR)/modi_layer_e_budget.o $(OBJDIR)/mode_conv_DOE.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o $(OBJDIR)/modd_teb_paramsn.o
-$(OBJDIR)/wind_threshold.o: src_teb/wind_threshold.F90 $(OBJDIR)/modd_surf_atm.o $(OBJDIR)/hook.o
-$(OBJDIR)/wind_profile_wang.o: src_driver/wind_profile_wang.F90
-$(OBJDIR)/window_data.o: src_teb/window_data.F90 $(OBJDIR)/modd_bemn.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o
-$(OBJDIR)/window_data_struct.o: src_struct/window_data_struct.F90 $(OBJDIR)/modi_window_data.o $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_bem_paramsn.o
-$(OBJDIR)/window_e_budget.o: src_teb/window_e_budget.F90 $(OBJDIR)/modd_bemn.o $(OBJDIR)/modd_csts.o $(OBJDIR)/mode_conv_DOE.o $(OBJDIR)/hook.o $(OBJDIR)/modd_bem_paramsn.o
-$(OBJDIR)/window_shading.o: src_teb/window_shading.F90 $(OBJDIR)/hook.o
-$(OBJDIR)/window_shading_availability.o: src_teb/window_shading_availability.F90 $(OBJDIR)/modd_bem_cst.o
-SRC = src_teb/modi_urban_mrt.F90 src_teb/urban_mrt.F90 src_struct/modd_teb_ext_surfn.F90 src_struct/modd_teb_forcingn.F90 src_teb/snow_cover_1layer.F90 src_teb/modi_teb_garden.f90 src_driver/modd_reprod_oper.F90 src_teb/mode_surf_snow_frac.F90 src_teb/surface_ri.F90 src_teb/layer_e_budget_get_coef.F90 src_teb/modi_wall_layer_e_budget.f90 src_teb/modi_avg_urban_fluxes.f90 src_driver/close_file_asc.F90 src_struct/dealloc_teb_struct.F90 src_teb/modi_bem_morpho.f90 src_teb/modi_solar_panel.f90 src_teb/modi_ini_csts.f90 src_proxi_SVAT/modi_teb_veg_properties.F90 src_teb/road_layer_e_budget.F90 src_struct/modd_teb_paneln.F90 src_teb/modd_snow_par.F90 src_teb/modi_floor_layer_e_budget.f90 src_teb/solar_panel.F90 src_teb/modi_urban_hydro.f90 src_driver/ol_alloc_atm.F90 src_teb/modi_teb.f90 src_teb/floor_layer_e_budget.F90 src_teb/modi_urban_fluxes.f90 src_teb/modi_facade_e_budget.f90 src_teb/urban_snow_evol.F90 src_struct/modd_teb_irrign.F90 src_teb/window_e_budget.F90 src_teb/modi_bld_e_budget.f90 src_teb/roof_impl_coef.F90 src_teb/urban_exch_coef.F90 src_teb/modi_road_layer_e_budget.f90 src_driver/read_surf_atm.F90 src_driver/modd_forc_atm.F90 src_teb/modi_urban_snow_evol.f90 src_teb/modd_type_date_surf.F90 src_driver/modd_surf_conf.F90 src_teb/modi_roof_impl_coef.f90 src_teb/urban_solar_abs.F90 src_teb/teb_garden.F90 src_struct/alloc_teb_struct.F90 src_proxi_SVAT/teb_veg_properties.F90 src_driver/close_file.F90 src_teb/window_data.F90 src_solar/circumsolar_rad.F90 src_teb/window_shading_availability.F90 src_teb/dx_air_cooling_coil_cv.F90 src_teb/modi_mass_layer_e_budget.f90 src_teb/modi_urban_lw_coef.f90 src_teb/modi_dx_air_cooling_coil_cv.f90 src_teb/vslog.f src_struct/modd_bem_paramsn.F90 src_struct/modd_bemn.F90 src_teb/urban_fluxes.F90 src_teb/modd_bem_cst.F90 src_teb/ini_csts.F90 src_teb/modi_window_shading_availability.f90 src_struct/bem_morpho_struct.F90 src_driver/mode_char2real.F90 src_driver/abor1_sfx.F90 src_teb/bem.F90 src_teb/urban_lw_coef.F90 src_driver/modd_arch.F90 src_teb/modd_csts.F90 src_teb/roof_layer_e_budget.F90 src_teb/hook.F90 src_teb/modi_window_shading.f90 src_teb/modi_window_data.f90 src_teb/wind_threshold.F90 src_driver/wind_profile_wang.F90 src_driver/ahf_traffic_now.f90 src_struct/modd_bem_optionn.F90 src_struct/modi_bem_morpho_struct.f90 src_struct/modi_alloc_teb_struct.F90 src_teb/mode_psychro.F90 src_proxi_SVAT/modi_greenroof.F90 src_teb/surface_aero_cond.F90 src_teb/day_of_week.F90 src_teb/flxsurf3bx.F src_teb/window_shading.F90 src_teb/modd_flood_par.F90 src_teb/teb_irrig.F90 src_teb/mass_layer_e_budget.F90 src_teb/avg_urban_fluxes.F90 src_teb/layer_e_budget.F90 src_struct/modd_teb_optionn.F90 src_teb/bem_morpho.F90 src_proxi_SVAT/garden.F90 src_struct/modi_dealloc_teb_struct.F90 src_driver/ol_read_atm.F90 src_teb/modi_day_of_week.f90 src_teb/modi_flxsurf3bx.f src_teb/modi_layer_e_budget_get_coef.f90 src_struct/modd_teb_paramsn.F90 src_struct/modd_tebn.F90 src_teb/modi_init_surfconsphy.f src_struct/modd_type_snow.F90 src_driver/open_close_bin_asc_forc.F90 src_teb/wall_layer_e_budget.F90 src_teb/mode_conv_DOE.F90 src_teb/facade_e_budget.F90 src_teb/modd_water_par.F90 src_teb/modi_tridiag_ground.f90 src_struct/window_data_struct.F90 src_teb/modd_surf_par.F90 src_teb/surface_cd.F90 src_teb/modi_surface_cd.f90 src_teb/modi_snow_cover_1layer.f90 src_driver/ol_time_interp_atm.F90 src_teb/teb.F90 src_teb/modi_urban_drag.f90 src_teb/modi_surface_ri.f90 src_solar/sunpos.F90 src_teb/modd_surf_atm.F90 src_teb/modi_bem.f90 src_teb/modi_window_e_budget.f90 src_teb/urban_drag.F90 src_driver/run_teb_offline.F90 src_api/sfc_teb.F90 src_driver/call_driver.F90 src_teb/mode_thermos.F90 src_teb/modi_urban_solar_abs.f90 src_proxi_SVAT/greenroof.F90 src_teb/urban_hydro.F90 src_struct/modd_diag_misc_tebn.F90 src_teb/modi_bld_occ_calendar.f90 src_teb/modi_urban_exch_coef.f90 src_teb/tridiag_ground.F90 src_teb/modi_wind_threshold.f90 src_teb/modi_roof_layer_e_budget.f90 src_teb/init_surfconsphy.F src_struct/modi_window_data_struct.f90 src_teb/modi_surface_aero_cond.f90 src_teb/modi_layer_e_budget.f90 src_driver/add_forecast_to_date_surf.F90 src_teb/bld_occ_calendar.F90 src_teb/bld_e_budget.F90 src_proxi_SVAT/modi_garden.F90 src_driver/ol_read_atm_ascii.F90 src_teb/modi_teb_irrig.f90
-OBJ = $(addprefix $(OBJDIR)/, modi_urban_mrt.o urban_mrt.o teb_log.o teb_host.o modd_teb_ext_surfn.o modd_teb_forcingn.o urb_aero_params.o snow_cover_1layer.o modi_teb_garden.o modd_reprod_oper.o mode_surf_snow_frac.o surface_ri.o layer_e_budget_get_coef.o modi_wall_layer_e_budget.o modi_avg_urban_fluxes.o close_file_asc.o dealloc_teb_struct.o modi_bem_morpho.o modi_solar_panel.o modi_ini_csts.o modi_teb_veg_properties.o road_layer_e_budget.o modd_teb_paneln.o modd_snow_par.o modi_floor_layer_e_budget.o solar_panel.o modi_urban_hydro.o ol_alloc_atm.o modi_teb.o floor_layer_e_budget.o modi_urban_fluxes.o modi_facade_e_budget.o urban_snow_evol.o modd_teb_irrign.o window_e_budget.o modi_bld_e_budget.o roof_impl_coef.o urban_exch_coef.o modi_road_layer_e_budget.o read_surf_atm.o modd_forc_atm.o modi_urban_snow_evol.o modd_type_date_surf.o modd_surf_conf.o modi_roof_impl_coef.o urban_solar_abs.o teb_garden.o alloc_teb_struct.o teb_veg_properties.o close_file.o window_data.o circumsolar_rad.o window_shading_availability.o dx_air_cooling_coil_cv.o modi_mass_layer_e_budget.o modi_urban_lw_coef.o modi_dx_air_cooling_coil_cv.o vslog.o modd_bem_paramsn.o modd_bemn.o urban_fluxes.o modd_bem_cst.o ini_csts.o modi_window_shading_availability.o bem_morpho_struct.o mode_char2real.o abor1_sfx.o bem.o urban_lw_coef.o modd_arch.o modd_csts.o modd_proxi_svat_par.o roof_layer_e_budget.o hook.o modi_window_shading.o modi_window_data.o wind_threshold.o wind_profile_wang.o ahf_traffic_now.o modd_bem_optionn.o modi_bem_morpho_struct.o modi_alloc_teb_struct.o mode_psychro.o modi_greenroof.o surface_aero_cond.o day_of_week.o flxsurf3bx.o window_shading.o modd_flood_par.o teb_irrig.o mass_layer_e_budget.o avg_urban_fluxes.o layer_e_budget.o modd_teb_optionn.o bem_morpho.o garden.o modi_dealloc_teb_struct.o ol_read_atm.o modi_day_of_week.o modi_flxsurf3bx.o modi_layer_e_budget_get_coef.o modd_teb_paramsn.o modd_tebn.o modi_init_surfconsphy.o modd_type_snow.o open_close_bin_asc_forc.o wall_layer_e_budget.o mode_conv_DOE.o facade_e_budget.o modd_water_par.o modi_tridiag_ground.o window_data_struct.o modd_surf_par.o surface_cd.o modi_surface_cd.o modi_snow_cover_1layer.o ol_time_interp_atm.o teb.o modi_urban_drag.o modi_surface_ri.o sunpos.o modd_surf_atm.o modi_bem.o modi_window_e_budget.o urban_drag.o run_teb_offline.o sfc_teb.o call_driver.o mode_thermos.o modi_urban_solar_abs.o greenroof.o urban_hydro.o modd_diag_misc_tebn.o modi_bld_occ_calendar.o modi_urban_exch_coef.o tridiag_ground.o modi_wind_threshold.o modi_roof_layer_e_budget.o init_surfconsphy.o modi_window_data_struct.o modi_surface_aero_cond.o modi_layer_e_budget.o add_forecast_to_date_surf.o bld_occ_calendar.o bld_e_budget.o modi_garden.o ol_read_atm_ascii.o modi_teb_irrig.o modi_diag_misc_teb_util.o)
-clean: neat
-	-rm -rf $(OBJDIR)
-	-rm -f $(shell find . -name "*.mod" 2>/dev/null)
-	-rm -f .cppdefs $(OBJ) *.obj $(EXEC) *.mod
-neat:
-	-rm -f $(TMPFILES)
-TAGS: $(SRC)
-	etags $(SRC)
-tags: $(SRC)
-	ctags $(SRC)
-$(EXEC): $(OBJ) | $(OBJDIR)
-	$(LD) $(OBJ) -o $(EXEC) $(LDFLAGS)
-
-# ----- Workaround for the UCRT setlocale defect (item C5) -----
-# The libgfortran formatted REAL output saves the setlocale(LC_NUMERIC, NULL)
-# pointer and the UCRT invalidates it on the next setlocale call: a rare
-# layout-dependent SIGSEGV in the first formatted REAL write (see
-# docs/TEB_MSU_change_history.md, §5.7 (C5) and §5.8).
-#
-# The workaround links libgfortran statically and routes its setlocale
-# references to src_driver/wrap_setlocale.c, which answers the name == NULL
-# query with a permanent buffer. It is enabled automatically on Windows with
-# gfortran, i.e. where the defect exists, and is not enabled on other systems:
-# glibc and the macOS runtime keep the returned string in static storage, so the
-# save/restore pattern cannot reach unmapped memory there. The results are
-# bit-identical with and without the workaround; the choice can be overridden:
-#
-#     make -C src WRAP_LOCALE=1      # force (other Windows toolchain, Cygwin)
-#     make -C src WRAP_LOCALE=0      # disable (plain reference build)
-#
-WRAP_HOST = $(findstring Windows_NT,$(OS))
-ifeq ($(origin WRAP_LOCALE),undefined)
-    ifneq (,$(WRAP_HOST))
-        WRAP_LOCALE := 1
-    else
-        WRAP_LOCALE := 0
-    endif
-endif
+# The UCRT workaround belongs to final executables, not to the physics archive.
+# Library consumers on Windows/GNU use the same optional platform object/flags.
+WRAP_LOCALE ?= $(if $(filter Windows_NT,$(OS)),1,0)
+PLATFORM_OBJ :=
+PLATFORM_LDFLAGS :=
 ifeq ($(WRAP_LOCALE),1)
-    ifneq (,$(findstring gfortran,$(FC)))
-        LOCALEWRAP = $(OBJDIR)/wrap_setlocale.o
-        LDFLAGS += -static-libgfortran $(LOCALEWRAP) -Wl,--wrap=setlocale
-        $(info WRAP_LOCALE: on - UCRT setlocale workaround (C5), static libgfortran)
-$(EXEC): $(LOCALEWRAP)
-$(OBJDIR)/wrap_setlocale.o: src_driver/wrap_setlocale.c | $(OBJDIR)
-	$(CC) -O0 -g -c $< -o $@
-    else
-        $(warning WRAP_LOCALE=1 not applied: the workaround needs the gfortran runtime - build with FC=gfortran (got FC=$(FC)))
-    endif
-else
-    $(info WRAP_LOCALE: off - plain build, no setlocale workaround)
+ifneq (,$(findstring gfortran,$(FC_NAME)))
+PLATFORM_OBJ := $(PLATFORM_OBJDIR)/wrap_setlocale.o
+PLATFORM_LDFLAGS := -static-libgfortran -Wl,--wrap=setlocale
+endif
 endif
 
-# ----- Generic rules for building into obj/ (fallback) -----
-vpath %.F90 src_driver src_teb src_struct src_proxi_SVAT src_solar
-vpath %.F90 src_api
-vpath %.f90 src_driver src_teb src_struct src_proxi_SVAT src_solar
-vpath %.F   src_teb
-vpath %.f   src_teb
+LIBDIR := $(patsubst %/,%,$(dir $(LIB)))
+EXECDIR := $(patsubst %/,%,$(dir $(EXEC)))
+BLOCK_EXECDIR := $(patsubst %/,%,$(dir $(BLOCK_EXEC)))
+OUTPUT_DIRS := $(sort $(BUILD_ROOT) $(OBJDIR) $(MODDIR) $(OFFLINE_OBJDIR) $(OFFLINE_MODDIR) $(BLOCK_OBJDIR) $(BLOCK_MODDIR) $(PLATFORM_OBJDIR) $(LIBDIR) $(EXECDIR) $(BLOCK_EXECDIR))
+PROFILE_FILE := $(BUILD_ROOT)/build-profile.txt
 
-$(OBJDIR)/%.o: %.F90 | $(OBJDIR)
-	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c $< -o $@
+.PHONY: all library offline offline-block platform help print-config profile-check force-module clean neat
+all: offline
+library: $(LIB)
+offline: $(EXEC)
+offline-block: $(BLOCK_EXEC)
+platform: $(PLATFORM_OBJ)
+force-module:
 
-$(OBJDIR)/%.o: %.f90 | $(OBJDIR)
-	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c $< -o $@
+$(OUTPUT_DIRS):
+	mkdir -p "$@"
 
-$(OBJDIR)/%.o: %.F | $(OBJDIR)
-	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c $< -o $@
+# A profile is immutable with respect to compilation settings. This catches a
+# stale .o/.mod mixture instead of silently reusing it with different flags.
+profile-check: | $(BUILD_ROOT)
+	@set -eu; tmp="$(PROFILE_FILE).tmp.$$$$"; \
+	printf '%s\n' 'SOURCE=$(CURDIR)' 'FC=$(FC)' 'FFLAGS=$(FFLAGS)' 'OTHERFLAGS=$(OTHERFLAGS)' 'CPPDEFS=$(CPPDEFS)' 'CPPFLAGS=$(CPPFLAGS)' 'CC=$(CC)' 'LD=$(LD)' 'LDFLAGS=$(LDFLAGS)' 'AR=$(AR)' 'ARFLAGS=$(ARFLAGS)' 'WRAP_LOCALE=$(WRAP_LOCALE)' 'OBJDIR=$(OBJDIR)' 'MODDIR=$(MODDIR)' 'OFFLINE_OBJDIR=$(OFFLINE_OBJDIR)' 'OFFLINE_MODDIR=$(OFFLINE_MODDIR)' 'BLOCK_OBJDIR=$(BLOCK_OBJDIR)' 'BLOCK_MODDIR=$(BLOCK_MODDIR)' 'BLOCK_EXEC=$(BLOCK_EXEC)' 'PLATFORM_OBJDIR=$(PLATFORM_OBJDIR)' 'LIB=$(LIB)' 'EXEC=$(EXEC)' > "$$tmp"; \
+	if [ -f "$(PROFILE_FILE)" ]; then \
+	  old_profile=$$(cat "$(PROFILE_FILE)"); new_profile=$$(cat "$$tmp"); \
+	  if [ "$$old_profile" != "$$new_profile" ]; then \
+	    rm -f "$$tmp"; \
+	    echo 'Build profile differs: choose a new BUILD_ROOT or clean this profile.' >&2; exit 1; \
+	  fi; rm -f "$$tmp"; \
+	else mv "$$tmp" "$(PROFILE_FILE)"; fi
 
-$(OBJDIR)/%.o: %.f | $(OBJDIR)
-	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) -c $< -o $@
+$(COMMON_OBJ): gfortran_args make/teb_sources.mk make/teb_dependencies.mk Makefile | $(OBJDIR) $(MODDIR) profile-check
+	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) $(COMMON_MODFLAGS) -c $(filter %.F90 %.f90 %.F %.f,$^) -o "$@"
+
+$(OFFLINE_OBJ): gfortran_args make/teb_sources.mk make/teb_dependencies.mk Makefile | $(OFFLINE_OBJDIR) $(OFFLINE_MODDIR) profile-check
+	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) $(OFFLINE_MODFLAGS) -c $(filter %.F90 %.f90 %.F %.f,$^) -o "$@"
+
+$(BLOCK_OBJ): gfortran_args make/teb_sources.mk make/teb_dependencies.mk Makefile | $(BLOCK_OBJDIR) $(BLOCK_MODDIR) profile-check
+	$(FC) $(CPPDEFS) $(CPPFLAGS) $(FFLAGS) $(OTHERFLAGS) $(BLOCK_MODFLAGS) -c $(filter %.F90 %.f90 %.F %.f,$^) -o "$@"
+
+# Recover a deleted module by rebuilding its provider once. Dependents already
+# name that provider object, so parallel compilation preserves the USE order.
+missing_modules = $(filter-out $(wildcard $(addprefix $(1)/,$(addsuffix .mod,$(TEB_MODULES_$(2))))),$(addprefix $(1)/,$(addsuffix .mod,$(TEB_MODULES_$(2)))))
+$(foreach stem,$(COMMON_STEMS),$(if $(call missing_modules,$(MODDIR),$(stem)),$(eval $(OBJDIR)/$(stem).o: force-module)))
+$(foreach stem,$(OFFLINE_STEMS),$(if $(call missing_modules,$(OFFLINE_MODDIR),$(stem)),$(eval $(OFFLINE_OBJDIR)/$(stem).o: force-module)))
+$(foreach stem,$(BLOCK_STEMS),$(if $(call missing_modules,$(BLOCK_MODDIR),$(stem)),$(eval $(BLOCK_OBJDIR)/$(stem).o: force-module)))
+
+# Start with a fresh archive so removed manifest members cannot survive a rebuild.
+$(LIB): $(COMMON_OBJ) make/teb_sources.mk Makefile | $(LIBDIR) profile-check
+	$(file >$(LIB).objects.rsp,$(COMMON_OBJ))
+	$(RM) "$(LIB).tmp"
+	$(AR) $(ARFLAGS) "$(LIB).tmp" @"$(LIB).objects.rsp"
+	mv -f "$(LIB).tmp" "$(LIB)"
+
+$(EXEC): $(OFFLINE_OBJ) $(LIB) $(PLATFORM_OBJ) Makefile gfortran_args | $(EXECDIR) profile-check
+	$(LD) $(OFFLINE_OBJ) "$(LIB)" $(PLATFORM_OBJ) -o "$@" $(LDFLAGS) $(PLATFORM_LDFLAGS)
+
+$(BLOCK_EXEC): $(BLOCK_OBJ) $(OFFLINE_SUPPORT_OBJ) $(LIB) $(PLATFORM_OBJ) Makefile gfortran_args | $(BLOCK_EXECDIR) profile-check
+	$(LD) $(BLOCK_OBJ) $(OFFLINE_SUPPORT_OBJ) "$(LIB)" $(PLATFORM_OBJ) -o "$@" $(LDFLAGS) $(PLATFORM_LDFLAGS)
+
+$(PLATFORM_OBJDIR)/wrap_setlocale.o: src_driver/wrap_setlocale.c Makefile | $(PLATFORM_OBJDIR) profile-check
+	$(CC) -O0 -g -c $< -o "$@"
+
+print-config:
+	@printf '%s\n' 'BUILD_ROOT=$(BUILD_ROOT)' 'LIB=$(LIB)' 'MODDIR=$(MODDIR)' 'OBJDIR=$(OBJDIR)' 'OFFLINE_MODDIR=$(OFFLINE_MODDIR)' 'OFFLINE_OBJDIR=$(OFFLINE_OBJDIR)' 'EXEC=$(EXEC)' 'PLATFORM_OBJ=$(PLATFORM_OBJ)' 'PLATFORM_LDFLAGS=$(PLATFORM_LDFLAGS)' 'COMMON_OBJECTS=$(words $(COMMON_OBJ))' 'OFFLINE_OBJECTS=$(words $(OFFLINE_OBJ))' 'BLOCK_EXEC=$(BLOCK_EXEC)' 'BLOCK_OBJECTS=$(words $(BLOCK_OBJ))'
+
+help:
+	@printf '%s\n' 'Targets: library, offline (default all), offline-block, platform, print-config, clean' 'Select FC/LD and an absolute external BUILD_ROOT; use a new root for different flags.' 'Windows: use the matching MSYS2 POSIX shell (SHELL=.../usr/bin/sh.exe).' 'Common and offline .o/.mod files are separate; .mod files are compiler-specific.'
+
+# Remove only this manifest/profile's named artifacts; never recursively delete
+# a caller-supplied directory or search the source tree for module files.
+neat:
+	$(RM) "$(LIB).tmp"
+CLEAN_FILES = $(COMMON_OBJ) $(OFFLINE_OBJ) $(BLOCK_OBJ) $(PLATFORM_OBJ) $(addprefix $(MODDIR)/,$(addsuffix .mod,$(COMMON_MODULES))) $(addprefix $(OFFLINE_MODDIR)/,$(addsuffix .mod,$(OFFLINE_MODULES))) $(addprefix $(BLOCK_MODDIR)/,$(addsuffix .mod,$(BLOCK_MODULES))) $(LIB) $(LIB).objects.rsp $(EXEC) $(BLOCK_EXEC) $(PROFILE_FILE)
+clean: neat | $(BUILD_ROOT)
+	$(file >$(BUILD_ROOT)/clean-files.list)
+	$(foreach artifact,$(CLEAN_FILES),$(file >>$(BUILD_ROOT)/clean-files.list,$(artifact)))
+	@cr=$$(printf '\r'); while IFS= read -r artifact; do artifact=$${artifact%$$cr}; $(RM) "$$artifact" || exit 1; done < "$(BUILD_ROOT)/clean-files.list"
+	$(RM) "$(BUILD_ROOT)/clean-files.list"

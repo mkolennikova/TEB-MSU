@@ -4,8 +4,8 @@
 !SFX_LIC for details. version 1.
 !     #########
     SUBROUTINE TEB_IRRIG(OIRRIG, PTSTEP, KMONTH, PSOLAR_TIME,   &
-               PSTART_MONTH, PEND_MONTH, PSTART_HOUR, PEND_HOUR,&
-               P24H_IRRIG, PIRRIG                               )
+                         PSTART_MONTH, PEND_MONTH, PSTART_HOUR, PEND_HOUR,&
+                         P24H_IRRIG, PIRRIG                               )
 !   ##########################################################################
 !
 !!****  *TEB_IRRIG*  
@@ -53,24 +53,24 @@ IMPLICIT NONE
 !*      0.1    declarations of arguments
 !
 !
-LOGICAL,            INTENT(IN)  :: OIRRIG   ! Flag for irrigation or not
-REAL,               INTENT(IN)  :: PTSTEP   ! time step
-INTEGER,            INTENT(IN)  :: KMONTH   ! Present Month
-REAL, DIMENSION(:), INTENT(IN)  :: PSOLAR_TIME ! solar time (s since midnight)
-REAL, DIMENSION(:), INTENT(IN)  :: PSTART_MONTH! First month for irrigation (included)
-REAL, DIMENSION(:), INTENT(IN)  :: PEND_MONTH  ! Last  month for irrigation (included)
-REAL, DIMENSION(:), INTENT(IN)  :: PSTART_HOUR ! First month for irrigation (included)
-REAL, DIMENSION(:), INTENT(IN)  :: PEND_HOUR   ! Last  month for irrigation (ecluded)
-REAL, DIMENSION(:), INTENT(IN)  :: P24H_IRRIG  ! 24h total irrigation
-REAL, DIMENSION(:), INTENT(OUT) :: PIRRIG      ! present irrigation
+LOGICAL,            INTENT(IN)  :: OIRRIG        ! Flag for irrigation or not
+REAL,               INTENT(IN)  :: PTSTEP        ! time step
+INTEGER,            INTENT(IN)  :: KMONTH        ! Present Month
+REAL, DIMENSION(:), INTENT(IN)  :: PSOLAR_TIME   ! solar time (s since midnight)
+REAL, DIMENSION(:), INTENT(IN)  :: PSTART_MONTH  ! First month for irrigation (included)
+REAL, DIMENSION(:), INTENT(IN)  :: PEND_MONTH    ! Last  month for irrigation (included)
+REAL, DIMENSION(:), INTENT(IN)  :: PSTART_HOUR   ! First month for irrigation (included)
+REAL, DIMENSION(:), INTENT(IN)  :: PEND_HOUR     ! Last  month for irrigation (ecluded)
+REAL, DIMENSION(:), INTENT(IN)  :: P24H_IRRIG    ! 24h total irrigation
+REAL, DIMENSION(:), INTENT(OUT) :: PIRRIG        ! present irrigation
 !
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !
 !*      0.2    declarations of local variables
 !
-LOGICAL, DIMENSION(SIZE(PIRRIG)):: GMONTH!if irrigation occurs during present month
-LOGICAL, DIMENSION(SIZE(PIRRIG)):: GHOUR !if irrigation occurs at     present time
-REAL,    DIMENSION(SIZE(PIRRIG)):: ZDURATION ! duration of irrigation per day (s)
+LOGICAL, DIMENSION(SIZE(PIRRIG)):: GMONTH     !if irrigation occurs during present month
+LOGICAL, DIMENSION(SIZE(PIRRIG)):: GHOUR      !if irrigation occurs at     present time
+REAL,    DIMENSION(SIZE(PIRRIG)):: ZDURATION  ! duration of irrigation per day (s)
 !
 !-------------------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('TEB_IRRIG',0,ZHOOK_HANDLE)
@@ -93,7 +93,7 @@ END IF
 WHERE (PSTART_MONTH <= PEND_MONTH)   ! for summer in North hemisphere
   GMONTH = KMONTH>=PSTART_MONTH .AND. KMONTH<= PEND_MONTH
 ELSEWHERE                            ! for summer in South hemisphere
-                                     ! change of year during irrigation period
+  ! change of year during irrigation period
   GMONTH = KMONTH>=PSTART_MONTH .OR.  KMONTH<= PEND_MONTH
 END WHERE
 !
@@ -106,11 +106,11 @@ GHOUR = .FALSE.
 ZDURATION = 0.
 !
 WHERE (PSTART_HOUR  <= PEND_HOUR)      ! typically irrigation during day
-  GHOUR  = PSOLAR_TIME+PTSTEP>=PSTART_HOUR*3600. .AND. PSOLAR_TIME<=PEND_HOUR*3600.
+  GHOUR     = PSOLAR_TIME+PTSTEP>=PSTART_HOUR*3600. .AND. PSOLAR_TIME<=PEND_HOUR*3600.
   ZDURATION = 3600.* (PEND_HOUR-PSTART_HOUR)
 ELSE WHERE                             ! typically irrigation during night
-                                       ! midnight is during irrigation period
-  GHOUR  = PSOLAR_TIME+PTSTEP>=PSTART_HOUR*3600. .OR.  PSOLAR_TIME< PEND_HOUR*3600.
+  ! midnight is during irrigation period
+  GHOUR     = PSOLAR_TIME+PTSTEP>=PSTART_HOUR*3600. .OR.  PSOLAR_TIME< PEND_HOUR*3600.
   ZDURATION = 3600.* (PEND_HOUR + 24.-PSTART_HOUR)
 END WHERE
 !

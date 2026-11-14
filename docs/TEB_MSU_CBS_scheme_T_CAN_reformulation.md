@@ -587,7 +587,7 @@ T_ref  = (τ·Ca_h_C·PT_LOWCAN + (1−τ)·Ca_h_A·PTA) / Ca_eff  (аналог
 
 ## 5. Диагностики схемы
 
-Все колонки выводятся в `TEB_output.csv` (`src/src_driver/run_teb_offline.F90`).
+Все колонки выводятся в `TEB_output.csv` (`src_dev/src_offline/run_teb_offline.F90`).
 
 | колонка | смысл |
 | --- | --- |
@@ -737,7 +737,7 @@ T_ref  = (τ·Ca_h_C·PT_LOWCAN + (1−τ)·Ca_h_A·PTA) / Ca_eff  (аналог
 * `src/src_teb/urban_drag.F90` — проводимости обеих ветвей и ограничение по запасу воды;
 * `src/src_teb/snow_cover_1layer.F90` — ветвь «снег↔атмосфера»;
 * `src/src_teb/urban_fluxes.F90`, `src/src_teb/urban_hydro.F90` — нормировка потоков и водный путь;
-* `src/src_driver/run_teb_offline.F90` — колонки CSV.
+* `src_dev/src_offline/run_teb_offline.F90` — колонки CSV.
 
 Документы: `TEB_MSU_garden_diagnostic_scheme.md`, `TEB_MSU_source_defects.md`,
 `TEB_MSU_change_history.md`, `TEB_MSU_variables_description.md`.

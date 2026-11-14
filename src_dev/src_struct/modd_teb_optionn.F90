@@ -54,41 +54,41 @@ TYPE TEB_OPTIONS_t
 !*              (CBLD_ATYPE, CTREE, LHYDRO)
 ! TEB scheme option
 !
-  LOGICAL                        :: LCANOPY      ! T: SBL scheme within the canopy
-                                                 ! F: no atmospheric layers below forcing level      
-  LOGICAL                        :: LGARDEN      ! T: Urban green areas (call ISBA from TEB)
-                                                 ! F: No urban green areas
-  CHARACTER(LEN=4)               :: CROAD_DIR    ! TEB option for road directions
-                                                 ! 'UNIF' : no specific direction
-                                                 ! 'ORIE' : many road ORIEntations
-                                                 ! ( one per TEB patch)
-  CHARACTER(LEN=4)               :: CWALL_OPT    ! TEB option for walls
-                                                 ! 'UNIF' : uniform walls
-                                                 ! 'TWO ' : two separated walls
-  CHARACTER(LEN=3)               :: CBLD_ATYPE   ! Type of averaging for walls
-                                                 ! 'ARI'  : Characteristics are
-                                                 !          linearly averaged
-                                                 ! 'MAJ ' : Majoritary building in
-                                                 !          grid mesh is chosen
-  CHARACTER(LEN=6)               :: CZ0H         ! TEB option for z0h roof & road
-                                                 ! 'MASC95' : Mascart et al 1995
-                                                 ! 'BRUT82' : Brustaert     1982
-                                                 ! 'KAND07' : Kanda         2007
-  CHARACTER(LEN=5)               :: CCH_BEM      ! BEM option for roof/wall outside convective coefficient
-                                                 ! 'DOE-2' : DOE-2 model from
-                                                 ! EnergyPlus Engineering reference, p65
-  CHARACTER(LEN=3)               :: CBEM         ! TEB option for the building energy model
-                                                 ! 'DEF':  DEFault version force-restore model from Masson et al. 2002
-                                                 ! 'BEM':  Building Energy Model Bueno et al. 2011
+  LOGICAL                        :: LCANOPY     ! T: SBL scheme within the canopy
+                                                ! F: no atmospheric layers below forcing level      
+  LOGICAL                        :: LGARDEN     ! T: Urban green areas (call ISBA from TEB)
+                                                ! F: No urban green areas
+  CHARACTER(LEN=4)               :: CROAD_DIR   ! TEB option for road directions
+                                                ! 'UNIF' : no specific direction
+                                                ! 'ORIE' : many road ORIEntations
+                                                ! ( one per TEB patch)
+  CHARACTER(LEN=4)               :: CWALL_OPT   ! TEB option for walls
+                                                ! 'UNIF' : uniform walls
+                                                ! 'TWO ' : two separated walls
+  CHARACTER(LEN=3)               :: CBLD_ATYPE  ! Type of averaging for walls
+                                                ! 'ARI'  : Characteristics are
+                                                !          linearly averaged
+                                                ! 'MAJ ' : Majoritary building in
+                                                !          grid mesh is chosen
+  CHARACTER(LEN=6)               :: CZ0H        ! TEB option for z0h roof & road
+                                                ! 'MASC95' : Mascart et al 1995
+                                                ! 'BRUT82' : Brustaert     1982
+                                                ! 'KAND07' : Kanda         2007
+  CHARACTER(LEN=5)               :: CCH_BEM     ! BEM option for roof/wall outside convective coefficient
+                                                ! 'DOE-2' : DOE-2 model from
+                                                ! EnergyPlus Engineering reference, p65
+  CHARACTER(LEN=3)               :: CBEM        ! TEB option for the building energy model
+                                                ! 'DEF':  DEFault version force-restore model from Masson et al. 2002
+                                                ! 'BEM':  Building Energy Model Bueno et al. 2011
 
-  CHARACTER(LEN=3)               :: CTREE        ! TEB option for the high vegetation
-                                                 ! 'DEF':  DEFault version without radiative, dynamic effects or turbulent fluxes
-                                                 ! 'RAD':  only RADiative effects 
-                                                 ! 'DYN':  radiative and DYNamic effects 
-                                                 ! 'FLX':  radiative, dynamic effects, and turbulent fluxes 
-  LOGICAL                        :: LGREENROOF   ! T: green roofs (call ISBA from TEB)
-  LOGICAL                        :: LHYDRO       ! T: urban subsoil and hydrology processes
-  LOGICAL                        :: LSOLAR_PANEL ! T: solar panels on roofs
+  CHARACTER(LEN=3)               :: CTREE         ! TEB option for the high vegetation
+                                                  ! 'DEF':  DEFault version without radiative, dynamic effects or turbulent fluxes
+                                                  ! 'RAD':  only RADiative effects 
+                                                  ! 'DYN':  radiative and DYNamic effects 
+                                                  ! 'FLX':  radiative, dynamic effects, and turbulent fluxes 
+  LOGICAL                        :: LGREENROOF    ! T: green roofs (call ISBA from TEB)
+  LOGICAL                        :: LHYDRO        ! T: urban subsoil and hydrology processes
+  LOGICAL                        :: LSOLAR_PANEL  ! T: solar panels on roofs
 !MV202609 garden model type
 ! type of the garden model (namelist teb_type_garden):
 !   'PROXY_OLD' : fixed Bowen-ratio proxy (the historical scheme)
@@ -99,7 +99,7 @@ TYPE TEB_OPTIONS_t
 !   'EXT_NEU'   : same external garden, but the coefficients use the neutral
 !                 formulation of the internal garden (no stratification, the same
 !                 thermal roughness z0h)
-  CHARACTER(LEN=9)               :: CTYPE_GARDEN ! TEB option for the garden model
+  CHARACTER(LEN=9)               :: CTYPE_GARDEN  ! TEB option for the garden model
 !MV202609 garden thermal roughness (z0h)
 ! Thermal (scalar) roughness of the garden: z0h = urb_z0_gdn/XZ0_O_Z0H_GD, i.e.
 ! the ratio z0/z0h of the namelist item urb_z0_o_z0h_gdn (>= 1, default
@@ -109,18 +109,18 @@ TYPE TEB_OPTIONS_t
 ! thermal roughness. It is the single source of the value used by the internal
 ! garden (GARDEN_CBS), by the exported coefficients of URBAN_DRAG ('EXT' and
 ! 'EXT_NEU') and by the emulator of the offline driver.
-  REAL                           :: XZ0_O_Z0H_GD ! garden z0/z0h ratio (-)
+  REAL                           :: XZ0_O_Z0H_GD  ! garden z0/z0h ratio (-)
 !MV202609 greenroof model type (namelist teb_type_greenroof)
 !   'PROXY_OLD' : fixed Bowen-ratio proxy (the historical scheme)
 !   'PROXY_NEW' : diagnostic closed surface energy balance (default); the
 !                 greenroof is a ROOF surface and exchanges only with the air of
 !                 the forcing level (no canyon branch and no tau split)
-  CHARACTER(LEN=9)               :: CTYPE_GREENROOF ! TEB option for the greenroof model
+  CHARACTER(LEN=9)               :: CTYPE_GREENROOF  ! TEB option for the greenroof model
 !MV202609 greenroof thermal roughness (z0h): same formulation as the garden,
 !* ratio z0/z0h of the namelist item urb_z0_o_z0h_grf (>= 1, default XZ0_O_Z0H_GR)
-  REAL                           :: XZ0_O_Z0H_GR ! greenroof z0/z0h ratio (-)
+  REAL                           :: XZ0_O_Z0H_GR  ! greenroof z0/z0h ratio (-)
 !MV202610 external greenroof model (namelist teb_lgreenroof_ext)
-   LOGICAL                        :: LGREENROOF_EXT ! T: the greenroof is an external model
+  LOGICAL                        :: LGREENROOF_EXT  ! T: the greenroof is an external model
 
 !MV202609 CBS scheme of the road
 ! CBS scheme for the road: the actual road fluxes are the weighted mean of the
@@ -130,27 +130,27 @@ TYPE TEB_OPTIONS_t
 ! directly with the air of the forcing level) and tau = 1 for dense canyons
 ! (H/W above the threshold, the road exchanges with the canyon air only).
 !
-  LOGICAL                        :: LCBS_SCHEME  ! T: CBS scheme activated
-  REAL                           :: XTAU_HW_THRESH ! H/W giving tau = 0.5       (-)
-  REAL                           :: XTAU_HW_WIDTH  ! width of the tanh relaxation (-)
+  LOGICAL                        :: LCBS_SCHEME     ! T: CBS scheme activated
+  REAL                           :: XTAU_HW_THRESH  ! H/W giving tau = 0.5       (-)
+  REAL                           :: XTAU_HW_WIDTH   ! width of the tanh relaxation (-)
 ! 
 !
 ! Number of layers
 !
-  INTEGER                       :: NROOF_LAYER   ! number of layers in roofs
-  INTEGER                       :: NROAD_LAYER   ! number of layers in roads
-  INTEGER                       :: NWALL_LAYER   ! number of layers in walls
+  INTEGER                       :: NROOF_LAYER  ! number of layers in roofs
+  INTEGER                       :: NROAD_LAYER  ! number of layers in roads
+  INTEGER                       :: NWALL_LAYER  ! number of layers in walls
 !MV202610 canyon wind parameterization and the UTC hour of the traffic cycle
-   INTEGER                        :: ITYPE_WIND  ! 0: original, 1: Wang (2012)
-   INTEGER                        :: NUTC_HOUR   ! UTC hour for the traffic daily cycle
+  INTEGER                        :: ITYPE_WIND  ! 0: original, 1: Wang (2012)
+  INTEGER                        :: NUTC_HOUR   ! UTC hour for the traffic daily cycle
 !
 ! Date:
 !
-  TYPE (DATE_TIME)              :: TTIME         ! current date and time
+  TYPE (DATE_TIME)              :: TTIME  ! current date and time
 !
 ! Time-step:
 !
-  REAL                          :: XTSTEP        ! time step for TEB
+  REAL                          :: XTSTEP  ! time step for TEB
 !
 !
 END TYPE TEB_OPTIONS_t

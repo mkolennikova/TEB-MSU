@@ -43,25 +43,25 @@ TYPE TEB_IRRIG_t
 !*   reserved - garden and greenroof irrigation (LTEB_IRRIG, LPAR_{GD,GR}_IRRIG,
 !*              X{GD,GR}_*): not used in TEB-MSU
 !
-  LOGICAL                        :: LTEB_IRRIG        ! flag to use irrigation for gardens or greenroofs
-  LOGICAL                        :: LPAR_GD_IRRIG     ! flag to use prescribed irrigation for gardens
-  LOGICAL                        :: LPAR_GR_IRRIG     ! flag to use prescribed irrigation for greenroofs
-  LOGICAL                        :: LPAR_RD_IRRIG     ! flag to use prescribed irrigation for roads
-  REAL,    POINTER, DIMENSION(:) :: XGD_START_MONTH   ! gardens : start month for irrigation (included)
-  REAL,    POINTER, DIMENSION(:) :: XGD_END_MONTH     ! gardens : end   month for irrigation (included)
-  REAL,    POINTER, DIMENSION(:) :: XGD_START_HOUR    ! gardens : start solar hour for irrigation (included, hour)
-  REAL,    POINTER, DIMENSION(:) :: XGD_END_HOUR      ! gardens : end   solar hour for irrigation (excluded, hour)
-  REAL,    POINTER, DIMENSION(:) :: XGD_24H_IRRIG     ! gardens : total irrigation over 24 hours (kg/m2)
-  REAL,    POINTER, DIMENSION(:) :: XGR_START_MONTH   ! greenroofs : start month for irrigation (included)
-  REAL,    POINTER, DIMENSION(:) :: XGR_END_MONTH     ! greenroofs : end   month for irrigation (included)
-  REAL,    POINTER, DIMENSION(:) :: XGR_START_HOUR    ! greenroofs : start solar hour for irrigation (included, hour)
-  REAL,    POINTER, DIMENSION(:) :: XGR_END_HOUR      ! greenroofs : end   solar hour for irrigation (excluded, hour)
-  REAL,    POINTER, DIMENSION(:) :: XGR_24H_IRRIG     ! greenroofs : total irrigation over 24 hours (kg/m2)
-  REAL,    POINTER, DIMENSION(:) :: XRD_START_MONTH   ! roads : start month for irrigation (included)
-  REAL,    POINTER, DIMENSION(:) :: XRD_END_MONTH     ! roads : end   month for irrigation (included)
-  REAL,    POINTER, DIMENSION(:) :: XRD_START_HOUR    ! roads : start solar hour for irrigation (included, hour)
-  REAL,    POINTER, DIMENSION(:) :: XRD_END_HOUR      ! roads : end   solar hour for irrigation (excluded, hour)
-  REAL,    POINTER, DIMENSION(:) :: XRD_24H_IRRIG     ! roads : total irrigation over 24 hours (kg/m2)
+  LOGICAL                        :: LTEB_IRRIG       ! flag to use irrigation for gardens or greenroofs
+  LOGICAL                        :: LPAR_GD_IRRIG    ! flag to use prescribed irrigation for gardens
+  LOGICAL                        :: LPAR_GR_IRRIG    ! flag to use prescribed irrigation for greenroofs
+  LOGICAL                        :: LPAR_RD_IRRIG    ! flag to use prescribed irrigation for roads
+  REAL,    POINTER, DIMENSION(:) :: XGD_START_MONTH  ! gardens : start month for irrigation (included)
+  REAL,    POINTER, DIMENSION(:) :: XGD_END_MONTH    ! gardens : end   month for irrigation (included)
+  REAL,    POINTER, DIMENSION(:) :: XGD_START_HOUR   ! gardens : start solar hour for irrigation (included, hour)
+  REAL,    POINTER, DIMENSION(:) :: XGD_END_HOUR     ! gardens : end   solar hour for irrigation (excluded, hour)
+  REAL,    POINTER, DIMENSION(:) :: XGD_24H_IRRIG    ! gardens : total irrigation over 24 hours (kg/m2)
+  REAL,    POINTER, DIMENSION(:) :: XGR_START_MONTH  ! greenroofs : start month for irrigation (included)
+  REAL,    POINTER, DIMENSION(:) :: XGR_END_MONTH    ! greenroofs : end   month for irrigation (included)
+  REAL,    POINTER, DIMENSION(:) :: XGR_START_HOUR   ! greenroofs : start solar hour for irrigation (included, hour)
+  REAL,    POINTER, DIMENSION(:) :: XGR_END_HOUR     ! greenroofs : end   solar hour for irrigation (excluded, hour)
+  REAL,    POINTER, DIMENSION(:) :: XGR_24H_IRRIG    ! greenroofs : total irrigation over 24 hours (kg/m2)
+  REAL,    POINTER, DIMENSION(:) :: XRD_START_MONTH  ! roads : start month for irrigation (included)
+  REAL,    POINTER, DIMENSION(:) :: XRD_END_MONTH    ! roads : end   month for irrigation (included)
+  REAL,    POINTER, DIMENSION(:) :: XRD_START_HOUR   ! roads : start solar hour for irrigation (included, hour)
+  REAL,    POINTER, DIMENSION(:) :: XRD_END_HOUR     ! roads : end   solar hour for irrigation (excluded, hour)
+  REAL,    POINTER, DIMENSION(:) :: XRD_24H_IRRIG    ! roads : total irrigation over 24 hours (kg/m2)
 !
 END TYPE TEB_IRRIG_t
 
@@ -78,21 +78,21 @@ SUBROUTINE TEB_IRRIG_INIT(YTEB_IRRIG)
 TYPE(TEB_IRRIG_t), INTENT(INOUT) :: YTEB_IRRIG
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 IF (LHOOK) CALL DR_HOOK("MODD_TEB_IRRIG_N:TEB_IRRIG_INIT",0,ZHOOK_HANDLE)
-  NULLIFY(YTEB_IRRIG%XGD_START_MONTH)
-  NULLIFY(YTEB_IRRIG%XGD_END_MONTH)
-  NULLIFY(YTEB_IRRIG%XGD_START_HOUR)
-  NULLIFY(YTEB_IRRIG%XGD_END_HOUR)
-  NULLIFY(YTEB_IRRIG%XGD_24H_IRRIG)
-  NULLIFY(YTEB_IRRIG%XGR_START_MONTH)
-  NULLIFY(YTEB_IRRIG%XGR_END_MONTH)
-  NULLIFY(YTEB_IRRIG%XGR_START_HOUR)
-  NULLIFY(YTEB_IRRIG%XGR_END_HOUR)
-  NULLIFY(YTEB_IRRIG%XGR_24H_IRRIG)
-  NULLIFY(YTEB_IRRIG%XRD_START_MONTH)
-  NULLIFY(YTEB_IRRIG%XRD_END_MONTH)
-  NULLIFY(YTEB_IRRIG%XRD_START_HOUR)
-  NULLIFY(YTEB_IRRIG%XRD_END_HOUR)
-  NULLIFY(YTEB_IRRIG%XRD_24H_IRRIG)
+NULLIFY(YTEB_IRRIG%XGD_START_MONTH)
+NULLIFY(YTEB_IRRIG%XGD_END_MONTH)
+NULLIFY(YTEB_IRRIG%XGD_START_HOUR)
+NULLIFY(YTEB_IRRIG%XGD_END_HOUR)
+NULLIFY(YTEB_IRRIG%XGD_24H_IRRIG)
+NULLIFY(YTEB_IRRIG%XGR_START_MONTH)
+NULLIFY(YTEB_IRRIG%XGR_END_MONTH)
+NULLIFY(YTEB_IRRIG%XGR_START_HOUR)
+NULLIFY(YTEB_IRRIG%XGR_END_HOUR)
+NULLIFY(YTEB_IRRIG%XGR_24H_IRRIG)
+NULLIFY(YTEB_IRRIG%XRD_START_MONTH)
+NULLIFY(YTEB_IRRIG%XRD_END_MONTH)
+NULLIFY(YTEB_IRRIG%XRD_START_HOUR)
+NULLIFY(YTEB_IRRIG%XRD_END_HOUR)
+NULLIFY(YTEB_IRRIG%XRD_24H_IRRIG)
 YTEB_IRRIG%LTEB_IRRIG = .FALSE.
 YTEB_IRRIG%LPAR_GD_IRRIG = .FALSE.
 YTEB_IRRIG%LPAR_GR_IRRIG = .FALSE.

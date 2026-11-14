@@ -117,11 +117,11 @@ REAL, SAVE       :: XTAU_SMELT = 300.
 ! Critical value of the equivalent water content
 ! of the snow reservoir for snow fractional coverage and albedo computations
 !
-REAL, PARAMETER       :: XWCRN      = 10.0   ! (kg m-2) Veg (default value)
-REAL, PARAMETER       :: XWCRN_EXPL =  1.0   ! (kg m-2) Veg explicit
-REAL, PARAMETER       :: XWCRN_ROOF =  1.0   ! (kg m-2)  Roofs 
-REAL, PARAMETER       :: XWCRN_ROAD =  1.0   ! (kg m-2)  Roads
-REAL, PARAMETER       :: XWCRN_VEG  =  1.0   ! (kg m-2)  Urban veg
+REAL, PARAMETER       :: XWCRN      = 10.0  ! (kg m-2) Veg (default value)
+REAL, PARAMETER       :: XWCRN_EXPL =  1.0  ! (kg m-2) Veg explicit
+REAL, PARAMETER       :: XWCRN_ROOF =  1.0  ! (kg m-2)  Roofs 
+REAL, PARAMETER       :: XWCRN_ROAD =  1.0  ! (kg m-2)  Roads
+REAL, PARAMETER       :: XWCRN_VEG  =  1.0  ! (kg m-2)  Urban veg
 !
 ! Critical value of the total snow depth for ground snow fractional coverage
 !
@@ -133,23 +133,23 @@ REAL, PARAMETER       :: XEMCRIN = 0.98
 !
 ! Minimum and maximum values of the albedo of snow:
 !
-REAL, PARAMETER       :: XANSMIN_ROOF = 0.30 ! (-)   Roofs
-REAL, PARAMETER       :: XANSMIN_ROAD = 0.15 ! (-)   Roads
+REAL, PARAMETER       :: XANSMIN_ROOF = 0.30  ! (-)   Roofs
+REAL, PARAMETER       :: XANSMIN_ROAD = 0.15  ! (-)   Roads
 !
-REAL, PARAMETER       :: XANSMAX_ROOF = 0.85 ! (-)   Roofs
-REAL, PARAMETER       :: XANSMAX_ROAD = 0.85 ! (-)   Roads
+REAL, PARAMETER       :: XANSMAX_ROOF = 0.85  ! (-)   Roofs
+REAL, PARAMETER       :: XANSMAX_ROAD = 0.85  ! (-)   Roads
 !
 ! Snow aging coefficients (albedo and Force-Restore density):
 !
-REAL, PARAMETER       :: XANS_TODRY    = 0.008     ! (-) Veg (default value)
-REAL, PARAMETER       :: XANS_TODRY_ROOF = 0.008   ! (-)  Roofs
-REAL, PARAMETER       :: XANS_TODRY_ROAD = 0.008   ! (-)  Roads
-REAL, PARAMETER       :: XANS_TODRY_MEB  = 0.016   ! (-) Surface under canopy vegetation
+REAL, PARAMETER       :: XANS_TODRY    = 0.008    ! (-) Veg (default value)
+REAL, PARAMETER       :: XANS_TODRY_ROOF = 0.008  ! (-)  Roofs
+REAL, PARAMETER       :: XANS_TODRY_ROAD = 0.008  ! (-)  Roads
+REAL, PARAMETER       :: XANS_TODRY_MEB  = 0.016  ! (-) Surface under canopy vegetation
 !
-REAL, PARAMETER       :: XANS_T        = 0.240     ! (-) Veg (default value)
-REAL, PARAMETER       :: XANS_T_ROOF     = 0.174   ! (-)  Roofs
-REAL, PARAMETER       :: XANS_T_ROAD     = 0.174   ! (-)  Roads (alley simul)
-REAL, PARAMETER       :: XANS_T_MEB    = 0.480     ! (-) Surface under canopy vegetation
+REAL, PARAMETER       :: XANS_T        = 0.240    ! (-) Veg (default value)
+REAL, PARAMETER       :: XANS_T_ROOF     = 0.174  ! (-)  Roofs
+REAL, PARAMETER       :: XANS_T_ROAD     = 0.174  ! (-)  Roads (alley simul)
+REAL, PARAMETER       :: XANS_T_MEB    = 0.480    ! (-) Surface under canopy vegetation
 !
 ! Minimum and maximum values of the density of snow 
 ! for Force-Restore snow option
@@ -183,26 +183,26 @@ REAL, PARAMETER       :: X_RI_MAX = 0.20
 !                                       
 ! ISBA-ES Maximum snow liquid water holding capacity (fraction by mass) parameters:
 !
-REAL, PARAMETER       :: XWSNOWHOLDMAX2   = 0.10  ! (-) 
-REAL, PARAMETER       :: XWSNOWHOLDMAX1   = 0.03  ! (-)
-REAL, PARAMETER       :: XSNOWRHOHOLD     = 200.0 ! (kg/m3)
+REAL, PARAMETER       :: XWSNOWHOLDMAX2   = 0.10   ! (-) 
+REAL, PARAMETER       :: XWSNOWHOLDMAX1   = 0.03   ! (-)
+REAL, PARAMETER       :: XSNOWRHOHOLD     = 200.0  ! (kg/m3)
 !                                       
 ! ISBA-ES arameters for grain size computation :
 !
-REAL, PARAMETER       :: XSNOW_AGRAIN = 1.6e-4   ! (m)
-REAL, PARAMETER       :: XSNOW_BGRAIN = 1.1e-13  ! (m13/kg4)
-REAL, PARAMETER       :: XSNOW_CGRAIN = 0.5e-4   ! (m)
-REAL, PARAMETER       :: XDSGRAIN_MAX = 2.796e-3 ! m
+REAL, PARAMETER       :: XSNOW_AGRAIN = 1.6e-4    ! (m)
+REAL, PARAMETER       :: XSNOW_BGRAIN = 1.1e-13   ! (m13/kg4)
+REAL, PARAMETER       :: XSNOW_CGRAIN = 0.5e-4    ! (m)
+REAL, PARAMETER       :: XDSGRAIN_MAX = 2.796e-3  ! m
 !
 !--------------------------------------------------------------------------------
 ! Calibration coefficients for CROCUS and ES albedo computation
 !--------------------------------------------------------------------------------
 !
 REAL, PARAMETER :: XD1 = 1., XD2 = 3., XD3 = 4., XX = 99., &
-                   XVALB2 = .96, XVALB3 = 1.58, XVALB4 = .92, XVALB5 = .90, &
-                   XVALB6 = 15.4, XVALB7 = 346.3, XVALB8 = 32.31, XVALB9 = .88, &
-                   XVALB10 = .200, XVALB11 = .6, XVDIOP1 = 2.3E-3, XVRPRE1 = .5, &
-                   XVRPRE2=1.5
+  XVALB2 = .96, XVALB3 = 1.58, XVALB4 = .92, XVALB5 = .90, &
+  XVALB6 = 15.4, XVALB7 = 346.3, XVALB8 = 32.31, XVALB9 = .88, &
+  XVALB10 = .200, XVALB11 = .6, XVDIOP1 = 2.3E-3, XVRPRE1 = .5, &
+  XVRPRE2=1.5
 !
 ! for ageing effects:
 REAL, PARAMETER :: XVPRES1 = 87000.
@@ -220,7 +220,7 @@ REAL, PARAMETER :: XVW1 = .80, XVW2 = .20 , XVD1 = .02, XVD2 = .01
 !--------------------------------------------------------------------------------
 ! calibration coefficients for exctinction computation
 REAL, PARAMETER :: XVBETA1 = 1.92E-3, XVBETA2 = 40., XVBETA3 = 1.098E-2, &
-                   XVBETA4 = 100.,  XVBETA5 = 2000.
+  XVBETA4 = 100.,  XVBETA5 = 2000.
 !
 ! ISBA-ES minimum cosinus of zenithal angle
 REAL, PARAMETER :: XMINCOSZEN = 0.01
@@ -237,9 +237,9 @@ REAL, PARAMETER :: XSNOWTHRMCOND2 = 2.5E-6  ! [W m5/(kg2 K)]
 ! from Sun et al. (1999): based on data from Jordan (1991)
 ! see Boone, Meteo-France/CNRM Note de Centre No. 70 (2002)
 !
-REAL, PARAMETER :: XSNOWTHRMCOND_AVAP = -0.06023 ! [W/(m K)]
-REAL, PARAMETER :: XSNOWTHRMCOND_BVAP = -2.5425  ! (W/m)
-REAL, PARAMETER :: XSNOWTHRMCOND_CVAP = -289.99  ! (K)
+REAL, PARAMETER :: XSNOWTHRMCOND_AVAP = -0.06023  ! [W/(m K)]
+REAL, PARAMETER :: XSNOWTHRMCOND_BVAP = -2.5425   ! (W/m)
+REAL, PARAMETER :: XSNOWTHRMCOND_CVAP = -289.99   ! (K)
 !
 ! Crocus thermal conducitivity coefficient from Yen (1981)
 REAL, PARAMETER :: XVRKZ6 = 1.88
@@ -294,10 +294,10 @@ REAL, PARAMETER :: XAGREG_COEF_2 = 4.5
 !--------------------------------------------------------------------------------
 !
 ! Calibration coefficients
-REAL, PARAMETER :: XVTIME = 48*3600. ! characteristic time for
+REAL, PARAMETER :: XVTIME = 48*3600.  ! characteristic time for
 !compaction and metamorphism by wind drift
 !
-REAL, PARAMETER :: XVROMAX = 350. !  maximum density for
+REAL, PARAMETER :: XVROMAX = 350.  !  maximum density for
 ! drift compaction     UNIT : kg m-3
 REAL, PARAMETER :: XVROMIN = 50.  !  minimum density for
 ! mobility computation UNIT : kg m-3
@@ -307,23 +307,23 @@ REAL, PARAMETER :: XVMOB2 = 0.833  !  coefficient for computing
 ! the mobility index
 REAL, PARAMETER :: XVMOB3 = 0.583  !  coefficient for computing
 ! the mobility index
-REAL, PARAMETER :: XVMOB4 = -0.0583 !  coefficient for computing
+REAL, PARAMETER :: XVMOB4 = -0.0583  !  coefficient for computing
 ! the mobility index
-REAL, PARAMETER :: XVDRIFT1 = 2.868 !  coefficient for computing
+REAL, PARAMETER :: XVDRIFT1 = 2.868  !  coefficient for computing
 ! the drift index
-REAL, PARAMETER :: XVDRIFT2 = 0.085 !  coefficient for computing
+REAL, PARAMETER :: XVDRIFT2 = 0.085  !  coefficient for computing
 ! the drift index
 REAL, PARAMETER :: XVDRIFT3 = 3.25  !  coefficient for computing
 ! the drift index
-REAL, PARAMETER :: XVSIZEMIN = 3.E-4 !  minimum size decrease 
+REAL, PARAMETER :: XVSIZEMIN = 3.E-4  !  minimum size decrease 
 ! by drift  UNIT = m
 !
 ! modif_EB pour sublim 
 ! a pour but de tenir compte du fait que le vent moyen est > rafales
 ! on en tient compte egalement pour diminuer la duree de l'effet
-REAL, PARAMETER :: XCOEF_FF = 1.25 ! coefficient for gust diagnosis from average wind 
-REAL, PARAMETER :: XCOEF_EFFECT = 1.0 ! coefficient for impact on density du drift
-REAL, PARAMETER :: XQS_REF = 2.E-5 ! valeur de reference de ZQS pour effet neige
+REAL, PARAMETER :: XCOEF_FF = 1.25     ! coefficient for gust diagnosis from average wind 
+REAL, PARAMETER :: XCOEF_EFFECT = 1.0  ! coefficient for impact on density du drift
+REAL, PARAMETER :: XQS_REF = 2.E-5     ! valeur de reference de ZQS pour effet neige
 !
 !--------------------------------------------------------------------------------
 !
@@ -337,12 +337,12 @@ REAL, PARAMETER, DIMENSION(10)    :: XSGCOEF3  = (/0.025, 0.033, 0.043, &
 !
 ! Minimum total snow depth at which surface layer thickness is constant:
 !
-REAL, PARAMETER                   :: XSNOWTRANS = 0.20                ! (m)
-REAL, PARAMETER                   :: XSNOWTRANS1 = 0.40                ! (m)
-REAL, PARAMETER                   :: XSNOWTRANS2 = 0.6061                ! (m)
-REAL, PARAMETER                   :: XSNOWTRANS3 = 0.7143               ! (m)
-REAL, PARAMETER                   :: XSNOWTRANS4 = 0.9259                ! (m)
-REAL, PARAMETER                   :: XSNOWTRANS5 = 1.4493                ! (m)
+REAL, PARAMETER                   :: XSNOWTRANS = 0.20     ! (m)
+REAL, PARAMETER                   :: XSNOWTRANS1 = 0.40    ! (m)
+REAL, PARAMETER                   :: XSNOWTRANS2 = 0.6061  ! (m)
+REAL, PARAMETER                   :: XSNOWTRANS3 = 0.7143  ! (m)
+REAL, PARAMETER                   :: XSNOWTRANS4 = 0.9259  ! (m)
+REAL, PARAMETER                   :: XSNOWTRANS5 = 1.4493  ! (m)
 !
 !------------------------------------------------------------------------------
 !

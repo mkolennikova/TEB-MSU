@@ -46,34 +46,34 @@ USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
 INTERFACE PSAT
-  MODULE PROCEDURE PSAT_0D
-  MODULE PROCEDURE PSAT_1D
-  MODULE PROCEDURE PSAT_2D
+MODULE PROCEDURE PSAT_0D
+MODULE PROCEDURE PSAT_1D
+MODULE PROCEDURE PSAT_2D
 END INTERFACE
 INTERFACE DPSAT
-  MODULE PROCEDURE DPSAT_1D
+MODULE PROCEDURE DPSAT_1D
 END INTERFACE
 
 INTERFACE QSAT
-  MODULE PROCEDURE QSATW_0D         
-  MODULE PROCEDURE QSATW_1D
-  MODULE PROCEDURE QSATW_2D
+MODULE PROCEDURE QSATW_0D         
+MODULE PROCEDURE QSATW_1D
+MODULE PROCEDURE QSATW_2D
 END INTERFACE
 INTERFACE QSAT_SEAWATER
-  MODULE PROCEDURE QSATSEAW_1D
+MODULE PROCEDURE QSATSEAW_1D
 END INTERFACE
 INTERFACE QSAT_SEAWATER2
-  MODULE PROCEDURE QSATSEAW2_1D
+MODULE PROCEDURE QSATSEAW2_1D
 END INTERFACE
 INTERFACE DQSAT
-  MODULE PROCEDURE DQSATW_O_DT_1D
+MODULE PROCEDURE DQSATW_O_DT_1D
 END INTERFACE
 INTERFACE QSATI
-  MODULE PROCEDURE QSATI_1D
-  MODULE PROCEDURE QSATI_2D
+MODULE PROCEDURE QSATI_1D
+MODULE PROCEDURE QSATI_2D
 END INTERFACE
 INTERFACE DQSATI
-  MODULE PROCEDURE DQSATI_O_DT_1D
+MODULE PROCEDURE DQSATI_O_DT_1D
 END INTERFACE
 CONTAINS
 !-------------------------------------------------------------------------------
@@ -113,9 +113,9 @@ ZBETA = XBETAW
 ZGAM  = XGAMW
 !
 IF(CQSAT=='NEW'.AND.PT<=XTT)THEN
- ZALP  = XALPI
- ZBETA = XBETAI
- ZGAM  = XGAMI       
+  ZALP  = XALPI
+  ZBETA = XBETAI
+  ZGAM  = XGAMI
 ENDIF
 !
 PPSAT = EXP( ZALP - ZBETA/PT - ZGAM*LOG(PT) )
@@ -146,7 +146,7 @@ REAL, DIMENSION(SIZE(PT))                     :: PPSAT  ! saturation vapor press
 !
 REAL, DIMENSION(SIZE(PT))  :: ZALP, ZBETA, ZGAM
 !
-INTEGER                         :: JJ !loop index
+INTEGER                         :: JJ  !loop index
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('MODE_THERMOS:PSAT_1D',0,ZHOOK_HANDLE)
@@ -159,11 +159,11 @@ ZBETA(:) = XBETAW
 ZGAM (:) = XGAMW
 !
 IF(CQSAT=='NEW')THEN
- WHERE(PT<=XTT)
-   ZALP  (:) = XALPI
-   ZBETA (:) = XBETAI
-   ZGAM  (:) = XGAMI 
- ENDWHERE
+  WHERE(PT<=XTT)
+    ZALP  (:) = XALPI
+    ZBETA (:) = XBETAI
+    ZGAM  (:) = XGAMI 
+  ENDWHERE
 ENDIF
 !
 !cdir nodep
@@ -192,14 +192,14 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments and results
 !
 !
-REAL, DIMENSION(:,:), INTENT(IN)              :: PT     ! Temperature (Kelvin)
+REAL, DIMENSION(:,:), INTENT(IN)              :: PT  ! Temperature (Kelvin)
 INTEGER, DIMENSION(:), INTENT(IN)             :: KMASK
 !
 REAL, DIMENSION(SIZE(PT,1),SIZE(PT,2))        :: PPSAT  ! saturation vapor pressure (Pa)
 !
 REAL, DIMENSION(SIZE(PT,1),SIZE(PT,2))        :: ZALP, ZBETA, ZGAM
 !
-INTEGER         :: JJ, JL, INI, INL, IWORK !loop index
+INTEGER         :: JJ, JL, INI, INL, IWORK  !loop index
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('MODE_THERMOS:PSAT_2D',0,ZHOOK_HANDLE)
@@ -217,19 +217,19 @@ ZBETA(:,:) = XBETAW
 ZGAM (:,:) = XGAMW
 !
 IF(CQSAT=='NEW')THEN
- WHERE(PT(:,:)<=XTT)
-   ZALP  (:,:) = XALPI
-   ZBETA (:,:) = XBETAI
-   ZGAM  (:,:) = XGAMI 
- ENDWHERE
+  WHERE(PT(:,:)<=XTT)
+    ZALP  (:,:) = XALPI
+    ZBETA (:,:) = XBETAI
+    ZGAM  (:,:) = XGAMI 
+  ENDWHERE
 ENDIF
 !
 DO JL=1,INL
   DO JJ=1,INI
-     IWORK=KMASK(JJ)
-     IF(JL<=IWORK)THEN
-       PPSAT(JJ,JL) = EXP( ZALP(JJ,JL) - ZBETA(JJ,JL)/PT(JJ,JL) - ZGAM(JJ,JL)*LOG(PT(JJ,JL)) )
-     ENDIF
+    IWORK=KMASK(JJ)
+    IF(JL<=IWORK)THEN
+      PPSAT(JJ,JL) = EXP( ZALP(JJ,JL) - ZBETA(JJ,JL)/PT(JJ,JL) - ZGAM(JJ,JL)*LOG(PT(JJ,JL)) )
+    ENDIF
   ENDDO
 ENDDO
 !
@@ -254,7 +254,7 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments and results
 !
 !
-REAL, DIMENSION(:), INTENT(IN) :: PT      ! Temperature (Kelvin)
+REAL, DIMENSION(:), INTENT(IN) :: PT  ! Temperature (Kelvin)
 !
 REAL, DIMENSION(SIZE(PT))      :: PDPSAT  
 !
@@ -272,10 +272,10 @@ ZBETA(:) = XBETAW
 ZGAM (:) = XGAMW
 !
 IF(CQSAT=='NEW')THEN
- WHERE(PT<=XTT)
-   ZBETA (:) = XBETAI
-   ZGAM  (:) = XGAMI 
- ENDWHERE
+  WHERE(PT<=XTT)
+    ZBETA (:) = XBETAI
+    ZGAM  (:) = XGAMI 
+  ENDWHERE
 ENDIF
 !
 PDPSAT(:) = ZBETA(:)/PT(:)**2 - ZGAM(:)/PT(:)
@@ -353,15 +353,15 @@ IMPLICIT NONE
 REAL, INTENT(IN)                :: PT     ! Temperature (Kelvin)
 REAL, INTENT(IN)                :: PP     ! Pressure (Pa)
 REAL                            :: PQSAT  ! saturation vapor 
-                                                        ! specific humidity
-                                                        ! with respect to
-                                                        ! water (kg/kg)
+                                          ! specific humidity
+                                          ! with respect to
+                                          ! water (kg/kg)
 !
 !*       0.2   Declarations of local variables
 !
 REAL                           :: ZFOES  ! saturation vapor 
-                                                        ! pressure
-                                                        ! (Pascal) 
+                                         ! pressure
+                                         ! (Pascal) 
 !
 REAL                           :: ZWORK1
 REAL                           :: ZWORK2
@@ -452,20 +452,20 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments and results
 !
 !
-REAL, DIMENSION(:), INTENT(IN)                :: PT     ! Temperature
-                                                        ! (Kelvin)
-REAL, DIMENSION(:), INTENT(IN)                :: PP     ! Pressure
-                                                        ! (Pa)
+REAL, DIMENSION(:), INTENT(IN)                :: PT   ! Temperature
+                                                      ! (Kelvin)
+REAL, DIMENSION(:), INTENT(IN)                :: PP   ! Pressure
+                                                      ! (Pa)
 REAL, DIMENSION(SIZE(PT))                   :: PQSAT  ! saturation vapor 
-                                                        ! specific humidity
-                                                        ! with respect to
-                                                        ! water (kg/kg)
+                                                      ! specific humidity
+                                                      ! with respect to
+                                                      ! water (kg/kg)
 !
 !*       0.2   Declarations of local variables
 !
 REAL, DIMENSION(SIZE(PT))                   :: ZFOES  ! saturation vapor 
-                                                        ! pressure
-                                                        ! (Pascal) 
+                                                      ! pressure
+                                                      ! (Pascal) 
 !
 REAL, DIMENSION(SIZE(PT))                   :: ZWORK1
 REAL                                        :: ZWORK2 
@@ -562,10 +562,10 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments and results
 !
 !
-REAL, DIMENSION(:,:), INTENT(IN)              :: PT     ! Temperature
-                                                        ! (Kelvin)
-REAL, DIMENSION(:,:), INTENT(IN)              :: PP     ! Pressure
-                                                        ! (Pa)
+REAL, DIMENSION(:,:), INTENT(IN)              :: PT  ! Temperature
+                                                     ! (Kelvin)
+REAL, DIMENSION(:,:), INTENT(IN)              :: PP  ! Pressure
+                                                     ! (Pa)
 !                                                        
 INTEGER, DIMENSION(:), INTENT(IN), OPTIONAL   :: KMASK
 !                                                KMASK = Number of soil moisture layers (DIF option)
@@ -689,20 +689,20 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments and results
 !
 !
-REAL, DIMENSION(:), INTENT(IN)                :: PT     ! Temperature
-                                                        ! (Kelvin)
-REAL, DIMENSION(:), INTENT(IN)                :: PP     ! Pressure
-                                                        ! (Pa)
+REAL, DIMENSION(:), INTENT(IN)                :: PT   ! Temperature
+                                                      ! (Kelvin)
+REAL, DIMENSION(:), INTENT(IN)                :: PP   ! Pressure
+                                                      ! (Pa)
 REAL, DIMENSION(SIZE(PT))                   :: PQSAT  ! saturation vapor 
-                                                        ! specific humidity
-                                                        ! with respect to
-                                                        ! water (kg/kg)
+                                                      ! specific humidity
+                                                      ! with respect to
+                                                      ! water (kg/kg)
 !
 !*       0.2   Declarations of local variables
 !
 REAL, DIMENSION(SIZE(PT))                   :: ZFOES  ! saturation vapor 
-                                                        ! pressure
-                                                        ! (Pascal) 
+                                                      ! pressure
+                                                      ! (Pascal) 
 !
 REAL, DIMENSION(SIZE(PT))                   :: ZWORK1
 REAL                                        :: ZWORK2
@@ -788,22 +788,22 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments and results
 !
 !
-REAL, DIMENSION(:), INTENT(IN)                :: PT     ! Temperature
-                                                        ! (Kelvin)
-REAL, DIMENSION(:), INTENT(IN)                :: PP     ! Pressure
-                                                        ! (Pascal)
-REAL, DIMENSION(:), INTENT(IN)                :: PSSS   ! Salinity
-                                                        ! (g/kg)
-REAL, DIMENSION(SIZE(PT))                   :: PQSAT  ! saturation vapor
-                                                        ! specific humidity
-                                                        ! with respect to
-                                                        ! water (kg/kg)
+REAL, DIMENSION(:), INTENT(IN)                :: PT    ! Temperature
+                                                       ! (Kelvin)
+REAL, DIMENSION(:), INTENT(IN)                :: PP    ! Pressure
+                                                       ! (Pascal)
+REAL, DIMENSION(:), INTENT(IN)                :: PSSS  ! Salinity
+                                                       ! (g/kg)
+REAL, DIMENSION(SIZE(PT))                   :: PQSAT   ! saturation vapor
+                                                       ! specific humidity
+                                                       ! with respect to
+                                                       ! water (kg/kg)
 !
 !*       0.2   Declarations of local variables
 !
 REAL, DIMENSION(SIZE(PT))                   :: ZFOES  ! saturation vapor
-                                                        ! pressure
-                                                        ! (Pascal)
+                                                      ! pressure
+                                                      ! (Pascal)
 !
 REAL, DIMENSION(SIZE(PT))                   :: ZWORK1
 REAL                                        :: ZWORK2
@@ -816,7 +816,7 @@ IF (LHOOK) CALL DR_HOOK('MODE_THERMOS:QSATSEAW2_1D',0,ZHOOK_HANDLE)
 !              ---------------------------------
 !
 ZFOES(:) = EXP( 24.4543 -67.4509*(100.0/PT(:)) -4.8489*LOG(PT(:)/100.0)   &
-                -5.44E-04*(PSSS(:)/1.00472) ) !see Sharqawy et al (2010) Eq32 p368
+                -5.44E-04*(PSSS(:)/1.00472) )  !see Sharqawy et al (2010) Eq32 p368
 ZFOES(:) = ZFOES(:)*1013.25E+02             !convert from atm to Pa
 !
 ZWORK1(:) = ZFOES(:)/PP(:)
@@ -901,26 +901,26 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments and results
 !
 !
-REAL, DIMENSION(:),  INTENT(IN)             :: PT     ! Temperature
-                                                          ! (Kelvin)
-REAL, DIMENSION(:),  INTENT(IN)             :: PP     ! Pressure
-                                                          ! (Pa)
-REAL, DIMENSION(:),  INTENT(IN)             :: PQSAT  ! saturation vapor 
-                                                          ! specific humidity
-                                                          ! with respect to
-                                                          ! water (kg/kg))
-REAL, DIMENSION(SIZE(PT))                   :: PDQSAT ! derivative according
-                                                          ! to temperature of
-                                                          ! saturation vapor 
-                                                          ! specific humidity
-                                                          ! with respect to
-                                                          ! water (kg/kg))
+REAL, DIMENSION(:),  INTENT(IN)             :: PT      ! Temperature
+                                                       ! (Kelvin)
+REAL, DIMENSION(:),  INTENT(IN)             :: PP      ! Pressure
+                                                       ! (Pa)
+REAL, DIMENSION(:),  INTENT(IN)             :: PQSAT   ! saturation vapor 
+                                                       ! specific humidity
+                                                       ! with respect to
+                                                       ! water (kg/kg))
+REAL, DIMENSION(SIZE(PT))                   :: PDQSAT  ! derivative according
+                                                       ! to temperature of
+                                                       ! saturation vapor 
+                                                       ! specific humidity
+                                                       ! with respect to
+                                                       ! water (kg/kg))
 !
 !*       0.2   Declarations of local variables
 !
 REAL, DIMENSION(SIZE(PT))  :: ZFOES  ! saturation vapor 
-                                                          ! pressure
-                                                          ! (Pascal) 
+                                     ! pressure
+                                     ! (Pascal) 
 !
 REAL                       :: ZWORK1
 REAL, DIMENSION(SIZE(PT))  :: ZWORK2
@@ -1018,20 +1018,20 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments and results
 !
 !
-REAL,    DIMENSION(:), INTENT(IN)               :: PT     ! Temperature
-                                                          ! (Kelvin)
-REAL,    DIMENSION(:), INTENT(IN)               :: PP     ! Pressure
-                                                          ! (Pa)
-REAL,    DIMENSION(:), INTENT(IN)               :: PQSAT  ! saturation vapor 
-                                                          ! specific humidity
-                                                          ! with respect to
-                                                          ! water (kg/kg))
-REAL,    DIMENSION(SIZE(PT))                    :: PDQSAT ! derivative according
-                                                          ! to temperature of
-                                                          ! saturation vapor 
-                                                          ! specific humidity
-                                                          ! with respect to
-                                                          ! water (kg/kg))
+REAL,    DIMENSION(:), INTENT(IN)               :: PT      ! Temperature
+                                                           ! (Kelvin)
+REAL,    DIMENSION(:), INTENT(IN)               :: PP      ! Pressure
+                                                           ! (Pa)
+REAL,    DIMENSION(:), INTENT(IN)               :: PQSAT   ! saturation vapor 
+                                                           ! specific humidity
+                                                           ! with respect to
+                                                           ! water (kg/kg))
+REAL,    DIMENSION(SIZE(PT))                    :: PDQSAT  ! derivative according
+                                                           ! to temperature of
+                                                           ! saturation vapor 
+                                                           ! specific humidity
+                                                           ! with respect to
+                                                           ! water (kg/kg))
 !
 !*       0.2   Declarations of local variables
 !
@@ -1133,20 +1133,20 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments and results
 !
 !
-REAL, DIMENSION(:), INTENT(IN)                :: PT     ! Temperature
-                                                        ! (Kelvin)
-REAL, DIMENSION(:), INTENT(IN)                :: PP     ! Pressure
-                                                        ! (Pa)
+REAL, DIMENSION(:), INTENT(IN)                :: PT   ! Temperature
+                                                      ! (Kelvin)
+REAL, DIMENSION(:), INTENT(IN)                :: PP   ! Pressure
+                                                      ! (Pa)
 REAL, DIMENSION(SIZE(PT))                   :: PQSAT  ! saturation vapor 
-                                                        ! specific humidity
-                                                        ! with respect to
-                                                        ! water (kg/kg)
+                                                      ! specific humidity
+                                                      ! with respect to
+                                                      ! water (kg/kg)
 !
 !*       0.2   Declarations of local variables
 !
 REAL, DIMENSION(SIZE(PT))                   :: ZFOES  ! saturation vapor 
-                                                        ! pressure
-                                                        ! (Pascal) 
+                                                      ! pressure
+                                                      ! (Pascal) 
 !
 REAL, DIMENSION(SIZE(PT))                   :: ZWORK1
 REAL                                        :: ZWORK2
@@ -1241,10 +1241,10 @@ IMPLICIT NONE
 !*       0.1   Declarations of arguments and results
 !
 !
-REAL, DIMENSION(:,:), INTENT(IN)            :: PT     ! Temperature
-                                                      ! (Kelvin)
-REAL, DIMENSION(:,:), INTENT(IN)            :: PP     ! Pressure
-                                                      ! (Pa)
+REAL, DIMENSION(:,:), INTENT(IN)            :: PT  ! Temperature
+                                                   ! (Kelvin)
+REAL, DIMENSION(:,:), INTENT(IN)            :: PP  ! Pressure
+                                                   ! (Pa)
 !                                                        
 INTEGER, DIMENSION(:), INTENT(IN), OPTIONAL   :: KMASK
 !                                                KMASK = Number of soil moisture layers (DIF option)

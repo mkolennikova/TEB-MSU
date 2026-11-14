@@ -104,10 +104,10 @@ IMPLICIT NONE
 REAL, PARAMETER :: XVMIN_GD  = 0.5
 !* Numerical parameters of the diagnostic Newton iteration
 INTEGER, PARAMETER :: NITER_GD   = 8
-REAL,    PARAMETER :: XDTSTEP_GD = 5.0    ! max |dTs| per Newton step (K)
-REAL,    PARAMETER :: XTSMIN_GD  = 230.0  ! global Ts bounds (K, numerical safety)
+REAL,    PARAMETER :: XDTSTEP_GD = 5.0     ! max |dTs| per Newton step (K)
+REAL,    PARAMETER :: XTSMIN_GD  = 230.0   ! global Ts bounds (K, numerical safety)
 REAL,    PARAMETER :: XTSMAX_GD  = 350.0
-REAL,    PARAMETER :: XHMAX_GD   = 1000.0 ! flux clips (W/m2)
+REAL,    PARAMETER :: XHMAX_GD   = 1000.0  ! flux clips (W/m2)
 REAL,    PARAMETER :: XLEMAX_GD  = 1000.0
 REAL,    PARAMETER :: XLEMIN_GD  = -200.0
 !
@@ -123,8 +123,8 @@ CONTAINS
 !* ELEMENTAL, so it works on scalars as well as on whole arrays.
 !
 ELEMENTAL FUNCTION GARDEN_PCD_NEUTRAL(PZ, PZ0) RESULT(PPCD)
-REAL, INTENT(IN) :: PZ     ! reference height of the air (m)
-REAL, INTENT(IN) :: PZ0    ! roughness length for momentum (m)
+REAL, INTENT(IN) :: PZ   ! reference height of the air (m)
+REAL, INTENT(IN) :: PZ0  ! roughness length for momentum (m)
 REAL :: PPCD
 !
 PPCD = 0.
@@ -140,9 +140,9 @@ END FUNCTION GARDEN_PCD_NEUTRAL
 !* and the external garden 'EXT_NEU' of URBAN_DRAG).
 !
 ELEMENTAL FUNCTION GARDEN_CA_NEUTRAL(PZ, PZ0, PV) RESULT(PCA)
-REAL, INTENT(IN) :: PZ     ! reference height of the air (m)
-REAL, INTENT(IN) :: PZ0    ! roughness length for momentum (m)
-REAL, INTENT(IN) :: PV     ! wind at the reference height (m/s)
+REAL, INTENT(IN) :: PZ   ! reference height of the air (m)
+REAL, INTENT(IN) :: PZ0  ! roughness length for momentum (m)
+REAL, INTENT(IN) :: PV   ! wind at the reference height (m/s)
 REAL :: PCA
 !
 PCA = GARDEN_PCD_NEUTRAL(PZ, PZ0) * MAX(PV, XVMIN_GD)
@@ -171,15 +171,15 @@ REAL :: PPCH, ZZ0H
 !
 PPCH = 0.
 IF (PZ > PZ0) THEN
-   ZZ0H = PZ0 / MAX(PZ0_O_Z0H, 1.)
-   IF (ZZ0H >= PZ0) THEN
-      !* z0h = z0: no thermal roughness, the scalar coefficient is EXACTLY the
-      !* momentum one, so that this formulation reproduces the garden without
-      !* thermal roughness bit for bit (same expression, same rounding)
-      PPCH = GARDEN_PCD_NEUTRAL(PZ, PZ0)
-   ELSE
-      PPCH = XKARMAN**2 / ( LOG(PZ/PZ0) * LOG(PZ/ZZ0H) )
-   END IF
+  ZZ0H = PZ0 / MAX(PZ0_O_Z0H, 1.)
+  IF (ZZ0H >= PZ0) THEN
+    !* z0h = z0: no thermal roughness, the scalar coefficient is EXACTLY the
+    !* momentum one, so that this formulation reproduces the garden without
+    !* thermal roughness bit for bit (same expression, same rounding)
+    PPCH = GARDEN_PCD_NEUTRAL(PZ, PZ0)
+  ELSE
+    PPCH = XKARMAN**2 / ( LOG(PZ/PZ0) * LOG(PZ/ZZ0H) )
+  END IF
 END IF
 !
 END FUNCTION GARDEN_PCH_NEUTRAL
@@ -216,8 +216,8 @@ SUBROUTINE GARDEN_BALANCE(PCA, PT_REF, PQ_REF, PPHU, PRHOA, PPS, PSW, PLW, PALB_
 !*** returned are the RAW (unclipped) ones: the callers apply their own clips.
 !
 REAL, DIMENSION(:), INTENT(IN)    :: PCA, PT_REF, PQ_REF, PRHOA, PPS, PSW, PLW, &
-                                     PALB_GD, PEMIS_GD
-REAL,               INTENT(IN)    :: PPHU          ! surface relative humidity (-)
+  PALB_GD, PEMIS_GD
+REAL,               INTENT(IN)    :: PPHU  ! surface relative humidity (-)
 REAL, DIMENSION(:), INTENT(INOUT) :: PTS_GARDEN
 REAL, DIMENSION(:), INTENT(OUT)   :: PQSAT_GARDEN, PH_GARDEN, PLE_GARDEN
 !
@@ -228,27 +228,27 @@ INTEGER :: JI_GD, JITER_GD
 ZTS_GD(:) = MAX(XTSMIN_GD, MIN(XTSMAX_GD, PTS_GARDEN(:)))
 !
 DO JITER_GD = 1, NITER_GD
-   ZQSAT(:)  = QSAT(ZTS_GD(:), PPS(:))
-   ZDQSAT(:) = DQSAT(ZTS_GD(:), PPS(:), ZQSAT(:))
-   ZSIGT4(:) = XSTEFAN * ZTS_GD(:)**4
-   !* residual F(Ts) = net radiation - H - LE
-   ZNUM(:) = (1.-PALB_GD(:))*PSW(:) + PEMIS_GD(:)*PLW(:) - PEMIS_GD(:)*ZSIGT4(:)  &
-             - PRHOA(:)*XCPD*PCA(:)*(ZTS_GD(:) - PT_REF(:))                      &
-             - PRHOA(:)*XLVTT*PCA(:)*(PPHU*ZQSAT(:) - PQ_REF(:))
-   !* denom = -F'(Ts) > 0
-   ZDEN(:) = 4.*PEMIS_GD(:)*XSTEFAN*ZTS_GD(:)**3               &
-             + PRHOA(:)*XCPD*PCA(:)                            &
-             + PRHOA(:)*XLVTT*PCA(:)*PPHU*ZDQSAT(:)
-   DO JI_GD = 1, SIZE(PTS_GARDEN)
-      IF (ZDEN(JI_GD) > 1.E-8) THEN
-         ZDELTA(JI_GD) = ZNUM(JI_GD) / ZDEN(JI_GD)
-      ELSE
-         ZDELTA(JI_GD) = 0.
-      END IF
-      ZDELTA(JI_GD) = MAX(-XDTSTEP_GD, MIN(XDTSTEP_GD, ZDELTA(JI_GD)))
-      ZTS_GD(JI_GD) = ZTS_GD(JI_GD) + ZDELTA(JI_GD)
-      ZTS_GD(JI_GD) = MAX(XTSMIN_GD, MIN(XTSMAX_GD, ZTS_GD(JI_GD)))
-   END DO
+  ZQSAT(:)  = QSAT(ZTS_GD(:), PPS(:))
+  ZDQSAT(:) = DQSAT(ZTS_GD(:), PPS(:), ZQSAT(:))
+  ZSIGT4(:) = XSTEFAN * ZTS_GD(:)**4
+  !* residual F(Ts) = net radiation - H - LE
+  ZNUM(:) = (1.-PALB_GD(:))*PSW(:) + PEMIS_GD(:)*PLW(:) - PEMIS_GD(:)*ZSIGT4(:)  &
+    - PRHOA(:)*XCPD*PCA(:)*(ZTS_GD(:) - PT_REF(:))                      &
+    - PRHOA(:)*XLVTT*PCA(:)*(PPHU*ZQSAT(:) - PQ_REF(:))
+  !* denom = -F'(Ts) > 0
+  ZDEN(:) = 4.*PEMIS_GD(:)*XSTEFAN*ZTS_GD(:)**3               &
+    + PRHOA(:)*XCPD*PCA(:)                            &
+    + PRHOA(:)*XLVTT*PCA(:)*PPHU*ZDQSAT(:)
+  DO JI_GD = 1, SIZE(PTS_GARDEN)
+    IF (ZDEN(JI_GD) > 1.E-8) THEN
+      ZDELTA(JI_GD) = ZNUM(JI_GD) / ZDEN(JI_GD)
+    ELSE
+      ZDELTA(JI_GD) = 0.
+    END IF
+    ZDELTA(JI_GD) = MAX(-XDTSTEP_GD, MIN(XDTSTEP_GD, ZDELTA(JI_GD)))
+    ZTS_GD(JI_GD) = ZTS_GD(JI_GD) + ZDELTA(JI_GD)
+    ZTS_GD(JI_GD) = MAX(XTSMIN_GD, MIN(XTSMAX_GD, ZTS_GD(JI_GD)))
+  END DO
 END DO
 !
 !* final bound on the surface temperature (numerical safety only)
@@ -266,11 +266,11 @@ END MODULE MODE_GARDEN_BALANCE
 !
 !     #############
     SUBROUTINE GARDEN_PCD(TYPE_GARDEN, PPCD_GD, PPCH_GD, PV_GD, PT_REF, PQ_REF, PPHU_GD,     &
-                PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                    &
-                PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                       &
-                PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                   &
-                PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                         &
-                PDRAIN_GARDEN, PIRRIG_GARDEN                )
+                          PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                    &
+                          PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                       &
+                          PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                   &
+                          PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                         &
+                          PDRAIN_GARDEN, PIRRIG_GARDEN                )
 !   ##########################################################################
 !
 !!****  *GARDEN_PCD*
@@ -331,7 +331,7 @@ IMPLICIT NONE
 !*      0.1    Declarations of arguments
 !
 !* Type of the garden parameterization (from the namelist teb_type_garden)
- CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
+CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN  ! type of the garden model
 !MV202609 external exchange coefficient of the garden
 !* Dimensionless coefficients of the neutral log profiles (the reference height
 !* and the roughness lengths are already inside them) and the reference state of
@@ -343,35 +343,35 @@ IMPLICIT NONE
 !* the momentum (friction), PPCH_GD for heat and moisture (<= PPCD_GD whenever
 !* z0h >= z0). With PPCH_GD = PPCD_GD the two paths are the single one of the
 !* formulation without thermal roughness.
-REAL, DIMENSION(:)  , INTENT(IN)    :: PPCD_GD            ! garden momentum exchange coefficient (-)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PPCH_GD            ! garden thermal (scalar) exchange coefficient (-)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PV_GD              ! wind of the reference state (m/s)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PT_REF             ! reference air temperature (K)
-REAL, DIMENSION(:)  , INTENT(IN)    :: PQ_REF             ! reference air humidity (kg/kg)
- !MV202609 tunable surface relative humidity of the garden (namelist proxy_phu_gdn)
- REAL                , INTENT(IN)    :: PPHU_GD            ! garden surface relative humidity (-)
+REAL, DIMENSION(:)  , INTENT(IN)    :: PPCD_GD  ! garden momentum exchange coefficient (-)
+REAL, DIMENSION(:)  , INTENT(IN)    :: PPCH_GD  ! garden thermal (scalar) exchange coefficient (-)
+REAL, DIMENSION(:)  , INTENT(IN)    :: PV_GD    ! wind of the reference state (m/s)
+REAL, DIMENSION(:)  , INTENT(IN)    :: PT_REF   ! reference air temperature (K)
+REAL, DIMENSION(:)  , INTENT(IN)    :: PQ_REF   ! reference air humidity (kg/kg)
+!MV202609 tunable surface relative humidity of the garden (namelist proxy_phu_gdn)
+REAL                , INTENT(IN)    :: PPHU_GD  ! garden surface relative humidity (-)
 
 !
-REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GD            ! garden albedo
-REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GD           ! garden emissivity
-REAL, DIMENSION(:)  , INTENT(IN)    :: PRHOA              ! air density at the lowest level
-REAL, DIMENSION(:)  , INTENT(IN)    :: PPS                ! pressure at the surface
-REAL, DIMENSION(:)  , INTENT(IN)    :: PSW                ! received solar radiation
-REAL, DIMENSION(:)  , INTENT(IN)    :: PLW                ! received infrared radiation
+REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GD   ! garden albedo
+REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GD  ! garden emissivity
+REAL, DIMENSION(:)  , INTENT(IN)    :: PRHOA     ! air density at the lowest level
+REAL, DIMENSION(:)  , INTENT(IN)    :: PPS       ! pressure at the surface
+REAL, DIMENSION(:)  , INTENT(IN)    :: PSW       ! received solar radiation
+REAL, DIMENSION(:)  , INTENT(IN)    :: PLW       ! received infrared radiation
 !
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GARDEN         ! net radiation over green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GARDEN          ! sensible heat flux over green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GARDEN         ! latent heat flux over green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PGFLUX_GARDEN      ! flux through the green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PSFCO2             ! flux of CO2 (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PEVAP_GARDEN       ! total evaporation (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PUW_GARDEN         ! friction flux (m2/s2)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_GARDEN     ! runoff over garden (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GARDEN         ! aerodynamical conductance
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN       ! saturation humidity
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN         ! radiative surface temp. (snow free)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN      ! garden total (vertical) drainage
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irrigation rate
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GARDEN      ! net radiation over green areas
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GARDEN       ! sensible heat flux over green areas
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GARDEN      ! latent heat flux over green areas
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PGFLUX_GARDEN   ! flux through the green areas
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PSFCO2          ! flux of CO2 (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PEVAP_GARDEN    ! total evaporation (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PUW_GARDEN      ! friction flux (m2/s2)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_GARDEN  ! runoff over garden (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GARDEN      ! aerodynamical conductance
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN    ! saturation humidity
+REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN      ! radiative surface temp. (snow free)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN   ! garden total (vertical) drainage
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN   ! garden summer irrigation rate
 !
 !*      0.2    Declarations of local variables
 !
@@ -396,27 +396,27 @@ IF (TYPE_GARDEN == 'PROXY_NEW') THEN
 !-------------------------------------------------------------------------------
 !
 !* 2.1  aerodynamic conductances (thermal and momentum) and friction
-DO JI_GD = 1, SIZE(PT_REF)
-   ZV_GD(JI_GD)    = MAX(PV_GD(JI_GD), XVMIN_GD)
-   ZCA_M_GD(JI_GD) = PPCD_GD(JI_GD) * ZV_GD(JI_GD)
-   ZCA_GD(JI_GD)   = PPCH_GD(JI_GD) * ZV_GD(JI_GD)
-END DO
-PAC_GARDEN(:) = ZCA_GD(:)
-PUW_GARDEN(:) = -ZCA_M_GD(:) * ZV_GD(:)
+  DO JI_GD = 1, SIZE(PT_REF)
+    ZV_GD(JI_GD)    = MAX(PV_GD(JI_GD), XVMIN_GD)
+    ZCA_M_GD(JI_GD) = PPCD_GD(JI_GD) * ZV_GD(JI_GD)
+    ZCA_GD(JI_GD)   = PPCH_GD(JI_GD) * ZV_GD(JI_GD)
+  END DO
+  PAC_GARDEN(:) = ZCA_GD(:)
+  PUW_GARDEN(:) = -ZCA_M_GD(:) * ZV_GD(:)
 !
 !* 2.2  surface energy balance at the given conductance and reference air
-CALL GARDEN_BALANCE(ZCA_GD, PT_REF, PQ_REF, PPHU_GD, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
-                    PTS_GARDEN, PQSAT_GARDEN, PH_GARDEN, PLE_GARDEN)
+  CALL GARDEN_BALANCE(ZCA_GD, PT_REF, PQ_REF, PPHU_GD, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
+                      PTS_GARDEN, PQSAT_GARDEN, PH_GARDEN, PLE_GARDEN)
 !
 !* 2.3  fluxes
-PGFLUX_GARDEN(:) = 0.       ! no heat flux into the soil (diagnostic proxy garden)
-PRN_GARDEN(:)    = (1.-PALB_GD(:))*PSW(:) + PEMIS_GD(:)*(PLW(:) - XSTEFAN*PTS_GARDEN(:)**4)
-PEVAP_GARDEN(:)  = PLE_GARDEN(:) / XLVTT
+  PGFLUX_GARDEN(:) = 0.     ! no heat flux into the soil (diagnostic proxy garden)
+  PRN_GARDEN(:)    = (1.-PALB_GD(:))*PSW(:) + PEMIS_GD(:)*(PLW(:) - XSTEFAN*PTS_GARDEN(:)**4)
+  PEVAP_GARDEN(:)  = PLE_GARDEN(:) / XLVTT
 !
 !* flux clips (safety only; small energy imbalance possible when they bite)
-PH_GARDEN(:)     = MAX(-XHMAX_GD,  MIN(XHMAX_GD,  PH_GARDEN(:)))
-PLE_GARDEN(:)    = MAX(XLEMIN_GD,  MIN(XLEMAX_GD, PLE_GARDEN(:)))
-PEVAP_GARDEN(:)  = PLE_GARDEN(:) / XLVTT
+  PH_GARDEN(:)    = MAX(-XHMAX_GD,  MIN(XHMAX_GD,  PH_GARDEN(:)))
+  PLE_GARDEN(:)   = MAX(XLEMIN_GD,  MIN(XLEMAX_GD, PLE_GARDEN(:)))
+  PEVAP_GARDEN(:) = PLE_GARDEN(:) / XLVTT
 !
 !* 2.4  aggregated latent exchange: the conductance couples the garden back to
 !*      the air of the reference state (canyon air in TEB)
@@ -429,29 +429,29 @@ ELSE
 !-------------------------------------------------------------------------------
 !
 !* net radiation (albedo from the namelist urb_alb_gdn)
-PRN_GARDEN(:) = (1.-PALB_GD(:)) * PSW(:)
+  PRN_GARDEN(:) = (1.-PALB_GD(:)) * PSW(:)
 !
 !* Bowen ratio fixed to 0.25
-PH_GARDEN (:) = 0.2 * PRN_GARDEN(:)
-PLE_GARDEN(:) = 0.8 * PRN_GARDEN(:)
+  PH_GARDEN (:) = 0.2 * PRN_GARDEN(:)
+  PLE_GARDEN(:) = 0.8 * PRN_GARDEN(:)
 !
 !* Conduction heat flux is neglected
-PGFLUX_GARDEN(:) = 0.
+  PGFLUX_GARDEN(:) = 0.
 !
 !* evaporation
-PEVAP_GARDEN(:) = PLE_GARDEN(:) / XLVTT
+  PEVAP_GARDEN(:) = PLE_GARDEN(:) / XLVTT
 !
 !* Friction flux: neutral formulation with the MOMENTUM coefficient and wind
 !* (the historical proxy does not use the scalar coefficient PPCH_GD)
-PUW_GARDEN(:) = - PPCD_GD(:) * PV_GD(:)**2
+  PUW_GARDEN(:) = - PPCD_GD(:) * PV_GD(:)**2
 !
 !* Aerodynamical conductance: neglected because used further only for
 !  implicitation of canyon air temperature when the heat flux depends on the
 !  surface temperature
-PAC_GARDEN(:) = 0.
+  PAC_GARDEN(:) = 0.
 !
 !* surface saturation humidity
-PQSAT_GARDEN(:) = QSAT(PTS_GARDEN(:),PPS(:))
+  PQSAT_GARDEN(:) = QSAT(PTS_GARDEN(:),PPS(:))
 !
 !* aerodynamical conductance for latent heat and surface humidity
 !
@@ -470,14 +470,14 @@ END SUBROUTINE GARDEN_PCD
 !
 !     #########
     SUBROUTINE GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,    &
-                PZ0_O_Z0H,                                                       &
-                PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                  &
-                PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
-                PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                 &
-                PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                       &
-                PDRAIN_GARDEN, PIRRIG_GARDEN,                                             &
+                      PZ0_O_Z0H,                                                       &
+                      PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                  &
+                      PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                     &
+                      PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                 &
+                      PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                       &
+                      PDRAIN_GARDEN, PIRRIG_GARDEN,                                             &
 !MV202609 garden exchange coefficients and moisture multiplier of the garden model
-                PPCD_GD, PPCH_GD, PHU_AGG_GARDEN     )
+                      PPCD_GD, PPCH_GD, PHU_AGG_GARDEN     )
 !   ##########################################################################
 !
 !!****  *GARDEN*
@@ -526,49 +526,49 @@ IMPLICIT NONE
 !*      0.1    Declarations of arguments
 !
 !* Type of the garden parameterization (from the namelist teb_type_garden)
- CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
-REAL, DIMENSION(:)  , INTENT(IN)  :: PZ_LOWCAN        ! height of the reference air (m)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN        ! reference air temperature (K)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PQ_LOWCAN        ! reference air humidity (kg/kg)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PU_LOWCAN        ! reference wind (m/s)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length (m)
+CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN  ! type of the garden model
+REAL, DIMENSION(:)  , INTENT(IN)  :: PZ_LOWCAN    ! height of the reference air (m)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN    ! reference air temperature (K)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PQ_LOWCAN    ! reference air humidity (kg/kg)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PU_LOWCAN    ! reference wind (m/s)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD       ! garden roughness length (m)
 !MV202609 garden thermal roughness (z0h)
 !* z0/z0h ratio of the garden (-), >= 1: the scalar (thermal) roughness is
 !* z0h = PZ0_GD/PZ0_O_Z0H, see GARDEN_PCH_NEUTRAL
-REAL,               INTENT(IN)  :: PZ0_O_Z0H        ! garden z0/z0h ratio (-)
+REAL,               INTENT(IN)  :: PZ0_O_Z0H  ! garden z0/z0h ratio (-)
 
-REAL, DIMENSION(:)  , INTENT(IN)  :: PALB_GD          ! garden albedo
-REAL, DIMENSION(:)  , INTENT(IN)  :: PEMIS_GD         ! garden emissivity
-REAL, DIMENSION(:)  , INTENT(IN)  :: PRHOA            ! air density at the lowest level
-REAL, DIMENSION(:)  , INTENT(IN)  :: PPS              ! pressure at the surface
-REAL, DIMENSION(:)  , INTENT(IN)  :: PSW              ! received solar radiation
-REAL, DIMENSION(:)  , INTENT(IN)  :: PLW              ! received infrared radiation
+REAL, DIMENSION(:)  , INTENT(IN)  :: PALB_GD   ! garden albedo
+REAL, DIMENSION(:)  , INTENT(IN)  :: PEMIS_GD  ! garden emissivity
+REAL, DIMENSION(:)  , INTENT(IN)  :: PRHOA     ! air density at the lowest level
+REAL, DIMENSION(:)  , INTENT(IN)  :: PPS       ! pressure at the surface
+REAL, DIMENSION(:)  , INTENT(IN)  :: PSW       ! received solar radiation
+REAL, DIMENSION(:)  , INTENT(IN)  :: PLW       ! received infrared radiation
 !
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GARDEN         ! net radiation over green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GARDEN          ! sensible heat flux over green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GARDEN         ! latent heat flux over green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PGFLUX_GARDEN      ! flux through the green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PSFCO2             ! flux of CO2 (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PEVAP_GARDEN       ! total evaporation (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PUW_GARDEN         ! friction flux (m2/s2)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_GARDEN     ! runoff over garden (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GARDEN         ! aerodynamical conductance
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN       ! saturation humidity
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN         ! radiative surface temp. (snow free)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN      ! garden total (vertical) drainage
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irrigation rate
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GARDEN      ! net radiation over green areas
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GARDEN       ! sensible heat flux over green areas
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GARDEN      ! latent heat flux over green areas
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PGFLUX_GARDEN   ! flux through the green areas
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PSFCO2          ! flux of CO2 (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PEVAP_GARDEN    ! total evaporation (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PUW_GARDEN      ! friction flux (m2/s2)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_GARDEN  ! runoff over garden (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GARDEN      ! aerodynamical conductance
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN    ! saturation humidity
+REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN      ! radiative surface temp. (snow free)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN   ! garden total (vertical) drainage
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN   ! garden summer irrigation rate
 !MV202609 garden exchange coefficients returned to the caller: the neutral-log pair
 !* for the diagnostic garden ('PROXY_NEW'), zeros for the Bowen proxy (no coefficient)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCD_GD            ! momentum exchange coefficient (-)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCH_GD            ! thermal (scalar) exchange coefficient (-)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCD_GD  ! momentum exchange coefficient (-)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCH_GD  ! thermal (scalar) exchange coefficient (-)
 !MV202609 moisture multiplier of the internal schemes, returned to the caller
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN     ! garden surface relative humidity (-)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN  ! garden surface relative humidity (-)
 !
 !*      0.2    Declarations of local variables
 !
-REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPCD_GD   ! neutral-log momentum coefficient (-)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPCD_GD  ! neutral-log momentum coefficient (-)
 !MV202609 garden thermal roughness (z0h)
-REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPCH_GD   ! neutral-log thermal (scalar) coefficient (-)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPCH_GD  ! neutral-log thermal (scalar) coefficient (-)
 INTEGER :: JI_GD
 !
 !-------------------------------------------------------------------------------
@@ -579,8 +579,8 @@ INTEGER :: JI_GD
 !*             below zref), from the shared neutral formulation of this module
 !
 DO JI_GD = 1, SIZE(PT_LOWCAN)
-   ZPCD_GD(JI_GD) = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(JI_GD), PZ0_GD(JI_GD))
-   ZPCH_GD(JI_GD) = GARDEN_PCH_NEUTRAL(PZ_LOWCAN(JI_GD), PZ0_GD(JI_GD), PZ0_O_Z0H)
+  ZPCD_GD(JI_GD) = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(JI_GD), PZ0_GD(JI_GD))
+  ZPCH_GD(JI_GD) = GARDEN_PCH_NEUTRAL(PZ_LOWCAN(JI_GD), PZ0_GD(JI_GD), PZ0_O_Z0H)
 END DO
 !
 !-------------------------------------------------------------------------------
@@ -615,17 +615,17 @@ END SUBROUTINE GARDEN
 !
 !     #############
     SUBROUTINE GARDEN_CBS(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD, &
-                PZ0_O_Z0H,                                                       &
-                PUREF, PVMOD, PTA, PQA, PTAU, LCBS_SPLIT,                                  &
-                PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                   &
-                PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                      &
-                PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                  &
-                PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                        &
-                PDRAIN_GARDEN, PIRRIG_GARDEN,              &
+                          PZ0_O_Z0H,                                                       &
+                          PUREF, PVMOD, PTA, PQA, PTAU, LCBS_SPLIT,                                  &
+                          PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                   &
+                          PRN_GARDEN,PH_GARDEN,PLE_GARDEN,PGFLUX_GARDEN,PSFCO2,                      &
+                          PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                                  &
+                          PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                        &
+                          PDRAIN_GARDEN, PIRRIG_GARDEN,              &
 !MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-                PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM,              &
+                          PH_GARDEN_CAN, PH_GARDEN_ATM, PLE_GARDEN_CAN, PLE_GARDEN_ATM,              &
 !MV202609 garden exchange coefficients and moisture multiplier, returned to the caller
-                PPCD_GD, PPCH_GD, PHU_AGG_GARDEN                                       )
+                          PPCD_GD, PPCH_GD, PHU_AGG_GARDEN                                       )
 !   ##########################################################################
 !
 !!****  *GARDEN_CBS*
@@ -683,73 +683,73 @@ IMPLICIT NONE
 !*   'PROXY_OLD' : fixed Bowen-ratio proxy (the historical scheme)
 !*   'PROXY_NEW' : diagnostic closed surface energy balance (default)
 !*   'EXT'       : external garden model (Bowen-ratio placeholder)
- CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN      ! type of the garden model
+CHARACTER(LEN=*),     INTENT(IN)  :: TYPE_GARDEN  ! type of the garden model
 !* Reference state of the canyon air (the low canyon level of TEB)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PZ_LOWCAN        ! height of the reference air (m)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN        ! reference air temperature (K)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PQ_LOWCAN        ! reference air humidity (kg/kg)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PU_LOWCAN        ! reference wind (m/s)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD           ! garden roughness length (m)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PZ_LOWCAN  ! height of the reference air (m)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PT_LOWCAN  ! reference air temperature (K)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PQ_LOWCAN  ! reference air humidity (kg/kg)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PU_LOWCAN  ! reference wind (m/s)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PZ0_GD     ! garden roughness length (m)
 !MV202609 garden thermal roughness (z0h)
 !* z0/z0h ratio of the garden (-), >= 1: the scalar (thermal) roughness is
 !* z0h = PZ0_GD/PZ0_O_Z0H, see GARDEN_PCH_NEUTRAL
-REAL,               INTENT(IN)  :: PZ0_O_Z0H        ! garden z0/z0h ratio (-)
+REAL,               INTENT(IN)  :: PZ0_O_Z0H  ! garden z0/z0h ratio (-)
 
 !MV202609 CBS scheme of the garden
 !* Reference state of the air of the forcing level (used by the tau split)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PUREF            ! height of the wind of the forcing level (m)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PVMOD            ! wind speed at the forcing level (m/s)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PTA              ! air temperature of the forcing level (K)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PQA              ! air specific humidity of the forcing level (kg/kg)
-REAL, DIMENSION(:)  , INTENT(IN)  :: PTAU             ! tau weight of the canyon path (-)
-LOGICAL             , INTENT(IN)  :: LCBS_SPLIT       ! .TRUE.: split the garden exchange by tau
+REAL, DIMENSION(:)  , INTENT(IN)  :: PUREF       ! height of the wind of the forcing level (m)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PVMOD       ! wind speed at the forcing level (m/s)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PTA         ! air temperature of the forcing level (K)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PQA         ! air specific humidity of the forcing level (kg/kg)
+REAL, DIMENSION(:)  , INTENT(IN)  :: PTAU        ! tau weight of the canyon path (-)
+LOGICAL             , INTENT(IN)  :: LCBS_SPLIT  ! .TRUE.: split the garden exchange by tau
 !
-REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GD            ! garden albedo
-REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GD           ! garden emissivity
-REAL, DIMENSION(:)  , INTENT(IN)    :: PRHOA              ! air density at the lowest level
-REAL, DIMENSION(:)  , INTENT(IN)    :: PPS                ! pressure at the surface
-REAL, DIMENSION(:)  , INTENT(IN)    :: PSW                ! received solar radiation
-REAL, DIMENSION(:)  , INTENT(IN)    :: PLW                ! received infrared radiation
+REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GD   ! garden albedo
+REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GD  ! garden emissivity
+REAL, DIMENSION(:)  , INTENT(IN)    :: PRHOA     ! air density at the lowest level
+REAL, DIMENSION(:)  , INTENT(IN)    :: PPS       ! pressure at the surface
+REAL, DIMENSION(:)  , INTENT(IN)    :: PSW       ! received solar radiation
+REAL, DIMENSION(:)  , INTENT(IN)    :: PLW       ! received infrared radiation
 !
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GARDEN         ! net radiation over green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GARDEN          ! sensible heat flux over green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GARDEN         ! latent heat flux over green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PGFLUX_GARDEN      ! flux through the green areas
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PSFCO2             ! flux of CO2 (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PEVAP_GARDEN       ! total evaporation (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PUW_GARDEN         ! friction flux (m2/s2)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_GARDEN     ! runoff over garden (kg/m2/s)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GARDEN         ! aerodynamical conductance
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN       ! saturation humidity
-REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN         ! radiative surface temp. (snow free)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN      ! garden total (vertical) drainage
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN      ! garden summer irrigation rate
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GARDEN_CAN      ! sensible heat flux, canyon branch
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GARDEN_ATM      ! sensible heat flux, atmosphere branch
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GARDEN_CAN     ! latent heat flux, canyon branch
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GARDEN_ATM     ! latent heat flux, atmosphere branch
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PRN_GARDEN      ! net radiation over green areas
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GARDEN       ! sensible heat flux over green areas
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GARDEN      ! latent heat flux over green areas
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PGFLUX_GARDEN   ! flux through the green areas
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PSFCO2          ! flux of CO2 (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PEVAP_GARDEN    ! total evaporation (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PUW_GARDEN      ! friction flux (m2/s2)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PRUNOFF_GARDEN  ! runoff over garden (kg/m2/s)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PAC_GARDEN      ! aerodynamical conductance
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN    ! saturation humidity
+REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN      ! radiative surface temp. (snow free)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN   ! garden total (vertical) drainage
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN   ! garden summer irrigation rate
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GARDEN_CAN   ! sensible heat flux, canyon branch
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PH_GARDEN_ATM   ! sensible heat flux, atmosphere branch
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GARDEN_CAN  ! latent heat flux, canyon branch
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PLE_GARDEN_ATM  ! latent heat flux, atmosphere branch
 !MV202609 garden exchange coefficients of the canyon path, returned to the caller (see
 !* GARDEN_PCD_NEUTRAL / GARDEN_PCH_NEUTRAL): they are the coefficients the
 !* conductances of this proxy are built from
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCD_GD            ! momentum exchange coefficient (-)
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCH_GD            ! thermal (scalar) exchange coefficient (-)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCD_GD  ! momentum exchange coefficient (-)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCH_GD  ! thermal (scalar) exchange coefficient (-)
 !MV202609 moisture multiplier of the internal schemes, returned to the caller
-REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN     ! garden surface relative humidity (-)
+REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN  ! garden surface relative humidity (-)
 !
 !*      0.2    Declarations of local variables
 !
-REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_GD   ! canyon-path thermal (scalar) conductance (m/s)
-REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_M_GD ! canyon-path momentum conductance, friction (m/s)
-REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_ATM  ! atmosphere-path thermal conductance (m/s)
-REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_EFF  ! tau-aggregated conductance (m/s)
-REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZT_REF   ! tau-mixed reference air temperature (K)
-REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZQ_REF   ! tau-mixed reference air humidity (kg/kg)
-REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZV_GD    ! canyon-path wind (m/s)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_GD    ! canyon-path thermal (scalar) conductance (m/s)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_M_GD  ! canyon-path momentum conductance, friction (m/s)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_ATM   ! atmosphere-path thermal conductance (m/s)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZCA_EFF   ! tau-aggregated conductance (m/s)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZT_REF    ! tau-mixed reference air temperature (K)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZQ_REF    ! tau-mixed reference air humidity (kg/kg)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZV_GD     ! canyon-path wind (m/s)
 !MV202609 canyon-path exchange coefficients, returned to the caller
 REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPCD_GD  ! momentum coefficient (-)
 REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPCH_GD  ! thermal (scalar) coefficient (-)
 !MV202609 moisture multiplier, returned to the caller
-REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPHU_AGG_GD ! moisture multiplier (-)
+REAL, DIMENSION(SIZE(PT_LOWCAN)) :: ZPHU_AGG_GD  ! moisture multiplier (-)
 INTEGER :: JI_GD
 !
 !-------------------------------------------------------------------------------
@@ -778,62 +778,62 @@ IF (TYPE_GARDEN == 'PROXY_NEW' .AND. LCBS_SPLIT) THEN
 !*      wind speed keeps the surface coupled. The friction flux of the garden
 !*      uses the MOMENTUM conductance of the canyon path (z0h does not act on
 !*      the momentum)
-DO JI_GD = 1, SIZE(PT_LOWCAN)
-   ZV_GD(JI_GD)    = MAX(PU_LOWCAN(JI_GD), XVMIN_GD)
+  DO JI_GD = 1, SIZE(PT_LOWCAN)
+    ZV_GD(JI_GD)    = MAX(PU_LOWCAN(JI_GD), XVMIN_GD)
 !MV202609 garden thermal roughness (z0h): the coefficients of the canyon path are built
 !* here with the same neutral formulation and the same arguments as GARDEN / GARDEN_PCD,
 !* and the conductances are derived from them, so that the pair returned to the caller
 !* is exactly the one that produced the exchange
-   ZPCD_GD(JI_GD)  = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(JI_GD), PZ0_GD(JI_GD))
-   ZPCH_GD(JI_GD)  = GARDEN_PCH_NEUTRAL(PZ_LOWCAN(JI_GD), PZ0_GD(JI_GD), PZ0_O_Z0H)
-   ZCA_M_GD(JI_GD) = ZPCD_GD(JI_GD) * ZV_GD(JI_GD)
-   ZCA_GD(JI_GD)   = ZPCH_GD(JI_GD) * ZV_GD(JI_GD)
-END DO
+    ZPCD_GD(JI_GD)  = GARDEN_PCD_NEUTRAL(PZ_LOWCAN(JI_GD), PZ0_GD(JI_GD))
+    ZPCH_GD(JI_GD)  = GARDEN_PCH_NEUTRAL(PZ_LOWCAN(JI_GD), PZ0_GD(JI_GD), PZ0_O_Z0H)
+    ZCA_M_GD(JI_GD) = ZPCD_GD(JI_GD) * ZV_GD(JI_GD)
+    ZCA_GD(JI_GD)   = ZPCH_GD(JI_GD) * ZV_GD(JI_GD)
+  END DO
 !* moisture multiplier of the tau branch: the parameter of this model (an
 !* external garden takes it from the surface humidity of the host instead)
-ZPHU_AGG_GD(:) = proxy_phu_gdn
-PAC_GARDEN(:) = ZCA_GD(:)
-PUW_GARDEN(:) = -ZCA_M_GD(:) * ZV_GD(:)
+  ZPHU_AGG_GD(:) = proxy_phu_gdn
+  PAC_GARDEN(:) = ZCA_GD(:)
+  PUW_GARDEN(:) = -ZCA_M_GD(:) * ZV_GD(:)
 !
-ZCA_ATM(:) = 0.
-ZCA_EFF(:) = ZCA_GD(:)
-ZT_REF (:) = PT_LOWCAN(:)
-ZQ_REF (:) = PQ_LOWCAN(:)
-DO JI_GD = 1, SIZE(PT_LOWCAN)
-   ZCA_ATM(JI_GD) = GARDEN_CAH_NEUTRAL(PUREF(JI_GD), PZ0_GD(JI_GD), PZ0_O_Z0H, PVMOD(JI_GD))
-   IF (PTAU(JI_GD) < 1.) THEN
+  ZCA_ATM(:) = 0.
+  ZCA_EFF(:) = ZCA_GD(:)
+  ZT_REF (:) = PT_LOWCAN(:)
+  ZQ_REF (:) = PQ_LOWCAN(:)
+  DO JI_GD = 1, SIZE(PT_LOWCAN)
+    ZCA_ATM(JI_GD) = GARDEN_CAH_NEUTRAL(PUREF(JI_GD), PZ0_GD(JI_GD), PZ0_O_Z0H, PVMOD(JI_GD))
+    IF (PTAU(JI_GD) < 1.) THEN
       ZCA_EFF(JI_GD) = PTAU(JI_GD) * ZCA_GD(JI_GD) + (1.-PTAU(JI_GD)) * ZCA_ATM(JI_GD)
       IF (ZCA_EFF(JI_GD) > 0.) THEN
-         ZT_REF(JI_GD) = ( PTAU(JI_GD) * ZCA_GD(JI_GD) * PT_LOWCAN(JI_GD)      &
-                         + (1.-PTAU(JI_GD)) * ZCA_ATM(JI_GD) * PTA(JI_GD) )    &
-                       / ZCA_EFF(JI_GD)
-         ZQ_REF(JI_GD) = ( PTAU(JI_GD) * ZCA_GD(JI_GD) * PQ_LOWCAN(JI_GD)      &
-                         + (1.-PTAU(JI_GD)) * ZCA_ATM(JI_GD) * PQA(JI_GD) )    &
-                       / ZCA_EFF(JI_GD)
+        ZT_REF(JI_GD) = ( PTAU(JI_GD) * ZCA_GD(JI_GD) * PT_LOWCAN(JI_GD)      &
+                          + (1.-PTAU(JI_GD)) * ZCA_ATM(JI_GD) * PTA(JI_GD) )    &
+          / ZCA_EFF(JI_GD)
+        ZQ_REF(JI_GD) = ( PTAU(JI_GD) * ZCA_GD(JI_GD) * PQ_LOWCAN(JI_GD)      &
+                          + (1.-PTAU(JI_GD)) * ZCA_ATM(JI_GD) * PQA(JI_GD) )    &
+          / ZCA_EFF(JI_GD)
       END IF
-   END IF
-END DO
+    END IF
+  END DO
 !
 !* 2.2  surface energy balance: one Newton solve with the tau-aggregated
 !*      conductance and reference air (shared solver; G = 0)
-CALL GARDEN_BALANCE(ZCA_EFF, ZT_REF, ZQ_REF, proxy_phu_gdn, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
-                    PTS_GARDEN, PQSAT_GARDEN, PH_GARDEN, PLE_GARDEN)
+  CALL GARDEN_BALANCE(ZCA_EFF, ZT_REF, ZQ_REF, proxy_phu_gdn, PRHOA, PPS, PSW, PLW, PALB_GD, PEMIS_GD,  &
+                      PTS_GARDEN, PQSAT_GARDEN, PH_GARDEN, PLE_GARDEN)
 !
 !* 2.3  actual (tau-aggregated) fluxes and their canyon / atmosphere branches:
 !*      the three of them share the same surface temperature, so that
 !*      PH_GARDEN = PTAU*PH_GARDEN_CAN + (1-PTAU)*PH_GARDEN_ATM holds identically
-PH_GARDEN_CAN(:)  = PRHOA(:)*XCPD *ZCA_GD (:)*(PTS_GARDEN(:) - PT_LOWCAN(:))
-PH_GARDEN_ATM(:)  = PRHOA(:)*XCPD *ZCA_ATM(:)*(PTS_GARDEN(:) - PTA(:))
-PLE_GARDEN_CAN(:) = PRHOA(:)*XLVTT*ZCA_GD (:)*(proxy_phu_gdn*PQSAT_GARDEN(:) - PQ_LOWCAN(:))
-PLE_GARDEN_ATM(:) = PRHOA(:)*XLVTT*ZCA_ATM(:)*(proxy_phu_gdn*PQSAT_GARDEN(:) - PQA(:))
-PGFLUX_GARDEN(:) = 0.       ! no heat flux into the soil (diagnostic proxy garden)
-PRN_GARDEN(:)    = (1.-PALB_GD(:))*PSW(:) + PEMIS_GD(:)*(PLW(:) - XSTEFAN*PTS_GARDEN(:)**4)
-PEVAP_GARDEN(:)  = PLE_GARDEN(:) / XLVTT
+  PH_GARDEN_CAN(:)  = PRHOA(:)*XCPD *ZCA_GD (:)*(PTS_GARDEN(:) - PT_LOWCAN(:))
+  PH_GARDEN_ATM(:)  = PRHOA(:)*XCPD *ZCA_ATM(:)*(PTS_GARDEN(:) - PTA(:))
+  PLE_GARDEN_CAN(:) = PRHOA(:)*XLVTT*ZCA_GD (:)*(proxy_phu_gdn*PQSAT_GARDEN(:) - PQ_LOWCAN(:))
+  PLE_GARDEN_ATM(:) = PRHOA(:)*XLVTT*ZCA_ATM(:)*(proxy_phu_gdn*PQSAT_GARDEN(:) - PQA(:))
+  PGFLUX_GARDEN(:)  = 0.    ! no heat flux into the soil (diagnostic proxy garden)
+  PRN_GARDEN(:)     = (1.-PALB_GD(:))*PSW(:) + PEMIS_GD(:)*(PLW(:) - XSTEFAN*PTS_GARDEN(:)**4)
+  PEVAP_GARDEN(:)   = PLE_GARDEN(:) / XLVTT
 !
 !* flux clips (safety only; small energy imbalance possible when they bite)
-PH_GARDEN(:)     = MAX(-XHMAX_GD,  MIN(XHMAX_GD,  PH_GARDEN(:)))
-PLE_GARDEN(:)    = MAX(XLEMIN_GD,  MIN(XLEMAX_GD, PLE_GARDEN(:)))
-PEVAP_GARDEN(:)  = PLE_GARDEN(:) / XLVTT
+  PH_GARDEN(:)    = MAX(-XHMAX_GD,  MIN(XHMAX_GD,  PH_GARDEN(:)))
+  PLE_GARDEN(:)   = MAX(XLEMIN_GD,  MIN(XLEMAX_GD, PLE_GARDEN(:)))
+  PEVAP_GARDEN(:) = PLE_GARDEN(:) / XLVTT
 !
 !* 2.4  aggregated latent exchange: the canyon-path conductance couples the
 !*      garden back to the canyon air (T_CANYON / Q_CANYON)
@@ -842,23 +842,23 @@ ELSE
 !
 !* 'PROXY_NEW' without the tau split and the historical Bowen-ratio proxy
 !* ('PROXY_OLD' / 'EXT'): the reduced diagnostic garden of GARDEN
-CALL GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,             &
-            PZ0_O_Z0H,                                                           &
-            PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                     &
-            PRN_GARDEN, PH_GARDEN, PLE_GARDEN, PGFLUX_GARDEN, PSFCO2, PEVAP_GARDEN,      &
-            PUW_GARDEN, PRUNOFF_GARDEN, PAC_GARDEN, PQSAT_GARDEN, PTS_GARDEN,            &
-            PDRAIN_GARDEN, PIRRIG_GARDEN,                                                &
+  CALL GARDEN(TYPE_GARDEN, PZ_LOWCAN, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ0_GD,             &
+              PZ0_O_Z0H,                                                           &
+              PALB_GD, PEMIS_GD, PRHOA, PPS, PSW, PLW,                                     &
+              PRN_GARDEN, PH_GARDEN, PLE_GARDEN, PGFLUX_GARDEN, PSFCO2, PEVAP_GARDEN,      &
+              PUW_GARDEN, PRUNOFF_GARDEN, PAC_GARDEN, PQSAT_GARDEN, PTS_GARDEN,            &
+              PDRAIN_GARDEN, PIRRIG_GARDEN,                                                &
 !MV202609 garden exchange coefficients returned by the reduced garden
-            ZPCD_GD, ZPCH_GD, ZPHU_AGG_GD)
+              ZPCD_GD, ZPCH_GD, ZPHU_AGG_GD)
 !
 !* GARDEN_CBS is the ONLY routine returning the tau-branch decomposition: the
 !* reduced garden has no tau split, so both branches carry its single modelled
 !* flux (the blend H = PTAU*H_CAN + (1-PTAU)*H_ATM is then trivial and, with
 !* tau = 1, reproduces the former single-forcing behaviour exactly)
-PH_GARDEN_CAN (:) = PH_GARDEN(:)
-PH_GARDEN_ATM (:) = PH_GARDEN(:)
-PLE_GARDEN_CAN(:) = PLE_GARDEN(:)
-PLE_GARDEN_ATM(:) = PLE_GARDEN(:)
+  PH_GARDEN_CAN (:) = PH_GARDEN(:)
+  PH_GARDEN_ATM (:) = PH_GARDEN(:)
+  PLE_GARDEN_CAN(:) = PLE_GARDEN(:)
+  PLE_GARDEN_ATM(:) = PLE_GARDEN(:)
 !
 END IF
 !* exchange coefficients and moisture multiplier returned to the caller: both

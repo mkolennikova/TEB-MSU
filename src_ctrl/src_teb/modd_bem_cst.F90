@@ -32,7 +32,7 @@
 !             ------------
 !
 IMPLICIT NONE 
-REAL, PARAMETER :: XWIN_SW_MAX = 150. ! Maximum shortwave radiation received by
+REAL, PARAMETER :: XWIN_SW_MAX = 150.  ! Maximum shortwave radiation received by
 !                                     ! windows before activation of shading 
 !                                     ! (if available and pertinent).
 REAL, PARAMETER :: XCOMFORT_TEMP_FOR_SHADING_USE = 297.16

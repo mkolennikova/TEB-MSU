@@ -112,87 +112,87 @@ TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: TOP
 TYPE(TEB_t), INTENT(INOUT) :: T
 TYPE(BEM_t), INTENT(INOUT) :: B
 !
-REAL, DIMENSION(:), INTENT(INOUT) :: PQSAT_ROOF     ! q_sat(Ts)
-REAL, DIMENSION(:), INTENT(IN)    :: PAC_BLD        ! aerodynamical resistance
-                                                    ! inside building itself
-REAL,               INTENT(IN)    :: PTSTEP         ! time step
-REAL, DIMENSION(:), INTENT(IN)    :: PDN_ROOF       ! roof snow fraction
-REAL, DIMENSION(:), INTENT(IN)    :: PRHOA          ! air density
-REAL, DIMENSION(:), INTENT(IN)    :: PAC_ROOF       ! aerodynamical conductance
-REAL, DIMENSION(:), INTENT(IN)    :: PAC_ROOF_WAT   ! aerodynamical conductance (for water)
-REAL, DIMENSION(:), INTENT(IN)    :: PLW_RAD        ! atmospheric infrared radiation
-REAL, DIMENSION(:), INTENT(IN)    :: PPS            ! pressure at the surface
-REAL, DIMENSION(:), INTENT(IN)    :: PDELT_ROOF     ! fraction of water
-REAL, DIMENSION(:), INTENT(IN)    :: PTA            ! air temperature at roof level
-REAL, DIMENSION(:), INTENT(IN)    :: PQA            ! air specific humidity
-                                                    ! at roof level
-REAL, DIMENSION(:), INTENT(IN)    :: PEXNA          ! exner function
-REAL, DIMENSION(:), INTENT(IN)    :: PEXNS          ! surface exner function
-REAL, DIMENSION(:), INTENT(IN)    :: PABS_SW_ROOF   ! absorbed solar radiation
-REAL, DIMENSION(:), INTENT(IN)    :: PGSNOW_ROOF    ! roof snow conduction
+REAL, DIMENSION(:), INTENT(INOUT) :: PQSAT_ROOF    ! q_sat(Ts)
+REAL, DIMENSION(:), INTENT(IN)    :: PAC_BLD       ! aerodynamical resistance
+                                                   ! inside building itself
+REAL,               INTENT(IN)    :: PTSTEP        ! time step
+REAL, DIMENSION(:), INTENT(IN)    :: PDN_ROOF      ! roof snow fraction
+REAL, DIMENSION(:), INTENT(IN)    :: PRHOA         ! air density
+REAL, DIMENSION(:), INTENT(IN)    :: PAC_ROOF      ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(IN)    :: PAC_ROOF_WAT  ! aerodynamical conductance (for water)
+REAL, DIMENSION(:), INTENT(IN)    :: PLW_RAD       ! atmospheric infrared radiation
+REAL, DIMENSION(:), INTENT(IN)    :: PPS           ! pressure at the surface
+REAL, DIMENSION(:), INTENT(IN)    :: PDELT_ROOF    ! fraction of water
+REAL, DIMENSION(:), INTENT(IN)    :: PTA           ! air temperature at roof level
+REAL, DIMENSION(:), INTENT(IN)    :: PQA           ! air specific humidity
+                                                   ! at roof level
+REAL, DIMENSION(:), INTENT(IN)    :: PEXNA         ! exner function
+REAL, DIMENSION(:), INTENT(IN)    :: PEXNS         ! surface exner function
+REAL, DIMENSION(:), INTENT(IN)    :: PABS_SW_ROOF  ! absorbed solar radiation
+REAL, DIMENSION(:), INTENT(IN)    :: PGSNOW_ROOF   ! roof snow conduction
 !                                                   ! heat fluxes at mantel
 !                                                   ! base
-REAL, DIMENSION(:), INTENT(IN)    :: PG_GREENROOF_ROOF ! heat conduction flux
+REAL, DIMENSION(:), INTENT(IN)    :: PG_GREENROOF_ROOF  ! heat conduction flux
 !                                                        between greenroof and
 !                                                        structural roof
-REAL, DIMENSION(:), INTENT(OUT)   :: PFLX_BLD_ROOF  ! flux from bld to roof
-REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_ROOF      ! heat storage inside the roofs
-REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW_ROOF   ! absorbed infra-red rad.
-REAL, DIMENSION(:), INTENT(OUT)   :: PHFREE_ROOF    ! sensible heat flux of the
-                                                    ! snow free part of the roof
-REAL, DIMENSION(:), INTENT(OUT)   :: PLEFREE_ROOF   ! latent heat flux of the
-                                                    ! snow free part of the roof
-REAL, DIMENSION(:), INTENT(OUT)   :: PIMB_ROOF      ! residual energy imbalance
-                                                    ! of the roof for
-REAL, DIMENSION(:), INTENT(IN)    :: PRADHT_IN      ! Indoor radiant heat transfer coefficient
-                                                    ! [W K-1 m-2]
-REAL, DIMENSION(:), INTENT(IN)    :: PTS_FLOOR      ! surf. floor temp. (contact with bld air)
-REAL, DIMENSION(:), INTENT(IN)    :: PTI_WALL       ! indoor wall temp.
-REAL, DIMENSION(:), INTENT(OUT)   :: PRAD_ROOF_WALL ! rad. fluxes from roof to wall [W m-2(roof)]
-REAL, DIMENSION(:), INTENT(OUT)   :: PRAD_ROOF_WIN  ! rad. fluxes from roof to win [W m-2(roof)]
-REAL, DIMENSION(:), INTENT(OUT)   :: PRAD_ROOF_FLOOR! rad. fluxes from roof to floor [W m-2(roof)]
-REAL, DIMENSION(:), INTENT(OUT)   :: PRAD_ROOF_MASS ! rad. fluxes from roof to mass [W m-2(roof)]
-REAL, DIMENSION(:), INTENT(OUT)   :: PCONV_ROOF_BLD ! conv. fluxes from roof to bld [W m-2(roof)]
-REAL, DIMENSION(:), INTENT(IN)    :: PRR ! rain rate [kg m-2 s-1]
-REAL, DIMENSION(:), INTENT(IN)    :: PLOAD_IN_ROOF ! solar + int heat gain on roof W/m2 [roof]
+REAL, DIMENSION(:), INTENT(OUT)   :: PFLX_BLD_ROOF    ! flux from bld to roof
+REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_ROOF        ! heat storage inside the roofs
+REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW_ROOF     ! absorbed infra-red rad.
+REAL, DIMENSION(:), INTENT(OUT)   :: PHFREE_ROOF      ! sensible heat flux of the
+                                                      ! snow free part of the roof
+REAL, DIMENSION(:), INTENT(OUT)   :: PLEFREE_ROOF     ! latent heat flux of the
+                                                      ! snow free part of the roof
+REAL, DIMENSION(:), INTENT(OUT)   :: PIMB_ROOF        ! residual energy imbalance
+                                                      ! of the roof for
+REAL, DIMENSION(:), INTENT(IN)    :: PRADHT_IN        ! Indoor radiant heat transfer coefficient
+                                                      ! [W K-1 m-2]
+REAL, DIMENSION(:), INTENT(IN)    :: PTS_FLOOR        ! surf. floor temp. (contact with bld air)
+REAL, DIMENSION(:), INTENT(IN)    :: PTI_WALL         ! indoor wall temp.
+REAL, DIMENSION(:), INTENT(OUT)   :: PRAD_ROOF_WALL   ! rad. fluxes from roof to wall [W m-2(roof)]
+REAL, DIMENSION(:), INTENT(OUT)   :: PRAD_ROOF_WIN    ! rad. fluxes from roof to win [W m-2(roof)]
+REAL, DIMENSION(:), INTENT(OUT)   :: PRAD_ROOF_FLOOR  ! rad. fluxes from roof to floor [W m-2(roof)]
+REAL, DIMENSION(:), INTENT(OUT)   :: PRAD_ROOF_MASS   ! rad. fluxes from roof to mass [W m-2(roof)]
+REAL, DIMENSION(:), INTENT(OUT)   :: PCONV_ROOF_BLD   ! conv. fluxes from roof to bld [W m-2(roof)]
+REAL, DIMENSION(:), INTENT(IN)    :: PRR              ! rain rate [kg m-2 s-1]
+REAL, DIMENSION(:), INTENT(IN)    :: PLOAD_IN_ROOF    ! solar + int heat gain on roof W/m2 [roof]
 !
 !*      0.2    declarations of local variables
 !
-REAL :: ZIMPL = 1.0        ! implicit coefficient
-REAL :: ZEXPL = 0.0        ! explicit coefficient
+REAL :: ZIMPL = 1.0  ! implicit coefficient
+REAL :: ZEXPL = 0.0  ! explicit coefficient
 !
-REAL, DIMENSION(SIZE(PTA)) :: ZDF_ROOF ! snow-free fraction
-REAL, DIMENSION(SIZE(PTA),SIZE(T%XT_ROOF,2)) :: ZA,& ! lower diag.
-                                              ZB,& ! main  diag.
-                                              ZC,& ! upper diag.
-                                              ZY   ! r.h.s.
+REAL, DIMENSION(SIZE(PTA)) :: ZDF_ROOF                ! snow-free fraction
+REAL, DIMENSION(SIZE(PTA),SIZE(T%XT_ROOF,2)) :: ZA,&  ! lower diag.
+  ZB,&                                             ! main  diag.
+  ZC,&                                             ! upper diag.
+  ZY                                               ! r.h.s.
 !
-REAL, DIMENSION(SIZE(PTA)) :: ZDQSAT_ROOF      ! dq_sat/dTs
-REAL, DIMENSION(SIZE(PTA)) :: ZRHO_ACF_ROOF    ! conductance * rho
-REAL, DIMENSION(SIZE(PTA)) :: ZRHO_ACF_ROOF_WAT! conductance * rho (for water)
-REAL, DIMENSION(SIZE(PTA)) :: ZMTC_O_D_ROOF_IN ! thermal capacity times layer depth
-REAL, DIMENSION(SIZE(PTA)) :: ZTS_ROOF         ! roof surface temperature at previous time step
-REAL, DIMENSION(SIZE(PTA)) :: ZTRAD_ROOF       ! roof radiative surface temperature at intermediate time step
-REAL, DIMENSION(SIZE(PTA)) :: ZTAER_ROOF       ! roof aerodyn. surface temperature at intermediate time step
-REAL, DIMENSION(SIZE(PTA)) :: ZHEAT_RR         ! heat used too cool/heat the rain from the roof
-REAL, DIMENSION(SIZE(PTA)) :: ZTI_ROOF         ! temperature of internal roof layer used for radiative exchanges
-REAL, DIMENSION(SIZE(PTA)) :: ZTI_ROOF_CONV    ! temperature of internal roof layer used for convective exchanges
+REAL, DIMENSION(SIZE(PTA)) :: ZDQSAT_ROOF        ! dq_sat/dTs
+REAL, DIMENSION(SIZE(PTA)) :: ZRHO_ACF_ROOF      ! conductance * rho
+REAL, DIMENSION(SIZE(PTA)) :: ZRHO_ACF_ROOF_WAT  ! conductance * rho (for water)
+REAL, DIMENSION(SIZE(PTA)) :: ZMTC_O_D_ROOF_IN   ! thermal capacity times layer depth
+REAL, DIMENSION(SIZE(PTA)) :: ZTS_ROOF           ! roof surface temperature at previous time step
+REAL, DIMENSION(SIZE(PTA)) :: ZTRAD_ROOF         ! roof radiative surface temperature at intermediate time step
+REAL, DIMENSION(SIZE(PTA)) :: ZTAER_ROOF         ! roof aerodyn. surface temperature at intermediate time step
+REAL, DIMENSION(SIZE(PTA)) :: ZHEAT_RR           ! heat used too cool/heat the rain from the roof
+REAL, DIMENSION(SIZE(PTA)) :: ZTI_ROOF           ! temperature of internal roof layer used for radiative exchanges
+REAL, DIMENSION(SIZE(PTA)) :: ZTI_ROOF_CONV      ! temperature of internal roof layer used for convective exchanges
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTC_IN_ROOF      ! Indoor roof convec heat transfer coefficient
-                                               ! [W K-1 m-2(bld)]
+                                                 ! [W K-1 m-2(bld)]
 !
 INTEGER :: JJ
-INTEGER :: IROOF_LAYER           ! number of roof layers
-INTEGER :: JLAYER                ! loop counter
+INTEGER :: IROOF_LAYER  ! number of roof layers
+INTEGER :: JLAYER       ! loop counter
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 !
 IF (LHOOK) CALL DR_HOOK('ROOF_LAYER_E_BUDGET',0,ZHOOK_HANDLE)
 !
-PRAD_ROOF_WALL(:) = XUNDEF
-PRAD_ROOF_WIN(:)  = XUNDEF
-PRAD_ROOF_FLOOR(:)= XUNDEF
-PRAD_ROOF_MASS(:) = XUNDEF
-PCONV_ROOF_BLD(:) = XUNDEF
+PRAD_ROOF_WALL(:)  = XUNDEF
+PRAD_ROOF_WIN(:)   = XUNDEF
+PRAD_ROOF_FLOOR(:) = XUNDEF
+PRAD_ROOF_MASS(:)  = XUNDEF
+PCONV_ROOF_BLD(:)  = XUNDEF
 !
 ! *Convection heat transfer coefficients [W m-2 K-1] from EP Engineering Reference
 !
@@ -200,11 +200,11 @@ IROOF_LAYER = SIZE(T%XT_ROOF,2)
 !
 ZCHTC_IN_ROOF(:) = CHTC_DOWN_DOE(T%XT_ROOF(:,IROOF_LAYER), B%XTI_BLD(:))
 DO JJ=1,SIZE(ZCHTC_IN_ROOF)
-   ZCHTC_IN_ROOF(JJ) = MAX(1., ZCHTC_IN_ROOF(JJ))
+  ZCHTC_IN_ROOF(JJ) = MAX(1., ZCHTC_IN_ROOF(JJ))
 ENDDO
 !
- CALL LAYER_E_BUDGET_GET_COEF(T%XT_ROOF, PTSTEP, ZIMPL, T%XHC_ROOF, T%XTC_ROOF, T%XD_ROOF, &
-                              ZA, ZB, ZC, ZY )
+CALL LAYER_E_BUDGET_GET_COEF(T%XT_ROOF, PTSTEP, ZIMPL, T%XHC_ROOF, T%XTC_ROOF, T%XD_ROOF, &
+                             ZA, ZB, ZC, ZY )
 !
 !
 DO JJ=1,SIZE(PDN_ROOF)
@@ -241,48 +241,48 @@ DO JJ=1,SIZE(T%XT_ROOF,1)
                         ZIMPL * ( XCPD/PEXNS(JJ) * ZRHO_ACF_ROOF(JJ)                       &
                         + XLVTT * ZRHO_ACF_ROOF_WAT(JJ) * PDELT_ROOF(JJ) * ZDQSAT_ROOF(JJ) &
                         + XSTEFAN * T%XEMIS_ROOF(JJ) * 4.*ZTS_ROOF(JJ)**3                  &
-                        + PRR(JJ) * XCL )) !! heating/cooling of rain 
+                        + PRR(JJ) * XCL ))  !! heating/cooling of rain 
   !
   ZY(JJ,1) = ZY(JJ,1) + (1.-T%XGREENROOF(JJ))                                                            &
-                      * (PDN_ROOF(JJ)*PGSNOW_ROOF(JJ) + ZDF_ROOF(JJ) * ( PABS_SW_ROOF(JJ)                &
+    * (PDN_ROOF(JJ)*PGSNOW_ROOF(JJ) + ZDF_ROOF(JJ) * ( PABS_SW_ROOF(JJ)                &
                         + XCPD * ZRHO_ACF_ROOF(JJ) * ( PTA(JJ)/PEXNA(JJ) - ZEXPL*ZTS_ROOF(JJ)/PEXNS(JJ)) &
                         + T%XEMIS_ROOF(JJ)*PLW_RAD(JJ)                                                   &                 
                         + XLVTT * ZRHO_ACF_ROOF_WAT(JJ) * PDELT_ROOF(JJ)                                 &
                           * ( PQA(JJ) - PQSAT_ROOF(JJ) + ZIMPL * ZDQSAT_ROOF(JJ) * ZTS_ROOF(JJ) )        &
                         + XSTEFAN * T%XEMIS_ROOF(JJ) * ZTS_ROOF(JJ)**4 * ( 3.*ZIMPL-ZEXPL )              &
-                        + PRR(JJ) * XCL * (PTA(JJ) - ZEXPL * ZTS_ROOF(JJ)) ) ) & !! heating/cooling of rain
-                        + T%XGREENROOF(JJ)*PG_GREENROOF_ROOF(JJ)
+                        + PRR(JJ) * XCL * (PTA(JJ) - ZEXPL * ZTS_ROOF(JJ)) ) ) &  !! heating/cooling of rain
+    + T%XGREENROOF(JJ)*PG_GREENROOF_ROOF(JJ)
   !
   IF (TOP%CBEM=="DEF") THEN
     !
     ZB(JJ,IROOF_LAYER) = ZB(JJ,IROOF_LAYER) + ZIMPL * ZMTC_O_D_ROOF_IN(JJ)
     !
     ZY(JJ,IROOF_LAYER) = ZY(JJ,IROOF_LAYER) &
-                         + ZMTC_O_D_ROOF_IN(JJ) * B%XTI_BLD(JJ) &
-                         - ZEXPL * ZMTC_O_D_ROOF_IN(JJ) * T%XT_ROOF(JJ,IROOF_LAYER)
+      + ZMTC_O_D_ROOF_IN(JJ) * B%XTI_BLD(JJ) &
+      - ZEXPL * ZMTC_O_D_ROOF_IN(JJ) * T%XT_ROOF(JJ,IROOF_LAYER)
     !
   ELSEIF (TOP%CBEM=="BEM") THEN
     !
     ZB(JJ, IROOF_LAYER) = ZB(JJ,IROOF_LAYER) + ZIMPL * &
-                         (ZCHTC_IN_ROOF(JJ) * 4./3. + PRADHT_IN(JJ) * &
-                         (B%XF_FLOOR_MASS(JJ) + B%XF_FLOOR_WIN(JJ) + &
-                          B%XF_FLOOR_WALL(JJ) + B%XF_FLOOR_ROOF(JJ) ))
+      (ZCHTC_IN_ROOF(JJ) * 4./3. + PRADHT_IN(JJ) * &
+           (B%XF_FLOOR_MASS(JJ) + B%XF_FLOOR_WIN(JJ) + &
+            B%XF_FLOOR_WALL(JJ) + B%XF_FLOOR_ROOF(JJ) ))
 
     ZY(JJ,IROOF_LAYER) = ZY(JJ,IROOF_LAYER) + &
-       ZCHTC_IN_ROOF(JJ) * (B%XTI_BLD(JJ) - 1./3. *  T%XT_ROOF(JJ, IROOF_LAYER)*(4*ZEXPL - 1.)) + &
-       PRADHT_IN(JJ) * ( &
-          B%XF_FLOOR_MASS (JJ) * (B%XT_MASS(JJ,1) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER)) + &
-          B%XF_FLOOR_WIN  (JJ) * (B%XT_WIN2  (JJ) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER)) + &
-          B%XF_FLOOR_WALL (JJ) * (PTI_WALL   (JJ) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER)) + &
-          B%XF_FLOOR_ROOF (JJ) * (PTS_FLOOR  (JJ) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER))) + &
-          PLOAD_IN_ROOF(JJ)
+      ZCHTC_IN_ROOF(JJ) * (B%XTI_BLD(JJ) - 1./3. *  T%XT_ROOF(JJ, IROOF_LAYER)*(4*ZEXPL - 1.)) + &
+      PRADHT_IN(JJ) * ( &
+                            B%XF_FLOOR_MASS (JJ) * (B%XT_MASS(JJ,1) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER)) + &
+                            B%XF_FLOOR_WIN  (JJ) * (B%XT_WIN2  (JJ) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER)) + &
+                            B%XF_FLOOR_WALL (JJ) * (PTI_WALL   (JJ) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER)) + &
+                            B%XF_FLOOR_ROOF (JJ) * (PTS_FLOOR  (JJ) - ZEXPL * T%XT_ROOF(JJ,IROOF_LAYER))) + &
+      PLOAD_IN_ROOF(JJ)
     !
   ENDIF
   !
 ENDDO
 !
 !
- CALL LAYER_E_BUDGET( T%XT_ROOF, PTSTEP, ZIMPL, T%XHC_ROOF, T%XTC_ROOF, T%XD_ROOF, &
+CALL LAYER_E_BUDGET( T%XT_ROOF, PTSTEP, ZIMPL, T%XHC_ROOF, T%XTC_ROOF, T%XD_ROOF, &
                      ZA, ZB, ZC, ZY, PDQS_ROOF )
 !
 !-------------------------------------------------------------------------------
@@ -294,15 +294,15 @@ DO JJ=1,SIZE(T%XT_ROOF,1)
   ZTI_ROOF(JJ) = ZEXPL * ZTI_ROOF(JJ) + ZIMPL * T%XT_ROOF(JJ, IROOF_LAYER) 
   SELECT CASE(TOP%CBEM)
   CASE("DEF")
-     PFLX_BLD_ROOF(JJ) = ZMTC_O_D_ROOF_IN(JJ) * (B%XTI_BLD(JJ) - ZTI_ROOF(JJ))
+    PFLX_BLD_ROOF(JJ) = ZMTC_O_D_ROOF_IN(JJ) * (B%XTI_BLD(JJ) - ZTI_ROOF(JJ))
   CASE("BEM")
-     PRAD_ROOF_WALL(JJ) = PRADHT_IN(JJ)     * (ZTI_ROOF(JJ) - PTI_WALL(JJ))
-     PRAD_ROOF_WIN(JJ)  = PRADHT_IN(JJ)     * (ZTI_ROOF(JJ) - B%XT_WIN2(JJ))
-     PRAD_ROOF_FLOOR(JJ)= PRADHT_IN(JJ)     * (ZTI_ROOF(JJ) - PTS_FLOOR(JJ))
-     PRAD_ROOF_MASS(JJ) = PRADHT_IN(JJ)     * (ZTI_ROOF(JJ) - B%XT_MASS(JJ,1))
-     PCONV_ROOF_BLD(JJ) = ZCHTC_IN_ROOF  (JJ) * (ZTI_ROOF_CONV(JJ) - B%XTI_BLD (JJ))
-     PFLX_BLD_ROOF(JJ) = -(PRAD_ROOF_WALL(JJ) + PRAD_ROOF_WIN(JJ) + PRAD_ROOF_FLOOR(JJ) + &
-                            PRAD_ROOF_MASS(JJ) + PCONV_ROOF_BLD(JJ))
+    PRAD_ROOF_WALL(JJ)  = PRADHT_IN(JJ)     * (ZTI_ROOF(JJ) - PTI_WALL(JJ))
+    PRAD_ROOF_WIN(JJ)   = PRADHT_IN(JJ)     * (ZTI_ROOF(JJ) - B%XT_WIN2(JJ))
+    PRAD_ROOF_FLOOR(JJ) = PRADHT_IN(JJ)     * (ZTI_ROOF(JJ) - PTS_FLOOR(JJ))
+    PRAD_ROOF_MASS(JJ)  = PRADHT_IN(JJ)     * (ZTI_ROOF(JJ) - B%XT_MASS(JJ,1))
+    PCONV_ROOF_BLD(JJ)  = ZCHTC_IN_ROOF  (JJ) * (ZTI_ROOF_CONV(JJ) - B%XTI_BLD (JJ))
+    PFLX_BLD_ROOF(JJ) = -(PRAD_ROOF_WALL(JJ) + PRAD_ROOF_WIN(JJ) + PRAD_ROOF_FLOOR(JJ) + &
+                          PRAD_ROOF_MASS(JJ) + PCONV_ROOF_BLD(JJ))
   ENDSELECT
   
   !
@@ -311,7 +311,7 @@ DO JJ=1,SIZE(T%XT_ROOF,1)
   !
   !* radiative surface temperature at intermediate time step
   ZTRAD_ROOF(JJ) = ( ZTS_ROOF(JJ)**4 + &
-                   4.*ZIMPL*ZTS_ROOF(JJ)**3 * (T%XT_ROOF(JJ,1) - ZTS_ROOF(JJ)) )**0.25
+                     4.*ZIMPL*ZTS_ROOF(JJ)**3 * (T%XT_ROOF(JJ,1) - ZTS_ROOF(JJ)) )**0.25
   !
   !* absorbed LW
   PABS_LW_ROOF(JJ) = T%XEMIS_ROOF(JJ) * (PLW_RAD(JJ) - XSTEFAN * ZTRAD_ROOF(JJ)** 4)
@@ -323,7 +323,7 @@ DO JJ=1,SIZE(T%XT_ROOF,1)
   !* aerodynamic surface temperature at the intermediate time step
   ZTAER_ROOF(JJ) = ZEXPL * ZTS_ROOF(JJ) + ZIMPL * T%XT_ROOF(JJ,1)
   PHFREE_ROOF(JJ) = ZRHO_ACF_ROOF(JJ) * XCPD * &
-                   ( ZTAER_ROOF(JJ)/PEXNS(JJ) - PTA(JJ)/PEXNA(JJ) )
+    ( ZTAER_ROOF(JJ)/PEXNS(JJ) - PTA(JJ)/PEXNA(JJ) )
   !
   ZHEAT_RR(JJ) = PRR(JJ) * XCL * (ZTAER_ROOF(JJ) - PTA(JJ))
   !
@@ -331,14 +331,14 @@ DO JJ=1,SIZE(T%XT_ROOF,1)
   !              -------------------------------------------------
   !
   PLEFREE_ROOF(JJ) = ZRHO_ACF_ROOF_WAT(JJ) * XLVTT * PDELT_ROOF(JJ) * &
-                     ( PQSAT_ROOF(JJ) - PQA(JJ) +                     &
-                       ZIMPL * ZDQSAT_ROOF(JJ) * (T%XT_ROOF(JJ,1) - ZTS_ROOF(JJ)) ) 
+    ( PQSAT_ROOF(JJ) - PQA(JJ) +                     &
+        ZIMPL * ZDQSAT_ROOF(JJ) * (T%XT_ROOF(JJ,1) - ZTS_ROOF(JJ)) ) 
   !
   !      13.     Energy imbalance for verification
   !              ---------------------------------
   PIMB_ROOF(JJ) = PABS_SW_ROOF(JJ) + PABS_LW_ROOF(JJ) - PDQS_ROOF(JJ) &
-               - ZDF_ROOF(JJ) * ( PHFREE_ROOF(JJ) + PLEFREE_ROOF(JJ)) &
-               - PDN_ROOF(JJ) * PGSNOW_ROOF(JJ) + PFLX_BLD_ROOF(JJ)
+    - ZDF_ROOF(JJ) * ( PHFREE_ROOF(JJ) + PLEFREE_ROOF(JJ)) &
+    - PDN_ROOF(JJ) * PGSNOW_ROOF(JJ) + PFLX_BLD_ROOF(JJ)
   !
 ENDDO
 !

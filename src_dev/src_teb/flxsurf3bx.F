@@ -148,14 +148,14 @@
            FH(J)=BETA*(LZZ0T(J)+CS*RIB(J))/
      1           max(sqrt(z0(j)*z0t(j)),1.0)
            ILMO(J)=RIB(J)*FM(J)*FM(J)/(ZP*FH(J))
-		   !print*, 'ILMO str 151 = ', ILMO(J)
+           !print*, 'ILMO str 151 = ', ILMO(J)
            F=MAX(ABS(FCOR(J)),CORMIN)
            H(J)=BS*sqrt(KARMAN*u/(ILMO(J)*F*fm(j)))
         ELSE
            FM(J)=LZZ0(J)-min(0.7+log(1-rib(j)),LZZ0(J)-1)
            FH(J)=BETA*(LZZ0T(J)-min(0.7+log(1-rib(j)),LZZ0T(J)-1))
            ILMO(J)=RIB(J)*FM(J)*FM(J)/(ZP*FH(J))
-		   !print*, 'ILMO str 158 = ', ILMO(J)
+           !print*, 'ILMO str 158 = ', ILMO(J)
         ENDIF
       ENDDO
 *
@@ -168,7 +168,7 @@
 *----------------------------------------------------------------------
 *  STABLE CASE
         ILMO(J)=max(EPSLN,ILMO(J))
-		!print*, 'ILMO str 171 = ', ILMO(J)
+        !print*, 'ILMO str 171 = ', ILMO(J)
         hl=(ZU(J)+10*Z0(J))*FACTN
         F=MAX(ABS(FCOR(J)),CORMIN)
         hs=BS*sqrt(KARMAN*u/(ILMO(J)*F*fm(j)))
@@ -186,7 +186,7 @@
 *  UNSTABLE CASE
       ELSE
         ILMO(J)=MIN(0.,ILMO(J))
-		!print*, 'ILMO str 189 = ', ILMO(J)
+        !print*, 'ILMO str 189 = ', ILMO(J)
 *CDIR IEXPAND
         FM(J)=fmi(zu(j)+z0(j),z0 (j),lzz0 (j),ilmo(j),xx,xx0)
 *CDIR IEXPAND
@@ -198,7 +198,7 @@
       IF(IT.LT.ITMAX) THEN
              G=RIB(J)-FH(J)/(FM(J)*FM(J))*ZP*ILMO(J)
              ILMO(J)=ILMO(J)-G/DG
-			 !print*, 'ILMO str 201 = ', ILMO(J)
+             !print*, 'ILMO str 201 = ', ILMO(J)
       ENDIF
    35 CONTINUE
 * - - - - - -  - - - END OF ITERATION LOOP - - - - - - - - - - - - - -
@@ -228,7 +228,7 @@
            endif
            if(ilmox.lt.ilmo(j)) then
               ilmo(j)=ilmox
-			  !print*, 'ILMO str 231 = ', ilmo(j)
+              !print*, 'ILMO str 231 = ', ilmo(j)
               fm(j)=lzz0(j)+asx*zu(j)*ilmox
               fh(j)=beta*lzz0t(j)+asx*(zt(j)+z0(j)-z0t(j))*ilmox
            endif

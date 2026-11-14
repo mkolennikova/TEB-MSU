@@ -4,7 +4,7 @@
 !SFX_LIC for details. version 1.
 !   #################################################################
     SUBROUTINE SURFACE_CD(PRI, PZREF, PUREF, PZ0EFF, PZ0H,   &
-                              PCD, PCDN) 
+                          PCD, PCDN) 
 !   #################################################################
 !
 !!****  *SURFACE_CD*  
@@ -70,25 +70,25 @@ IMPLICIT NONE
 !*      0.1    declarations of arguments
 !
 !
-REAL, DIMENSION(:), INTENT(IN)    :: PRI      ! Richardson number
-REAL, DIMENSION(:), INTENT(IN)    :: PZREF    ! reference height of the first
-                                              ! atmospheric level
-REAL, DIMENSION(:), INTENT(IN)    :: PUREF    ! reference height of the wind
+REAL, DIMENSION(:), INTENT(IN)    :: PRI    ! Richardson number
+REAL, DIMENSION(:), INTENT(IN)    :: PZREF  ! reference height of the first
+                                            ! atmospheric level
+REAL, DIMENSION(:), INTENT(IN)    :: PUREF  ! reference height of the wind
 !                                             ! NOTE this is different from ZZREF
 !                                             ! ONLY in stand-alone/forced mode,
 !                                             ! NOT when coupled to a model (MesoNH)
-REAL, DIMENSION(:), INTENT(IN)    :: PZ0EFF   ! roughness length for momentum
-                                              ! with subgrid-scale orography
-REAL, DIMENSION(:), INTENT(IN)    :: PZ0H     ! roughness length for heat
+REAL, DIMENSION(:), INTENT(IN)    :: PZ0EFF  ! roughness length for momentum
+                                             ! with subgrid-scale orography
+REAL, DIMENSION(:), INTENT(IN)    :: PZ0H    ! roughness length for heat
 !
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD      ! drag coefficient for momentum
-REAL, DIMENSION(:), INTENT(OUT)   :: PCDN     ! neutral drag coefficient for momentum
+REAL, DIMENSION(:), INTENT(OUT)   :: PCD   ! drag coefficient for momentum
+REAL, DIMENSION(:), INTENT(OUT)   :: PCDN  ! neutral drag coefficient for momentum
 !
 !*      0.2    declarations of local variables
 !
 !
 REAL                       :: ZZ0EFF, ZZ0H, ZMU,     &
-                               ZCMSTAR, ZPM, ZCM, ZFM 
+  ZCMSTAR, ZPM, ZCM, ZFM 
 INTEGER                    :: JJ
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 

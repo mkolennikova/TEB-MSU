@@ -42,26 +42,26 @@ TYPE(BEM_PARAMS_t), INTENT(INOUT) :: BPARAMS
 !! 1. declaration of arguments
 !
 TYPE(DATE_TIME), INTENT(INOUT) :: TPTIME
-REAL,   DIMENSION(:) , INTENT(IN) :: PTSUN         ! current solar time  (s, UTC)
+REAL,   DIMENSION(:) , INTENT(IN) :: PTSUN  ! current solar time  (s, UTC)
 !
 TYPE(TEB_t), INTENT(INOUT) :: TSTATE
 TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 !
-REAL,                INTENT(IN)  :: PQIN_FRAC        ! Fraction of internal gains when unoccupied (-)
+REAL,                INTENT(IN)  :: PQIN_FRAC  ! Fraction of internal gains when unoccupied (-)
 !
-REAL, DIMENSION(:) , INTENT(OUT)  :: PTCOOL_TARGET ! Cooling setpoint of HVAC system [K]
-REAL, DIMENSION(:) , INTENT(OUT)  :: PTHEAT_TARGET ! Heating setpoint of HVAC system [K]
-REAL, DIMENSION(:) , INTENT(OUT)  :: PQIN          ! Internal heat gains [W m-2(floor)]
+REAL, DIMENSION(:) , INTENT(OUT)  :: PTCOOL_TARGET  ! Cooling setpoint of HVAC system [K]
+REAL, DIMENSION(:) , INTENT(OUT)  :: PTHEAT_TARGET  ! Heating setpoint of HVAC system [K]
+REAL, DIMENSION(:) , INTENT(OUT)  :: PQIN           ! Internal heat gains [W m-2(floor)]
 !
 !! 2. declaration of local variables
 !
-CHARACTER(LEN = 6)                :: CTIME         ! Local time scheme (winter or summer time)
-INTEGER                           :: JDOW          ! day of week
+CHARACTER(LEN = 6)                :: CTIME  ! Local time scheme (winter or summer time)
+INTEGER                           :: JDOW   ! day of week
 INTEGER                           :: JJ
 !
-REAL, DIMENSION(SIZE(PQIN))       :: ZTOD_BEG      ! first Time Of Day that building unoccupied (UTC, s)
-REAL, DIMENSION(SIZE(PQIN))       :: ZTOD_END      ! last Time Of Day that building unoccupied (UTC, s)
-REAL, DIMENSION(SIZE(PQIN))       :: ZDT           ! Target temperature change when unoccupied (K)
+REAL, DIMENSION(SIZE(PQIN))       :: ZTOD_BEG  ! first Time Of Day that building unoccupied (UTC, s)
+REAL, DIMENSION(SIZE(PQIN))       :: ZTOD_END  ! last Time Of Day that building unoccupied (UTC, s)
+REAL, DIMENSION(SIZE(PQIN))       :: ZDT       ! Target temperature change when unoccupied (K)
 
 REAL(KIND=JPRB) :: ZTODOOK_HANDLE
 !
@@ -97,31 +97,31 @@ ZTOD_END(:) = 0.
 !
 DO JJ =1,SIZE(PTSUN)
 !
- IF (TPARAMS%XRESIDENTIAL(JJ) > 0.5) THEN ! RESIDENTIAL
-   !
-   IF (JDOW >= 2 .AND. JDOW <=6) THEN ! week days
-     ZTOD_BEG(JJ) =  9. * 3600.       !  9 UTC - WINTER time
-     ZTOD_END(JJ) = 17. * 3600.       ! 17 UTC - WINTER time
-   END IF
-   ZDT(JJ) = TPARAMS%XDT_RES
-   !
- ELSE
-   !     
-   IF (JDOW >= 2 .AND. JDOW <=7) THEN ! week days
-     ZTOD_BEG(JJ) = 17. * 3600.       ! 17 UTC
-     ZTOD_END(JJ) =  7. * 3600.       !  7 UTC
-   ELSE                               ! week-end
-     ZTOD_BEG(JJ) =  0. * 3600.       !   0 UTC
-     ZTOD_END(JJ) = 24. * 3600.       !  24 UTC
-   END IF
-   ZDT(JJ) = TPARAMS%XDT_OFF
-   !
- END IF
+  IF (TPARAMS%XRESIDENTIAL(JJ) > 0.5) THEN  ! RESIDENTIAL
+    !
+    IF (JDOW >= 2 .AND. JDOW <=6) THEN  ! week days
+      ZTOD_BEG(JJ) =  9. * 3600.      !  9 UTC - WINTER time
+      ZTOD_END(JJ) = 17. * 3600.      ! 17 UTC - WINTER time
+    END IF
+    ZDT(JJ) = TPARAMS%XDT_RES
+    !
+  ELSE
+    !     
+    IF (JDOW >= 2 .AND. JDOW <=7) THEN  ! week days
+      ZTOD_BEG(JJ) = 17. * 3600.      ! 17 UTC
+      ZTOD_END(JJ) =  7. * 3600.      !  7 UTC
+    ELSE                              ! week-end
+      ZTOD_BEG(JJ) =  0. * 3600.      !   0 UTC
+      ZTOD_END(JJ) = 24. * 3600.      !  24 UTC
+    END IF
+    ZDT(JJ) = TPARAMS%XDT_OFF
+    !
+  END IF
 ! adjustment of unoccupied TOD based on time scheme
- IF (CTIME == 'SUMMER') THEN
-  ZTOD_BEG(JJ) = ZTOD_BEG(JJ) - 3600.   
-  ZTOD_END(JJ) = ZTOD_END(JJ) - 3600.   
- END IF
+  IF (CTIME == 'SUMMER') THEN
+    ZTOD_BEG(JJ) = ZTOD_BEG(JJ) - 3600.   
+    ZTOD_END(JJ) = ZTOD_END(JJ) - 3600.   
+  END IF
 !
 ENDDO
 !
@@ -131,15 +131,15 @@ ENDDO
 !
 DO JJ =1,SIZE(PTSUN)
 !
-     IF (( (ZTOD_BEG(JJ) < ZTOD_END(JJ)) .AND. (PTSUN(JJ) > ZTOD_BEG(JJ) .AND. PTSUN(JJ) < ZTOD_END(JJ))    )      &
-        .OR.                                                                                         &
-         ( (ZTOD_BEG(JJ) > ZTOD_END(JJ)) .AND. ((PTSUN(JJ) > 0 .AND. PTSUN(JJ) < ZTOD_END(JJ)) .OR.            &
-                                        (PTSUN(JJ) > ZTOD_BEG(JJ) .AND. PTSUN(JJ) < 24 * 3600.)))) THEN             
-         !
-            PTHEAT_TARGET(JJ) = BPARAMS%XTHEAT_TARGET(JJ) - ZDT(JJ)
-            PTCOOL_TARGET(JJ) = BPARAMS%XTCOOL_TARGET(JJ) + ZDT(JJ)
-            PQIN         (JJ) = PQIN_FRAC * PQIN(JJ)
-      ENDIF
+  IF (( (ZTOD_BEG(JJ) < ZTOD_END(JJ)) .AND. (PTSUN(JJ) > ZTOD_BEG(JJ) .AND. PTSUN(JJ) < ZTOD_END(JJ))    )      &
+     .OR.                                                                                         &
+     ( (ZTOD_BEG(JJ) > ZTOD_END(JJ)) .AND. ((PTSUN(JJ) > 0 .AND. PTSUN(JJ) < ZTOD_END(JJ)) .OR.            &
+                                           (PTSUN(JJ) > ZTOD_BEG(JJ) .AND. PTSUN(JJ) < 24 * 3600.)))) THEN             
+    !
+    PTHEAT_TARGET(JJ) = BPARAMS%XTHEAT_TARGET(JJ) - ZDT(JJ)
+    PTCOOL_TARGET(JJ) = BPARAMS%XTCOOL_TARGET(JJ) + ZDT(JJ)
+    PQIN         (JJ) = PQIN_FRAC * PQIN(JJ)
+  ENDIF
 !
 ENDDO
 !

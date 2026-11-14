@@ -103,10 +103,17 @@ def read_lines(tree: Path, rel: str) -> list:
     return path.read_text(encoding='utf-8', errors='ignore').splitlines()
 
 
+# MV202611 the development offline host has its own directory; older snapshots
+# and the control source tree retain their original layout.
+def offline_driver_path(tree: Path) -> str:
+    current = 'src_offline/run_teb_offline.F90'
+    return current if (tree / current).is_file() else 'src_driver/run_teb_offline.F90'
+
+
 def declarations(tree: Path):
     """(name, dimension, comment) of every REAL DIMENSION declaration of the driver."""
     out = []
-    for line in read_lines(tree, 'src_driver/run_teb_offline.F90'):
+    for line in read_lines(tree, offline_driver_path(tree)):
         m = RE_DECL.match(line.strip())
         if m:
             out.append((m.group(2), m.group(1).strip(), (m.group(3) or '').lstrip('!: ').strip()))
@@ -124,7 +131,7 @@ def csv_contract(tree: Path):
     * the historical pair of parallel lists (`out_names(nout) = 'NAME'` and
       `CALL CSV_APPEND(out_line, <source>)`), still used by the control tree.
     """
-    lines = read_lines(tree, 'src_driver/run_teb_offline.F90')
+    lines = read_lines(tree, offline_driver_path(tree))
     prefix = 'CALL CSV_ADD(hdr_line, out_line, ncol, col_name,'
     names, sources = [], []
     for line in lines:
@@ -154,8 +161,9 @@ def csv_contract(tree: Path):
 
 def intent_out(tree: Path) -> set:
     """Names declared `INTENT(OUT)` in teb_interface: the physics diagnostics."""
+    api_path = 'src_api/sfc_teb.F90' if (tree / 'src_api/sfc_teb.F90').is_file() else 'src_driver/sfc_teb.F90'
     return {m.group(1) for m in
-            (RE_INTENT_OUT.search(l) for l in read_lines(tree, 'src_driver/sfc_teb.F90')) if m}
+            (RE_INTENT_OUT.search(l) for l in read_lines(tree, api_path)) if m}
 
 
 def dmt_fields(tree: Path) -> list:

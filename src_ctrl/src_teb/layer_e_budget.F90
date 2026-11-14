@@ -84,28 +84,28 @@ REAL,                 INTENT(IN)    :: PTSTEP  ! time step
 REAL, DIMENSION(:,:), INTENT(IN)    :: PHC     ! heat capacity for road layers
 REAL, DIMENSION(:,:), INTENT(IN)    :: PTC     ! thermal conductivity for 
                                                !road layers
-REAL, DIMENSION(:,:), INTENT(IN)  :: PD      ! depth of road layers
+REAL, DIMENSION(:,:), INTENT(IN)  :: PD        ! depth of road layers
 REAL, DIMENSION(:,:), INTENT(IN)  :: PA 
 REAL, DIMENSION(:,:), INTENT(IN)  :: PB 
 REAL, DIMENSION(:,:), INTENT(IN)  :: PC
 REAL, DIMENSION(:,:), INTENT(IN)  :: PY
 REAL, DIMENSION(:), INTENT(OUT) :: PDQS
-REAL,               INTENT(IN)  :: PIMPL ! implicitation coefficient
+REAL,               INTENT(IN)  :: PIMPL       ! implicitation coefficient
 !
 !*      0.2    declarations of local variables
 !
 !
-REAL :: ZIMPL          ! implicit coefficient
-REAL :: ZEXPL          ! explicit coefficient
+REAL :: ZIMPL  ! implicit coefficient
+REAL :: ZEXPL  ! explicit coefficient
 !
-REAL, DIMENSION(SIZE(PT,1),SIZE(PT,2)) :: ZX   ! solution
+REAL, DIMENSION(SIZE(PT,1),SIZE(PT,2)) :: ZX  ! solution
 !
-REAL, DIMENSION(SIZE(PT,1)) :: ZEI  ! internal energy of floor at t
-REAL, DIMENSION(SIZE(PT,1)) :: ZPEI ! internal energy of floor at time t+
+REAL, DIMENSION(SIZE(PT,1)) :: ZEI   ! internal energy of floor at t
+REAL, DIMENSION(SIZE(PT,1)) :: ZPEI  ! internal energy of floor at time t+
 !
-INTEGER :: ILAYER          ! number of floor layers
-INTEGER :: JLAYER          ! loop counter
-INTEGER :: JJ              ! loop counter
+INTEGER :: ILAYER  ! number of floor layers
+INTEGER :: JLAYER  ! loop counter
+INTEGER :: JJ      ! loop counter
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('LAYER_E_BUDGET',0,ZHOOK_HANDLE)
@@ -123,7 +123,7 @@ ZEXPL = 1.-PIMPL
 ZEI(:) = 0.
 DO JLAYER=1,ILAYER
   DO JJ=1,SIZE(PT,1)
-     ZEI(JJ)=ZEI(JJ) + ( PHC(JJ,JLAYER)*PD(JJ,JLAYER)*PT(JJ,JLAYER) )
+    ZEI(JJ)=ZEI(JJ) + ( PHC(JJ,JLAYER)*PD(JJ,JLAYER)*PT(JJ,JLAYER) )
   ENDDO
 END DO
 !
@@ -132,7 +132,7 @@ END DO
 !*     2.     Tri-diagonal system resolution
 !              ------------------------------
 !
- CALL TRIDIAG_GROUND(PA,PB,PC,PY,ZX)
+CALL TRIDIAG_GROUND(PA,PB,PC,PY,ZX)
 !
 DO JLAYER=1,ILAYER
   PT(:,JLAYER) = ZX(:,JLAYER)
@@ -147,7 +147,7 @@ END DO
 ZPEI(:) = 0.0
 DO JLAYER=1,ILAYER
   DO JJ=1,SIZE(PT,1)
-     ZPEI(JJ) = ZPEI(JJ)+ ( PHC(JJ,JLAYER)*PD(JJ,JLAYER)*PT(JJ,JLAYER) )
+    ZPEI(JJ) = ZPEI(JJ)+ ( PHC(JJ,JLAYER)*PD(JJ,JLAYER)*PT(JJ,JLAYER) )
   ENDDO
 END DO
 !

@@ -34,11 +34,11 @@ SUBROUTINE URB_AERO_PARAMS(CZ0, CZD, PBLD_HEIGHT, PBLD_FRAC, PFAI, PZ0, PZD)
 ! The two entries are resolved independently, so that zd can be taken from a
 ! parameterization ('MACDONALD1998') while z0 is given explicitly ('0.1H'),
 ! and vice versa.
-CHARACTER(LEN=*),    INTENT(IN)  :: CZ0, CZD      ! namelist entries
-REAL, DIMENSION(:),  INTENT(IN)  :: PBLD_HEIGHT   ! building height (m)
+CHARACTER(LEN=*),    INTENT(IN)  :: CZ0, CZD     ! namelist entries
+REAL, DIMENSION(:),  INTENT(IN)  :: PBLD_HEIGHT  ! building height (m)
 REAL, DIMENSION(:),  INTENT(IN)  :: PBLD_FRAC    ! plan area index (-)
-REAL, DIMENSION(:,:),INTENT(IN)  :: PFAI          ! frontal area index (8 dir.)
-REAL, DIMENSION(:),  INTENT(OUT) :: PZ0, PZD      ! resulting z0 and zd (m)
+REAL, DIMENSION(:,:),INTENT(IN)  :: PFAI         ! frontal area index (8 dir.)
+REAL, DIMENSION(:),  INTENT(OUT) :: PZ0, PZD     ! resulting z0 and zd (m)
 
 !MV202609 z0 and zd to namelist
 LOGICAL           :: LSCHEME_Z0, LSCHEME_ZD
@@ -65,8 +65,8 @@ END SUBROUTINE URB_AERO_PARAMS
 !MV202609 z0 and zd to namelist
 SUBROUTINE URB_AERO_STOP(CNAME, CZ0, CZD)
 ! Stops the run with a message about an unknown value or parameterization name
-CHARACTER(LEN=*), INTENT(IN) :: CNAME             ! offending namelist entry
-CHARACTER(LEN=*), INTENT(IN) :: CZ0, CZD          ! both namelist entries
+CHARACTER(LEN=*), INTENT(IN) :: CNAME     ! offending namelist entry
+CHARACTER(LEN=*), INTENT(IN) :: CZ0, CZD  ! both namelist entries
 
 WRITE(*,*) 'ERROR in CALL_DRIVER: cannot interpret the namelist entry '//TRIM(CNAME)
 WRITE(*,*) '   urb_z0_town = ', TRIM(CZ0)
@@ -242,9 +242,9 @@ FUNCTION URB_ZD_MACDONALD(PBLD_HEIGHT, PLAMBDA_P, CWHERE) RESULT(PZD)
 !   d/H = 1 + A^(-lambda_p) * (lambda_p - 1)
 ! with A = 4.43 for staggered arrays and A = 3.59 for square arrays.
 ! DOI 10.1016/S1352-2310(97)00403-2
-REAL, DIMENSION(:), INTENT(IN) :: PBLD_HEIGHT     ! building height (m)
-REAL,             INTENT(IN)   :: PLAMBDA_P       ! plan area index (-)
-CHARACTER(LEN=*), INTENT(IN)   :: CWHERE          ! 'STAG' or 'SQUARE'
+REAL, DIMENSION(:), INTENT(IN) :: PBLD_HEIGHT  ! building height (m)
+REAL,             INTENT(IN)   :: PLAMBDA_P    ! plan area index (-)
+CHARACTER(LEN=*), INTENT(IN)   :: CWHERE       ! 'STAG' or 'SQUARE'
 REAL, DIMENSION(SIZE(PBLD_HEIGHT)) :: PZD
 
 !MV202609 z0 and zd to namelist
@@ -275,10 +275,10 @@ FUNCTION URB_Z0_MACDONALD(PBLD_HEIGHT, PLAMBDA_P, PLAMBDA_F, CWHERE) RESULT(PZ0)
 ! with Cd = 1.2, kappa = 0.4 (von Karman) and beta = 1.0 for staggered arrays
 ! or beta = 0.55 for square arrays.
 ! DOI 10.1016/S1352-2310(97)00403-2
-REAL, DIMENSION(:), INTENT(IN) :: PBLD_HEIGHT     ! building height (m)
-REAL,             INTENT(IN)   :: PLAMBDA_P       ! plan area index (-)
-REAL,             INTENT(IN)   :: PLAMBDA_F       ! frontal area index (-)
-CHARACTER(LEN=*), INTENT(IN)   :: CWHERE          ! 'STAG' or 'SQUARE'
+REAL, DIMENSION(:), INTENT(IN) :: PBLD_HEIGHT  ! building height (m)
+REAL,             INTENT(IN)   :: PLAMBDA_P    ! plan area index (-)
+REAL,             INTENT(IN)   :: PLAMBDA_F    ! frontal area index (-)
+CHARACTER(LEN=*), INTENT(IN)   :: CWHERE       ! 'STAG' or 'SQUARE'
 REAL, DIMENSION(SIZE(PBLD_HEIGHT)) :: PZ0
 
 !MV202609 z0 and zd to namelist

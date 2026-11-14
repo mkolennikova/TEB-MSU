@@ -77,11 +77,11 @@ IMPLICIT NONE
 !
 !*      0.1    declarations of arguments
 !
-REAL, DIMENSION(:,:), INTENT(IN) :: PT     ! floor layers temperatures
-REAL,                 INTENT(IN) :: PTSTEP ! time step
-REAL, DIMENSION(:,:), INTENT(IN) :: PHC    ! heat capacity for road layers
-REAL, DIMENSION(:,:), INTENT(IN) :: PTC    ! thermal conductivity for road layers
-REAL, DIMENSION(:,:), INTENT(IN) :: PD     ! depth of road layers
+REAL, DIMENSION(:,:), INTENT(IN) :: PT       ! floor layers temperatures
+REAL,                 INTENT(IN) :: PTSTEP   ! time step
+REAL, DIMENSION(:,:), INTENT(IN) :: PHC      ! heat capacity for road layers
+REAL, DIMENSION(:,:), INTENT(IN) :: PTC      ! thermal conductivity for road layers
+REAL, DIMENSION(:,:), INTENT(IN) :: PD       ! depth of road layers
 REAL, DIMENSION(:,:), INTENT(OUT) :: PA 
 REAL, DIMENSION(:,:), INTENT(OUT) :: PB 
 REAL, DIMENSION(:,:), INTENT(OUT) :: PC
@@ -90,17 +90,17 @@ REAL,                 INTENT(IN)   :: PIMPL  ! implicitation coefficient
 !
 !*      0.2    declarations of local variables
 !
-REAL :: ZIMPL          ! implicit coefficient
-REAL :: ZEXPL          ! explicit coefficient
+REAL :: ZIMPL  ! implicit coefficient
+REAL :: ZEXPL  ! explicit coefficient
 !
 ! mean thermal conductivity over distance between 2 layers
 REAL, DIMENSION(SIZE(PT,1),SIZE(PT,2)) :: ZMTC_O_D
 ! thermal capacity times layer depth
 REAL, DIMENSION(SIZE(PT,1),SIZE(PT,2)) :: ZHC_D
 !
-INTEGER :: ILAYER          ! number of floor layers
-INTEGER :: JLAYER          ! loop counter
-INTEGER :: JJ              ! loop counter
+INTEGER :: ILAYER  ! number of floor layers
+INTEGER :: JLAYER  ! loop counter
+INTEGER :: JJ      ! loop counter
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 IF (LHOOK) CALL DR_HOOK('LAYER_E_BUDGET_GET_COEF',0,ZHOOK_HANDLE)

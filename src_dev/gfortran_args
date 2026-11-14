@@ -1,24 +1,26 @@
-######################################################################
-# C compiler
-CC = gcc
-
-# Auto-detect Fortran compiler: ifort if available, otherwise gfortran
-FC := $(shell if command -v ifort >/dev/null 2>&1; then echo ifort; else echo gfortran; fi)
-# Use the same compiler for linking
-LD := $(FC)
-
-# Compiler flags depending on the chosen compiler
-ifeq ($(FC),ifort)
-    # Intel ifort flags
-    FFLAGS = -us -g -O0 -W1 -c -r8 -fpe0 -traceback -I. -Isrc_teb
-else
-    # GNU gfortran flags
-    FFLAGS = -funderscoring -O0 -g -Wall -c -fmessage-length=0 -fdefault-real-8 -ffpe-trap=invalid,zero -ffree-line-length-0 -Wno-tabs -Wno-unused -Wno-align-commons -I. -Isrc_teb
+# Compiler profile for src_dev. Keep numerical defaults unchanged.
+# GNU Make supplies built-in FC=f77 and LD=ld; replace only those defaults.
+# Explicit command-line/environment compiler selections take precedence.
+ifeq ($(origin FC),default)
+FC := gfortran
 endif
+FC ?= gfortran
+ifeq ($(origin LD),default)
+LD := $(FC)
+endif
+LD ?= $(FC)
+ifeq ($(origin CC),default)
+CC := gcc
+endif
+CC ?= gcc
+AR ?= ar
+ARFLAGS = rcs
 
-# Preprocessor flags (if any)
-CPPFLAGS = #-P -traditional -Wcomment
-
-# Libraries and linker flags
+ifneq (,$(filter ifort ifort.exe,$(notdir $(firstword $(FC)))))
+FFLAGS = -us -g -O0 -W1 -c -r8 -fpe0 -traceback -I. -Isrc_teb
+else
+FFLAGS = -funderscoring -O0 -g -Wall -c -fmessage-length=0 -fdefault-real-8 -ffpe-trap=invalid,zero -ffree-line-length-0 -Wno-tabs -Wno-unused -Wno-align-commons -I. -Isrc_teb
+endif
+CPPFLAGS =
 LIBS =
 LDFLAGS = $(LIBS)

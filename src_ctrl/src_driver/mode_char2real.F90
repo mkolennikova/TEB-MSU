@@ -8,7 +8,7 @@
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 MODULE MODE_CHAR2REAL
 INTERFACE ASSIGNMENT (=)
-  MODULE PROCEDURE CHAR_TO_REAL
+MODULE PROCEDURE CHAR_TO_REAL
 END INTERFACE
 
 
@@ -25,7 +25,7 @@ CHARACTER(LEN=4),DIMENSION(:),ALLOCATABLE :: YTEMP2
 SELECT CASE(LEN(HSTR(1)))
 CASE (8)
   ISIZE = SIZE(HSTR)
-  IF (LITTLE_ENDIAN_ARCH) THEN! must swap 8 bytes
+  IF (LITTLE_ENDIAN_ARCH) THEN  ! must swap 8 bytes
     ALLOCATE(YTEMP(ISIZE))
     DO JI=1,ISIZE
       YTEMP(JI)(1:1) = HSTR(JI)(8:8)
@@ -60,14 +60,14 @@ CASE (4)
   END IF 
 CASE (2)
   ! EMULATE a 16 bits signed INTEGER
-  IF (LITTLE_ENDIAN_ARCH) THEN! must swap 2 bytes
+  IF (LITTLE_ENDIAN_ARCH) THEN  ! must swap 2 bytes
     KOUT = ICHAR(HSTR(:)(2:2))+256*ICHAR(HSTR(:)(1:1))
   ELSE
     KOUT = ICHAR(HSTR(:)(1:1))+256*ICHAR(HSTR(:)(2:2))
- END IF
-   WHERE (KOUT > 32767) 
-      KOUT = KOUT - 65536.
-   END WHERE
+  END IF
+  WHERE (KOUT > 32767) 
+    KOUT = KOUT - 65536.
+  END WHERE
   
 CASE(1)
   ! EMULATE an 8 bits signed INTEGER

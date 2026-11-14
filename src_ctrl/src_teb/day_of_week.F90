@@ -30,10 +30,10 @@ USE PARKIND1  ,ONLY : JPRB
 !! DECLARATION
 IMPLICIT NONE
 !! 1. declaraction of arguments
-INTEGER,INTENT(IN) :: PYEAR !current year (UTC)
-INTEGER,INTENT(IN) :: PMONTH!current month (UTC)
-INTEGER,INTENT(IN) :: PDAY  !current day (UTC)
-INTEGER,INTENT(OUT):: PDOW  !current day of the week
+INTEGER,INTENT(IN) :: PYEAR   !current year (UTC)
+INTEGER,INTENT(IN) :: PMONTH  !current month (UTC)
+INTEGER,INTENT(IN) :: PDAY    !current day (UTC)
+INTEGER,INTENT(OUT):: PDOW    !current day of the week
 !!
 !! 2. declaration of local variables
 INTEGER :: DAY, YR, MN, N1, N2
@@ -46,8 +46,8 @@ MN = PMONTH
 !   IF JANUARY OR FEBRUARY, ADJUST MONTH AND YEAR
    
 IF (MN .LE. 2) THEN
-   MN = MN + 12
-   YR = YR - 1
+  MN = MN + 12
+  YR = YR - 1
 END IF
 N1 = (26 * (MN + 1)) / 10
 N2 = (125 * YR) / 100

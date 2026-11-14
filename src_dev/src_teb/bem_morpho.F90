@@ -56,7 +56,7 @@ TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 !
 !*      0.2    Declarations of local variables 
 !
-REAL, DIMENSION(SIZE(PBLD)):: ZF_AUX2       ! Auxiliar view factor
+REAL, DIMENSION(SIZE(PBLD)):: ZF_AUX2  ! Auxiliar view factor
 !
 !RJ: missing declaration
 INTEGER :: JJ
@@ -91,79 +91,79 @@ END DO
 !              --------------------------------------------------------
 !
 BPARAMS%XN_FLOOR(:) = FLOAT(NINT(PBLD_HEIGHT(:) / BPARAMS%XFLOOR_HEIGHT(:) ))
-PWALL_O_BLD(:) = PWALL_O_HOR(:) * (1. - BPARAMS%XGR(:)) / PBLD(:) ! [m2(wall)/m2(bld)]
-BPARAMS%XGLAZ_O_BLD(:) = PWALL_O_HOR(:) * BPARAMS%XGR(:)        / PBLD(:) ! [m2(win)/m2(bld)]
+PWALL_O_BLD(:) = PWALL_O_HOR(:) * (1. - BPARAMS%XGR(:)) / PBLD(:)  ! [m2(wall)/m2(bld)]
+BPARAMS%XGLAZ_O_BLD(:) = PWALL_O_HOR(:) * BPARAMS%XGR(:)        / PBLD(:)  ! [m2(win)/m2(bld)]
 
 WHERE(BPARAMS%XN_FLOOR > 1.5)
-   !* more than 1 floor level -> the floor and the roof don't see each other
-   !
-   !           ROOF
-   !  |---------------------|
-   !  |                     |
-   !  |                     |
-   !  |        MASS         |
-   !  |---------------------|
-   !  |---------------------|
-   !  |        MASS         |
-   !  |                     |
-   !  |                     |
-   !  |        FLOOR        |
-   !  |---------------------|
-   !
-   BPARAMS%XMASS_O_BLD(:) = 2 * (BPARAMS%XN_FLOOR(:) - 1.)                     ! [m2(mass)/m2(bld)]
-   BPARAMS%XFLOOR_HW_RATIO(:) = PWALL_O_HOR(:) / BPARAMS%XN_FLOOR(:) / PBLD(:) / 2.
-   !
-   BPARAMS%XF_FLOOR_MASS(:) = (BPARAMS%XFLOOR_HW_RATIO(:)**2 + 1.)**0.5  - BPARAMS%XFLOOR_HW_RATIO(:)
-   BPARAMS%XF_FLOOR_WALL(:) = (1. - BPARAMS%XF_FLOOR_MASS(:)) * (1. - BPARAMS%XGR(:))
-   BPARAMS%XF_FLOOR_WIN (:) = (1. - BPARAMS%XF_FLOOR_MASS(:)) * BPARAMS%XGR(:)
-   BPARAMS%XF_FLOOR_ROOF(:) = 0. ! no rad interaction between floor and roof
-   !
-   ZF_AUX2      (:) = (1. - BPARAMS%XF_FLOOR_MASS(:)) / BPARAMS%XFLOOR_HW_RATIO(:)
-   !
-   BPARAMS%XF_WALL_FLOOR(:) = ZF_AUX2(:) / ( 2.*BPARAMS%XN_FLOOR(:) )
-   BPARAMS%XF_WALL_MASS (:) = BPARAMS%XF_WALL_FLOOR(:) * (2.*BPARAMS%XN_FLOOR(:)-2.) 
-   BPARAMS%XF_WALL_WIN  (:) = (1. - ZF_AUX2(:)) * BPARAMS%XGR(:)
-   !
-   BPARAMS%XF_WIN_FLOOR(:) = BPARAMS%XF_WALL_FLOOR(:)
-   BPARAMS%XF_WIN_MASS (:) = BPARAMS%XF_WALL_MASS (:)
-   BPARAMS%XF_WIN_WALL (:) = (1. - BPARAMS%XF_WIN_FLOOR(:) * 2. - BPARAMS%XF_WIN_MASS(:) ) * (1. - BPARAMS%XGR(:))
-   BPARAMS%XF_WIN_WIN  (:) = (1. - BPARAMS%XF_WIN_FLOOR(:) * 2. - BPARAMS%XF_WIN_MASS(:) ) * BPARAMS%XGR(:)
-   !
-   BPARAMS%XF_MASS_FLOOR(:) = BPARAMS%XF_FLOOR_MASS(:) / BPARAMS%XMASS_O_BLD(:)
-   BPARAMS%XF_MASS_WALL (:) = PWALL_O_BLD(:) * BPARAMS%XF_WALL_MASS(:) / BPARAMS%XMASS_O_BLD(:)
-   BPARAMS%XF_MASS_WIN  (:) = BPARAMS%XGLAZ_O_BLD (:) * BPARAMS%XF_WIN_MASS(:)  / BPARAMS%XMASS_O_BLD(:)
+  !* more than 1 floor level -> the floor and the roof don't see each other
+  !
+  !           ROOF
+  !  |---------------------|
+  !  |                     |
+  !  |                     |
+  !  |        MASS         |
+  !  |---------------------|
+  !  |---------------------|
+  !  |        MASS         |
+  !  |                     |
+  !  |                     |
+  !  |        FLOOR        |
+  !  |---------------------|
+  !
+  BPARAMS%XMASS_O_BLD(:) = 2 * (BPARAMS%XN_FLOOR(:) - 1.)                      ! [m2(mass)/m2(bld)]
+  BPARAMS%XFLOOR_HW_RATIO(:) = PWALL_O_HOR(:) / BPARAMS%XN_FLOOR(:) / PBLD(:) / 2.
+  !
+  BPARAMS%XF_FLOOR_MASS(:) = (BPARAMS%XFLOOR_HW_RATIO(:)**2 + 1.)**0.5  - BPARAMS%XFLOOR_HW_RATIO(:)
+  BPARAMS%XF_FLOOR_WALL(:) = (1. - BPARAMS%XF_FLOOR_MASS(:)) * (1. - BPARAMS%XGR(:))
+  BPARAMS%XF_FLOOR_WIN (:) = (1. - BPARAMS%XF_FLOOR_MASS(:)) * BPARAMS%XGR(:)
+  BPARAMS%XF_FLOOR_ROOF(:) = 0.  ! no rad interaction between floor and roof
+  !
+  ZF_AUX2      (:) = (1. - BPARAMS%XF_FLOOR_MASS(:)) / BPARAMS%XFLOOR_HW_RATIO(:)
+  !
+  BPARAMS%XF_WALL_FLOOR(:) = ZF_AUX2(:) / ( 2.*BPARAMS%XN_FLOOR(:) )
+  BPARAMS%XF_WALL_MASS (:) = BPARAMS%XF_WALL_FLOOR(:) * (2.*BPARAMS%XN_FLOOR(:)-2.) 
+  BPARAMS%XF_WALL_WIN  (:) = (1. - ZF_AUX2(:)) * BPARAMS%XGR(:)
+  !
+  BPARAMS%XF_WIN_FLOOR(:) = BPARAMS%XF_WALL_FLOOR(:)
+  BPARAMS%XF_WIN_MASS (:) = BPARAMS%XF_WALL_MASS (:)
+  BPARAMS%XF_WIN_WALL (:) = (1. - BPARAMS%XF_WIN_FLOOR(:) * 2. - BPARAMS%XF_WIN_MASS(:) ) * (1. - BPARAMS%XGR(:))
+  BPARAMS%XF_WIN_WIN  (:) = (1. - BPARAMS%XF_WIN_FLOOR(:) * 2. - BPARAMS%XF_WIN_MASS(:) ) * BPARAMS%XGR(:)
+  !
+  BPARAMS%XF_MASS_FLOOR(:) = BPARAMS%XF_FLOOR_MASS(:) / BPARAMS%XMASS_O_BLD(:)
+  BPARAMS%XF_MASS_WALL (:) = PWALL_O_BLD(:) * BPARAMS%XF_WALL_MASS(:) / BPARAMS%XMASS_O_BLD(:)
+  BPARAMS%XF_MASS_WIN  (:) = BPARAMS%XGLAZ_O_BLD (:) * BPARAMS%XF_WIN_MASS(:)  / BPARAMS%XMASS_O_BLD(:)
 ELSE WHERE
-   !* 1 floor level -> no mass view factors ; roof and floor see each other
-   !
-   !           ROOF
-   !  |---------------------|
-   !  |                     |
-   !  |                     |
-   !  |        FLOOR        |
-   !  |---------------------|
-   !
-   BPARAMS%XMASS_O_BLD(:) = 0.
-   BPARAMS%XFLOOR_HW_RATIO(:) = PWALL_O_HOR(:) / PBLD(:) / 2.
-   !
-   BPARAMS%XF_FLOOR_ROOF(:) = (BPARAMS%XFLOOR_HW_RATIO(:)**2 + 1.)**0.5  - BPARAMS%XFLOOR_HW_RATIO(:)
-   BPARAMS%XF_FLOOR_MASS(:) = 0.
-   BPARAMS%XF_FLOOR_WALL(:) = (1. - BPARAMS%XF_FLOOR_ROOF(:)) * (1. - BPARAMS%XGR(:))
-   BPARAMS%XF_FLOOR_WIN (:) = (1. - BPARAMS%XF_FLOOR_ROOF(:)) * BPARAMS%XGR(:)
-   !
-   ZF_AUX2      (:) = (1. - BPARAMS%XF_FLOOR_ROOF(:)) / BPARAMS%XFLOOR_HW_RATIO(:)
-   !
-   BPARAMS%XF_WALL_FLOOR(:) = ZF_AUX2(:) / 2.
-   BPARAMS%XF_WALL_MASS (:) = 0.
-   BPARAMS%XF_WALL_WIN  (:) = (1. - ZF_AUX2(:)) * BPARAMS%XGR(:)
-   !
-   BPARAMS%XF_WIN_FLOOR(:) = BPARAMS%XF_WALL_FLOOR(:)
-   BPARAMS%XF_WIN_MASS (:) = 0.
-   BPARAMS%XF_WIN_WALL (:) = (1. - BPARAMS%XF_WIN_FLOOR(:) * 2. - BPARAMS%XF_WIN_MASS(:) ) * (1. - BPARAMS%XGR(:))
-   BPARAMS%XF_WIN_WIN  (:) = (1. - BPARAMS%XF_WIN_FLOOR(:) * 2. - BPARAMS%XF_WIN_MASS(:) ) * BPARAMS%XGR(:)
-   !
-   BPARAMS%XF_MASS_FLOOR(:) = 0.
-   BPARAMS%XF_MASS_WALL (:) = 0.
-   BPARAMS%XF_MASS_WIN  (:) = 0.
+  !* 1 floor level -> no mass view factors ; roof and floor see each other
+  !
+  !           ROOF
+  !  |---------------------|
+  !  |                     |
+  !  |                     |
+  !  |        FLOOR        |
+  !  |---------------------|
+  !
+  BPARAMS%XMASS_O_BLD(:) = 0.
+  BPARAMS%XFLOOR_HW_RATIO(:) = PWALL_O_HOR(:) / PBLD(:) / 2.
+  !
+  BPARAMS%XF_FLOOR_ROOF(:) = (BPARAMS%XFLOOR_HW_RATIO(:)**2 + 1.)**0.5  - BPARAMS%XFLOOR_HW_RATIO(:)
+  BPARAMS%XF_FLOOR_MASS(:) = 0.
+  BPARAMS%XF_FLOOR_WALL(:) = (1. - BPARAMS%XF_FLOOR_ROOF(:)) * (1. - BPARAMS%XGR(:))
+  BPARAMS%XF_FLOOR_WIN (:) = (1. - BPARAMS%XF_FLOOR_ROOF(:)) * BPARAMS%XGR(:)
+  !
+  ZF_AUX2      (:) = (1. - BPARAMS%XF_FLOOR_ROOF(:)) / BPARAMS%XFLOOR_HW_RATIO(:)
+  !
+  BPARAMS%XF_WALL_FLOOR(:) = ZF_AUX2(:) / 2.
+  BPARAMS%XF_WALL_MASS (:) = 0.
+  BPARAMS%XF_WALL_WIN  (:) = (1. - ZF_AUX2(:)) * BPARAMS%XGR(:)
+  !
+  BPARAMS%XF_WIN_FLOOR(:) = BPARAMS%XF_WALL_FLOOR(:)
+  BPARAMS%XF_WIN_MASS (:) = 0.
+  BPARAMS%XF_WIN_WALL (:) = (1. - BPARAMS%XF_WIN_FLOOR(:) * 2. - BPARAMS%XF_WIN_MASS(:) ) * (1. - BPARAMS%XGR(:))
+  BPARAMS%XF_WIN_WIN  (:) = (1. - BPARAMS%XF_WIN_FLOOR(:) * 2. - BPARAMS%XF_WIN_MASS(:) ) * BPARAMS%XGR(:)
+  !
+  BPARAMS%XF_MASS_FLOOR(:) = 0.
+  BPARAMS%XF_MASS_WALL (:) = 0.
+  BPARAMS%XF_MASS_WIN  (:) = 0.
 END WHERE
 !
 END SUBROUTINE BEM_MORPHO

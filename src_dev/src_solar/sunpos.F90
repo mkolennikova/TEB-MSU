@@ -11,16 +11,16 @@ INTERFACE
 !
       SUBROUTINE SUNPOS (KYEAR, KMONTH, KDAY, PTIME, PLON, PLAT, PTSUN, PZENITH, PAZIMSOL)
 !
-INTEGER,                      INTENT(IN)   :: KYEAR      ! current year                        
-INTEGER,                      INTENT(IN)   :: KMONTH     ! current month                        
-INTEGER,                      INTENT(IN)   :: KDAY       ! current day                        
-REAL,                         INTENT(IN)   :: PTIME      ! current time                        
-REAL, DIMENSION(:),           INTENT(IN)   :: PLON       ! longitude
-REAL, DIMENSION(:),           INTENT(IN)   :: PLAT       ! latitude
+INTEGER,                      INTENT(IN)   :: KYEAR   ! current year                        
+INTEGER,                      INTENT(IN)   :: KMONTH  ! current month                        
+INTEGER,                      INTENT(IN)   :: KDAY    ! current day                        
+REAL,                         INTENT(IN)   :: PTIME   ! current time                        
+REAL, DIMENSION(:),           INTENT(IN)   :: PLON    ! longitude
+REAL, DIMENSION(:),           INTENT(IN)   :: PLAT    ! latitude
 
-REAL, DIMENSION(:),           INTENT(OUT)  :: PZENITH    ! Solar zenithal angle
-REAL, DIMENSION(:),           INTENT(OUT)  :: PAZIMSOL   ! Solar azimuthal angle
-REAL, DIMENSION(:),           INTENT(OUT)  :: PTSUN      ! Solar time
+REAL, DIMENSION(:),           INTENT(OUT)  :: PZENITH   ! Solar zenithal angle
+REAL, DIMENSION(:),           INTENT(OUT)  :: PAZIMSOL  ! Solar azimuthal angle
+REAL, DIMENSION(:),           INTENT(OUT)  :: PTSUN     ! Solar time
 !
 END SUBROUTINE SUNPOS
 !
@@ -87,39 +87,39 @@ IMPLICIT NONE
 !
 !*       0.1   Declarations of dummy arguments :
 !
-INTEGER,                      INTENT(IN)   :: KYEAR      ! current year                        
-INTEGER,                      INTENT(IN)   :: KMONTH     ! current month                        
-INTEGER,                      INTENT(IN)   :: KDAY       ! current day                        
-REAL,                         INTENT(IN)   :: PTIME      ! current time                        
-REAL, DIMENSION(:),           INTENT(IN)   :: PLON       ! longitude
-REAL, DIMENSION(:),           INTENT(IN)   :: PLAT       ! latutude
+INTEGER,                      INTENT(IN)   :: KYEAR   ! current year                        
+INTEGER,                      INTENT(IN)   :: KMONTH  ! current month                        
+INTEGER,                      INTENT(IN)   :: KDAY    ! current day                        
+REAL,                         INTENT(IN)   :: PTIME   ! current time                        
+REAL, DIMENSION(:),           INTENT(IN)   :: PLON    ! longitude
+REAL, DIMENSION(:),           INTENT(IN)   :: PLAT    ! latutude
 !
-REAL, DIMENSION(:),           INTENT(OUT)  :: PZENITH    ! Solar zenithal angle
-REAL, DIMENSION(:),           INTENT(OUT)  :: PAZIMSOL   ! Solar azimuthal angle
-REAL, DIMENSION(:),           INTENT(OUT)  :: PTSUN      ! Solar time
+REAL, DIMENSION(:),           INTENT(OUT)  :: PZENITH   ! Solar zenithal angle
+REAL, DIMENSION(:),           INTENT(OUT)  :: PAZIMSOL  ! Solar azimuthal angle
+REAL, DIMENSION(:),           INTENT(OUT)  :: PTSUN     ! Solar time
 !
 !*       0.2   declarations of local variables
 !
 !
-REAL                                       :: ZUT        ! Universal time
+REAL                                       :: ZUT  ! Universal time
 !
-REAL, DIMENSION(SIZE(PLON))                :: ZTUT    ,&! True (absolute) Universal Time
-                                                ZSOLANG ,&! Hourly solar angle
-                                                ZSINAZI ,&! Sine of the solar azimuthal angle
-                                                ZCOSAZI ,&! Cosine of the solar azimuthal angle
-                                                ZLAT,    &
-                                                ZLON,    &! Array of latitudes and longitudes
-                                                ZSINZEN, &!Sine of zenithal angle
-                                                ZCOSZEN   !Cosine of zenithal angle  
-INTEGER, DIMENSION(0:11)                   :: IBIS, INOBIS ! Cumulative number of days per month
-                                                           ! for bissextile and regular years
+REAL, DIMENSION(SIZE(PLON))                :: ZTUT    ,&  ! True (absolute) Universal Time
+  ZSOLANG ,&                                              ! Hourly solar angle
+  ZSINAZI ,&                                              ! Sine of the solar azimuthal angle
+  ZCOSAZI ,&                                              ! Cosine of the solar azimuthal angle
+  ZLAT,    &
+  ZLON,    &                                              ! Array of latitudes and longitudes
+  ZSINZEN, &                                              !Sine of zenithal angle
+  ZCOSZEN                                                 !Cosine of zenithal angle  
+INTEGER, DIMENSION(0:11)                   :: IBIS, INOBIS  ! Cumulative number of days per month
+                                                            ! for bissextile and regular years
 REAL                                       :: ZDATE         ! Julian day of the year
 REAL                                       :: ZAD           ! Angular Julian day of the year
 REAL                                       :: ZDECSOL       ! Daily solar declination angle 
 REAL                                       :: ZA1, ZA2      ! Ancillary variables
 REAL                                       :: ZTSIDER, &
-                                                ZSINDEL, &!azimuthal angle
-                                                ZCOSDEL !azimuthal angle  
+  ZSINDEL, &                                              !azimuthal angle
+  ZCOSDEL                                               !azimuthal angle  
 !                                            
 INTEGER                                    :: JI, JJ
 INTEGER    :: IINDX1, IINDX2
@@ -154,8 +154,8 @@ ZTSIDER = (7.67825*SIN(ZA1)+10.09176*SIN(ZA2)) / 60.0
 !               -----------------------------------
 !
 ZDECSOL = 0.006918-0.399912*COS(ZAD)   +0.070257*SIN(ZAD)    &
-           -0.006758*COS(2.*ZAD)+0.000907*SIN(2.*ZAD) &
-           -0.002697*COS(3.*ZAD)+0.00148 *SIN(3.*ZAD)  
+  -0.006758*COS(2.*ZAD)+0.000907*SIN(2.*ZAD) &
+  -0.002697*COS(3.*ZAD)+0.00148 *SIN(3.*ZAD)  
 ZSINDEL = SIN(ZDECSOL)
 ZCOSDEL = COS(ZDECSOL)
 !-------------------------------------------------------------------------------
@@ -186,8 +186,8 @@ DO JJ = IINDX1,IINDX2
 !
   ZSOLANG(JJ) = (ZTUT(JJ)-12.0)*15.0*(XPI/180.)          ! hour angle in radians
 !
-  ZCOSZEN(JJ) = SIN(ZLAT(JJ))*ZSINDEL +                 &! Cosine of the zenithal
-                 COS(ZLAT(JJ))*ZCOSDEL*COS(ZSOLANG(JJ))  !       solar angle  
+  ZCOSZEN(JJ) = SIN(ZLAT(JJ))*ZSINDEL +                 &  ! Cosine of the zenithal
+    COS(ZLAT(JJ))*ZCOSDEL*COS(ZSOLANG(JJ))               !       solar angle  
 !
   ZSINZEN(JJ)  = SQRT( 1. - ZCOSZEN(JJ)*ZCOSZEN(JJ) )
 !
@@ -207,8 +207,8 @@ DO JJ = IINDX1,IINDX2
     !Azimuth is measured clockwise from north
     ZSINAZI(JJ)  = - ZCOSDEL * SIN(ZSOLANG(JJ)) / ZSINZEN(JJ)
     ZCOSAZI(JJ)  = (-SIN(ZLAT(JJ))*ZCOSDEL*COS(ZSOLANG(JJ))      &
-                       +COS(ZLAT(JJ))*ZSINDEL                       &
-                      ) / ZSINZEN(JJ)  
+                    +COS(ZLAT(JJ))*ZSINDEL                       &
+                    ) / ZSINZEN(JJ)  
     PAZIMSOL(JJ) = ATAN2(ZSINAZI(JJ),ZCOSAZI(JJ))
   ELSE
     PAZIMSOL(JJ) = XPI

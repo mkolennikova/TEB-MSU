@@ -30,7 +30,7 @@
 !!    ---------
 !!    TEB-MSU: TEB_MSU_containers.md, section 5.11
 !!
- IMPLICIT NONE
+IMPLICIT NONE
 !---------------------------------------------------------------------------
 !
 !* Raw external-surface values, as the host provides them (one value per cell).
@@ -98,7 +98,7 @@ END SUBROUTINE TEB_EXT_SURF_INIT
 SUBROUTINE ALLOC_TEB_EXT_SURF (YTEB_EXT_SURF, KB)
 !!****  *ALLOC_TEB_EXT_SURF* - allocate every field of the external-surface container
 TYPE(TEB_EXT_SURF_t), INTENT(INOUT) :: YTEB_EXT_SURF
-INTEGER,              INTENT(IN)    :: KB   ! number of points
+INTEGER,              INTENT(IN)    :: KB  ! number of points
 !
 CALL TEB_EXT_SURF_INIT(YTEB_EXT_SURF)
 !

@@ -78,54 +78,54 @@ TYPE(TEB_t), INTENT(INOUT) :: T
 TYPE(BEM_t), INTENT(INOUT) :: B
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 !
- CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND   ! wind implicitation option
+CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND  ! wind implicitation option
 !                                                     ! 'OLD' = direct
 !                                                     ! 'NEW' = Taylor serie, order 1
-REAL, DIMENSION(:), INTENT(IN)    :: PT_CANYON    ! canyon air temperature
+REAL, DIMENSION(:), INTENT(IN)    :: PT_CANYON  ! canyon air temperature
 
 REAL, DIMENSION(:), INTENT(IN)    :: PPEW_A_COEF  ! implicit coefficients
 REAL, DIMENSION(:), INTENT(IN)    :: PPEW_B_COEF  ! for wind coupling
 REAL, DIMENSION(:), INTENT(IN)    :: PEXNS        ! surface exner function
 
-REAL, DIMENSION(:), INTENT(IN)    :: PRHOA        ! air density
-                                                  ! at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PVMOD        ! module of the horizontal wind
-REAL, DIMENSION(:), INTENT(IN)    :: PH_TRAFFIC    ! anthropogenic sensible
+REAL, DIMENSION(:), INTENT(IN)    :: PRHOA       ! air density
+                                                 ! at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PVMOD       ! module of the horizontal wind
+REAL, DIMENSION(:), INTENT(IN)    :: PH_TRAFFIC  ! anthropogenic sensible
 !                                                  ! heat fluxes due to traffic
-REAL, DIMENSION(:), INTENT(IN)    :: PLE_TRAFFIC   ! anthropogenic latent
+REAL, DIMENSION(:), INTENT(IN)    :: PLE_TRAFFIC  ! anthropogenic latent
 !                                                  ! heat fluxes due to traffic
-REAL, DIMENSION(:), INTENT(IN)    :: PAC_WL     ! surface conductance
+REAL, DIMENSION(:), INTENT(IN)    :: PAC_WL  ! surface conductance
 !                                                 ! for heat transfer
 !                                                 ! between wall and canyon
-REAL, DIMENSION(:), INTENT(IN)    :: PCD          ! drag coefficient
-REAL, DIMENSION(:), INTENT(IN)    :: PDF_RF     ! snow-free    roof fraction
-REAL, DIMENSION(:), INTENT(IN)    :: PDN_RF     ! snow-covered roof fraction
-REAL, DIMENSION(:), INTENT(IN)    :: PDF_RD     ! snow-free    road fraction
-REAL, DIMENSION(:), INTENT(IN)    :: PDN_RD     ! snow-covered road fraction
+REAL, DIMENSION(:), INTENT(IN)    :: PCD     ! drag coefficient
+REAL, DIMENSION(:), INTENT(IN)    :: PDF_RF  ! snow-free    roof fraction
+REAL, DIMENSION(:), INTENT(IN)    :: PDN_RF  ! snow-covered roof fraction
+REAL, DIMENSION(:), INTENT(IN)    :: PDF_RD  ! snow-free    road fraction
+REAL, DIMENSION(:), INTENT(IN)    :: PDN_RD  ! snow-covered road fraction
 !
-REAL, DIMENSION(:), INTENT(IN)    :: PRNSN_RF ! net radiation over snow
-REAL, DIMENSION(:), INTENT(IN)    :: PHSN_RF  ! sensible heat flux over snow
-REAL, DIMENSION(:), INTENT(IN)    :: PLESN_RF ! latent heat flux over snow
-REAL, DIMENSION(:), INTENT(IN)    :: PGSN_RF  ! flux under the snow
-REAL, DIMENSION(:), INTENT(IN)    :: PRNSN_RD ! net radiation over snow
-REAL, DIMENSION(:), INTENT(IN)    :: PHSN_RD  ! sensible heat flux over snow
-REAL, DIMENSION(:), INTENT(IN)    :: PLESN_RD ! latent heat flux over snow
-REAL, DIMENSION(:), INTENT(IN)    :: PGSN_RD  ! flux under the snow
+REAL, DIMENSION(:), INTENT(IN)    :: PRNSN_RF  ! net radiation over snow
+REAL, DIMENSION(:), INTENT(IN)    :: PHSN_RF   ! sensible heat flux over snow
+REAL, DIMENSION(:), INTENT(IN)    :: PLESN_RF  ! latent heat flux over snow
+REAL, DIMENSION(:), INTENT(IN)    :: PGSN_RF   ! flux under the snow
+REAL, DIMENSION(:), INTENT(IN)    :: PRNSN_RD  ! net radiation over snow
+REAL, DIMENSION(:), INTENT(IN)    :: PHSN_RD   ! sensible heat flux over snow
+REAL, DIMENSION(:), INTENT(IN)    :: PLESN_RD  ! latent heat flux over snow
+REAL, DIMENSION(:), INTENT(IN)    :: PGSN_RD   ! flux under the snow
 !
-REAL, DIMENSION(:), INTENT(IN)    :: PMELT_RF   ! snow melting on roof
-REAL, DIMENSION(:), INTENT(IN)    :: PDQS_RF    ! storage inside roofs
-REAL, DIMENSION(:), INTENT(IN)    :: PMELT_RD   ! snow melting on road
-REAL, DIMENSION(:), INTENT(IN)    :: PDQS_RD    ! storage inside roads
-REAL, DIMENSION(:), INTENT(IN)    :: PDQS_WL_A  ! storage inside walls
-REAL, DIMENSION(:), INTENT(IN)    :: PDQS_WL_B  ! storage inside walls
-REAL, DIMENSION(:), INTENT(IN)    :: PFLX_BLD_RF! heat flx from bld to roof
-REAL, DIMENSION(:), INTENT(IN)    :: PFLX_BLD_WL_A! heat flx from bld to wall A
-REAL, DIMENSION(:), INTENT(IN)    :: PFLX_BLD_WL_B! heat flx from bld to wall B
-REAL, DIMENSION(:), INTENT(IN)    :: PFLX_BLD_FL! heat flx from bld to floor
-REAL, DIMENSION(:), INTENT(IN)    :: PFLX_BLD_MA! heat flx from bld to mass
-REAL, DIMENSION(:), INTENT(IN)    :: PE_SHADING   ! energy not ref., nor absorbed, nor
-                                                  !trans. by glazing [W
-                                                  !m-2(win)]
+REAL, DIMENSION(:), INTENT(IN)    :: PMELT_RF       ! snow melting on roof
+REAL, DIMENSION(:), INTENT(IN)    :: PDQS_RF        ! storage inside roofs
+REAL, DIMENSION(:), INTENT(IN)    :: PMELT_RD       ! snow melting on road
+REAL, DIMENSION(:), INTENT(IN)    :: PDQS_RD        ! storage inside roads
+REAL, DIMENSION(:), INTENT(IN)    :: PDQS_WL_A      ! storage inside walls
+REAL, DIMENSION(:), INTENT(IN)    :: PDQS_WL_B      ! storage inside walls
+REAL, DIMENSION(:), INTENT(IN)    :: PFLX_BLD_RF    ! heat flx from bld to roof
+REAL, DIMENSION(:), INTENT(IN)    :: PFLX_BLD_WL_A  ! heat flx from bld to wall A
+REAL, DIMENSION(:), INTENT(IN)    :: PFLX_BLD_WL_B  ! heat flx from bld to wall B
+REAL, DIMENSION(:), INTENT(IN)    :: PFLX_BLD_FL    ! heat flx from bld to floor
+REAL, DIMENSION(:), INTENT(IN)    :: PFLX_BLD_MA    ! heat flx from bld to mass
+REAL, DIMENSION(:), INTENT(IN)    :: PE_SHADING     ! energy not ref., nor absorbed, nor
+                                                    !trans. by glazing [W
+                                                    !m-2(win)]
 !
 REAL, DIMENSION(:), INTENT(IN)   :: PLEW_RF     ! latent heat flux over snow-free roof
 REAL, DIMENSION(:), INTENT(IN)   :: PLEW_RD     ! latent heat flux of snow-free road
@@ -134,10 +134,10 @@ REAL, DIMENSION(:), INTENT(IN)    :: PH_GR      ! sensible heat flux over greenr
 REAL, DIMENSION(:), INTENT(IN)    :: PLE_GR     ! latent heat flux over greenroof
 REAL, DIMENSION(:), INTENT(IN)    :: PGFLUX_GR  ! flux through the greenroof
 !
-REAL, DIMENSION(:), INTENT(OUT)   :: PLE_WL_A   ! latent heat flux over wall
-REAL, DIMENSION(:), INTENT(OUT)   :: PLE_WL_B   ! latent heat flux over wall
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_WL_A  ! latent heat flux over wall
+REAL, DIMENSION(:), INTENT(OUT)   :: PLE_WL_B  ! latent heat flux over wall
 !
-REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_BLT    ! snow melting for town
+REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_BLT  ! snow melting for town
 !
 REAL, DIMENSION(:), INTENT(OUT)   :: PUSTAR_TWN  ! friction velocity over town
 !
@@ -145,8 +145,8 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PUSTAR_TWN  ! friction velocity over town
 !
 REAL, DIMENSION(SIZE(PRHOA)) :: ZH_RF_SNFREE
 REAL, DIMENSION(SIZE(PRHOA)) :: ZRN_RF_SNFREE
-REAL, DIMENSION(SIZE(PRHOA)) :: ZUSTAR2 ! square of friction velocity (m2/s2)
-REAL, DIMENSION(SIZE(PRHOA)) :: ZVMOD   ! Wind
+REAL, DIMENSION(SIZE(PRHOA)) :: ZUSTAR2  ! square of friction velocity (m2/s2)
+REAL, DIMENSION(SIZE(PRHOA)) :: ZVMOD    ! Wind
 REAL, DIMENSIOn(SIZE(PRHOA)) :: ZINTER
 !
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
@@ -230,7 +230,7 @@ PLE_WL_B(:) = ZINTER(:)
 !                                            heat flux into the ground
 !
 DMT%XGFLUX_ROAD (:) =  PDF_RD(:) * (DMT%XRN_ROAD(:) - DMT%XH_ROAD (:) - PLEW_RD(:) )&
-                       + PDN_RD(:) * PGSN_RD(:)  
+  + PDN_RD(:) * PGSN_RD(:)  
 !
 !                                            net radiation
 !
@@ -302,7 +302,7 @@ IF (.NOT. TOP%LCANOPY) THEN
   ELSE
     ! new implicitation
     ZUSTAR2(:) = (PCD(:)*PVMOD(:)*(2.*PPEW_B_COEF(:)-PVMOD(:)))/ &
-                 (1.0-2.0*PRHOA(:)*PCD(:)*PVMOD(:)*PPEW_A_COEF(:))
+      (1.0-2.0*PRHOA(:)*PCD(:)*PVMOD(:)*PPEW_A_COEF(:))
     !                   
     ZVMOD(:) = PRHOA(:)*PPEW_A_COEF(:)*ZUSTAR2(:) + PPEW_B_COEF(:)
     ZVMOD(:) = MAX(ZVMOD(:),0.)
@@ -326,51 +326,51 @@ ENDIF
 !              --------------
 !
 DMT%XRN_BLT (:)    = ( T%XBLD(:)        * DMT%XRN_ROOF(:)        &
-                  +     T%XROAD(:)       * DMT%XRN_ROAD(:)        &
-                  + 0.5*T%XWALL_O_HOR(:) * DMT%XRN_WALL_A(:)      &
-                  + 0.5*T%XWALL_O_HOR(:) * DMT%XRN_WALL_B(:))     &
-                  / (T%XROAD(:) + T%XBLD(:))
+                       +     T%XROAD(:)       * DMT%XRN_ROAD(:)        &
+                       + 0.5*T%XWALL_O_HOR(:) * DMT%XRN_WALL_A(:)      &
+                       + 0.5*T%XWALL_O_HOR(:) * DMT%XRN_WALL_B(:))     &
+  / (T%XROAD(:) + T%XBLD(:))
 !
 DMT%XH_BLT  (:)    = ( T%XBLD(:)        * DMT%XH_ROOF(:)         &
-                  +     T%XROAD(:)       * DMT%XH_ROAD(:)         &
-                  + 0.5*T%XWALL_O_HOR(:) * DMT%XH_WALL_A(:)       &   
-                  + 0.5*T%XWALL_O_HOR(:) * DMT%XH_WALL_B(:))      &   
-                  / (T%XROAD(:) + T%XBLD(:))
+                       +     T%XROAD(:)       * DMT%XH_ROAD(:)         &
+                       + 0.5*T%XWALL_O_HOR(:) * DMT%XH_WALL_A(:)       &   
+                       + 0.5*T%XWALL_O_HOR(:) * DMT%XH_WALL_B(:))      &   
+  / (T%XROAD(:) + T%XBLD(:))
 !
 DMT%XLE_BLT (:)    = ( T%XBLD(:)        * DMT%XLE_ROOF (:)       &
-                  +     T%XROAD(:)       * DMT%XLE_ROAD (:)       &
-                  + 0.5*T%XWALL_O_HOR(:) * PLE_WL_A (:)     & 
-                  + 0.5*T%XWALL_O_HOR(:) * PLE_WL_B (:))    & 
-                  / (T%XROAD(:) + T%XBLD(:))
+                       +     T%XROAD(:)       * DMT%XLE_ROAD (:)       &
+                       + 0.5*T%XWALL_O_HOR(:) * PLE_WL_A (:)     & 
+                       + 0.5*T%XWALL_O_HOR(:) * PLE_WL_B (:))    & 
+  / (T%XROAD(:) + T%XBLD(:))
 !
 DMT%XGFLUX_BLT (:) = ( T%XBLD(:)        * DMT%XGFLUX_ROOF (:)    &
-                  +     T%XROAD(:)       * DMT%XGFLUX_ROAD (:)    &
-                  + 0.5*T%XWALL_O_HOR(:) * DMT%XGFLUX_WALL_A (:)  &
-                  + 0.5*T%XWALL_O_HOR(:) * DMT%XGFLUX_WALL_B (:)) &
-                  / (T%XROAD(:) + T%XBLD(:))
+                       +     T%XROAD(:)       * DMT%XGFLUX_ROAD (:)    &
+                       + 0.5*T%XWALL_O_HOR(:) * DMT%XGFLUX_WALL_A (:)  &
+                       + 0.5*T%XWALL_O_HOR(:) * DMT%XGFLUX_WALL_B (:)) &
+  / (T%XROAD(:) + T%XBLD(:))
 !
 PMELT_BLT  (:) = (     T%XBLD(:)         * PMELT_RF(:) * PDN_RF(:)  &
-                  +    T%XROAD(:)        * PMELT_RD(:) * PDN_RD(:)) &
-                  / (T%XROAD(:) + T%XBLD(:))
+                       +    T%XROAD(:)        * PMELT_RD(:) * PDN_RD(:)) &
+  / (T%XROAD(:) + T%XBLD(:))
 !
 DMT%XDQS_TOWN  (:) = (  T%XBLD(:)         * PDQS_RF (:)      &
-                  +      T%XROAD(:)      * PDQS_RD (:)      &
-                  + 0.5*T%XWALL_O_HOR(:) * PDQS_WL_A (:)    &
-                  + 0.5*T%XWALL_O_HOR(:) * PDQS_WL_B (:) )  &
-                / (T%XROAD(:) + T%XBLD(:))
+                        +      T%XROAD(:)      * PDQS_RD (:)      &
+                        + 0.5*T%XWALL_O_HOR(:) * PDQS_WL_A (:)    &
+                        + 0.5*T%XWALL_O_HOR(:) * PDQS_WL_B (:) )  &
+  / (T%XROAD(:) + T%XBLD(:))
 !
 IF (TOP%CBEM == "DEF") THEN
   DMT%XQF_BLD(:) = ( ZH_RF_SNFREE(:) + PLEW_RF(:) +          & 
-                 PDQS_RF(:) - ZRN_RF_SNFREE(:)  ) * PDF_RF(:) &
-             + ( PDQS_RF(:) - PGSN_RF      (:)  ) * PDN_RF(:) &
-             + 0.5*T%XWALL_O_HOR(:)/T%XBLD(:) * ( DMT%XH_WALL_A(:) + PLE_WL_A(:) + PDQS_WL_A(:) - DMT%XRN_WALL_A(:) ) &
-             + 0.5*T%XWALL_O_HOR(:)/T%XBLD(:) * ( DMT%XH_WALL_B(:) + PLE_WL_B(:) + PDQS_WL_B(:) - DMT%XRN_WALL_B(:) )
+                     PDQS_RF(:) - ZRN_RF_SNFREE(:)  ) * PDF_RF(:) &
+    + ( PDQS_RF(:) - PGSN_RF      (:)  ) * PDN_RF(:) &
+    + 0.5*T%XWALL_O_HOR(:)/T%XBLD(:) * ( DMT%XH_WALL_A(:) + PLE_WL_A(:) + PDQS_WL_A(:) - DMT%XRN_WALL_A(:) ) &
+    + 0.5*T%XWALL_O_HOR(:)/T%XBLD(:) * ( DMT%XH_WALL_B(:) + PLE_WL_B(:) + PDQS_WL_B(:) - DMT%XRN_WALL_B(:) )
   DMT%XFLX_BLD(:)= XUNDEF
 ELSEIF (TOP%CBEM == "BEM") THEN
   DMT%XQF_BLD(:) = DMT%XQIN(:)*B%XN_FLOOR(:) + DMT%XHVAC_COOL(:) + DMT%XHVAC_HEAT(:)
   DMT%XFLX_BLD(:)=  PFLX_BLD_RF(:) + 0.5*T%XWALL_O_HOR(:)/T%XBLD(:)*PFLX_BLD_WL_A(:) &
-                 +                    0.5*T%XWALL_O_HOR(:)/T%XBLD(:)*PFLX_BLD_WL_B(:) &
-                 + PFLX_BLD_FL(:) + PFLX_BLD_MA(:)  
+    +                    0.5*T%XWALL_O_HOR(:)/T%XBLD(:)*PFLX_BLD_WL_B(:) &
+    + PFLX_BLD_FL(:) + PFLX_BLD_MA(:)  
 ENDIF
 !
 DMT%XQF_TOWN(:)= T%XBLD(:)*DMT%XQF_BLD(:) + PH_TRAFFIC(:) + T%XH_INDUSTRY(:) + PLE_TRAFFIC(:) + T%XLE_INDUSTRY(:)

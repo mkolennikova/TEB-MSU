@@ -56,12 +56,12 @@ USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
 !
 USE MODD_SNOW_PAR, ONLY : XZ0SN, XZ0HSN,                                    &
-                            XANSMIN_ROOF, XANSMAX_ROOF, XANS_TODRY_ROOF,      &
-                            XANS_T_ROOF, XRHOSMIN_ROOF, XRHOSMAX_ROOF,        &
-                            XWCRN_ROOF,                                       &
-                            XANSMIN_ROAD, XANSMAX_ROAD, XANS_TODRY_ROAD,      &
-                            XANS_T_ROAD, XRHOSMIN_ROAD, XRHOSMAX_ROAD,        &
-                            XWCRN_ROAD  
+                          XANSMIN_ROOF, XANSMAX_ROOF, XANS_TODRY_ROOF,      &
+                          XANS_T_ROOF, XRHOSMIN_ROOF, XRHOSMAX_ROOF,        &
+                          XWCRN_ROOF,                                       &
+                          XANSMIN_ROAD, XANSMAX_ROAD, XANS_TODRY_ROAD,      &
+                          XANS_T_ROAD, XRHOSMIN_ROAD, XRHOSMAX_ROAD,        &
+                          XWCRN_ROAD  
 USE MODD_CSTS,     ONLY : XSTEFAN
 !
 USE MODE_SURF_SNOW_FRAC
@@ -83,19 +83,19 @@ TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
 TYPE(TEB_t), INTENT(INOUT) :: TSTATE
 TYPE(BEM_t), INTENT(INOUT) :: BSTATE
 !
-REAL, DIMENSION(:),   INTENT(IN)    :: PT_LWCN  ! LWCN air temperature
-REAL, DIMENSION(:),   INTENT(IN)    :: PQ_LWCN  ! LWCN air specific humidity
-REAL, DIMENSION(:),   INTENT(IN)    :: PU_LWCN  ! LWCN hor. wind
-REAL, DIMENSION(:),   INTENT(IN)    :: PTS_RF   ! roof surface temperature
-REAL, DIMENSION(:),   INTENT(IN)    :: PTS_RD   ! road surface temperature
-REAL, DIMENSION(:),   INTENT(IN)    :: PTS_WL_A ! wall surface temperature
-REAL, DIMENSION(:),   INTENT(IN)    :: PTS_WL_B ! wall surface temperature
+REAL, DIMENSION(:),   INTENT(IN)    :: PT_LWCN   ! LWCN air temperature
+REAL, DIMENSION(:),   INTENT(IN)    :: PQ_LWCN   ! LWCN air specific humidity
+REAL, DIMENSION(:),   INTENT(IN)    :: PU_LWCN   ! LWCN hor. wind
+REAL, DIMENSION(:),   INTENT(IN)    :: PTS_RF    ! roof surface temperature
+REAL, DIMENSION(:),   INTENT(IN)    :: PTS_RD    ! road surface temperature
+REAL, DIMENSION(:),   INTENT(IN)    :: PTS_WL_A  ! wall surface temperature
+REAL, DIMENSION(:),   INTENT(IN)    :: PTS_WL_B  ! wall surface temperature
 !
-REAL, DIMENSION(:), INTENT(IN)    :: PPS      ! pressure at the surface
-REAL, DIMENSION(:), INTENT(IN)    :: PTA      ! temperature at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PQA      ! specific humidity
-                                              ! at the lowest level
-REAL, DIMENSION(:), INTENT(IN)    :: PVMOD    ! module of the horizontal wind
+REAL, DIMENSION(:), INTENT(IN)    :: PPS    ! pressure at the surface
+REAL, DIMENSION(:), INTENT(IN)    :: PTA    ! temperature at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PQA    ! specific humidity
+                                            ! at the lowest level
+REAL, DIMENSION(:), INTENT(IN)    :: PVMOD  ! module of the horizontal wind
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 REAL, DIMENSION(:), INTENT(IN)    :: PTAU     ! CBS scheme weight of the canyon path (-)
 REAL, DIMENSION(:), INTENT(IN)    :: PRHOA    ! air density at the lowest level
@@ -109,56 +109,56 @@ REAL, DIMENSION(:), INTENT(IN)    :: PUREF    ! reference height of the first
 REAL,               INTENT(IN)    :: PTSTEP   ! time step
 REAL, DIMENSION(:), INTENT(IN)    :: PZ_LWCN  ! height of forcing
 !
-REAL, DIMENSION(:), INTENT(INOUT) :: PDN_RF          ! snow-covered roof frac.
-REAL, DIMENSION(:), INTENT(IN)    :: PABS_SW_SN_RF ! SW absorbed by roof snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW_SN_RF ! absorbed IR rad by snow on roof
-REAL, DIMENSION(:), INTENT(INOUT) :: PDN_RD          ! snow-covered road frac.
-REAL, DIMENSION(:), INTENT(IN)    :: PABS_SW_SN_RD ! SW absorbed by road snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW_SN_RD ! absorbed IR rad by snow on road
+REAL, DIMENSION(:), INTENT(INOUT) :: PDN_RF         ! snow-covered roof frac.
+REAL, DIMENSION(:), INTENT(IN)    :: PABS_SW_SN_RF  ! SW absorbed by roof snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW_SN_RF  ! absorbed IR rad by snow on roof
+REAL, DIMENSION(:), INTENT(INOUT) :: PDN_RD         ! snow-covered road frac.
+REAL, DIMENSION(:), INTENT(IN)    :: PABS_SW_SN_RD  ! SW absorbed by road snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW_SN_RD  ! absorbed IR rad by snow on road
 !
-REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RF ! net radiation over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RF  ! sensible heat flux over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RF ! latent heat flux over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PGSN_RF  ! flux under the snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RF   ! snow melt
-REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RD ! net radiation over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD  ! sensible heat flux over snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD ! latent heat flux over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RF  ! net radiation over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RF   ! sensible heat flux over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RF  ! latent heat flux over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PGSN_RF   ! flux under the snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RF  ! snow melt
+REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RD  ! net radiation over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD   ! sensible heat flux over snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD  ! latent heat flux over snow
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_CAN  ! sensible heat flux over snow, snow -> canyon air
-REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_ATM  ! sensible heat flux over snow, snow -> forcing level
-REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD_CAN ! latent heat flux over snow, snow -> canyon air
-REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD_ATM ! latent heat flux over snow, snow -> forcing level
-REAL, DIMENSION(:), INTENT(OUT)   :: PGSN_RD  ! flux under the snow
-REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RD   ! snow melt
+REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_CAN   ! sensible heat flux over snow, snow -> canyon air
+REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_ATM   ! sensible heat flux over snow, snow -> forcing level
+REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD_CAN  ! latent heat flux over snow, snow -> canyon air
+REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD_ATM  ! latent heat flux over snow, snow -> forcing level
+REAL, DIMENSION(:), INTENT(OUT)   :: PGSN_RD       ! flux under the snow
+REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RD      ! snow melt
 !
-REAL, DIMENSION(:), INTENT(IN)    :: PLW_WA_TO_NR        ! LW contrib. wall       -> road(snow)
-REAL, DIMENSION(:), INTENT(IN)    :: PLW_WB_TO_NR        ! LW contrib. wall       -> road(snow)
-REAL, DIMENSION(:), INTENT(IN)    :: PLW_S_TO_NR         ! LW contrib. sky        -> road(snow)
-REAL, DIMENSION(:), INTENT(IN)    :: PLW_WIN_TO_NR       ! LW contrib. win       -> road(snow)
-REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SN_RF ! Heat storage in snowpack on roofs
-REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SN_RD ! Heat storage in snowpack on roads
-REAL, DIMENSION(:), INTENT(OUT)   :: PSNOWD_RF  ! snow depth on roofs
-REAL, DIMENSION(:), INTENT(OUT)   :: PSNOWD_RD  ! snow depth on roads
+REAL, DIMENSION(:), INTENT(IN)    :: PLW_WA_TO_NR   ! LW contrib. wall       -> road(snow)
+REAL, DIMENSION(:), INTENT(IN)    :: PLW_WB_TO_NR   ! LW contrib. wall       -> road(snow)
+REAL, DIMENSION(:), INTENT(IN)    :: PLW_S_TO_NR    ! LW contrib. sky        -> road(snow)
+REAL, DIMENSION(:), INTENT(IN)    :: PLW_WIN_TO_NR  ! LW contrib. win       -> road(snow)
+REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SN_RF     ! Heat storage in snowpack on roofs
+REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SN_RD     ! Heat storage in snowpack on roads
+REAL, DIMENSION(:), INTENT(OUT)   :: PSNOWD_RF      ! snow depth on roofs
+REAL, DIMENSION(:), INTENT(OUT)   :: PSNOWD_RD      ! snow depth on roads
 
 
 !
 !*      0.2    declarations of local variables
 !
-REAL, DIMENSION(SIZE(PTA)) :: ZLW1_RD   ! independant from
-REAL, DIMENSION(SIZE(PTA)) :: ZLW1_RF   ! surface temperature
+REAL, DIMENSION(SIZE(PTA)) :: ZLW1_RD  ! independant from
+REAL, DIMENSION(SIZE(PTA)) :: ZLW1_RF  ! surface temperature
 !
-REAL, DIMENSION(SIZE(PTA)) :: ZLW2_RD   ! to be multiplied by
-REAL, DIMENSION(SIZE(PTA)) :: ZLW2_RF   ! 4th power of
+REAL, DIMENSION(SIZE(PTA)) :: ZLW2_RD  ! to be multiplied by
+REAL, DIMENSION(SIZE(PTA)) :: ZLW2_RF  ! 4th power of
 !                                         ! surface temperature
 
-REAL, DIMENSION(SIZE(PTA)) :: ZSR_RF    ! snow fall on roof snow (kg/s/m2 of snow)
-REAL, DIMENSION(SIZE(PTA)) :: ZSR_RD    ! snow fall on road snow (kg/s/m2 of snow)
+REAL, DIMENSION(SIZE(PTA)) :: ZSR_RF  ! snow fall on roof snow (kg/s/m2 of snow)
+REAL, DIMENSION(SIZE(PTA)) :: ZSR_RD  ! snow fall on road snow (kg/s/m2 of snow)
 !
-REAL, DIMENSION(SIZE(PTA)) :: ZT_SKY      ! sky temperature
-REAL, DIMENSION(SIZE(PTA)) :: ZTS_COEFA   ! Coefficient A for implicit coupling
+REAL, DIMENSION(SIZE(PTA)) :: ZT_SKY     ! sky temperature
+REAL, DIMENSION(SIZE(PTA)) :: ZTS_COEFA  ! Coefficient A for implicit coupling
 !                                         ! of snow with the underlying surface
-REAL, DIMENSION(SIZE(PTA)) :: ZTS_COEFB   ! Coefficient B for implicit coupling
+REAL, DIMENSION(SIZE(PTA)) :: ZTS_COEFB  ! Coefficient B for implicit coupling
 !                                         ! of snow with the underlying surface
 !
 ! flags to call to snow routines
@@ -181,6 +181,11 @@ PMELT_RF(:)=0.
 PRNSN_RD(:)=0.
 PHSN_RD (:)=0.
 PLESN_RD(:)=0.
+!MV202611 define branch fluxes even when the road-snow scheme is skipped.
+PHSN_RD_CAN(:)=0.
+PHSN_RD_ATM(:)=0.
+PLESN_RD_CAN(:)=0.
+PLESN_RD_ATM(:)=0.
 PGSN_RD (:)=0.
 PMELT_RD(:)=0.
 PABS_LW_SN_RF(:)=0.
@@ -227,16 +232,16 @@ IF ( GSN_RF ) THEN
 !* call to snow mantel scheme
 !
   IF (TSTATE%TSNOW_ROOF%SCHEME=='1-L')  &
-   CALL SNOW_COVER_1LAYER(PTSTEP, XANSMIN_ROOF, XANSMAX_ROOF, XANS_TODRY_ROOF,   &
-                          XRHOSMIN_ROOF, XRHOSMAX_ROOF, XANS_T_ROOF, .TRUE., 0., &
-                          XWCRN_ROOF, XZ0SN, XZ0HSN, TSTATE%TSNOW_ROOF, PTS_RF,       &
-                          ZTS_COEFA, ZTS_COEFB, PABS_SW_SN_RF, ZLW1_RF,  ZLW2_RF,&
-                          PTA, PQA, PVMOD, PPS, PRHOA, ZSR_RF, PZREF, PUREF,     &
-                          PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF, PMELT_RF,        &
-                          PDQS_SN_RF, PABS_LW_SN_RF, PSNOWD_RF,                  &
+    CALL SNOW_COVER_1LAYER(PTSTEP, XANSMIN_ROOF, XANSMAX_ROOF, XANS_TODRY_ROOF,   &
+                             XRHOSMIN_ROOF, XRHOSMAX_ROOF, XANS_T_ROOF, .TRUE., 0., &
+                             XWCRN_ROOF, XZ0SN, XZ0HSN, TSTATE%TSNOW_ROOF, PTS_RF,       &
+                             ZTS_COEFA, ZTS_COEFB, PABS_SW_SN_RF, ZLW1_RF,  ZLW2_RF,&
+                             PTA, PQA, PVMOD, PPS, PRHOA, ZSR_RF, PZREF, PUREF,     &
+                             PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF, PMELT_RF,        &
+                             PDQS_SN_RF, PABS_LW_SN_RF, PSNOWD_RF,                  &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                          PTA, PQA, PVMOD, PZREF, PUREF, PTAU, .FALSE.,          &
-                          PHSN_RF, PHSN_RF, PLESN_RF, PLESN_RF )	  
+                             PTA, PQA, PVMOD, PZREF, PUREF, PTAU, .FALSE.,          &
+                             PHSN_RF, PHSN_RF, PLESN_RF, PLESN_RF )	  
 !
 
 !
@@ -256,9 +261,9 @@ IF ( GSN_RD ) THEN
   ZT_SKY(:) = (PLW_RAD(:)/XSTEFAN)**0.25
 !
   ZLW1_RD(:) = PLW_S_TO_NR  (:)   * (ZT_SKY   (:) - TSTATE%TSNOW_ROAD%TS(:)) &
-               + PLW_WA_TO_NR (:) * (PTS_WL_A (:) - TSTATE%TSNOW_ROAD%TS(:)) &
-               + PLW_WB_TO_NR (:) * (PTS_WL_B (:) - TSTATE%TSNOW_ROAD%TS(:)) &
-               + PLW_WIN_TO_NR(:) * (BSTATE%XT_WIN1(:) - TSTATE%TSNOW_ROAD%TS(:))
+    + PLW_WA_TO_NR (:) * (PTS_WL_A (:) - TSTATE%TSNOW_ROAD%TS(:)) &
+    + PLW_WB_TO_NR (:) * (PTS_WL_B (:) - TSTATE%TSNOW_ROAD%TS(:)) &
+    + PLW_WIN_TO_NR(:) * (BSTATE%XT_WIN1(:) - TSTATE%TSNOW_ROAD%TS(:))
   ZLW2_RD(:) =  0.0
   !
   !* The global amount of snow on roads is supposed located on a
@@ -279,16 +284,16 @@ IF ( GSN_RD ) THEN
   !* call to snow mantel scheme
   !
   IF (TSTATE%TSNOW_ROAD%SCHEME=='1-L')                &
-	CALL SNOW_COVER_1LAYER(PTSTEP, XANSMIN_ROAD, XANSMAX_ROAD, XANS_TODRY_ROAD,   &
-                           XRHOSMIN_ROAD, XRHOSMAX_ROAD, XANS_T_ROAD, .FALSE.,    &
-                           0., XWCRN_ROAD, XZ0SN, XZ0HSN, TSTATE%TSNOW_ROAD, PTS_RD,   & 
-                           ZTS_COEFA, ZTS_COEFB,  PABS_SW_SN_RD, ZLW1_RD, ZLW2_RD,&
-                           PT_LWCN, PQ_LWCN, PU_LWCN, PPS, PRHOA, ZSR_RD, PZ_LWCN,&
-                           PZ_LWCN, PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD,         &
-                           PMELT_RD, PDQS_SN_RD, PABS_LW_SN_RD, PSNOWD_RD,       &
+    CALL SNOW_COVER_1LAYER(PTSTEP, XANSMIN_ROAD, XANSMAX_ROAD, XANS_TODRY_ROAD,   &
+                             XRHOSMIN_ROAD, XRHOSMAX_ROAD, XANS_T_ROAD, .FALSE.,    &
+                             0., XWCRN_ROAD, XZ0SN, XZ0HSN, TSTATE%TSNOW_ROAD, PTS_RD,   & 
+                             ZTS_COEFA, ZTS_COEFB,  PABS_SW_SN_RD, ZLW1_RD, ZLW2_RD,&
+                             PT_LWCN, PQ_LWCN, PU_LWCN, PPS, PRHOA, ZSR_RD, PZ_LWCN,&
+                             PZ_LWCN, PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD,         &
+                             PMELT_RD, PDQS_SN_RD, PABS_LW_SN_RD, PSNOWD_RD,       &
 !MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
-                           PTA, PQA, PVMOD, PZREF, PUREF, PTAU, .TRUE.,          &
-                           PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM )
+                             PTA, PQA, PVMOD, PZREF, PUREF, PTAU, .TRUE.,          &
+                             PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM )
 				   
 !
 !* The global amount of snow on roads is reported to total road surface.
