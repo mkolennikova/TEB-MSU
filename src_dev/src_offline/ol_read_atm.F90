@@ -81,6 +81,10 @@ SUBROUTINE OL_READ_ATM (HSURF_FILETYPE, HFORCING_FILETYPE, KFORC_STEP, path, &
 !!                            file and from initial file
 !!      B. Decharme  01/2009: Optional, limitation of Qair (<= Qsat(tair))
 !
+!!      TEB-MSU development
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Move offline-only forcing/calendar support to src_offline when
+!!        separating the common TEB library from its offline host.
 USE MODI_OL_READ_ATM_ASCII 
 !
 USE MODE_THERMOS

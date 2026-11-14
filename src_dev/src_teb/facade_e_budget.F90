@@ -52,6 +52,10 @@ SUBROUTINE FACADE_E_BUDGET(TOPTS, TSTATE, BSTATE, DMT, PTSTEP, PDN_RD, PRHOA, PA
 !!      Original    10/11/2011 
 !!      G. Pigeon     /09/2012: new conv. coef for indoor/outdoor 
 !!      G. Pigeon     /10/2012: new arg. : solar heat load for indoor
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

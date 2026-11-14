@@ -1,7 +1,13 @@
 !SFX_LIC This diagnostic host uses the TEB/SURFEX interfaces under the CeCILL-C licence.
-!MV202611 Runtime-sized diagnostic host, linked to the unchanged common library.
 ! The typed packet mirrors the public API; every OUT, including OPTIONAL, is requested.
 ! Keep packet, copies, schema and checkpoint serialization synchronized with sfc_teb.
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Create a host-owned block/state packet with uniform and perturbed
+!!        columns, masks, permutations, restart and external-surface emulation.
+!!------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_BLOCK_HOST
 USE sfc_teb, ONLY: teb_interface, teb_real_kind
 USE TEB_HOST, ONLY: TEB_HOST_FINAL

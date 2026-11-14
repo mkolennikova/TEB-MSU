@@ -6,6 +6,16 @@
 ! http://www.cecill.info/licences/Licence_CeCILL-C_V1-fr.txt
 ! The CeCILL-C licence is compatible with L-GPL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Adapt forcing allocation to the fixed one-column storage of the
+!!        coupled physical driver.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Move offline-only forcing/calendar support to src_offline when
+!!        separating the common TEB library from its offline host.
+!!------------------------------------------------------------------------------
 !   ############################
     MODULE MODI_OL_ALLOC_ATM
 !   ############################

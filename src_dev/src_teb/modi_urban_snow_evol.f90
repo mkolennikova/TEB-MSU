@@ -1,4 +1,11 @@
 !auto_modi:spll_urban_snow_evol.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit snow interface for separate canyon/atmosphere
+!!        turbulent fluxes in CBS.
+!!------------------------------------------------------------------------------
 MODULE MODI_URBAN_SNOW_EVOL
 INTERFACE
     SUBROUTINE URBAN_SNOW_EVOL(TSTATE, BSTATE, PT_LWCN, PQ_LWCN, PU_LWCN, PTS_RF, PTS_RD, PTS_WL_A,   &
@@ -8,7 +15,6 @@ INTERFACE
                                PLESN_RF, PGSN_RF, PMELT_RF, PRNSN_RD, PHSN_RD, PLESN_RD,    &
                                PGSN_RD, PMELT_RD, PLW_WA_TO_NR , PLW_WB_TO_NR, PLW_S_TO_NR, &
                                PLW_WIN_TO_NR, PDQS_SN_RF, PDQS_SN_RD, PSNOWD_RF, PSNOWD_RD,  &
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                                PTAU, PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TPARAMS )  
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
@@ -49,7 +55,6 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RF       ! snow melt
 REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RD       ! net radiation over snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD        ! sensible heat flux over snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD       ! latent heat flux over snow
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 REAL, DIMENSION(:), INTENT(IN)    :: PTAU           ! CBS scheme weight of the canyon path (-)
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_CAN    ! sensible heat flux over snow, snow -> canyon air
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_ATM    ! sensible heat flux over snow, snow -> forcing level

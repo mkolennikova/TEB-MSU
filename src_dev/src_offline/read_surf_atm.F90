@@ -64,6 +64,10 @@ SUBROUTINE READ_SURF_ATM     (HPROGRAM, HFILE, PFIELD,                    &
 !!      Original     03/2008
 !          
 !
+!!      TEB-MSU development
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Move offline-only forcing/calendar support to src_offline when
+!!        separating the common TEB library from its offline host.
 IMPLICIT NONE
 !
 

@@ -1,4 +1,11 @@
 !auto_modi:spll_bem_morpho.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit BEM_MORPHO interface for separate static-parameter
+!!        and prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_BEM_MORPHO
 INTERFACE
 SUBROUTINE BEM_MORPHO(PBLD, PWALL_O_HOR, PBLD_HEIGHT, PWALL_O_BLD, BSTATE, BPARAMS)

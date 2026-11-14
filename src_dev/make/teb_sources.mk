@@ -2,6 +2,13 @@
 # Keep experimental/original snapshots out of these lists. Update dependencies
 # in teb_dependencies.mk when adding or changing Fortran USE associations.
 
+#    MODIFICATIONS
+#    -------------
+#      TEB-MSU development
+#      11/2026 -- Mikhail Varentsov (MV)
+#        Declare separate common-library and offline source ownership, excluding
+#        experimental snapshots from the production archive.
+#-------------------------------------------------------------------------------
 COMMON_SRC := \
     src_api/sfc_teb.F90 \
     src_api/teb_host.F90 \

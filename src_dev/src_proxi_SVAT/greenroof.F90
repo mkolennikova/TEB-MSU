@@ -60,6 +60,13 @@
 !!    MODIFICATIONS
 !!    -------------
 !     Original    09/2011 
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Preserve host-provided greenroof temperature and allow exchanged
+!!        fluxes in the proxy interface.
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Add selectable diagnostic greenroof energy balance using the shared
+!!        garden solver and configurable humidity and thermal roughness.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -72,7 +79,6 @@ USE MODD_CSTS, ONLY : XLVTT , &   ! Latent heat constant for evaporation
 USE MODE_THERMOS                  ! Function to compute humidity at saturation
 USE MODE_GARDEN_BALANCE           ! shared diagnostic balance, neutral coefficients,
 !                                 ! wind floor and flux clips of the garden scheme
-!MV202609 the PHU parameter of the greenroof model (namelist proxy_phu_grf), read here
 USE MODD_PROXI_SVAT_PAR, ONLY : proxy_phu_grf
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
 !
@@ -117,7 +123,6 @@ REAL, DIMENSION(:)  , INTENT(IN)    :: PVMOD        ! module of horizontal wind 
 REAL, DIMENSION(:)  , INTENT(IN)    :: PALB_GR      ! green roof albedo (namelist urb_alb_grf)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PEMIS_GR     ! green roof emissivity (namelist urb_emis_grf; not used by this proxy)
 REAL, DIMENSION(:)  , INTENT(IN)    :: PZ0_GR       ! green roof roughness length (m) (namelist urb_z0_grf)
-!MV202609 greenroof thermal roughness (z0h) and tunable surface humidity
 !* z0/z0h ratio (-), >= 1: the scalar (thermal) roughness is z0h = PZ0_GR/PZ0_O_Z0H_GR,
 !* used by heat and moisture (the momentum keeps PZ0_GR), see GARDEN_PCH_NEUTRAL.
 REAL,               INTENT(IN)    :: PZ0_O_Z0H_GR  ! greenroof z0/z0h ratio (-), >= 1
@@ -142,7 +147,6 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GREENROOF   ! greenroof irrigation
 !
 !*      0.2    Declarations of local variables
 !
-!MV202609 local conductance and coefficients of the diagnostic greenroof
 REAL, DIMENSION(SIZE(PTA)) :: ZV_GR     ! wind with the floor XVMIN_GD (m/s)
 REAL, DIMENSION(SIZE(PTA)) :: ZPCD_GR   ! neutral-log momentum coefficient (-)
 REAL, DIMENSION(SIZE(PTA)) :: ZPCH_GR   ! neutral-log thermal (scalar) coefficient (-)

@@ -1,4 +1,11 @@
 !auto_modi:spll_bld_occ_calendar.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit BLD_OCC_CALENDAR interface for separate
+!!        static-parameter and prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_BLD_OCC_CALENDAR
 INTERFACE
 SUBROUTINE BLD_OCC_CALENDAR(TPTIME, PTSUN, TSTATE, BSTATE, PQIN_FRAC, PTCOOL_TARGET, PTHEAT_TARGET, PQIN, TPARAMS, BPARAMS)

@@ -76,6 +76,10 @@ SUBROUTINE OL_READ_ATM_ASCII (HSURF_FILETYPE, KFORC_STEP, path,           &
 
 !          
 !
+!!      TEB-MSU development
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Move offline-only forcing/calendar support to src_offline when
+!!        separating the common TEB library from its offline host.
 USE MODI_READ_SURF_ATM
 
 !

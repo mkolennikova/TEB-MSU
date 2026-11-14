@@ -47,6 +47,10 @@ SUBROUTINE URBAN_EXCH_COEF(HZ0H, PZ0H, PTG, PQS, PEXNS, PEXNA, PTA, PQA,   &
 !!      B. Decharme    06/2009 limitation of Ri
 !!      B. Decharme    09/2009 limitation of Ri in surface_ri.F90
 !
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Add an experimental surface-exchange variant with directly prescribed
+!!        thermal roughness.
 !-------------------------------------------------------------------------------
 
 USE MODI_SURFACE_RI

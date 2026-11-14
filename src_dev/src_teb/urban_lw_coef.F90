@@ -55,6 +55,13 @@
 !!    MODIFICATIONS
 !!    -------------
 !!      Original    08/09/98 
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Guard radiative contributions of inactive garden/greenroof surfaces in
+!!        the coupled longwave budget.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

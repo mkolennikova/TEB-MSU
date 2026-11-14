@@ -6,6 +6,16 @@
 ! http://www.cecill.info/licences/Licence_CeCILL-C_V1-fr.txt
 ! The CeCILL-C licence is compatible with L-GPL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Extend the explicit GREENROOF interface for the inherited
+!!        host-coupling implementation.
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit greenroof interface for selectable diagnostic and
+!!        external-surface schemes.
+!!------------------------------------------------------------------------------
 MODULE MODI_GREENROOF
 INTERFACE
     SUBROUTINE GREENROOF(TYPE_GREENROOF, HIMPLICIT_WIND, TPTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF,    &

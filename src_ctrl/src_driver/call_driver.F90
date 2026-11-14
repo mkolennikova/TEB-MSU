@@ -62,6 +62,18 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 !                                            road orientation option
 !                                            separated walls option
 !      Modification   10/13 (V. Masson) adds irrigation and solar panels
+!      TEB-MSU development
+!      Pre-repository -- Maria Tarasova (MT)
+!        Adapt the standalone driver for COSMO coupling and external
+!        garden/greenroof models; integrate the Wang (2012) wind profile.
+!      10/2026 -- Mikhail Varentsov (MV)
+!        Integrate shared namelist, cold-start and offline interfaces while
+!        keeping the separate reference physics.
+!      11/2026 -- Mikhail Varentsov (MV)
+!        Unify wind reference-height handling and coupled snow diagnostics with
+!        the accepted common corrections.
+!        Add opt-in upstream-consistency comparison paths for validation of
+!        inherited formulas.
 ! ---------------------------------------------------------------
 ! Modules
 ! ---------------------------------------------------------------
@@ -85,7 +97,6 @@ USE MODI_BEM_MORPHO_STRUCT
 USE MODI_CIRCUMSOLAR_RAD
 USE WIND_PROFILE_WANG
 USE MODI_WIND_THRESHOLD
-!MV202609 z0 and zd to namelist: the two urban aerodynamic entries and the
 !* resolved displacement height are carried by MODD_PROXI_SVAT_PAR
 USE MODD_PROXI_SVAT_PAR, ONLY : urb_z0_town, urb_zd_town, XZD_TOWN
 
@@ -667,7 +678,6 @@ HZ0H = 'MASC95'
 !============================================================
 !============================================================
 !ZZ0         = ZBLD_HEIGHT * 0.075   ! Roughness length (m)
-!MV202609 z0 and zd to namelist
 !* z0 of the urban surface and the displacement height are resolved from the
 !* namelist entries urb_z0_town / urb_zd_town (/tebparam/, shared with src_dev).
 !* The base-model formulas of the first commit are kept: z0 = 0.1*urb_h_bld and
@@ -675,14 +685,12 @@ HZ0H = 'MASC95'
 !* ('0.1H' and 'H/3' of the shared namelist file), so the default run of the
 !* control tree reproduces the first commit bit for bit.
 CALL URB_AERO_PARAMS(urb_z0_town, urb_zd_town, ZBLD_HEIGHT, ZZ0, XZD_TOWN)
-!MV202609 z0 and zd to namelist
 ! sanity checks of the resulting values
 IF (ZZ0(1) <= 0. .OR. ZZ0(1) > 0.5*ZBLD_HEIGHT(1)) THEN
   WRITE(*,*) 'ERROR in CALL_DRIVER: urb_z0_town = ', TRIM(urb_z0_town), ' -> z0 = ', ZZ0(1), ' m'
   WRITE(*,*) '   z0 must be in (0, 0.5*urb_h_bld], urb_h_bld = ', ZBLD_HEIGHT(1), ' m'
   STOP 1
 ENDIF
-!MV202609 z0 and zd to namelist
 IF (XZD_TOWN(1) < 0. .OR. XZD_TOWN(1) >= ZBLD_HEIGHT(1)) THEN
   WRITE(*,*) 'ERROR in CALL_DRIVER: urb_zd_town = ', TRIM(urb_zd_town), ' -> zd = ', XZD_TOWN(1), ' m'
   WRITE(*,*) '   zd must be in [0, urb_h_bld), urb_h_bld = ', ZBLD_HEIGHT(1), ' m'
@@ -696,7 +704,6 @@ IF (ZBLD_HEIGHT(1) - XZD_TOWN(1) - ZZ0(1) <= SPACING(ZBLD_HEIGHT(1))) THEN
   STOP 1
 ENDIF
 
-!MV202609 garden roughness of an EXTERNAL garden
 !* for the external garden the coefficients of URBAN_DRAG are computed with the
 !* roughness of the host (teb_z0_gd, argument ZZ0_GD_EXT); a non-physical value
 !* would silently give wrong coefficients and a wrong teb_tch_gd/teb_tcm_gd to
@@ -1011,7 +1018,6 @@ IF (ntstep == 0) THEN
   ZALB_WIN   = XUNDEF
   ZNATVENT   = 0.                     ! flag to describe surventilation system for i/o 
   ! 0 for NONE, 1 for MANU and 2 for AUTO
-  !MV202609 window shading flag: LSHADE is now an ARGUMENT of CALL_DRIVER (as in
 !* src_dev/main) instead of being hard-coded to .FALSE. here. The value comes
 !* from the namelist key teb_lshade (TEB_INTERFACE <- RUN_TEB_OFFLINE), whose
 !* default in this tree is .FALSE. - i.e. exactly the first-commit behaviour.
@@ -1242,7 +1248,6 @@ ZTSCA_SW(:,1) = XSCA_SW(:,1) * (1. - ZF1_o_B)
 ! Calculation of Wind Speed inside the canyon
 ! -----------------------------------------------------------
 ZVMOD = SQRT(XU**2+XV**2)
-!MV202611 upstream consistency switches: D7 roof-level wind profile.
 IF (ITYPE_WIND(1) == 0) THEN
   ZWAKE = 1. + (2./XPI-1.) * 2. * (ZCAN_HW_RATIO-0.5)
   ZWAKE = MAX(MIN(ZWAKE,1.),2./XPI)
@@ -1424,7 +1429,6 @@ ZQS_TOWN_S    = ZQA_KGKG * ZEXNS / ZEXNA + ZLE_TOWN / (XRHOA * XLVTT * ZCH_TOWN 
 ZWS_TOWN      = (ZWS_ROOF * ZBLD + ZWS_ROAD * ZROAD) * 0.001
 !ZRUNOFF_TOWN  = ZRUNOFF_TOWN * dt
 
-!MV202611 snow diagnostics normalized by snow-covered area
 !* Diagnose remaining snow after evolution using local fractions.
 ZPDN_RF_DIAG = 0.
 IF (ZWSNOW_ROOF(1,1) > 0.) ZPDN_RF_DIAG = ZDN_RF(1)
@@ -1518,10 +1522,8 @@ DEALLOCATE(ZD_FLOOR)
 !
 ! --------------------------------------------------------------------------------------
 !
-!MV202609 z0 and zd to namelist
 CONTAINS
 
-!MV202609 z0 and zd to namelist
 SUBROUTINE URB_AERO_PARAMS(CZ0, CZD, PBLD_HEIGHT, PZ0, PZD)
 ! Aerodynamic parameters of the urban surface: z0 of the town and the
 ! displacement height zd, both given by the namelist entries urb_z0_town and
@@ -1543,22 +1545,18 @@ CHARACTER(LEN=*),    INTENT(IN)  :: CZ0, CZD     ! namelist entries
 REAL, DIMENSION(:),  INTENT(IN)  :: PBLD_HEIGHT  ! building height (m)
 REAL, DIMENSION(:),  INTENT(OUT) :: PZ0, PZD     ! resulting z0 and zd (m)
 
-!MV202609 z0 and zd to namelist
 LOGICAL           :: LSCHEME
 CHARACTER(LEN=16) :: CSCHEME
 
-!MV202609 z0 and zd to namelist
 ! z0 of the town: explicit value or (unsupported) scheme name
 CALL URB_AERO_ONE(CZ0, PBLD_HEIGHT, PZ0, LSCHEME, CSCHEME)
 IF (LSCHEME) CALL URB_AERO_STOP('urb_z0_town', CZ0, CZD)
 
-!MV202609 z0 and zd to namelist
 ! displacement height: explicit value or (unsupported) scheme name
 CALL URB_AERO_ONE(CZD, PBLD_HEIGHT, PZD, LSCHEME, CSCHEME)
 IF (LSCHEME) CALL URB_AERO_STOP('urb_zd_town', CZ0, CZD)
 END SUBROUTINE URB_AERO_PARAMS
 
-!MV202609 z0 and zd to namelist
 SUBROUTINE URB_AERO_STOP(CNAME, CZ0, CZD)
 ! Stops the run when a namelist entry cannot be interpreted in the control tree
 CHARACTER(LEN=*), INTENT(IN) :: CNAME     ! offending namelist entry
@@ -1574,7 +1572,6 @@ STOP 1
 END SUBROUTINE URB_AERO_STOP
 
 
-!MV202609 z0 and zd to namelist
 SUBROUTINE URB_AERO_ONE(CVALUE, PBLD_HEIGHT, PVALUE, LSCHEME, CSCHEME)
 ! Parses one namelist entry of an urban aerodynamic length (see URB_AERO_PARAMS).
 ! If the entry is not a number, it is returned as a parameterization name.

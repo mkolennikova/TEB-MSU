@@ -36,6 +36,10 @@
 !!      V. Masson      06/2013 splits module in two
 !
 !*       0.   DECLARATIONS
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Integrate BEM activation options into the explicit host-managed
+!!        container interface.
 !             ------------
 !
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK

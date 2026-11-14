@@ -32,6 +32,13 @@ MODULE MODD_FORC_ATM
 !!      Original       20/09/02
 !
 !*       0.   DECLARATIONS
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Adapt atmospheric-forcing storage to the one-column physical driver
+!!        used by the host-model interface.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Move offline-only forcing/calendar support to src_offline when
+!!        separating the common TEB library from its offline host.
 !             ------------
 !
 !

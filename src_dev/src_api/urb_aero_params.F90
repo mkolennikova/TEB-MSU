@@ -15,13 +15,19 @@
 !!    Moved out of MODI_CALL_DRIVER (P-C1b) so that the container layer TEB_HOST
 !!    can derive the aerodynamic parameters in TEB_FILL_DERIVED.
 !
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Extract configurable urban roughness/displacement calculations,
+!!        including Macdonald (1998), from the driver into a shared module.
+!!------------------------------------------------------------------------------
 USE MODD_CSTS, ONLY : XKARMAN
 !
 IMPLICIT NONE
 !
 CONTAINS
 !
-!MV202609 z0 and zd to namelist
 SUBROUTINE URB_AERO_PARAMS(CZ0, CZD, PBLD_HEIGHT, PBLD_FRAC, PFAI, PZ0, PZD)
 ! Aerodynamic parameters of the urban surface: z0 of the town and the
 ! displacement height zd. Both are defined by the namelist entries
@@ -40,12 +46,10 @@ REAL, DIMENSION(:),  INTENT(IN)  :: PBLD_FRAC    ! plan area index (-)
 REAL, DIMENSION(:,:),INTENT(IN)  :: PFAI         ! frontal area index (8 dir.)
 REAL, DIMENSION(:),  INTENT(OUT) :: PZ0, PZD     ! resulting z0 and zd (m)
 
-!MV202609 z0 and zd to namelist
 LOGICAL           :: LSCHEME_Z0, LSCHEME_ZD
 INTEGER           :: KERR
 CHARACTER(LEN=16) :: CSCHEME_Z0, CSCHEME_ZD
 
-!MV202609 z0 and zd to namelist
 ! z0: explicit value or a parameterization name
 CALL URB_AERO_ONE(CZ0, PBLD_HEIGHT, PZ0, LSCHEME_Z0, CSCHEME_Z0)
 IF (LSCHEME_Z0) THEN
@@ -53,7 +57,6 @@ IF (LSCHEME_Z0) THEN
   IF (KERR /= 0) CALL URB_AERO_STOP('urb_z0_town', CZ0, CZD)
 ENDIF
 
-!MV202609 z0 and zd to namelist
 ! zd: explicit value or a parameterization name
 CALL URB_AERO_ONE(CZD, PBLD_HEIGHT, PZD, LSCHEME_ZD, CSCHEME_ZD)
 IF (LSCHEME_ZD) THEN
@@ -62,7 +65,6 @@ IF (LSCHEME_ZD) THEN
 ENDIF
 END SUBROUTINE URB_AERO_PARAMS
 
-!MV202609 z0 and zd to namelist
 SUBROUTINE URB_AERO_STOP(CNAME, CZ0, CZD)
 ! Stops the run with a message about an unknown value or parameterization name
 CHARACTER(LEN=*), INTENT(IN) :: CNAME     ! offending namelist entry
@@ -76,7 +78,6 @@ WRITE(*,*) '   named parameterizations: MACDONALD1998, MACDONALD1998SQ'
 STOP
 END SUBROUTINE URB_AERO_STOP
 
-!MV202609 z0 and zd to namelist
 SUBROUTINE URB_AERO_ONE(CVALUE, PBLD_HEIGHT, PVALUE, LSCHEME, CSCHEME)
 ! Parses one namelist entry of an urban aerodynamic length (see URB_AERO_PARAMS).
 ! If the entry is not a number, it is returned as a parameterization name.
@@ -153,7 +154,6 @@ LSCHEME = .TRUE.
 CSCHEME = YSTR
 END SUBROUTINE URB_AERO_ONE
 
-!MV202609 z0 and zd to namelist
 SUBROUTINE URB_AERO_SCHEME_Z0(CSCHEME, PBLD_HEIGHT, PBLD_FRAC, PFAI, PZ0, KERR)
 ! Roughness length z0 from a named parameterization. It uses the building
 ! height, the plan area index and the frontal area index. Available schemes:
@@ -166,20 +166,17 @@ REAL, DIMENSION(:,:),INTENT(IN)  :: PFAI
 REAL, DIMENSION(:),  INTENT(OUT) :: PZ0
 INTEGER,             INTENT(OUT) :: KERR
 
-!MV202609 z0 and zd to namelist
 REAL              :: ZLAMBDA_P, ZLAMBDA_F
 CHARACTER(LEN=16) :: CWHERE
 
 KERR = 1
 PZ0(:) = 0.
 
-!MV202609 z0 and zd to namelist
 ! plan area index (building fraction) and frontal area index (mean over the
 ! 8 wind directions, i.e. the isotropic variant)
 ZLAMBDA_P = SUM(PBLD_FRAC) / REAL(SIZE(PBLD_FRAC))
 ZLAMBDA_F = SUM(PFAI)      / REAL(SIZE(PFAI))
 
-!MV202609 z0 and zd to namelist
 SELECT CASE (TRIM(CSCHEME))
 CASE ('MACDONALD1998', 'MACDONALD', 'MACDONALD98')
   CWHERE = 'STAG'
@@ -189,14 +186,12 @@ CASE DEFAULT
   CWHERE = ' '
 END SELECT
 
-!MV202609 z0 and zd to namelist
 IF (CWHERE /= ' ') THEN
   PZ0 = URB_Z0_MACDONALD(PBLD_HEIGHT, ZLAMBDA_P, ZLAMBDA_F, CWHERE)
   KERR = 0
 ENDIF
 END SUBROUTINE URB_AERO_SCHEME_Z0
 
-!MV202609 z0 and zd to namelist
 SUBROUTINE URB_AERO_SCHEME_ZD(CSCHEME, PBLD_HEIGHT, PBLD_FRAC, PZD, KERR)
 ! Displacement height zd from a named parameterization. It uses the building
 ! height and the plan area index. Available schemes:
@@ -208,18 +203,15 @@ REAL, DIMENSION(:),  INTENT(IN)  :: PBLD_FRAC
 REAL, DIMENSION(:),  INTENT(OUT) :: PZD
 INTEGER,             INTENT(OUT) :: KERR
 
-!MV202609 z0 and zd to namelist
 REAL              :: ZLAMBDA_P
 CHARACTER(LEN=16) :: CWHERE
 
 KERR = 1
 PZD(:) = 0.
 
-!MV202609 z0 and zd to namelist
 ! plan area index (building fraction)
 ZLAMBDA_P = SUM(PBLD_FRAC) / REAL(SIZE(PBLD_FRAC))
 
-!MV202609 z0 and zd to namelist
 SELECT CASE (TRIM(CSCHEME))
 CASE ('MACDONALD1998', 'MACDONALD', 'MACDONALD98')
   CWHERE = 'STAG'
@@ -229,14 +221,12 @@ CASE DEFAULT
   CWHERE = ' '
 END SELECT
 
-!MV202609 z0 and zd to namelist
 IF (CWHERE /= ' ') THEN
   PZD = URB_ZD_MACDONALD(PBLD_HEIGHT, ZLAMBDA_P, CWHERE)
   KERR = 0
 ENDIF
 END SUBROUTINE URB_AERO_SCHEME_ZD
 
-!MV202609 z0 and zd to namelist
 FUNCTION URB_ZD_MACDONALD(PBLD_HEIGHT, PLAMBDA_P, CWHERE) RESULT(PZD)
 ! Displacement height after Macdonald et al. (1998), eq. (23):
 !   d/H = 1 + A^(-lambda_p) * (lambda_p - 1)
@@ -247,13 +237,11 @@ REAL,             INTENT(IN)   :: PLAMBDA_P    ! plan area index (-)
 CHARACTER(LEN=*), INTENT(IN)   :: CWHERE       ! 'STAG' or 'SQUARE'
 REAL, DIMENSION(SIZE(PBLD_HEIGHT)) :: PZD
 
-!MV202609 z0 and zd to namelist
 REAL :: ZA
 
 ZA = 4.43
 IF (TRIM(CWHERE) == 'SQUARE') ZA = 3.59
 
-!MV202609 z0 and zd to namelist
 ! degenerate cases: no buildings, or a fully built-up surface
 IF (PLAMBDA_P <= 0.) THEN
   PZD(:) = 0.
@@ -264,11 +252,9 @@ IF (PLAMBDA_P >= 1.) THEN
   RETURN
 ENDIF
 
-!MV202609 z0 and zd to namelist
 PZD = PBLD_HEIGHT * (1. + ZA**(-PLAMBDA_P) * (PLAMBDA_P - 1.))
 END FUNCTION URB_ZD_MACDONALD
 
-!MV202609 z0 and zd to namelist
 FUNCTION URB_Z0_MACDONALD(PBLD_HEIGHT, PLAMBDA_P, PLAMBDA_F, CWHERE) RESULT(PZ0)
 ! Roughness length after Macdonald et al. (1998), eq. (22):
 !   z0/H = (1 - d/H) * exp( -( 0.5*beta*(Cd/kappa**2)*(1 - d/H)*lambda_f )**(-0.5) )
@@ -281,7 +267,6 @@ REAL,             INTENT(IN)   :: PLAMBDA_F    ! frontal area index (-)
 CHARACTER(LEN=*), INTENT(IN)   :: CWHERE       ! 'STAG' or 'SQUARE'
 REAL, DIMENSION(SIZE(PBLD_HEIGHT)) :: PZ0
 
-!MV202609 z0 and zd to namelist
 REAL :: ZBETA, ZCD, ZKAPPA, ZLAMBDA
 REAL, DIMENSION(SIZE(PBLD_HEIGHT)) :: ZD, ZONE_MINUS_D, ZINNER
 
@@ -290,7 +275,6 @@ IF (TRIM(CWHERE) == 'SQUARE') ZBETA = 0.55
 ZCD    = 1.2
 ZKAPPA = XKARMAN
 
-!MV202609 z0 and zd to namelist
 ! degenerate cases: no buildings or no frontal area -> smooth surface
 IF (PLAMBDA_P <= 0. .OR. PLAMBDA_F <= 0.) THEN
   PZ0(:) = 1.E-3
@@ -298,7 +282,6 @@ IF (PLAMBDA_P <= 0. .OR. PLAMBDA_F <= 0.) THEN
 ENDIF
 ZLAMBDA = MIN(PLAMBDA_P, 0.999)
 
-!MV202609 z0 and zd to namelist
 ! displacement height and the factor (1 - d/H)
 ZD           = URB_ZD_MACDONALD(PBLD_HEIGHT, ZLAMBDA, CWHERE)
 ZONE_MINUS_D = 1. - ZD / PBLD_HEIGHT
@@ -307,7 +290,6 @@ IF (MINVAL(ZONE_MINUS_D) <= 0.) THEN
   RETURN
 ENDIF
 
-!MV202609 z0 and zd to namelist
 ! inner expression of eq. (22)
 ZINNER = 0.5 * ZBETA * (ZCD / ZKAPPA**2) * ZONE_MINUS_D * PLAMBDA_F
 IF (MINVAL(ZINNER) <= 0.) THEN
@@ -315,7 +297,6 @@ IF (MINVAL(ZINNER) <= 0.) THEN
   RETURN
 ENDIF
 
-!MV202609 z0 and zd to namelist
 PZ0 = PBLD_HEIGHT * ZONE_MINUS_D * EXP(-(ZINNER**(-0.5)))
 END FUNCTION URB_Z0_MACDONALD
 

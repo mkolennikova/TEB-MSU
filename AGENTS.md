@@ -133,3 +133,39 @@ Do not edit neighboring repositories, including COSMO-TEB, unless the user
 explicitly authorizes that scope. Do not commit or push unless requested.
 In the final response, state what changed, what was verified, any remaining
 limitations, and the external location of build and test results when applicable.
+
+## 7. Maintaining MODIFICATIONS
+
+Update the affected source files' `MODIFICATIONS` sections as part of major
+development work. Add a section when needed, using the file's comment syntax.
+
+- Preserve upstream author credits, licenses and modification records. Group
+  project contributions under the common label `TEB-MSU development`.
+- Record major parameterizations, diagnostic methods, coupling interfaces and
+  code reorganizations. Consolidate related edits into milestones; omit routine
+  formatting and minor local changes. Do not add placeholder entries to files
+  without major project changes. Detailed chronology and measurements belong in
+  `docs/TEB_MSU_change_history.md`.
+- Write concise English entries with a verified developer and date or period,
+  following the existing `MM/YYYY -- <developer>` layout. Use `Pre-repository`
+  when an imported contribution has no reliable development date. An import or
+  file-move date is not necessarily the implementation date.
+- For retrospective attribution, compare the designated upstream import with
+  initial commit `582c3ab`, then follow subsequent Git history, renames and copies.
+  Use user-confirmed attribution, source differences and legacy author markers
+  as evidence; commit metadata alone does not establish authorship. Do not invent
+  names or dates, or substitute a different upstream version.
+- Maintain histories separately for `src_dev`, `src_ctrl`, explicit interfaces
+  and retained experimental variants. Describe what changed in that particular
+  file; distinguish an original implementation from later adaptation or
+  integration. Do not present dormant/commented-out code as active physics.
+- Keep dated, initials-based change markers out of code bodies. When retiring
+  legacy markers, retain useful explanations of the current physics and API,
+  repairing any sentence fragments left by their removal.
+- Follow existing comment indentation and keep new history lines within
+  80 columns. For comment-only edits, verify that code, literals, compiler
+  directives, executable indentation, fixed-form columns and build recipes are
+  unchanged; run relevant static checks when they depend on source comments.
+
+For source modification history, this section supersedes the older in-body
+tagging requirements in section 5 of `docs/TEB_MSU_documentation_rules.md`.

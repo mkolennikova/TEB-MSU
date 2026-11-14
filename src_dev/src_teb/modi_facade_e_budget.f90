@@ -1,4 +1,11 @@
 !auto_modi:spll_facade_e_budget.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit FACADE_E_BUDGET interface for separate
+!!        static-parameter and prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_FACADE_E_BUDGET
 INTERFACE
 SUBROUTINE FACADE_E_BUDGET(TOPTS, TSTATE, BSTATE, DMT, PTSTEP, PDN_RD, PRHOA, PAC_WL, PAC_BLD, &

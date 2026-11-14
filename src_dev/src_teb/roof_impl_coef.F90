@@ -43,6 +43,10 @@ SUBROUTINE ROOF_IMPL_COEF(TSTATE, PTSTEP, PTDEEP_A, PTDEEP_B, TPARAMS)
 !!    -------------
 !!      Original    01/2013
 !!
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

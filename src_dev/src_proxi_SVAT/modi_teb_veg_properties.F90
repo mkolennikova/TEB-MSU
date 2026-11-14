@@ -6,6 +6,13 @@
 ! http://www.cecill.info/licences/Licence_CeCILL-C_V1-fr.txt
 ! The CeCILL-C licence is compatible with L-GPL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      09-10/2026 -- Mikhail Varentsov (MV)
+!!        Declare the interface using shared configurable garden/greenroof
+!!        surface properties.
+!!------------------------------------------------------------------------------
 MODULE MODI_TEB_VEG_PROPERTIES
 INTERFACE
       SUBROUTINE TEB_VEG_PROPERTIES(PDIR_SW, PSCA_SW,      &

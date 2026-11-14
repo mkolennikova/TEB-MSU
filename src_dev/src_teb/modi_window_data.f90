@@ -1,4 +1,11 @@
 !auto_modi:spll_window_data.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit WINDOW_DATA interface for separate
+!!        static-parameter and prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_WINDOW_DATA
 INTERFACE
 SUBROUTINE WINDOW_DATA(KI, BSTATE, BPARAMS)

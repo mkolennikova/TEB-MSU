@@ -62,6 +62,10 @@ SUBROUTINE OL_TIME_INTERP_ATM (KSURF_STEP,KNB_ATM,                              
 
 !          
 !
+!!      TEB-MSU development
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Move offline-only forcing/calendar support to src_offline when
+!!        separating the common TEB library from its offline host.
 USE MODD_CSTS,       ONLY : XPI, XRD, XRV, XG
 USE MODD_SURF_PAR,   ONLY : XUNDEF
 USE MODD_FORC_ATM,  ONLY: XTA       ,&  ! air temperature forcing               (K)

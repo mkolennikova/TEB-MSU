@@ -171,6 +171,15 @@
 !!                     01/12 (V. Masson ) adds 2 different wall direct insulations
 !!                     04/12 (G. Pigeon) add BSTATE%XTRAN_WIN 
 !!                     09/12 (C. de Munck-A. Lemonsu) add green roofs
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Expose the incident shortwave components required by pedestrian mean
+!!        radiant temperature diagnostics.
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Protect radiative budgets of snow and inactive garden/greenroof
+!!        surfaces.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -669,7 +678,6 @@ DO JJ=1,SIZE(TPARAMS%XROAD)
 ! solar radiation absorbed by roofs
 !
   DMT%XABS_SW_ROOF     (JJ) = ZABS_DIR_SW_RF     (JJ) + ZABS_SCA_SW_RF     (JJ)
-!MV202610 pedestrian mean radiant temperature on the roof (MRT)
 !* incident (NOT absorbed) shortwave components at roof level: the roof is not
 !* shadowed by the canyon and sees no wall reflection, so the components are the
 !* incoming ones reduced by the solar-panel coverage; the total is their sum
@@ -682,7 +690,6 @@ DO JJ=1,SIZE(TPARAMS%XROAD)
 !
   DMT%XABS_SW_ROAD     (JJ) = ZABS_DIR_SW_RD     (JJ) + ZABS_SCA_SW_RD     (JJ)
 !
-!MV202610 pedestrian mean radiant temperature on the road (MRT)
 !* incident (NOT absorbed) shortwave components at road level: the pedestrian
 !* budget needs the beam (with its own projection factor) and the wall reflection
 !* separately, while XABS_SW_ROAD alone only gives their sum times (1-albedo).
@@ -728,7 +735,6 @@ DO JJ=1,SIZE(TPARAMS%XROAD)
 !              -------------------------------------------------------
 !
   PREC_SW_RD      (JJ) = DMT%XABS_SW_ROAD      (JJ)/(1.-TPARAMS%XALB_ROAD   (JJ))
-!MV202610 pedestrian mean radiant temperature on the road (MRT): the total
 !* incident shortwave of the snow-free road (direct + diffuse sky + walls), the
 !* quantity the pedestrian road-reflection term and python_tests/check_mrt.py use
   DMT%XSW_TOT_ROAD(JJ) = PREC_SW_RD      (JJ)

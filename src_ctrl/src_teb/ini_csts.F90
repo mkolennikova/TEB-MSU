@@ -48,6 +48,13 @@
 !!      A. Voldoire 01/12/09  add XTTSI, XICEC, XTTS for ESM
 !!      J. Escobar  28/03/2014 for pb with emissivity/aerosol reset XSURF_TINY=1.0e-80 in real8 case
 !!
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Use prescribed thermodynamic and radiative constants in the
+!!        host-coupled model.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Add opt-in upstream-consistency comparison paths for validation of
+!!        inherited formulas.
 !-------------------------------------------------------------------------------
 !
 !*       0.    DECLARATIONS

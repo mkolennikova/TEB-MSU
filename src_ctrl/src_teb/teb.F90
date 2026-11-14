@@ -178,6 +178,10 @@
 !!          01 / 2012   V. Masson   Separates the 2 walls 
 !!     25 / 09 / 2012   B. Decharme new wind implicitation
 !!          07 / 2013   V. Masson   Adds road watering
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Adapt the physics interface for atmospheric-model coupling, external
+!!        garden exchange and host control of BEM.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

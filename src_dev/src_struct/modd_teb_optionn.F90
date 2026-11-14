@@ -31,10 +31,13 @@
 !!      V. Masson       06/2013         splits module
 !
 !*       0.   DECLARATIONS
+!!      TEB-MSU development
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Add CBS and diagnostic surface-model selection, configurable
+!!        aerodynamics and thermal-roughness options.
 !             ------------
 !
 USE MODD_TYPE_DATE_SURF
-!MV202609 garden/greenroof surface parameters (single source of truth, shared
 !* with the namelist items of the offline driver)
 USE MODD_PROXI_SVAT_PAR, ONLY : XZ0_O_Z0H_GD, XZ0_O_Z0H_GR
 !
@@ -89,7 +92,6 @@ TYPE TEB_OPTIONS_t
   LOGICAL                        :: LGREENROOF    ! T: green roofs (call ISBA from TEB)
   LOGICAL                        :: LHYDRO        ! T: urban subsoil and hydrology processes
   LOGICAL                        :: LSOLAR_PANEL  ! T: solar panels on roofs
-!MV202609 garden model type
 ! type of the garden model (namelist teb_type_garden):
 !   'PROXY_OLD' : fixed Bowen-ratio proxy (the historical scheme)
 !   'PROXY_NEW' : diagnostic closed surface energy balance (default)
@@ -100,7 +102,6 @@ TYPE TEB_OPTIONS_t
 !                 formulation of the internal garden (no stratification, the same
 !                 thermal roughness z0h)
   CHARACTER(LEN=9)               :: CTYPE_GARDEN  ! TEB option for the garden model
-!MV202609 garden thermal roughness (z0h)
 ! Thermal (scalar) roughness of the garden: z0h = urb_z0_gdn/XZ0_O_Z0H_GD, i.e.
 ! the ratio z0/z0h of the namelist item urb_z0_o_z0h_gdn (>= 1, default
 ! XZ0_O_Z0H_GD = 4.0 of MODD_PROXI_SVAT_PAR). Heat and moisture of the garden use
@@ -110,19 +111,15 @@ TYPE TEB_OPTIONS_t
 ! garden (GARDEN_CBS), by the exported coefficients of URBAN_DRAG ('EXT' and
 ! 'EXT_NEU') and by the emulator of the offline driver.
   REAL                           :: XZ0_O_Z0H_GD  ! garden z0/z0h ratio (-)
-!MV202609 greenroof model type (namelist teb_type_greenroof)
 !   'PROXY_OLD' : fixed Bowen-ratio proxy (the historical scheme)
 !   'PROXY_NEW' : diagnostic closed surface energy balance (default); the
 !                 greenroof is a ROOF surface and exchanges only with the air of
 !                 the forcing level (no canyon branch and no tau split)
   CHARACTER(LEN=9)               :: CTYPE_GREENROOF  ! TEB option for the greenroof model
-!MV202609 greenroof thermal roughness (z0h): same formulation as the garden,
 !* ratio z0/z0h of the namelist item urb_z0_o_z0h_grf (>= 1, default XZ0_O_Z0H_GR)
   REAL                           :: XZ0_O_Z0H_GR  ! greenroof z0/z0h ratio (-)
-!MV202610 external greenroof model (namelist teb_lgreenroof_ext)
   LOGICAL                        :: LGREENROOF_EXT  ! T: the greenroof is an external model
 
-!MV202609 CBS scheme of the road
 ! CBS scheme for the road: the actual road fluxes are the weighted mean of the
 ! road/canyon and road/forcing-level fluxes, with the weights tau and 1-tau,
 ! tau being a tanh relaxation of the canyon H/W ratio (see CBS_TAU in
@@ -140,7 +137,6 @@ TYPE TEB_OPTIONS_t
   INTEGER                       :: NROOF_LAYER  ! number of layers in roofs
   INTEGER                       :: NROAD_LAYER  ! number of layers in roads
   INTEGER                       :: NWALL_LAYER  ! number of layers in walls
-!MV202610 canyon wind parameterization and the UTC hour of the traffic cycle
   INTEGER                        :: ITYPE_WIND  ! 0: original, 1: Wang (2012)
   INTEGER                        :: NUTC_HOUR   ! UTC hour for the traffic daily cycle
 !
@@ -181,9 +177,7 @@ YTEB_OPTIONS%CTREE=' '
 YTEB_OPTIONS%LGREENROOF=.FALSE.
 YTEB_OPTIONS%LGREENROOF_EXT=.FALSE.
 YTEB_OPTIONS%CTYPE_GARDEN='PROXY_NEW'
-!MV202609 garden thermal roughness (z0h)
 YTEB_OPTIONS%XZ0_O_Z0H_GD=XZ0_O_Z0H_GD
-!MV202609 greenroof model type and thermal roughness
 YTEB_OPTIONS%CTYPE_GREENROOF='PROXY_NEW'
 YTEB_OPTIONS%XZ0_O_Z0H_GR=XZ0_O_Z0H_GR
 YTEB_OPTIONS%LHYDRO=.FALSE.

@@ -1,4 +1,11 @@
 !auto_modi:spll_teb.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Extend the explicit TEB interface for the inherited host-coupling
+!!        implementation.
+!!------------------------------------------------------------------------------
 MODULE MODI_TEB
 INTERFACE
     SUBROUTINE TEB  (icell, iblock, TOP, T, BOP, B, TIR, DMT, OGARDEN_EXT, HIMPLICIT_WIND, PBEM_AC, PTSUN,                   &

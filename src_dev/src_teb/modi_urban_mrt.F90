@@ -1,4 +1,11 @@
 !auto_modi:spll_urban_mrt.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Declare checked interfaces for road-canyon and roof pedestrian mean
+!!        radiant temperature diagnostics.
+!!------------------------------------------------------------------------------
 MODULE MODI_URBAN_MRT
 INTERFACE
     SUBROUTINE URBAN_MRT(KICELL, KIBLOCK, FORC, TPARAMS, TSTATE, DMT, EXT, CBODY)

@@ -52,6 +52,10 @@ SUBROUTINE WINDOW_E_BUDGET(BSTATE, PEMIS_WIN, PLW_W_TO_WIN, PLW_R_TO_WIN, PLW_G_
 !!      G. Pigeon      09/2012 new indoor conv. coef
 !!      G. Pigeon      10/2012 separate abs from outdoor on both side of window
 !!                            + add loads for indoor face of the window
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

@@ -13,7 +13,6 @@
                      PLE_WL_B, PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF, PMELT_RF, PRN_GR, &
                      PH_GR, PLE_GR, PGFLUX_GR, PDRAIN_GR, PTSRAD_GR, PRUNOFF_GR, PRNSN_RD,    &
                      PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RD, PUW_RD, PUW_RF, PDUWDU_RD,   &
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                      PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM,   &
                      PDUWDU_RF, PUSTAR_TWN, PCD, PCDN, PCH_TWN, PRI_TWN, PRESA_TWN,     &
                      PAC_RF, PAC_RD, PAC_WL, PAC_TOP, PAC_GARDEN, PAC_RF_WAT,           &
@@ -27,18 +26,14 @@
                      PSNOWD_RF, PSNOWD_RD, PCH_GARDEN, PCD_GARDEN, PCH_ROAD, PCH_ROOF,  &
                      PCH_WALL, PCH_TOP, ILMO_ROAD, ILMO_ROOF, ILMO_TOP, PCD_GARDEN_ATM,      &
                      PCH_GARDEN_ATM,                         &
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
                      PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN, &
                      PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM, &
                      PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN, &
                      ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM, &
-!MV202609 greenroof-to-atm exchange diagnostics
                      PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
                      PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, &
                      PH_ROAD_CAN, PLE_ROAD_CAN, PH_ROAD_ATM, PLE_ROAD_ATM, &
-!MV202609 CBS scheme of the road
                      PTAU, PH_ROAD, PLE_ROAD, PAC_ROAD_ATM_WAT, LE_ROAD_WAT, LE_ROAD_SNOW, &
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                      LE_ROOF_WAT, LE_ROOF_SNOW, TPARAMS, BPARAMS)
 					 
 				 
@@ -193,6 +188,21 @@
 !!          01 / 2012   V. Masson   Separates the 2 walls 
 !!     25 / 09 / 2012   B. Decharme new wind implicitation
 !!          07 / 2013   V. Masson   Adds road watering
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Adapt the physics interface for atmospheric-model coupling, external
+!!        garden exchange and host control of BEM.
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Integrate CBS road exchange, including separate canyon/atmosphere snow
+!!        fluxes and a shared road-water reservoir.
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Rework conservative snowmelt and surface-water transfers and their
+!!        coupling to surface energy budgets.
+!!        Add opt-in upstream-consistency comparison paths for validation of
+!!        inherited formulas.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -319,7 +329,6 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PMELT_RF  ! snow melt
 REAL, DIMENSION(:), INTENT(OUT)   :: PRNSN_RD  ! net radiation over snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD   ! sensible heat flux over snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD  ! latent heat flux over snow
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_CAN   ! sensible heat flux over snow, snow -> canyon air
 REAL, DIMENSION(:), INTENT(OUT)   :: PHSN_RD_ATM   ! sensible heat flux over snow, snow -> forcing level
 REAL, DIMENSION(:), INTENT(OUT)   :: PLESN_RD_CAN  ! latent heat flux over snow, snow -> canyon air
@@ -419,19 +428,15 @@ REAL, DIMENSION(:), INTENT(OUT) :: ILMO_ROOF   ! 1/length of Monin-Obukov
 REAL, DIMENSION(:), INTENT(OUT) :: ILMO_TOP    ! 1/length of Monin-Obukov
 REAL, DIMENSION(:), INTENT(OUT) :: PCD_GARDEN_ATM
 REAL, DIMENSION(:), INTENT(OUT) :: PCH_GARDEN_ATM
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
 REAL, DIMENSION(:), INTENT(OUT) :: PH_ROAD_ATM   ! sensible heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT) :: PLE_ROAD_ATM  ! latent heat flux, road -> forcing level [W m-2]
 REAL, DIMENSION(:), INTENT(OUT) :: PH_ROAD_CAN   ! sensible heat flux, road -> canyon air [W m-2]
 REAL, DIMENSION(:), INTENT(OUT) :: PLE_ROAD_CAN  ! latent heat flux, road -> canyon air [W m-2]
-!MV202609 CBS scheme of the road
 REAL, DIMENSION(:), INTENT(OUT) :: PH_ROAD   ! road sensible heat flux, CBS scheme [W m-2]
 REAL, DIMENSION(:), INTENT(OUT) :: PLE_ROAD  ! road latent heat flux, CBS scheme [W m-2]
-!MV202609 CBS scheme of the road (revision: puddle diagnostics)
 REAL, DIMENSION(:), INTENT(OUT) :: PAC_ROAD_ATM_WAT  ! road water conductance, road -> forcing level (water-limited)
 REAL, DIMENSION(:), INTENT(OUT) :: LE_ROAD_WAT       ! road latent heat flux of the snow-free road (W/m2 road)
 REAL, DIMENSION(:), INTENT(OUT) :: LE_ROAD_SNOW      ! road latent heat flux of the snow-covered road (W/m2 road)
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 REAL, DIMENSION(:), INTENT(OUT) :: LE_ROOF_WAT   ! roof latent heat flux of the snow-free roof (W/m2 roof)
 REAL, DIMENSION(:), INTENT(OUT) :: LE_ROOF_SNOW  ! roof latent heat flux of the snow-covered roof (W/m2 roof)
 !
@@ -442,10 +447,8 @@ REAL, DIMENSION(SIZE(PTA)) :: ZWS_RF_MAX           ! maximum deepness of roof
 REAL, DIMENSION(SIZE(PTA)) :: ZWS_RD_MAX           ! and road water reservoirs
 REAL, DIMENSION(SIZE(PTA)) :: ZPDN_RD_BEFORE_SNOW  ! road snow fraction used by the snow scheme
 REAL, DIMENSION(SIZE(PTA)) :: ZMELT_RD_TILE        ! road snow melt (kg/m2 road/s)
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
 REAL, DIMENSION(SIZE(PTA)) :: ZAC_RD_ATM_WAT  ! road conductance for water (forcing level)
 REAL, DIMENSION(SIZE(PTA)) :: ZDF_RD          ! snow-free road fraction (for the atm. flux)
-!MV202609 CBS scheme of the road
 REAL, DIMENSION(:), INTENT(IN) :: PTAU      ! CBS scheme weight of the canyon path (-)
 REAL, DIMENSION(SIZE(PTA)) :: ZPAC_RD       ! road conductance, tau-aggregated
 REAL, DIMENSION(SIZE(PTA)) :: ZPAC_RD_WAT   ! road water conductance, tau-aggregated
@@ -513,7 +516,6 @@ REAL, DIMENSION(SIZE(PTA)) :: ZRAD_WIN_MA    ! rad. flux from averaged wall to m
 REAL, DIMENSION(SIZE(PTA)) :: ZCONV_WL_BLD   ! rad. flux from roof to bld [W m-2(wall)]
 REAL, DIMENSION(SIZE(PTA)) :: ZCONV_WIN_BLD  ! rad. flux from roof to bld [W m-2(win)]
 REAL, DIMENSION(SIZE(PTA)) :: ZAC_WIN        ! window aerodynamic conductance
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* diagnostic exchange coefficients between the road/garden surfaces and the air
 !* of the canyon (_CAN) or of the forcing level (_ATM), computed in URBAN_DRAG
 !* (see there section 8.3); full set of URBAN_EXCH_COEF outputs
@@ -535,7 +537,6 @@ REAL, DIMENSION(:), INTENT(OUT) :: PAC_GARDEN_ATM   ! garden aerodynamical condu
 REAL, DIMENSION(:), INTENT(OUT) :: PCDN_GARDEN_ATM  ! garden neutral drag coefficient (atm.)
 REAL, DIMENSION(:), INTENT(OUT) :: PRI_GARDEN_ATM   ! garden Richardson number (atm.)
 REAL, DIMENSION(:), INTENT(OUT) :: ZZ0H_GARDEN_ATM  ! garden roughness length for heat (atm.)
-!MV202609 greenroof-to-atm exchange diagnostics
 REAL, DIMENSION(:), INTENT(OUT) :: PAC_GREENROOF_ATM   ! greenroof aerodynamical conductance (atm.)
 REAL, DIMENSION(:), INTENT(OUT) :: PCD_GREENROOF_ATM   ! greenroof drag coefficient (atm.)
 REAL, DIMENSION(:), INTENT(OUT) :: PCDN_GREENROOF_ATM  ! greenroof neutral drag coefficient (atm.)
@@ -655,17 +656,14 @@ CALL URBAN_DRAG(icell, iblock, TOPTS, TSTATE, BSTATE, HIMPLICIT_WIND, PTSTEP, PT
                 PDUWDU_RD, PDUWDU_RF, PUSTAR_TWN, ZAC_WIN, PCH_GARDEN, &
                 PCD_GARDEN, PCH_ROAD, PCH_ROOF, PCH_WALL, PCH_TOP,     &
                 ILMO_ROAD, ILMO_ROOF, ILMO_TOP, PCD_GARDEN_ATM, PCH_GARDEN_ATM,                      &
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
                 PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN,              &
                 PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM,               &
                 PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN,          &
                 ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM, PRI_GARDEN_ATM,      &
                 ZZ0H_GARDEN_ATM,                                                       &
                 ZAC_RD_ATM_WAT,                                                        &
-!MV202609 greenroof-to-atm exchange diagnostics
                 PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
                 PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM , TPARAMS)
-!MV202609 CBS scheme of the road (revision: puddle diagnostics)
 !* road -> forcing level water-limited conductance (diagnostic; also used by the
 !* tau aggregation and by the reference humidity ZQ_REF of the road budget)
 PAC_ROAD_ATM_WAT(:) = ZAC_RD_ATM_WAT(:)
@@ -713,7 +711,6 @@ ZQA(:) = PQA(:) * QSAT(ZTA(:),PPS(:)) / QSAT(PTA(:),PPA(:))
 !*      5.     Snow mantel model
 !              -----------------
 !
-!MV202611 upstream consistency switches: inherited D3-D5 water pathways.
 #ifndef TEB_UPSTREAM_CONS_BUGS
 ZPDN_RD_BEFORE_SNOW(:) = PDN_RD(:)
 #endif
@@ -725,7 +722,6 @@ CALL URBAN_SNOW_EVOL(TSTATE, BSTATE, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, ZTS_RF, ZT
                      PMELT_RF, PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD, PMELT_RD,           &
                      PLW_WA_TO_NR, PLW_WB_TO_NR, PLW_S_TO_NR, PLW_WIN_TO_NR, ZDQS_SN_RF, &
                      ZDQS_SN_RD, PSNOWD_RF, PSNOWD_RD, PTAU,                           &
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                      PHSN_RD_CAN, PHSN_RD_ATM, PLESN_RD_CAN, PLESN_RD_ATM, TPARAMS   )
 ! The snow scheme can clear PDN_RD on the same step that produces meltwater.
 ! Convert the melt rate with the fraction used by that step's snow budget.
@@ -804,7 +800,6 @@ CALL TEB_IRRIG(TIR%LPAR_RD_IRRIG, PTSTEP, TOPTS%TTIME%TDATE%MONTH, PTSUN,   &
 			   
 
 
-!MV202609 CBS scheme of the road
 !* effective conductance and reference air of the road energy budget: when the
 !* CBS scheme is activated the road budget is fed with the tau-weighted mean of
 !* the road/canyon and road/forcing-level exchanges (this is exact, the flux
@@ -848,12 +843,10 @@ CALL ROAD_LAYER_E_BUDGET(TSTATE, BSTATE, PTSTEP, PDN_RD, PRHOA, ZPAC_RD, ZPAC_RD
                          PLW_WIN_TO_R, PEMIT_LW_RD, ZDQS_RD, DMT%XABS_LW_ROAD,  &
                          DMT%XH_ROAD, PLEW_RD, ZIMB_RD, PRR+DMT%XIRRIG_ROAD    , TPARAMS)
 !
-!MV202609 CBS scheme of the road
 !* actual road fluxes: sensible and latent heat fluxes used by the road energy
 !* budget (i.e. the tau-aggregated fluxes when the CBS scheme is activated)
 PH_ROAD(:)  = DMT%XH_ROAD(:)
 PLE_ROAD(:) = PLEW_RD(:)
-!MV202609 fixes of the road puddle water normalization (PLEW_RD is tile-mean, no double PDF_RD weight)
 !* liquid and snow contributions to the road latent heat flux, per m2 of road:
 !* the road energy budget computes PLEW_RD already as a tile-mean quantity (the
 !* snow-free fraction 1-PDN_RD is inside ZRHO_ACF_R_WAT of the budget), so the
@@ -863,7 +856,6 @@ PLE_ROAD(:) = PLEW_RD(:)
 LE_ROAD_WAT (:) = PLEW_RD(:)
 LE_ROAD_SNOW(:) = PDN_RD(:) * PLESN_RD(:)
 !
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 !* roof decomposition, with the same convention as the road one: PLEW_RF and
 !* PLESN_RF are given per m2 of snow-free roof and per m2 of snow (see
 !* ROOF_LAYER_E_BUDGET and URBAN_SNOW_EVOL), so the tile-mean values use
@@ -875,7 +867,6 @@ LE_ROAD_SNOW(:) = PDN_RD(:) * PLESN_RD(:)
 LE_ROOF_WAT (:) = ( 1. - PDN_RF(:) ) * PLEW_RF(:)
 LE_ROOF_SNOW(:) =        PDN_RF(:)   * PLESN_RF(:)
 !
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* potential component fluxes of the road: same quantity as if the whole exchange
 !* occurred with the canyon air (tau = 1) or directly with the air of the forcing
 !* level (tau = 0). They use the solved surface temperature and the linearized
@@ -936,11 +927,8 @@ CASE("DEF")
   ZFLX_BLD_MA (:) = 0.
   !other variables
   PHU_BLD(:)     = XUNDEF
-!MV202609 waste heat diagnostics: the waste heat of the buildings is produced by
-!* the BEM only; the simple building budget ('DEF') has no HVAC system, so the
-!* two diagnostics are zero. They must be defined anyway: they are written to the
-!* output and, in the BEM configuration, they feed the canyon air and the town
-!* fluxes (see AVG_URBAN_FLUXES).
+  !* The simple building budget ('DEF') has no HVAC waste heat.
+  !* Define both waste-heat diagnostics as zero for output and aggregation.
   DMT%XH_WASTE (:) = 0.
   DMT%XLE_WASTE(:) = 0.
 
@@ -975,7 +963,6 @@ CALL URBAN_FLUXES   (TOPTS, TSTATE, BSTATE, DMT, HIMPLICIT_WIND, PT_CANYON, PPEW
 !
 ! Water transfer from snow reservoir to water reservoir in case of snow melt
 !
-!MV202609 fixes of the snow melt / roof puddle water path (melt injection)
 !* URBAN_SNOW_EVOL returns melt rates per m2 of snow. Convert roof melt using
 !* PDN_RF and use the road-area rate already computed above. URBAN_HYDRO
 !* applies the reservoir capacities below and sends the excess to runoff.
@@ -1004,7 +991,6 @@ ENDWHERE
 !*      11.    Roof ans road reservoirs evolution
 !              ----------------------------------
 !
-!MV202609 fixes of the road puddle water normalization (PLEW_RD is tile-mean, no double PDF_RD weight)
 !* the road water reservoir is drained by the liquid latent heat flux of the
 !* snow-free road, PLEW_RD: this flux is computed by the road energy budget as a
 !* tile-mean quantity (per m2 of road), i.e. it already contains the snow-free
@@ -1013,7 +999,6 @@ ENDWHERE
 !* road snow is already accounted in the road snowpack (WSNOW_RD): feeding it
 !* once more into the puddle would double-count it. The liquid fraction uses
 !* XLVTT (the snow one XLSTT, see the snow scheme)
-!MV202609 fixes of the snow melt / roof puddle water path (roof reservoir drain)
 !* the roof reservoir is drained by the liquid latent heat flux of the snow-free
 !* STRUCTURAL roof per m2 of roof, LE_ROOF_WAT = (1-PDN_RF)*PLEW_RF (the same
 !* quantity as the liquid part of DMT%XLE_STRLROOF, and the same convention as

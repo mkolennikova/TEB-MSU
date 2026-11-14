@@ -40,6 +40,10 @@ SUBROUTINE BEM_MORPHO_STRUCT(PBLD, PWALL_O_HOR, PBLD_HEIGHT, PFLOOR_HEIGHT,     
 !!    MODIFICATIONS
 !!    -------------
 !!      Original    10/2011
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
 !-------------------------------------------------------------------------------
 !
 !*       0.    DECLARATIONS

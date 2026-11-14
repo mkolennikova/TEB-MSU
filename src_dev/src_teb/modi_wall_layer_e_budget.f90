@@ -1,4 +1,11 @@
 !auto_modi:spll_wall_layer_e_budget.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit WALL_LAYER_E_BUDGET interface for separate
+!!        static-parameter and prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_WALL_LAYER_E_BUDGET
 INTERFACE
     SUBROUTINE WALL_LAYER_E_BUDGET(TOPTS, TSTATE, BSTATE, PT_WL, PTS_WL_B, PTI_WL_B, PTSTEP, PDN_RD,     &

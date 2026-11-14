@@ -16,8 +16,6 @@
                       PEVAP_GARDEN, PUW_GARDEN, PRUNOFF_GARDEN,                            &
                       PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                  &
                       PDRAIN_GARDEN, PIRRIG_GARDEN,        &
-!MV202609 garden exchange coefficients returned to the caller
-!MV202609 garden exchange coefficients and moisture multiplier returned to the caller
                       PPCD_GD, PPCH_GD, PHU_AGG_GARDEN      )
 				
 !   ##########################################################################
@@ -63,6 +61,13 @@
 !!    MODIFICATIONS
 !!    -------------
 !!    Original    05/2009
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Preserve the host-provided garden surface temperature and evaluate
+!!        saturation humidity at that surface temperature.
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Centralize reference proxy parameters and return exchange/moisture
+!!        coefficients explicitly while retaining the reference formulation.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -72,7 +77,7 @@ USE MODD_CSTS, ONLY : XLVTT , &   ! Latent heat constant for evaporation
                       XKARMAN     ! Von Karman constant
 USE MODE_THERMOS                  ! Function to compute humidity at saturation
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
-USE MODD_PROXI_SVAT_PAR, ONLY : XPHU_GD   !MV202609 PHU of the base garden (proxy parameter)
+USE MODD_PROXI_SVAT_PAR, ONLY : XPHU_GD
 !
 IMPLICIT NONE
 !
@@ -118,11 +123,9 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN    ! saturation humidity
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN      ! radiative surface temp. (snow free)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN   ! garden total (vertical) drainage
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN   ! garden summer irrigation rate
-!MV202609 exchange coefficients returned to the caller: the proxy of this tree has
 !* none of its own (fixed Bowen ratio) and returns zeros
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCD_GD  ! momentum exchange coefficient (-)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCH_GD  ! thermal (scalar) exchange coefficient (-)
-!MV202609 moisture multiplier of the internal garden, returned by this proxy
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN  ! garden surface relative humidity (-)
 !
 !
@@ -182,7 +185,6 @@ PIRRIG_GARDEN (:) = 0.    ! garden irrigation during time step
 !* zeroing lives here and not in TEB_GARDEN
 PPCD_GD(:) = 0.
 PPCH_GD(:) = 0.
-!MV202609 moisture multiplier of the canyon node returned to the caller: the PHU
 !* parameter of this proxy model (an external garden takes it from the surface
 !* humidity of the host instead, see the EXT block of TEB_GARDEN)
 PHU_AGG_GARDEN(:) = XPHU_GD

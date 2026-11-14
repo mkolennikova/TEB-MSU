@@ -1,5 +1,12 @@
 !SFX_LIC Copyright 1994-2014 CNRS, Meteo-France and Universite Paul Sabatier
 !SFX_LIC This is part of the SURFEX software governed by the CeCILL-C licence
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Create centralized table-driven diagnostics and host-selectable output
+!!        filters, separate from the physical routines.
+!!------------------------------------------------------------------------------
 !     ###################
       MODULE TEB_LOG
 !     ###################
@@ -172,7 +179,6 @@ END SUBROUTINE TEB_LOG_STEP
 !
 LOGICAL FUNCTION TEB_LOG_AT_CADENCE (KSTEP)
 !
-!MV202611 optional absolute, zero-based model step: identical cadence for all blocks.
 ! Keep the no-argument counter for existing standalone users of TEB_LOG.
 INTEGER, OPTIONAL, INTENT(IN) :: KSTEP
 !
@@ -252,7 +258,6 @@ CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_CANYON', TSTATE%XT_CANYON(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_ROAD1', DMT%XTS_ROAD(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_WALLA1', DMT%XTS_WALL_A(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_WALLB1', DMT%XTS_WALL_B(KICELL))
-!MV202610 pedestrian mean radiant temperature on the road (MRT)
 !* MRT_ROAD and MRT_ROAD_SUN are the physical outputs; the MRT_* components
 !* (view factors, absorbed shortwave and longwave terms) are written for the
 !* debugging of the scheme and for python_tests/check_mrt.py
@@ -273,7 +278,6 @@ CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'MRT_SW_ROAD',   DMT%XMRT_SW_ROAD(KICELL)
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'MRT_LW_SKY',    DMT%XMRT_LW_SKY(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'MRT_LW_WALL',   DMT%XMRT_LW_WALL(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'MRT_LW_ROAD',   DMT%XMRT_LW_ROAD(KICELL))
-!MV202610 pedestrian mean radiant temperature on the roof (MRT)
 !* companion of the road values (same body, same formula, no walls)
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'MRT_ROOF',      DMT%XMRT_ROOF(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SW_DIR_ROOF',   DMT%XSW_DIR_ROOF(KICELL))
@@ -297,9 +301,7 @@ IF (TOPTS%LSOLAR_PANEL) THEN
 END IF
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'WIND_TOP', DMT%XWIND_TOP(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'USTAR_TOWN', DMT%XUSTAR_TOWN(KICELL))
-!MV202610 integral town albedo (ALB_TOWN), the value exported to the coupled model
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'ALB_TOWN', DMT%XALB_SO(KICELL))
-!MV202610 town emissivity and roughness length (EMIS_TOWN, Z0_TOWN)
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'EMIS_TOWN', DMT%XEMIS_TOWN(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'Z0_TOWN', DMT%XZ0_TOWN(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'PCD_ROAD_CAN', DMT%CAN%PCD_ROAD(KICELL))
@@ -381,7 +383,6 @@ CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'ZZ0H_GREENROOF_ATM', DMT%XZZ0H_GREENROOF
 END SUBROUTINE TEB_LOG_ROW
 !
 SUBROUTINE CSV_ADD(header, line, ncol, names, name, value)
-!MV202609 table-driven CSV: register a column and append its value
 !* One call defines a column completely - the name goes to the header line, the
 !* value goes to the data row - so the two cannot drift apart (the earlier code
 !* kept two parallel lists, the names and the CALL CSV_APPEND sequence, that had
@@ -440,7 +441,6 @@ SUBROUTINE TEB_LOG_EMIT (KIBLOCK, DMT, TOPTS, TSTATE, BSTATE, FORC, teb_year, te
 !* followed by the solar geometry and the atmospheric forcing of the step.
 !
 INTEGER, INTENT(IN) :: KIBLOCK  ! the block of this call
-!MV202611 a host cell may use workspace/forcing index 1; filtering keeps its host ID.
 INTEGER, OPTIONAL, INTENT(IN) :: KHOST_CELL
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT
 TYPE(TEB_OPTIONS_t), INTENT(IN) :: TOPTS

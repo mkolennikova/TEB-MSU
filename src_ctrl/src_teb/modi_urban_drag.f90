@@ -1,4 +1,11 @@
 !auto_modi:spll_urban_drag.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Extend the explicit URBAN_DRAG interface for the inherited
+!!        host-coupling implementation.
+!!------------------------------------------------------------------------------
 MODULE MODI_URBAN_DRAG
 INTERFACE
     SUBROUTINE URBAN_DRAG(icell, iblock, TOP, T, B, OGARDEN_EXT, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &

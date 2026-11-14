@@ -1,4 +1,11 @@
 !auto_modi:spll_roof_impl_coef.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit ROOF_IMPL_COEF interface for separate
+!!        static-parameter and prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_ROOF_IMPL_COEF
 INTERFACE
 SUBROUTINE ROOF_IMPL_COEF(TSTATE, PTSTEP, PTDEEP_A, PTDEEP_B, TPARAMS)

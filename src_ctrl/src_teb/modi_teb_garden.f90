@@ -1,4 +1,11 @@
 !auto_modi:spll_teb_garden.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Extend the explicit TEB_GARDEN interface for the inherited
+!!        host-coupling implementation.
+!!------------------------------------------------------------------------------
 MODULE MODI_TEB_GARDEN
 INTERFACE
     SUBROUTINE TEB_GARDEN (icell, iblock, TOP, T, BOP, B, TPN, TIR, DMT, OGARDEN_EXT, OGREENROOF_EXT,                     &

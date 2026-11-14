@@ -16,6 +16,16 @@
 # parameters (urb_z0_town, urb_zd_town, urb_z0_grf) that the dev tree reads from the
 # namelist. It builds ../build/TEB_offline_ctrl.exe into ../build/obj_ctrl/.
 # The dev tree lives in src_dev/ and builds ../build/TEB_offline_dev.exe.
+#    MODIFICATIONS
+#    -------------
+#      TEB-MSU development
+#      Pre-repository -- Maria Tarasova (MT)
+#        Build the host-callable driver, standalone adapter and Wang canopy wind
+#        module.
+#      10/2026 -- Mikhail Varentsov (MV)
+#        Create an independent reference build with shared offline input/output
+#        and separate reference sources.
+#-------------------------------------------------------------------------------
 include gfortran_args
 EXEC = ../build/TEB_offline_ctrl.exe
 OBJDIR = ../build/obj_ctrl

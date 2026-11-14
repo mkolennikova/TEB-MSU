@@ -36,6 +36,10 @@
 !!      V. Masson      06/2013 splits module in two
 !
 !*       0.   DECLARATIONS
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Move static building parameters into BEM_PARAMS_t and separate state
+!!        from reusable work fields.
 !             ------------
 !
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK

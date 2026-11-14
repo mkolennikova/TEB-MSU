@@ -69,6 +69,10 @@
 !!                           to zero flux condition. idem for sfce T
 !!      G. Pigeon      11/11 split in 2 for floor and mass to be flux conservative
 !!      G. Pigeon      09/12 modif of conv. coef + implicitation of the exchange
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

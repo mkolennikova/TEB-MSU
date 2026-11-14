@@ -1,5 +1,12 @@
 ######################################################################
 # C compiler
+#    MODIFICATIONS
+#    -------------
+#      TEB-MSU development
+#      10/2026 -- Mikhail Varentsov (MV)
+#        Provide GNU/Intel compiler selection and Windows runtime integration
+#        for the separate reference build.
+#-------------------------------------------------------------------------------
 CC = gcc
 
 # Auto-detect Fortran compiler: ifort if available, otherwise gfortran

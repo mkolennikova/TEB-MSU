@@ -140,6 +140,10 @@ INTERFACE
 !!    MODIFICATIONS
 !!    -------------
 !!    Original    03/2018
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Extend the explicit TEB_GARDEN_STRUCT interface for the inherited
+!!        host-coupling implementation.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

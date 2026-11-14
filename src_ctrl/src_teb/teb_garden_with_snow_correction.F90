@@ -58,6 +58,10 @@
 !!                04/2012 add B%XTRAN_WIN
 !!    modified    08/2012 TOP%CCH_BEM/ ROUGH_WALL and ROUGH_ROOF for buildind conv coef.
 !!    modified    10/2012 add B%XF_WIN_WIN as arg
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Provide the external garden/greenroof coupling variant and its
+!!        road/roof trace-snowfall filtering implementation.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

@@ -20,6 +20,10 @@ SUBROUTINE BLD_OCC_CALENDAR(TPTIME, PTSUN, TSTATE, BSTATE, PQIN_FRAC, PTCOOL_TAR
 !! -------------
 !! Original  02/2013
 !
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
 !

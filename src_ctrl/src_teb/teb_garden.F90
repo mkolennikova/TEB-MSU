@@ -59,6 +59,18 @@
 !!                04/2012 add B%XTRAN_WIN
 !!    modified    08/2012 TOP%CCH_BEM/ ROUGH_WALL and ROUGH_ROOF for buildind conv coef.
 !!    modified    10/2012 add B%XF_WIN_WIN as arg
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Couple external garden/greenroof models through their surface
+!!        properties, turbulent fluxes and runoff.
+!!        Develop trace-snowfall filtering for road and roof snow, alongside
+!!        atmospheric-model coupling.
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Integrate shared proxy-surface configuration while retaining reference
+!!        garden/greenroof schemes.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Integrate the inherited Maria Tarasova trace-snowfall filter with
+!!        configurable controls and inactive-surface radiation guards.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -549,7 +561,6 @@ IF (TOP%LGARDEN) THEN
     CALL TEB_VEG_PROPERTIES(PDIR_SW, PSCA_SW, PSW_BANDS, KSW,   &
                             ZTSRAD_GD, ZEMIS_GD, ZALB_GD,       &
                             PTA=PT_LOWCAN                       )
-!MV202610 the radiation parameters of the green areas are the namelist items
 !* urb_alb_gdn / urb_emis_gdn, i.e. the very same source as the external mode of
 !* this tree and as the emulator of the offline driver (RUN_TEB_OFFLINE
 !* prescribes them in teb_alb_gd / teb_emis_gd from the same items). The call
@@ -574,7 +585,6 @@ IF (TOP%LGREENROOF) THEN
     CALL TEB_VEG_PROPERTIES(  PDIR_SW, PSCA_SW, PSW_BANDS, KSW,    &
                               ZTSRAD_GR, ZEMIS_GR, ZALB_GR,        &
                               PTA=PTA                              )
-!MV202610 same as for the green areas: the greenroof radiation parameters are the
 !* namelist items urb_alb_grf / urb_emis_grf (one source for the internal scheme
 !* and for the external mode), the call above provides Ts = PTA only.
     ZALB_GR  = urb_alb_grf
@@ -819,7 +829,6 @@ IF (TOP%LGARDEN) THEN
                 ZREC_SW_GD, ZREC_LW_GD, PU_LOWCAN, ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,     &
                 ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, PAC_GD, ZQSAT_GD, ZTSRAD_GD,     &
                 ZDRAIN_GD, ZIRRIG_GD,                                              &
-!MV202609 garden exchange coefficients and moisture multiplier, returned by the model
                 PCD_GD, PCH_GD, ZHU_AGG_GD )
 
 !* external garden ('EXT'/'EXT_NEU'): no proxy model is called. The surface state

@@ -1,4 +1,11 @@
 !auto_modi:spll_mass_layer_e_budget.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit MASS_LAYER_E_BUDGET interface for separate
+!!        static-parameter and prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_MASS_LAYER_E_BUDGET
 INTERFACE
     SUBROUTINE MASS_LAYER_E_BUDGET(BSTATE, PTSTEP, PFLX_BLD_MA, PDQS_MA, PIMB_MA, PRADHT_IN, &

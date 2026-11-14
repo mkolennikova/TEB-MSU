@@ -1,3 +1,10 @@
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Implement the Wang (2012) canopy wind profile for atmospheric-model
+!!        coupling.
+!!------------------------------------------------------------------------------
 !     #########
 
 MODULE WIND_PROFILE_WANG

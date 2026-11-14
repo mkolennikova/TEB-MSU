@@ -1,4 +1,11 @@
 !auto_modi:spll_roof_layer_e_budget.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit ROOF_LAYER_E_BUDGET interface for separate
+!!        static-parameter and prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_ROOF_LAYER_E_BUDGET
 INTERFACE
     SUBROUTINE ROOF_LAYER_E_BUDGET(TOPTS, TSTATE, BSTATE, PQSAT_ROOF, PAC_BLD, PTSTEP, PDN_ROOF,   &

@@ -143,6 +143,10 @@
 !!                          add the option of no atmospheric heat releases by HVAC system (BPARAMS%XF_WATER_COND < 0)
 !!    G. Pigeon oct. 2012:  use indoor air density + new solar heat gain distribution
 !!    V. Masson May  2013   implicitation of internal building temperature evolution
+!!!      TEB-MSU development
+!!!      10/2026 -- Mikhail Varentsov (MV)
+!!!        Apply development parameter/state field naming to the retained
+!!!        original BEM snapshot.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

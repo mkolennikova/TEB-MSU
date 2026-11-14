@@ -2,6 +2,13 @@
 # Each object names its source and the objects providing its USE modules.
 # External procedures resolve through the archive index at final link time.
 
+#    MODIFICATIONS
+#    -------------
+#      TEB-MSU development
+#      11/2026 -- Mikhail Varentsov (MV)
+#        Declare explicit module/include dependencies for the split
+#        common-library and offline builds.
+#-------------------------------------------------------------------------------
 $(OBJDIR)/sfc_teb.o: src_api/sfc_teb.F90 \
     $(OBJDIR)/teb_host.o \
     $(OBJDIR)/teb_log.o \

@@ -30,6 +30,10 @@ MODULE MODD_SURF_PAR
 !!      J.Escobar     06/2013  for REAL4/8 add EPSILON management
 !
 !*       0.   DECLARATIONS
+!!      TEB-MSU development
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Provide model controls for the trace-snowfall filter inherited from
+!!        Maria Tarasova.
 !             ------------
 !
 !

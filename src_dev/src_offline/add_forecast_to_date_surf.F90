@@ -61,6 +61,10 @@ END MODULE MODI_ADD_FORECAST_TO_DATE_SURF
 !!    MODIFICATIONS
 !!    -------------
 !!      Original    01/09/95
+!!      TEB-MSU development
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Move offline-only forcing/calendar support to src_offline when
+!!        separating the common TEB library from its offline host.
 !-------------------------------------------------------------------------------
 !
 !*       0.    DECLARATIONS

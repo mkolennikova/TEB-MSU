@@ -1,4 +1,14 @@
 !auto_modi:spll_urban_drag.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Extend the explicit URBAN_DRAG interface for the inherited
+!!        host-coupling implementation.
+!!      09-10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit URBAN_DRAG interface for diagnostic/CBS surface
+!!        coupling and the parameter/state reorganization.
+!!------------------------------------------------------------------------------
 MODULE MODI_URBAN_DRAG
 INTERFACE
     SUBROUTINE URBAN_DRAG(icell, iblock, TOPTS, TSTATE, BSTATE, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
@@ -15,14 +25,12 @@ INTERFACE
                           PDUWDU_ROOF, PUSTAR_TOWN, PAC_WIN, PCH_GARDEN_CAN,           &
                           PCD_GARDEN_CAN, PCH_ROAD_CAN, PCH_ROOF, PCH_WALL, PCH_TOP,       &
                           ILMO_ROAD_CAN, ILMO_ROOF, ILMO_TOP, PCD_GARDEN_ATM, PCH_GARDEN_ATM,      &
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
                           PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN,    &
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM,    &
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN,&
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM,            &
                           PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM,                  &
                           PAC_ROAD_ATM_WAT,                                              &
-!MV202609 greenroof-to-atm exchange diagnostics
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM,       &
                           PCH_GREENROOF_ATM, PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM   , TPARAMS) 
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
@@ -107,7 +115,6 @@ REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_TOP           ! 1/length of Monin-Obuk
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GARDEN_ATM     ! garden surf. exchange coeff. (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN_ATM     ! garden drag coeff. for heat (atm.)
 !
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* full set of URBAN_EXCH_COEF outputs for the exchange between the road and the
 !* garden surfaces and the air of the canyon (_CAN) or of the forcing level (_ATM)
 !
@@ -129,7 +136,6 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_ATM   ! garden neutral drag coe
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_ATM    ! garden Richardson number (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_ATM   ! garden roughness length for heat (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM_WAT  ! road   conductance for water (atm.)
-!MV202609 greenroof-to-atm exchange diagnostics
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GREENROOF_ATM   ! greenroof aerodynamical conductance (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GREENROOF_ATM   ! greenroof surf. exchange coefficient (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GREENROOF_ATM  ! greenroof neutral drag coefficient (atm.)

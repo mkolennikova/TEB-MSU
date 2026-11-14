@@ -136,6 +136,10 @@
 !!    MODIFICATIONS
 !!    -------------
 !!    Original    03/2018
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Bind host-model surface/state arguments to the TEB/BEM structures,
+!!        including external garden and greenroof coupling.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

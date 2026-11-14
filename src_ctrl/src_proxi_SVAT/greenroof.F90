@@ -60,6 +60,13 @@
 !!    MODIFICATIONS
 !!    -------------
 !     Original    09/2011 
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Preserve host-provided greenroof temperature and allow exchanged
+!!        fluxes in the proxy interface.
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Centralize reference proxy parameters and explicitly return the
+!!        exchange coefficients while retaining the reference greenroof scheme.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -67,7 +74,7 @@
 !
 USE MODD_CSTS, ONLY : XLVTT , &   ! Latent heat constant for evaporation
                       XKARMAN     ! Von Karman constant
-USE MODD_PROXI_SVAT_PAR, ONLY : urb_z0_grf, XPHU_GR   !MV202609 z0 of the greenroof and PHU of this model
+USE MODD_PROXI_SVAT_PAR, ONLY : urb_z0_grf, XPHU_GR
 USE MODE_THERMOS                  ! Function to compute humidity at saturation
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
 !
@@ -146,7 +153,6 @@ PSFCO2(:) = 0.
 PEVAP_GREENROOF(:) = PLE_GREENROOF(:) / XLVTT
 !
 !* Friction flux: assumes neutral formulation with roughness length of 0.01m
-!MV202609 z0 of the greenroof from the namelist (urb_z0_grf, /tebparam/); its
 !* default is the base-model value 0.01 m, so a namelist without the item keeps
 !* the first-commit behaviour
 PUW_GREENROOF(:) = - (XKARMAN/LOG(PUREF(:)/urb_z0_grf))**2 * PVMOD(:)**2
@@ -164,7 +170,6 @@ PQSAT_GREENROOF(:) = QSAT(PTA(:),PPS(:))
 !PTS_GREENROOF(:) = PTA(:)
 !
 !* aerocynamical conductance for latent heat and surface humidity
-!MV202609 the surface relative humidity is the PHU parameter of this model
 PHU_AGG_GREENROOF(:) = XPHU_GR
 !
 !* Heat Flux at the bottom layer of the greenroof

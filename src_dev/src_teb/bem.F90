@@ -143,6 +143,13 @@
 !!                          add the option of no atmospheric heat releases by HVAC system (BPARAMS%XF_WATER_COND < 0)
 !!    G. Pigeon oct. 2012:  use indoor air density + new solar heat gain distribution
 !!    V. Masson May  2013   implicitation of internal building temperature evolution
+!!!      TEB-MSU development
+!!!      Pre-repository -- Maria Tarasova (MT)
+!!!        Add host-controlled air-conditioning activation and the associated
+!!!        natural-ventilation handling.
+!!!      10/2026 -- Mikhail Varentsov (MV)
+!!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!!        parameter/state containers explicitly.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

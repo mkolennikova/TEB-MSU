@@ -43,6 +43,13 @@
 !!	V. Masson           * Meteo-France *
 !-------------------------------------------------------------------------------
 !
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Use the shared namelist properties of the reference garden/greenroof
+!!        proxies.
+!!------------------------------------------------------------------------------
 !*       0.     DECLARATIONS
 !               ------------
 !

@@ -1,4 +1,14 @@
 !auto_modi:spll_bem.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Extend the explicit BEM interface for the inherited host-coupling
+!!        implementation.
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit BEM interface for separate static-parameter and
+!!        prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_BEM
 INTERFACE
         SUBROUTINE BEM(icell, iblock, BOPTS, TSTATE, BSTATE, DMT, PTSTEP, PBEM_AC, PSUNTIME, KDAY, PPS, PRHOA, PT_CAN,  &

@@ -64,6 +64,10 @@
 !!    -------------
 !!      Original    11/11
 !!      G. Pigeon   09/12 modif internal convection coef
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

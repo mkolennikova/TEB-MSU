@@ -45,6 +45,10 @@
 !!    MODIFICATIONS
 !!    -------------
 !!      Original    23/01/98 
+!!      TEB-MSU development
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Use snow-cover fractions after trace-snowfall filtering to activate
+!!        road and roof snow evolution.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

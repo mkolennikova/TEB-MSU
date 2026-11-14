@@ -92,6 +92,10 @@
 !!                     01/12 (V. Masson) separates the 2 walls
 !!                     09/12 (G. Pigeon) modif internal convective coef convection
 !!                     10/12 (G. Pigeon) add solar heat gain of indoor wall
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

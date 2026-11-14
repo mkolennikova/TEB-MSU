@@ -6,6 +6,13 @@
 ! http://www.cecill.info/licences/Licence_CeCILL-C_V1-fr.txt
 ! The CeCILL-C licence is compatible with L-GPL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Adapt forcing allocation to the fixed one-column storage of the
+!!        coupled physical driver.
+!!------------------------------------------------------------------------------
 !   ############################
     MODULE MODI_OL_ALLOC_ATM
 !   ############################

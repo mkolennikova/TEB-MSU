@@ -53,6 +53,16 @@
 !!                     17/10 (G. Pigeon)  computation of anthropogenic heat due
 !!                            to domestic heating
 !!      Modified    09/2012 : B. Decharme New wind implicitation
+!!      TEB-MSU development
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Make road-puddle and roof-water flux aggregation consistent with the
+!!        shared water reservoirs and snowmelt transfer.
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Add opt-in upstream-consistency comparison paths for validation of
+!!        inherited formulas.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -229,7 +239,6 @@ PLE_WL_B(:) = ZINTER(:)
 !*      4.     Snow-free and snow-covered surfaces averaging
 !              ---------------------------------------------
 !
-!MV202609 fixes of the road puddle water normalization (PLEW_RD is tile-mean, no double PDF_RD weight)
 !* the road energy budget (ROAD_LAYER_E_BUDGET) is written in the tile-mean
 !* formulation: its outputs DMT%XH_ROAD and PLEW_RD are per m2 of ROAD (the
 !* snow-free fraction 1-PDN_RD is already inside ZRHO_ACF_R/ZRHO_ACF_R_WAT of
@@ -242,7 +251,6 @@ PLE_WL_B(:) = ZINTER(:)
 !
 !                                            heat flux into the ground
 !
-!MV202611 upstream consistency switches: inherited D3 road-flux normalization.
 #ifdef TEB_UPSTREAM_CONS_BUGS
 ! D3: reproduce the second snow-free weight on road turbulent fluxes.
 DMT%XGFLUX_ROAD (:) = PDF_RD(:) * (DMT%XRN_ROAD(:) - DMT%XH_ROAD(:) - PLEW_RD(:)) &

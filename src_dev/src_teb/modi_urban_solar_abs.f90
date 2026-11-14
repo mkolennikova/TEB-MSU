@@ -1,4 +1,11 @@
 !auto_modi:spll_urban_solar_abs.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit URBAN_SOLAR_ABS interface for separate
+!!        static-parameter and prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_URBAN_SOLAR_ABS
 INTERFACE
     SUBROUTINE URBAN_SOLAR_ABS(TOPTS, TSTATE, BSTATE, DMT, PDIR_SW, PSCA_SW, PZENITH, PAZIM,   &

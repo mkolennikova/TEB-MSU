@@ -32,6 +32,13 @@
 !!    ---------
 !!    TEB-MSU: TEB_MSU_containers.md, section 5.10
 !!
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Create the explicit atmospheric-forcing container for each physical
+!!        sub-step.
+!!------------------------------------------------------------------------------
 IMPLICIT NONE
 !---------------------------------------------------------------------------
 !

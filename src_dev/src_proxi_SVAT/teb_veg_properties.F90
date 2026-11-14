@@ -43,6 +43,13 @@
 !!	V. Masson           * Meteo-France *
 !-------------------------------------------------------------------------------
 !
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      09-10/2026 -- Mikhail Varentsov (MV)
+!!        Use shared configurable garden/greenroof radiative properties in the
+!!        surface coupling.
+!!------------------------------------------------------------------------------
 !*       0.     DECLARATIONS
 !               ------------
 !

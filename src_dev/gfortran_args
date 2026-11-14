@@ -1,6 +1,13 @@
 # Compiler profile for src_dev. Keep numerical defaults unchanged.
 # GNU Make supplies built-in FC=f77 and LD=ld; replace only those defaults.
 # Explicit command-line/environment compiler selections take precedence.
+#    MODIFICATIONS
+#    -------------
+#      TEB-MSU development
+#      09-11/2026 -- Mikhail Varentsov (MV)
+#        Support portable GNU/Intel compiler profiles and the Windows runtime
+#        integration used by the standalone and library builds.
+#-------------------------------------------------------------------------------
 ifeq ($(origin FC),default)
 FC := gfortran
 endif

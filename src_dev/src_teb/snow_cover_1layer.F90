@@ -8,7 +8,6 @@
                                  TPSNOW, PTG, PTG_COEFA, PTG_COEFB, PABS_SW, PLW1, PLW2, &
                                  PTA, PQA, PVMOD, PPS, PRHOA, PSR, PZREF, PUREF, PRNSNOW,&
                                  PHSNOW, PLESNOW, PGSNOW, PMELT, PDQS_SNOW, PABS_LW, PSNOW_D  ,&
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                                  PTA_ATM, PQA_ATM, PVMOD_ATM, PZREF_ATM, PUREF_ATM,    &
                                  PTAU, LCBS_SPLIT, PHSNOW_CAN, PHSNOW_ATM,             &
                                  PLESNOW_CAN, PLESNOW_ATM   )  
@@ -55,6 +54,10 @@
 !!      Original    08/09/98 
 !!      J. Escobar 24/10/2012 : BUF PGI10.X , rewrite some 1 line WHERE statement
 !!      V. Masson  13/09/2013 : implicitation of coupling with roof below
+!!      TEB-MSU development
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Return separate canyon/atmosphere turbulent fluxes for CBS road snow
+!!        while advancing one snow reservoir.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -128,7 +131,6 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PMELT          ! snow melting rate (kg/m2/s
 REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SNOW      ! heat storage inside snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW        ! absorbed LW rad by snow (W/m2)
 REAL, DIMENSION(:), INTENT(OUT)   :: PSNOW_D        ! snow depth
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 REAL, DIMENSION(:), INTENT(IN)    :: PTA_ATM      ! air temperature of the forcing level (free atmosphere)
 REAL, DIMENSION(:), INTENT(IN)    :: PQA_ATM      ! specific humidity of the forcing level
 REAL, DIMENSION(:), INTENT(IN)    :: PVMOD_ATM    ! wind of the forcing level
@@ -155,7 +157,6 @@ REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRI  ! Richardson number
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZAC  ! aerodynamical conductance
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRA  ! aerodynamical resistance
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZCH  ! drag coefficient for heat
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZRI_ATM   ! Richardson number (forcing level)
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZAC_CAN   ! conductance with the canyon air
 REAL, DIMENSION(SIZE(TPSNOW%WSNOW,1)) :: ZAC_ATM   ! conductance with the forcing level air
@@ -337,7 +338,6 @@ CALL SURFACE_RI(ZTS_SNOW, ZQSAT, ZEXNS, ZEXNA, PTA, PQA, &
 !
 CALL SURFACE_AERO_COND(ZRI, PZREF, PUREF, PVMOD, ZZ0, ZZ0H, ZAC, ZRA, ZCH)
 !
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 !* The snow may exchange with the air of the canyon (tau fraction) and directly
 !* with the air of the forcing level (1 - tau), exactly as the road does: the
 !* two conductances are computed with the same routines and aggregated with tau,

@@ -1,3 +1,19 @@
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Extract a standalone host for the COSMO-style TEB interface, with
+!!        namelist configuration and atmospheric forcing.
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Add forcing-aware CSV output, strict namelist input and emulators of
+!!        external diagnostic garden/greenroof surfaces.
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Support explicit cold-start inputs and host-managed state transfer
+!!        through the container-based API.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Separate the offline host from the common TEB library and link it
+!!        against libteb.a.
+!!------------------------------------------------------------------------------
 PROGRAM run_teb_offline
 
 USE sfc_teb,        ONLY : teb_interface
@@ -13,14 +29,12 @@ USE MODD_SURF_PAR, ONLY: XUNDEF, teb_snow_check
 USE MODD_CSTS,     ONLY : XCPD, XSTEFAN, XPI, XDAY, XKARMAN,   &
                           XLVTT, XLSTT, XLMTT, XRV, XRD, XG, XP00
 USE MODD_PROXI_SVAT_PAR, ONLY : XZ0_GD, XZ0_GR, XZ0_O_Z0H_GD, XZ0_O_Z0H_GR, proxy_phu_gdn, proxy_phu_grf   ! defaults and namelist items of the surface models
-!MV202609 garden emulation (teb_type_garden = 'EXT')
 !* the external garden model of the offline runs is EMULATED inside this driver
 !* by PCD_GARDEN (see below) with the same diagnostic surface energy balance as
 !* the internal garden scheme: GARDEN_PCD of src/src_proxi_SVAT/garden.F90, its
 !* numerical parameters (MODE_GARDEN_BALANCE) and QSAT of MODE_THERMOS
 USE MODI_GARDEN, ONLY : GARDEN_PCD
 USE MODE_THERMOS
-!MV202609 garden thermal roughness (z0h)
 !* neutral log coefficients of the garden: the emulator uses the very same
 !* formulation as the internal garden scheme (PCD for momentum, PCH for heat and
 !* moisture with the thermal roughness z0h)
@@ -68,18 +82,15 @@ USE MODD_FORC_ATM, ONLY: CSV         ,&  ! name of all scalar variables
 
 USE TEB_LOG, ONLY : TEB_LOG_INIT, TEB_LOG_FINAL, TEB_LOG_SET_VERBOSE
 IMPLICIT NONE
-!MV202610 empty lists: the driver writes every step (no filter)
 INTEGER :: ZLOG_BLOCK(1), ZLOG_POINT(1)
 
 ! Program arguments
 INTEGER :: num_args
 CHARACTER(LEN=100) :: arg1, arg2
 LOGICAL :: arg1_exists, arg2_exists
-!MV202610 console policy: -verbose asks TEB for the one-off dump of the
 !* configuration (the model itself prints only errors and the column list)
 LOGICAL :: lverbose = .FALSE.
 
-!MV202609 strict namelist date/time reading
 ! Sentinel value used for the start date/time items of the forcing namelist while
 ! they are not read from the file. There is NO default date any more: every item
 ! that is missing from the file - or that was not read because the namelist READ
@@ -140,7 +151,6 @@ REAL ,DIMENSION(nvec) :: urb_fr_bld                       !IN Building area frac
 REAL ,DIMENSION(nvec) :: fr_garden                        !IN Garden area fraction with respect to urban tile    (  -  )
 REAL ,DIMENSION(nvec) :: urb_h2w                          !IN Street canyon H/W ratio   ( m/m )
 REAL ,DIMENSION(nvec) :: urb_h_bld                        !IN Building height  (  m  )
-!MV202609 z0 and zd to namelist
 CHARACTER(LEN=16)     :: urb_z0_town  !IN z0 of the urban surface (0.5 | 0.5m | 0.1H | H/3 | <name>)
 CHARACTER(LEN=16)     :: urb_zd_town  !IN displacement height    (same forms as urb_z0_town)
 !* roughness length, albedo and emissivity of the two vegetation surfaces
@@ -151,9 +161,7 @@ CHARACTER(LEN=16)     :: urb_zd_town  !IN displacement height    (same forms as 
 !* the namelist file: XZ0_GD / XZ0_GR (MODD_PROXI_SVAT_PAR) for the
 !* roughness lengths and 0.15 / 0.98 for the albedo / emissivity.
 REAL                  :: urb_z0_gdn  !IN garden roughness length (m)     ( > 0 )
-!MV202609 garden thermal roughness (z0h)
 REAL                  :: urb_z0_o_z0h_gdn  !IN garden z0/z0h ratio (-)         ( >= 1 )
-!MV202609 greenroof thermal roughness (z0h) and tunable surface humidity
 REAL                  :: urb_z0_o_z0h_grf  !IN greenroof z0/z0h ratio (-)      ( >= 1 )
 REAL                  :: urb_alb_gdn       !IN garden albedo                   ( [0,1) )
 REAL                  :: urb_emis_gdn      !IN garden emissivity               ( (0,1] )
@@ -210,7 +218,6 @@ INTEGER  :: teb_itype_wind             !IN TEB option for camyon wond calculatio
                                        ! 0 - default; 1 - Wang scheme
 REAL ,DIMENSION(nvec, 1:8) :: teb_fai  !IN Frontal area index                 
 !
-!MV202609 CBS scheme of the road
 ! Input parameters for the CBS scheme of the road
 LOGICAL  :: teb_lcbs_scheme    !IN Flag to use the CBS scheme
 REAL     :: teb_tau_hw_thresh  !IN H/W giving tau = 0.5
@@ -244,7 +251,6 @@ REAL ,DIMENSION(nvec) :: teb_lhfl_gd    !IN latent heat flux over garden
 REAL ,DIMENSION(nvec) :: teb_qvfl_gd    !IN total evaporation over garden (kg/m2/s)
 REAL ,DIMENSION(nvec) :: teb_runoff_gd  !IN garden surface runoff
 
-!MV202609 garden emulation (teb_type_garden = 'EXT')
 !* State and diagnostics of the external garden model emulated by PCD_GARDEN
 !* (see the subroutine below). With an external garden the surface temperature
 !* and the fluxes of the garden are PROGNOSTIC variables of this driver: they
@@ -264,7 +270,6 @@ REAL ,DIMENSION(nvec) :: teb_runoff_gd  !IN garden surface runoff
 REAL ,DIMENSION(nvec) :: emu_tau      !OUT tau of the garden exchange (-)
 REAL ,DIMENSION(nvec) :: emu_pcd_can  !OUT neutral drag coefficient for momentum (canyon path) (-)
 REAL ,DIMENSION(nvec) :: emu_pcd_atm  !OUT neutral drag coefficient for momentum (forcing level) (-)
-!MV202609 garden thermal roughness (z0h)
 REAL ,DIMENSION(nvec) :: emu_pch_can   !OUT neutral thermal (scalar) coefficient (canyon path) (-)
 REAL ,DIMENSION(nvec) :: emu_pch_atm   !OUT neutral thermal (scalar) coefficient (forcing level) (-)
 REAL ,DIMENSION(nvec) :: emu_v_can     !OUT wind of the canyon path (m/s)
@@ -294,7 +299,6 @@ REAL ,DIMENSION(nvec) :: emu_runoff    !OUT (unused) runoff of the garden
 REAL ,DIMENSION(nvec) :: emu_drain     !OUT (unused) drainage of the garden
 REAL ,DIMENSION(nvec) :: emu_irrig     !OUT (unused) irrigation of the garden
 LOGICAL               :: lemu_checked  !=.FALSE. until the first consistency check
-!MV202609 greenroof emulation (teb_type_greenroof = 'EXT'/'EXT_NEU')
 !* State and diagnostics of the external greenroof model emulated by
 !* PCD_GREENROOF (see the subroutine below). The greenroof is a ROOF surface:
 !* a SINGLE exchange path (the air of the forcing level), no canyon branch and
@@ -375,12 +379,6 @@ LOGICAL ,DIMENSION(nvec) :: teb_natvent_night          !INOUT has natural ventil
 
 ! Output diagnostic variables
 ! For town
-!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-!MV202609 garden diagnostics
-!MV202609 greenroof diagnostics
-!MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 REAL                  :: ZRO_ROAD_ACC  ! runoff of the road accumulated over the model sub-steps (kg/m2/s)
 REAL                  :: ZRO_ROOF_ACC  ! runoff of the roof accumulated over the model sub-steps (kg/m2/s)
 
@@ -389,21 +387,14 @@ REAL                  :: ZRO_ROOF_ACC  ! runoff of the roof accumulated over the
 ! Snow variables
 
 ! BEM variables
-!MV202609 anthropogenic heat diagnostics
 
 !Variables for garden (COSMO)
 REAL ,DIMENSION(nvec) :: teb_tch_gd = XUNDEF  !OUT garden transfer coefficient for heat
 REAL ,DIMENSION(nvec) :: teb_tcm_gd = XUNDEF  !INOUT previous/new garden momentum coefficient
-!MV202611 the host carries the garden and town/roof momentum inputs across sub-steps
 REAL, DIMENSION(nvec) :: teb_ustar_town = 0.2
 REAL, DIMENSION(nvec) :: teb_cd_greenroof_atm = XUNDEF
 
 !Other variables
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-!MV202609 CBS scheme of the road (revision: three-temperature construction)
-!MV202609 CBS scheme of the road
-!MV202609 CBS scheme of the road (revision: puddle diagnostics)
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 	
 
 ! Atmospheric Forcing variables                                                       
@@ -476,20 +467,15 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
                     teb_bem_inf, teb_bem_vent, teb_bem_cop, teb_cap_sys_rat,           &
                     teb_m_sys_rat, teb_cap_sys_heat, ahf_traffic, ahf_industry,        &
                     teb_itype_wind, teb_fai, teb_lgarden, teb_type_garden, &
-!MV202609 garden thermal roughness (z0h)
                     urb_z0_gdn, urb_z0_o_z0h_gdn, urb_alb_gdn, urb_emis_gdn,                                                 &
                     teb_lgreenroof, teb_type_greenroof, teb_frac_gr, urb_z0_grf, urb_z0_o_z0h_grf, urb_alb_grf, urb_emis_grf, proxy_phu_gdn, proxy_phu_grf, &
                     teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                   &
                     teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h,    &
                     teb_rd_irrig_end_h, teb_rd_irrig_sum, teb_utc_hour, teb_lshade, &
-!MV202609 z0 and zd to namelist
                     urb_z0_town, urb_zd_town,                                       &
-!MV202609 CBS scheme of the road
                     teb_lcbs_scheme, teb_tau_hw_thresh, teb_tau_hw_width, &
-!MV202609 snow correction of the coupled model (default .FALSE.)
                     teb_snow_check
 
-!MV202609 unified namelist reading
 !* Names of the items declared in the two groups above (same content and order as
 !* the NAMELIST statements), used by the diagnostics only: they allow reporting,
 !* for every declared item, whether it was read from the namelist file, whether
@@ -582,7 +568,6 @@ IF (num_args > 0) THEN
       END IF
             
     CASE ('-verbose')
-      !MV202610 host-controlled console: this only enables the
       !* informational block of the model (TEB_LOG_SET_VERBOSE)
       lverbose = .TRUE.
             
@@ -606,7 +591,6 @@ WRITE(*,*) 'TEB-MSU Offline Model'
 WRITE(*,*) '  Forcing namelist: ', TRIM(namelist_forcing_path_local)
 WRITE(*,*) '  Parameter namelist: ', TRIM(namelist_path_local)
 WRITE(*,*) '  Output directory: ', TRIM(output_dir)
-!MV202610 console policy: TEB prints errors and the column list only; the
 !* configuration dump of the model is printed once if -verbose is given
 CALL TEB_LOG_SET_VERBOSE(lverbose)
 IF (lverbose) WRITE(*,*) '  TEB diagnostics: verbose (the configuration is echoed once)'
@@ -619,7 +603,6 @@ lon_teb(:)   = 1.3                   ! Longitude (deg)
 lat_teb(:)   = 43.484                ! Latitude (deg)
 hlev_teb(:)  = 28.0                  ! Atm. Forcing height above roof level
 forcing_path = ' '                   ! Forcing filepath, required from the namelist
-!MV202609 strict namelist date/time reading
 !* teb_year/teb_month/teb_day/teb_hour/teb_min and nsteps are INTEGER items of
 !* the /tebforcing/ namelist group: they MUST be written without a decimal point
 !* ('teb_hour = 0', not 'teb_hour = 0.0'). A real value makes the namelist READ
@@ -671,19 +654,15 @@ urb_fr_bld(:) = 0.62                ! Horizontal building area density
 fr_garden(:)  = 0.2                 ! Fraction of GARDEN areas
 urb_h2w(:)    = 1.38158             ! Canyon H/W
 urb_h_bld(:)  = 20.                 ! Canyon height (m)
-!MV202609 z0 and zd to namelist
 urb_z0_town = '0.1H'                ! z0 of the urban surface (0.1*H - as before)
 urb_zd_town = 'H/3'                 ! displacement height (H/3 - as before)
 urb_z0_gdn  = XZ0_GD                 ! Garden roughness length (m)
-!MV202609 garden thermal roughness (z0h)
 urb_z0_o_z0h_gdn = XZ0_O_Z0H_GD      ! Garden thermal roughness ratio z0/z0h (-)
-!MV202609 default PHU revision (0.7 for both surfaces; the base model used
 !* proxy_phu_gdn = 0.8 and proxy_phu_grf = 0.3): the namelist items of the garden and
 !* greenroof models are declared, defaulted and validated in MODD_PROXI_SVAT_PAR
 urb_alb_gdn  = 0.15                  ! Garden albedo
 urb_emis_gdn = 0.98                  ! Garden emissivity
 urb_z0_grf   = XZ0_GR                ! Greenroof roughness length (m)
-!MV202609 greenroof thermal roughness (z0h) and tunable surface humidity
 urb_z0_o_z0h_grf = XZ0_O_Z0H_GR      ! Greenroof thermal roughness ratio z0/z0h (-)
 urb_alb_grf      = 0.15              ! Greenroof albedo
 urb_emis_grf     = 0.98              ! Greenroof emissivity
@@ -766,7 +745,6 @@ teb_qi_bld_init(:)  = XUNDEF      ! sentinel: initial humidity default at first 
 teb_itype_wind       = 0            !IN TEB option for camyon wond calculation:
 ! 0 - default; 1 - Wang scheme 
 teb_fai(:,1:8)       = 0.5          ! Frontal area index
-!MV202609 CBS scheme of the road
 teb_lcbs_scheme   = .FALSE.         ! Flag to use the CBS scheme for the road
 teb_tau_hw_thresh = 0.5             ! H/W giving tau = 0.5 (CBS scheme)
 teb_tau_hw_width  = 0.25            ! width of the tanh relaxation (CBS scheme)
@@ -841,7 +819,6 @@ END IF
 
 READ(nml=tebforcing, iostat=rc, unit=fu)
 CLOSE(fu)
-!MV202609 strict namelist date/time reading
 !* A failed read is an ERROR (and not a warning followed by a run with a wrong
 !* date): the namelist is only read up to the faulty entry, so every item that
 !* follows it in the file keeps the value of the program (inml_unset for the
@@ -902,7 +879,6 @@ END IF
 
 READ(nml=tebparam, iostat=rc, unit=fu)
 CLOSE(fu)
-!MV202609 unified namelist reading
 !* Same policy as for /tebforcing/ above: a failed READ of the parameter namelist
 !* stops the run. The namelist is only read up to the faulty entry, so every item
 !* that follows it in the file keeps the value of the program (the driver default):
@@ -916,11 +892,9 @@ IF (rc > 0) THEN
   STOP 1
 END IF
 CALL NML_REPORT_ABSENT('tebparam', namelist_path_local, nml_param_items)
-!MV202609 proxy parameters to namelist (rename urb_phu_* -> proxy_phu_*)
 !* a namelist item that is not declared is silently ignored by the READ: warn
 !* explicitly when the file still carries the former names of the PHU items
 CALL NML_WARN_RENAMED('tebparam', namelist_path_local)
-!MV202610 indoor initial state: teb_ti_bld_init / teb_qi_bld_init
 IF (ALL(teb_ti_bld_init /= XUNDEF)) THEN
   WRITE(*,'(A)') ' TEB-MSU offline: teb_ti_bld_init given in the namelist'
 ELSE IF (ANY(teb_ti_bld_init == XUNDEF)) THEN
@@ -941,7 +915,6 @@ IF (ALL(teb_qi_bld_init /= XUNDEF)) THEN
 ELSE IF (ANY(teb_qi_bld_init == XUNDEF)) THEN
   WRITE(*,'(A)') ' TEB-MSU offline: teb_qi_bld_init not given; 0.5*QSAT(TI_BLD, ps) is used at the first sub-step'
 END IF
-!MV202609 strict namelist date/time reading
 !* dt is read in this group (and has a default value here), so the consistency of
 !* the model sub-step with the forcing time-step is checked only now: INB_ATM =
 !* forc_step/dt below must be an integer number of sub-steps per forcing step.
@@ -954,7 +927,6 @@ END IF
 WRITE(*,'(A,F10.1,A,F12.1,A,I0,A)') ' TEB-MSU offline: dt = ', dt, ' s, forc_step = ', &
   forc_step, ' s -> INB_ATM = ', NINT(forc_step / dt), ' model sub-steps per forcing step'
 
-!MV202609 garden model type
 !* the type of the garden model must be one of the supported values;
 !* 'EXT' means that the garden fluxes come from an external model (no internal
 !* garden parameterization is used) whose exchange coefficients are described by
@@ -968,7 +940,6 @@ IF (teb_type_garden /= 'PROXY_OLD' .AND. teb_type_garden /= 'PROXY_NEW' .AND. &
 END IF
 WRITE(*,'(A,A)') ' TEB-MSU offline: teb_type_garden = ', TRIM(teb_type_garden)
 !
-!MV202609 greenroof model type
 !* the type of the greenroof model must be one of the supported values.
 !* 'EXT'/'EXT_NEU' is the EXTERNAL greenroof (fluxes from outside), with its
 !* diagnostic exchange coefficients following the full URBAN_EXCH_COEF set or the
@@ -981,7 +952,6 @@ IF (teb_type_greenroof /= 'PROXY_OLD' .AND. teb_type_greenroof /= 'PROXY_NEW' .A
   STOP 1
 END IF
 WRITE(*,'(A,A)') ' TEB-MSU offline: teb_type_greenroof = ', TRIM(teb_type_greenroof)
-!MV202609 external greenroof: EXT/EXT_NEU implies the external data path,
 !* exactly as EXT/EXT_NEU of the garden does (the legacy flag teb_lgreenroof_ext
 !* stays valid and is forced here for consistency)
 IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') THEN
@@ -989,7 +959,6 @@ IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') THEN
   WRITE(*,'(A)') ' TEB-MSU offline: external greenroof (teb_type_greenroof = EXT/EXT_NEU)'
 END IF
 
-!MV202609 roughness length, albedo and emissivity of the garden and of the
 !* greenroof (namelist items urb_z0_gdn / urb_alb_gdn / urb_emis_gdn and
 !* urb_z0_grf / urb_alb_grf / urb_emis_grf).
 !* One single value per surface, used by all the models: it is given to the
@@ -1006,7 +975,6 @@ IF (urb_z0_gdn <= 0. .OR. urb_z0_gdn >= XUNDEF) THEN
   WRITE(*,*) '       urb_z0_gdn must be > 0 and < XUNDEF'
   STOP 1
 END IF
-!MV202609 garden thermal roughness (z0h)
 !* Thermal (scalar) roughness of the garden, z0h = urb_z0_gdn/urb_z0_o_z0h_gdn:
 !* heat and moisture of the garden exchange through it, the momentum keeps
 !* urb_z0_gdn. The ratio must be >= 1 (z0h <= z0) and finite: a smaller value
@@ -1017,7 +985,6 @@ IF (urb_z0_o_z0h_gdn < 1. .OR. urb_z0_o_z0h_gdn >= XUNDEF) THEN
   WRITE(*,*) '       urb_z0_o_z0h_gdn must be >= 1 (z0h = urb_z0_gdn/urb_z0_o_z0h_gdn <= urb_z0_gdn)'
   STOP 1
 END IF
-!MV202609 greenroof thermal roughness (z0h)
 IF (urb_z0_o_z0h_grf < 1. .OR. urb_z0_o_z0h_grf >= XUNDEF) THEN
   WRITE(*,*) 'ERROR: urb_z0_o_z0h_grf = ', urb_z0_o_z0h_grf, ' is not a valid greenroof z0/z0h ratio'
   WRITE(*,*) '       urb_z0_o_z0h_grf must be >= 1 (z0h = urb_z0_grf/urb_z0_o_z0h_grf <= urb_z0_grf)'
@@ -1048,7 +1015,6 @@ IF (urb_emis_grf <= 0. .OR. urb_emis_grf > 1.) THEN
   WRITE(*,*) '       urb_emis_grf must be > 0 and <= 1'
   STOP 1
 END IF
-!MV202609 tunable surface relative humidity (namelist proxy_phu_gdn / proxy_phu_grf)
 IF (proxy_phu_gdn <= 0. .OR. proxy_phu_gdn > 1.) THEN
   WRITE(*,*) 'ERROR: proxy_phu_gdn = ', proxy_phu_gdn, ' is not a valid garden surface relative humidity'
   WRITE(*,*) '       proxy_phu_gdn must be > 0 and <= 1'
@@ -1066,21 +1032,17 @@ teb_z0_gr(:)   = urb_z0_grf
 teb_alb_gr(:)  = urb_alb_grf
 teb_emis_gr(:) = urb_emis_grf
 WRITE(*,'(A,F8.3,A)') ' TEB-MSU offline: urb_z0_gdn = ', urb_z0_gdn, ' m (all garden versions)'
-!MV202609 garden thermal roughness (z0h)
 !* the thermal (scalar) roughness actually used for heat and moisture by all the
 !* garden versions: z0h = urb_z0_gdn/urb_z0_o_z0h_gdn
 WRITE(*,'(A,F8.3,A,F9.5,A)') ' TEB-MSU offline: urb_z0_o_z0h_gdn = ', urb_z0_o_z0h_gdn,   &
   ' -> z0h(garden) = ', urb_z0_gdn/urb_z0_o_z0h_gdn, ' m'
 WRITE(*,'(A,F8.3,A)') ' TEB-MSU offline: urb_z0_grf = ', urb_z0_grf, ' m (all greenroof versions)'
-!MV202609 greenroof thermal roughness (z0h)
 WRITE(*,'(A,F8.3,A,F9.5,A)') ' TEB-MSU offline: urb_z0_o_z0h_grf = ', urb_z0_o_z0h_grf,   &
   ' -> z0h(greenroof) = ', urb_z0_grf/urb_z0_o_z0h_grf, ' m'
 WRITE(*,'(A,F8.3,A,F8.3)') ' TEB-MSU offline: garden    alb/emis = ', urb_alb_gdn, ' / ', urb_emis_gdn
 WRITE(*,'(A,F8.3,A,F8.3)') ' TEB-MSU offline: greenroof alb/emis = ', urb_alb_grf, ' / ', urb_emis_grf
-!MV202609 tunable surface relative humidity
 WRITE(*,'(A,F6.3,A,F6.3)') ' TEB-MSU offline: garden/greenroof PHU = ', proxy_phu_gdn, ' / ', proxy_phu_grf
 
-!MV202610 emissivity of the built surfaces (longwave albedo = 1 - emissivity)
 !* The namelist items urb_emis_rf / urb_emis_rd / urb_emis_wl give the emissivity
 !* of the roof / road / wall material, i.e. the quantity called ZEMIS_ROOF /
 !* ZEMIS_ROAD / ZEMIS_WALL in the upstream 2018/2020 namelists. The interface
@@ -1102,7 +1064,6 @@ CALL OPEN_CLOSE_BIN_ASC_FORC('OPEN ','ASCII ',1,'R', forcing_path2)
 ! allocation of variables
 !
 CALL OL_ALLOC_ATM(1,1,1)  ! INI, IBANDS, ISCAL
-!MV202611 the offline host owns forcing heights, including the first interpolation.
 XZREF(:) = hlev_teb(:)
 XUREF(:) = hlev_teb(:)
 ! allocate local atmospheric variables
@@ -1131,7 +1092,6 @@ XCO2(:)          = 0.
 XRHOA(:)         = ZPS(1,:) / ( ZTA(1,:)*XRD * ( 1.+((XRV/XRD)-1.)*ZQA(1,:) ) + hlev_teb(:)*XG )
 teb_hour_seconds = teb_hour * 3600. + teb_min * 60. + teb_sec
 
-!MV202609 garden emulation (teb_type_garden = 'EXT' or 'EXT_NEU')
 !* With an external garden the surface state and the fluxes of the garden are
 !* PROGNOSTIC variables of this driver: TEB reads them at every sub-step through
 !* the 'EXT' interface and PCD_GARDEN (see below) updates them, playing the role
@@ -1150,7 +1110,6 @@ IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') THEN
   WRITE(*,'(A)') ' TEB-MSU offline: garden = EXTERNAL, emulated by PCD_GARDEN' &
     //' at every model sub-step (state: Ts = air temperature, fluxes = 0)'
 END IF
-!MV202609 greenroof emulation (teb_type_greenroof = 'EXT' or 'EXT_NEU')
 !* same principle as for the garden: the greenroof state and fluxes become
 !* PROGNOSTIC variables of the driver, read by TEB through the 'EXT' interface
 !* at every sub-step and updated by PCD_GREENROOF right after. The first
@@ -1182,7 +1141,6 @@ END IF
 ! it owns: TEB_emu.csv (the emulator diagnostics) and TEB_runoff.csv (the
 ! runoff accumulated over the sub-steps of the forcing step).
 ! -----------------------------------------------------------
-!MV202610 emulator diagnostics: one separate file, written by the driver
 OPEN(NEWUNIT=fu_emu, FILE=TRIM(output_dir)//'TEB_emu.csv', STATUS='REPLACE', ACTION='WRITE', IOSTAT=rc)
 IF (rc /= 0) THEN
   WRITE(*,*) 'ERROR: Cannot open emulator CSV file: ', TRIM(output_dir)//'TEB_emu.csv'
@@ -1193,7 +1151,6 @@ END IF
 ! Temporal loops
 ! -----------------------------------------------------------
 !
-!MV202610 the diagnostics container (DMT) is declared and allocated by TEB_HOST:
 !* TEB_INTERFACE fills it and reads it for its own output; the host sees only
 !* the individual fields it needs (no structure in the interface).
 !
@@ -1205,10 +1162,8 @@ IF (rc /= 0) THEN
   WRITE(*,*) 'IOSTAT = ', rc
   STOP 1
 END IF
-!MV202610 the offline run writes its single cell
 ZLOG_BLOCK(1) = 1
 ZLOG_POINT(1) = 1
-!MV202610 runoff accumulated over the sub-steps: a separate offline file
 OPEN(NEWUNIT=fu_runoff, FILE=TRIM(output_dir)//'TEB_runoff.csv', STATUS='REPLACE', ACTION='WRITE', IOSTAT=rc)
 IF (rc /= 0) THEN
   WRITE(*,*) 'ERROR: Cannot open runoff CSV file: ', TRIM(output_dir)//'TEB_runoff.csv'
@@ -1218,7 +1173,6 @@ END IF
 
 DO nstep= 1,nsteps - 1
   WRITE(*,FMT='(I5,A1,I5)') nstep,'/',nsteps - 1
-!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 !* the road/roof runoff is accumulated over the INB_ATM model sub-steps of the
 !* forcing step: the runoff of a single sub-step is a clipped quantity (it is
 !* non-zero only when the reservoir overflows), so the value of the last
@@ -1232,7 +1186,6 @@ DO nstep= 1,nsteps - 1
                    ZDIR )
     
   DO JSURF_STEP=1,INB_ATM
-    !MV202610 0-based model sub-step
     kstep_model = (nstep - 1)*INB_ATM + (JSURF_STEP - 1)
     ! time interpolation of the forcing
     CALL OL_TIME_INTERP_ATM(JSURF_STEP,INB_ATM,                               &
@@ -1304,48 +1257,31 @@ DO nstep= 1,nsteps - 1
                         teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
                         teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
                         teb_rd_irrig_sum, teb_utc_hour, teb_lshade,                          &
-!MV202609 z0 and zd to namelist
                         urb_z0_town, urb_zd_town,                         &
-!MV202609 garden thermal roughness (z0h)
                         urb_z0_o_z0h_gdn,                                 &
-!MV202609 greenroof model type and thermal roughness
                         urb_z0_o_z0h_grf,       &
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-!MV202609 CBS scheme of the road (revision: three-temperature construction)
-!MV202609 CBS scheme of the road
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
                         teb_lcbs_scheme,                   &
                         teb_tau_hw_thresh, teb_tau_hw_width,                  &
-!MV202609 anthropogenic heat diagnostics
-!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
-!MV202609 garden diagnostics
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-!MV202609 greenroof diagnostics
-!MV202609 greenroof-to-atm exchange diagnostics
                         teb_wind_canyon, teb_u_can_ped, teb_u_can_10m, teb_sobs, teb_thbs, teb_runoff_road, teb_runoff_roof, &
                         kteb_log_block = ZLOG_BLOCK, kteb_log_point = ZLOG_POINT, &
                         teb_ustar_town = teb_ustar_town, teb_cd_greenroof_atm = teb_cd_greenroof_atm)
 
-!MV202609 garden emulation (teb_type_garden = 'EXT')
 !* the external garden model: TEB has just used the garden state prescribed at
 !* the previous sub-step; the emulator now updates the state and the fluxes for
 !* the next one, from the coefficients, the air and the radiation that TEB has
 !* just computed (CALL_DRIVER sees only the 'EXT' interface, as with a real
 !* external model)
     IF (teb_type_garden == 'EXT' .OR. teb_type_garden == 'EXT_NEU') CALL PCD_GARDEN
-!MV202609 greenroof emulation (teb_type_greenroof = 'EXT'/'EXT_NEU')
 !* same principle as for the garden: TEB has just used the greenroof state of
 !* the previous sub-step; the emulator updates it for the next one from the
 !* exchange coefficients, the air of the forcing level and the city-level
 !* radiation (the greenroof is on the roof: no shadowing, no re-reflection)
     IF (teb_type_greenroof == 'EXT' .OR. teb_type_greenroof == 'EXT_NEU') CALL PCD_GREENROOF
-!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
     ZRO_ROAD_ACC = ZRO_ROAD_ACC + teb_runoff_road(1)
     ZRO_ROOF_ACC = ZRO_ROOF_ACC + teb_runoff_roof(1)
 						
   END DO
   !
-  !MV202610 the line of the universal output (timestamp, model variables, forcing)
   !* is written by TEB itself (TEB_LOG_EMIT, called by TEB_INTERFACE); the host
   !* keeps the timestamp and its own files: the emulator CSV and the runoff CSV
   WRITE(time_buf,'(I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2,":",I2.2)')              &
@@ -1400,7 +1336,6 @@ DO nstep= 1,nsteps - 1
   WRITE(fu_runoff,'(A)') TRIM(runoff_line)
 END DO
 
-!MV202609 strict namelist date/time reading
 !* end of the run: the model date is echoed once more, so that the log always
 !* contains both the start date (from the namelist) and the end date (reached by
 !* the time integration) - a mismatch between them and the expected period of the
@@ -1436,11 +1371,9 @@ WRITE(*,*) ' '
 !
 ! --------------------------------------------------------------------------------------
 !
-!MV202609 release the diagnostics container
 
 CONTAINS
 
-!MV202609 strict namelist date/time reading
 !> Number of days of a month, leap years included.
 INTEGER FUNCTION NML_DAYS_IN_MONTH(kyear, kmonth)
 INTEGER, INTENT(IN) :: kyear   ! year
@@ -1679,7 +1612,6 @@ WRITE(*,'(A,I0,2A)') ' TEB-MSU offline: '//TRIM(group)//' namelist: ', nabs, &
   ' item(s) are not in the file, the driver default is used: ', TRIM(list)
 END SUBROUTINE NML_REPORT_ABSENT
 
-!MV202609 proxy parameters to namelist (rename urb_phu_* -> proxy_phu_*)
 !> Warns when the file still uses the former names of the surface humidity items
 !! (urb_phu_gdn / urb_phu_grf, renamed proxy_phu_gdn / proxy_phu_grf): an item that
 !! is not declared in the NAMELIST statement is simply ignored by the READ, so the
@@ -1802,7 +1734,6 @@ DO WHILE (jp <= ll)
   ip = INDEX(line(jp:ll), name(1:ln))
   IF (ip == 0) RETURN
   ip = jp + ip - 1
-!MV202609 strict namelist reading (fix): the character preceding the item must not
 !* be a name character, but there is no character at all when the item starts the
 !* line (ip = 1). The test must not evaluate LINE(0:0) in that case: Fortran does
 !* not guarantee the short-circuit evaluation of .OR. (gfortran evaluates both
@@ -2036,7 +1967,6 @@ WRITE(*,*) '  build/TEB_offline.exe -help'
 WRITE(*,*) ''
 END SUBROUTINE PRINT_USAGE
 
-!MV202609 garden emulation (teb_type_garden = 'EXT')
 !> Emulation of an EXTERNAL garden model: the garden of TEB is entirely
 !! prescribed from the outside in the 'EXT' mode (surface temperature, surface
 !! humidity and fluxes are read by TEB_GARDEN from teb_ts_gd / teb_qs_gd /
@@ -2100,7 +2030,6 @@ DO JI = 1, nvec
   !* canyon path: reference air at the low canyon level (height H/2, the
   !* same height, the same roughness length and the same thermal roughness
   !* as the internal scheme: the shared neutral formulation)
-  !MV202609 garden thermal roughness (z0h)
   !* PCD (momentum, friction only) and PCH (heat and moisture, z0h) come
   !* from the module of the internal garden, so that the emulated garden and
   !* the internal one use exactly the same coefficients
@@ -2169,7 +2098,6 @@ IF (.NOT. lemu_checked) THEN
 END IF
 END SUBROUTINE PCD_GARDEN
 !
-!MV202609 greenroof emulation (teb_type_greenroof = 'EXT'/'EXT_NEU')
 !* External greenroof model emulated by the offline driver. The greenroof is a
 !* ROOF surface: it exchanges with the air of the forcing level ONLY, so there
 !* is NO canyon branch and NO tau split (unlike the garden). A single exchange
@@ -2218,7 +2146,6 @@ CALL GARDEN_PCD('PROXY_NEW', emu_gr_cd, emu_gr_ch, emu_gr_v, emu_gr_t, emu_gr_q,
                 emu_gr_drain, emu_gr_irrig)
 !* state and fluxes prescribed to TEB at the next model sub-step
 emu_gr_ts(:)     = teb_ts_gr(:)
-!MV202609 the surface humidity of the emulated greenroof, as for the garden
 teb_qs_gr(:)     = proxy_phu_grf*emu_gr_qsat(:)
 teb_shfl_gr(:)   = emu_gr_h(:)
 teb_lhfl_gr(:)   = emu_gr_le(:)
@@ -2243,7 +2170,6 @@ END SUBROUTINE PCD_GREENROOF
 !! List-directed output is used, so that the CSV file contains exactly the same digits
 !! as the previous per-variable txt files (bit-identical values).
 SUBROUTINE CSV_ADD(header, line, ncol, names, name, value)
-!MV202609 table-driven CSV: register a column and append its value
 !* One call defines a column completely - the name goes to the header line, the
 !* value goes to the data row - so the two cannot drift apart (the earlier code
 !* kept two parallel lists, the names and the CALL CSV_APPEND sequence, that had

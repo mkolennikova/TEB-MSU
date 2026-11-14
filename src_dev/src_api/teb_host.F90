@@ -21,6 +21,16 @@
 !!    ------
 !!      MV   *TEB-MSU*   10/2026
 !
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Create the workspace lifecycle and parameter/state/forcing bindings
+!!        for the container-based host interface.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Make cold-start and per-column state transfers explicit and keep
+!!        offline forcing outside the common physics workspace.
+!!------------------------------------------------------------------------------
 !*       0.   DECLARATIONS
 !             ------------
 !
@@ -232,7 +242,6 @@ BPARAMS%XEFF_HEAT     = 0.9
 BPARAMS%XHR_TARGET    = 0.5
 TOPTS%CCH_BEM         = ' '
 BOPTS%LAUTOSIZE       = .FALSE.
-!MV202609 z0 and zd to namelist
 TOPTS%CZ0H         = 'MASC95'
 !
 DO K = KSTART, KEND
@@ -551,7 +560,6 @@ INTEGER, INTENT(IN) :: KWALL   ! number of wall layers
 INTEGER, INTENT(IN) :: KFLOOR  ! number of floor layers
 !------------------------------------------------------------------------------
 !
-!MV202611 validate every call, including reuse of an existing allocation.
 ! The current physical allocators and material profiles support one column / five layers.
 IF (KNVEC /= 1) ERROR STOP 'TEB_HOST_ENSURE: workspace must have one column'
 IF (ANY([KROOF, KROAD, KWALL, KFLOOR] /= 5)) &
@@ -593,7 +601,6 @@ END IF
 !
 END SUBROUTINE TEB_HOST_FINAL
 !
-!MV202611 binding copies host inputs; it never modifies the host arguments
 SUBROUTINE TEB_BIND_STATE (KSTART, KEND, teb_ti_bld, teb_twin2, teb_qi_bld, teb_cap_sys_rat, teb_m_sys_rat, teb_twin1, teb_lshade, teb_shad_day, teb_natvent_night, teb_ws_roof, teb_troof, teb_troad, teb_twalla, teb_twallb, teb_wsnow_roof, teb_tsnow_roof, teb_rsnow_roof, teb_asnow_roof, teb_esnow_roof, teb_tssnow_roof, teb_wsnow_road, teb_tsnow_road, teb_rsnow_road, teb_asnow_road, teb_esnow_road, teb_tssnow_road, teb_tcanyon, teb_qcanyon, teb_ws_road, teb_tfloor, teb_tmass)
 !
 INTEGER, INTENT(IN) :: KSTART, KEND
@@ -666,7 +673,6 @@ END SUBROUTINE TEB_BIND_STATE
 !------------------------------------------------------------------------------
 !*      2.5  COLD-START STATE OF THE FIRST MODEL STEP
 !------------------------------------------------------------------------------
-!MV202610 TEB_INIT_STATE: cold start in a separate procedure
 SUBROUTINE TEB_INIT_STATE (KSTART, KEND)
 !!****  *TEB_INIT_STATE* - initial state of one window at the first model step
 !!
@@ -745,12 +751,10 @@ DO J = KSTART, KEND
   ZN_FLOOR = REAL(NINT(TPARAMS%XBLD_HEIGHT(J) / ZFLOOR_HEIGHT))
   BSTATE%XCAP_SYS_RAT(J) = BSTATE%XCAP_SYS_RAT(J) * ZN_FLOOR
   DMT%XUSTAR_TOWN(J) = 0.2
-  !MV202611 first external-roof friction uses the neutral fallback.
   DMT%XPCD_GREENROOF_ATM(J) = XUNDEF
 END DO
 END SUBROUTINE TEB_INIT_STATE
 
-!MV202611 retain INOUT for partial-window state writes; albedo is output only
 SUBROUTINE TEB_UNBIND_STATE (KSTART, KEND, teb_ti_bld, teb_twin2, teb_qi_bld, teb_cap_sys_rat, teb_m_sys_rat, teb_twin1, teb_lshade, teb_shad_day, teb_natvent_night, teb_ws_roof, teb_troof, teb_troad, teb_twalla, teb_twallb, teb_wsnow_roof, teb_tsnow_roof, teb_rsnow_roof, teb_asnow_roof, teb_esnow_roof, teb_tssnow_roof, teb_wsnow_road, teb_tsnow_road, teb_rsnow_road, teb_asnow_road, teb_esnow_road, teb_tssnow_road, teb_tcanyon, teb_qcanyon, teb_ws_road, teb_tfloor, teb_tmass, teb_albwin)
 !
 INTEGER, INTENT(IN) :: KSTART, KEND

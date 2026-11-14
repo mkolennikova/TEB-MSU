@@ -171,6 +171,10 @@
 !!                     01/12 (V. Masson ) adds 2 different wall direct insulations
 !!                     04/12 (G. Pigeon) add B%XTRAN_WIN 
 !!                     09/12 (C. de Munck-A. Lemonsu) add green roofs
+!!      TEB-MSU development
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Protect shortwave budgets of snow and inactive garden/greenroof
+!!        surfaces with the accepted common radiation guards.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

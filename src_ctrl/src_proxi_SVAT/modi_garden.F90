@@ -6,6 +6,13 @@
 ! http://www.cecill.info/licences/Licence_CeCILL-C_V1-fr.txt
 ! The CeCILL-C licence is compatible with L-GPL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit reference-proxy interface for shared parameters
+!!        and returned exchange coefficients.
+!!------------------------------------------------------------------------------
 MODULE MODI_GARDEN
 INTERFACE
     SUBROUTINE GARDEN(HIMPLICIT_WIND, TPTIME, PTSUN, PPEW_A_COEF, PPEW_B_COEF,       &
@@ -17,8 +24,6 @@ INTERFACE
                       PEVAP_GARDEN, PUW_GARDEN,PRUNOFF_GARDEN,                             &
                       PAC_GARDEN,PQSAT_GARDEN,PTS_GARDEN,                                  &
                       PDRAIN_GARDEN, PIRRIG_GARDEN,        &
-!MV202609 garden exchange coefficients returned to the caller
-!MV202609 garden exchange coefficients and moisture multiplier returned to the caller
                       PPCD_GD, PPCH_GD, PHU_AGG_GARDEN      )
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
 CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND  ! wind implicitation option
@@ -58,11 +63,9 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PQSAT_GARDEN    ! saturation humidity
 REAL, DIMENSION(:)  , INTENT(INOUT) :: PTS_GARDEN      ! radiative surface temp. (snow free)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PDRAIN_GARDEN   ! garden total (vertical) drainage
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PIRRIG_GARDEN   ! garden summer irrigation rate
-!MV202609 exchange coefficients returned to the caller: the proxy of this tree has
 !* none of its own (fixed Bowen ratio) and returns zeros
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCD_GD  ! momentum exchange coefficient (-)
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PPCH_GD  ! thermal (scalar) exchange coefficient (-)
-!MV202609 moisture multiplier of the internal garden, returned by the proxy
 REAL, DIMENSION(:)  , INTENT(OUT)   :: PHU_AGG_GARDEN  ! garden surface relative humidity (-)
 END SUBROUTINE GARDEN
 END INTERFACE

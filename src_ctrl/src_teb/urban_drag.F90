@@ -66,6 +66,16 @@
 !          09/12 (G. Pigeon) add new formulation for outdoor conv. coef for
 !                            wall/roof/window
 !!
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Add external-garden exchange and expose surface-exchange coefficients
+!!        for atmospheric-model coupling.
+!!      10-11/2026 -- Mikhail Varentsov (MV)
+!!        Use defined ground temperature and consistent displacement-height
+!!        geometry in the reference surface exchange.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Add opt-in upstream-consistency comparison paths for validation of
+!!        inherited formulas.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -83,9 +93,8 @@ USE MODI_WIND_THRESHOLD
 !USE MODE_SBLS
 USE MODE_THERMOS
 USE MODI_URBAN_EXCH_COEF
-!MV202609 z0 and zd to namelist: displacement height of the urban surface
-!* (urb_zd_town, /tebparam/), resolved in CALL_DRIVER; its base-model value is
-!* urb_h_bld/3 (the hard-coded '+ T%XBLD_HEIGHT/3.' below)
+!* CALL_DRIVER resolves XZD_TOWN from urb_zd_town in /tebparam/.
+!* The reference displacement-height default is urb_h_bld/3.
 USE MODD_PROXI_SVAT_PAR, ONLY : XZD_TOWN
 
 USE MODE_CONV_DOE
@@ -383,8 +392,6 @@ ENDDO
 !
 IF (.NOT. TOP%LCANOPY) THEN
  
-!MV202609 z0 and zd to namelist
-!MV202611 upstream consistency switches: D7 aerodynamic reference heights.
 ! D7: use the same roof height above displacement (H-zd) as the wind profile.
 ! TEB_UPSTREAM_CONS retains the original +zd offset for upstream comparison.
 #ifdef TEB_UPSTREAM_CONS
@@ -510,7 +517,6 @@ DO JLOOP=1,3
   !
   ZW_CAN(:)   = ZW_STAR(:)
 !
-!MV202609 base-model defect (uninitialised read, D9): ZTS_GROUND (surface
 !* temperature of the ground = road + garden, weighted by the road and garden
 !* fractions) is used in ZQ0 below, but its computation was commented out (two
 !* lines below), so the canyon momentum budget read UNINITIALISED memory:
@@ -550,7 +556,6 @@ DO JLOOP=1,3
     ZQ0(JJ)     = (PTS_WALL  (JJ) - PT_CANYON(JJ)) * PAC_WALL  (JJ) * T%XWALL_O_GRND(JJ)
 
     IF (T%XROAD(JJ) .GT. 0.) THEN
-!MV202609 base-model defect (uninitialised read, D9): ZTS_GROUND was never
 !* assigned in this routine (its computation is commented out a few lines
 !* above), so the canyon momentum budget read stack garbage. The original term
 !* is restored here: ZTS_GROUND is now computed above the URBAN_EXCH_COEF call.

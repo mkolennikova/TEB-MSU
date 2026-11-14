@@ -31,6 +31,13 @@
 !!    ---------
 !!    TEB-MSU: TEB_MSU_containers.md, section 2 (the contract)
 !!
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Create the static TEB parameter container and its allocation/lifecycle
+!!        routines, separate from prognostic state.
+!!------------------------------------------------------------------------------
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
@@ -57,7 +64,6 @@ TYPE TEB_PARAMS_t
   REAL, POINTER, DIMENSION(:)   :: XWALL_O_GRND    ! wall surf. / (road + garden surf.) (-)
   REAL, POINTER, DIMENSION(:)   :: XWALL_O_BLD     ! wall surf. / bld surf. (-)
   REAL, POINTER, DIMENSION(:)   :: XZ0_TOWN        ! roughness length for momentum    (m)
-!MV202609 z0 and zd to namelist
   REAL, POINTER, DIMENSION(:)   :: XZD_TOWN     ! displacement height of the town  (m)
   REAL, POINTER, DIMENSION(:)   :: XSVF_ROAD    ! road sky view factor             (-)
   REAL, POINTER, DIMENSION(:)   :: XSVF_GARDEN  ! green area sky view factor       (-)
@@ -102,9 +108,7 @@ TYPE TEB_PARAMS_t
   REAL, POINTER, DIMENSION(:)   :: XH_INDUSTRY  ! anthropogenic sensible
 !                                                  ! heat fluxes due to factories     (W/m2)
   REAL, POINTER, DIMENSION(:)   :: XLE_INDUSTRY  ! anthropogenic latent
-!MV202610 annual-mean traffic flux (the daily cycle of CALL_DRIVER reads it)
   REAL, POINTER, DIMENSION(:)   :: XH_TRAFFIC_MEAN  ! annual-mean traffic sensible heat (W/m2)
-!MV202610 frontal area index of the urban surface (8 wind directions)
   REAL, POINTER, DIMENSION(:,:) :: XFAI  ! frontal area index (-)
 !                                                  ! heat fluxes due to factories     (W/m2)
 !

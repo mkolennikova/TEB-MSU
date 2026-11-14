@@ -69,8 +69,11 @@
 !!    MODIFICATIONS
 !!    -------------
 !
-!      Original    10/2026  pedestrian MRT on the road (MV202610)
 !
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Create road-canyon pedestrian mean radiant temperature diagnostics
+!!        with spherical and standing-person body options.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -97,19 +100,16 @@ TYPE(TEB_PARAMS_t),    INTENT(IN)    :: TPARAMS  ! static parameters of TEB (geo
 TYPE(TEB_t),           INTENT(IN)    :: TSTATE   ! state of TEB (snow on the road)
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT      ! diagnostics container
 TYPE(TEB_EXT_SURF_t),  INTENT(IN)    :: EXT      ! external surfaces (unused, symmetry with the physics calls)
-!MV202610 body model of the beam projection factor: 'SPHERE' (default) or 'PERSON'
-!* (standing person); the argument is optional, so a call without it keeps the
-!* globe-like definition of the scheme
+!* CBODY selects 'SPHERE' (default) or 'PERSON' (standing person).
+!* Omitting the argument retains the globe-like beam projection.
 CHARACTER(LEN=*),      INTENT(IN), OPTIONAL :: CBODY
 !
 !*      0.2    declarations of local variables
 !
-!MV202610 pedestrian constants (see the scheme document)
 REAL, PARAMETER :: XZ_PED      = 1.1   ! height of the centre of the pedestrian (m)
 REAL, PARAMETER :: XABS_BODY   = 0.70  ! shortwave absorption of the body (-)
 REAL, PARAMETER :: XEMIS_BODY  = 0.97  ! longwave emissivity of the body (-)
 REAL, PARAMETER :: XCOSZ_MIN   = 0.02  ! lower bound of cos(zenith) (88.9 deg)
-!MV202610 projection factor of the direct beam: body = sphere or standing person
 !* sphere: 0.25 (the projected area of a sphere is a quarter of its surface);
 !* person: f_p = 0.308*cos(elev*(1 - elev^2/48402)) with the solar elevation in
 !* degrees - the projected area factor of a STANDING person (Fanger, 1970, after
@@ -135,7 +135,6 @@ IF (LHOOK) CALL DR_HOOK('URBAN_MRT',0,ZHOOK_HANDLE)
 !*       0.3    BODY MODEL: PROJECTION FACTOR OF THE DIRECT BEAM
 !               ----------------------------------------------
 !
-!MV202610 two variants, selected by the optional CBODY ('SPHERE' is the default,
 !* so a call without the argument reproduces the globe-like definition):
 !*   'SPHERE' - projected area factor 0.25, independent of the sun position;
 !*   'PERSON' - projected area factor of a standing person as a function of the
@@ -158,7 +157,6 @@ ENDIF
 !*       1.     GEOMETRY: VIEW FACTORS OF THE PEDESTRIAN
 !               --------------------------------------
 !
-!MV202610 the pedestrian is placed on the canyon axis at z_p: this is a
 !* conscious simplification (the model carries road-area-averaged radiative
 !* fluxes, so a pedestrian "smeared" over the road width is represented by its
 !* axis point with the averaged fluxes)
@@ -333,8 +331,11 @@ END SUBROUTINE URBAN_MRT
 !!    MODIFICATIONS
 !!    -------------
 !
-!      Original    10/2026  pedestrian MRT on the roof (MV202610)
 !
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Create roof-level pedestrian mean radiant temperature diagnostics
+!!        using sky and roof radiation.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -361,18 +362,15 @@ TYPE(TEB_PARAMS_t),    INTENT(IN)    :: TPARAMS  ! static parameters of TEB (roo
 TYPE(TEB_t),           INTENT(IN)    :: TSTATE   ! state of TEB (snow on the roof)
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: DMT      ! diagnostics container
 TYPE(TEB_EXT_SURF_t),  INTENT(IN)    :: EXT      ! external surfaces (unused, symmetry with the physics calls)
-!MV202610 body model of the beam projection factor: 'SPHERE' (default) or 'PERSON'
 CHARACTER(LEN=*),      INTENT(IN), OPTIONAL :: CBODY
 !
 !*      0.2    declarations of local variables
 !
-!MV202610 pedestrian constants (the same as in URBAN_MRT) and the roof geometry
 REAL, PARAMETER :: XABS_BODY  = 0.70  ! shortwave absorption of the body (-)
 REAL, PARAMETER :: XEMIS_BODY = 0.97  ! longwave emissivity of the body (-)
 REAL, PARAMETER :: XCOSZ_MIN  = 0.02  ! lower bound of cos(zenith) (88.9 deg)
 REAL, PARAMETER :: XF_SKY     = 0.5   ! sky view factor on a flat infinite roof (-)
 REAL, PARAMETER :: XF_ROOF    = 0.5   ! roof view factor on a flat infinite roof (-)
-!MV202610 projection factor of the direct beam (see URBAN_MRT for the references)
 REAL, PARAMETER :: XF_DIR_SPHERE = 0.25    ! projected area factor of a sphere (-)
 REAL, PARAMETER :: XF_PERSON_A   = 0.308   ! projection factor of a standing person at the horizon (-)
 REAL, PARAMETER :: XF_PERSON_C   = 48402.  ! fitted constant of the projection factor (deg^2)
@@ -389,7 +387,6 @@ IF (LHOOK) CALL DR_HOOK('URBAN_MRT_ROOF',0,ZHOOK_HANDLE)
 !*       0.3    BODY MODEL: PROJECTION FACTOR OF THE DIRECT BEAM
 !               ----------------------------------------------
 !
-!MV202610 the same two variants as in URBAN_MRT: 'SPHERE' (default) or 'PERSON'
 YBODY = 'SPHERE'
 IF (PRESENT(CBODY)) YBODY = ADJUSTL(CBODY)
 IF (YBODY(1:1) == 'P' .OR. YBODY(1:1) == 'p') THEN

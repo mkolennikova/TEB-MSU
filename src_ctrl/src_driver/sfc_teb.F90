@@ -1,5 +1,15 @@
 
 
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Create the COSMO-oriented block adapter with host-supplied forcing,
+!!        surface parameters and model state.
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Maintain the reference host adapter with shared offline configuration
+!!        and diagnostics.
+!!------------------------------------------------------------------------------
 MODULE sfc_teb
 
 
@@ -171,7 +181,6 @@ REAL ,DIMENSION(nvec) :: teb_qvfl_gd
 REAL ,DIMENSION(nvec) :: teb_tch_gd
 REAL ,DIMENSION(nvec) :: teb_tcm_gd
 REAL ,DIMENSION(nvec) :: teb_runoff_gd
-!MV202609 window shading flag (namelist key teb_lshade, as in src_dev/main);
 !* DIMENSION(1) because the CALL_DRIVER dummy LSHADE is declared DIMENSION(1)
 LOGICAL, DIMENSION(1) :: teb_lshade
 	

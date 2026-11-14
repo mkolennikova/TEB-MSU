@@ -1,3 +1,10 @@
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Add the time-dependent diurnal traffic heat source used by the coupled
+!!        and standalone drivers.
+!!------------------------------------------------------------------------------
 !     #########
 
 MODULE AHF_TRAFFIC_NOW

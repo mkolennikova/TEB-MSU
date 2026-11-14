@@ -1,4 +1,11 @@
 !auto_modi:spll_snow_cover_1layer.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit snow interface for separate canyon/atmosphere
+!!        turbulent fluxes in CBS.
+!!------------------------------------------------------------------------------
 MODULE MODI_SNOW_COVER_1LAYER
 INTERFACE
     SUBROUTINE SNOW_COVER_1LAYER(PTSTEP, PANSMIN, PANSMAX, PTODRY, PRHOSMIN, PRHOSMAX,   &
@@ -6,7 +13,6 @@ INTERFACE
                                  TPSNOW, PTG, PTG_COEFA, PTG_COEFB, PABS_SW, PLW1, PLW2, &
                                  PTA, PQA, PVMOD, PPS, PRHOA, PSR, PZREF, PUREF, PRNSNOW,&
                                  PHSNOW, PLESNOW, PGSNOW, PMELT, PDQS_SNOW, PABS_LW, PSNOW_D  ,&
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                                  PTA_ATM, PQA_ATM, PVMOD_ATM, PZREF_ATM, PUREF_ATM,    &
                                  PTAU, LCBS_SPLIT, PHSNOW_CAN, PHSNOW_ATM,             &
                                  PLESNOW_CAN, PLESNOW_ATM   )  
@@ -47,7 +53,6 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PMELT          ! snow melting rate (kg/m2/s
 REAL, DIMENSION(:), INTENT(OUT)   :: PDQS_SNOW      ! heat storage inside snow
 REAL, DIMENSION(:), INTENT(OUT)   :: PABS_LW        ! absorbed LW rad by snow (W/m2)
 REAL, DIMENSION(:), INTENT(OUT)   :: PSNOW_D        ! snow depth
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 REAL, DIMENSION(:), INTENT(IN)    :: PTA_ATM      ! air temperature of the forcing level (free atmosphere)
 REAL, DIMENSION(:), INTENT(IN)    :: PQA_ATM      ! specific humidity of the forcing level
 REAL, DIMENSION(:), INTENT(IN)    :: PVMOD_ATM    ! wind of the forcing level

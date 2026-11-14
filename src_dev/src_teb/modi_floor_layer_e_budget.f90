@@ -1,4 +1,11 @@
 !auto_modi:spll_floor_layer_e_budget.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit FLOOR_LAYER_E_BUDGET interface for separate
+!!        static-parameter and prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_FLOOR_LAYER_E_BUDGET
 INTERFACE
     SUBROUTINE FLOOR_LAYER_E_BUDGET(BSTATE, PTSTEP, PFLX_BLD_FL, PDQS_FL, PIMB_FL, PRADHT_IN,  &

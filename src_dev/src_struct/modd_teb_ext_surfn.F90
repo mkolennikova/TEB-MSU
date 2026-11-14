@@ -30,6 +30,12 @@
 !!    ---------
 !!    TEB-MSU: TEB_MSU_containers.md, section 5.11
 !!
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Create the explicit host-provided garden/greenroof surface container.
+!!------------------------------------------------------------------------------
 IMPLICIT NONE
 !---------------------------------------------------------------------------
 !

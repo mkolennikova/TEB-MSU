@@ -87,6 +87,16 @@
 !!                     02/11 (V. Masson) split of the routine for roads and walls separately
 !!      G. Pigeon      09/2012: add heating/cooling of rain from air temperature
 !!                             to surface road temp. for the road energy budget 
+!!      TEB-MSU development
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Use the CBS effective exchange and reference air in the road energy
+!!        balance, with a consistent shared road-water budget.
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Add opt-in upstream-consistency comparison paths for validation of
+!!        inherited formulas.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -290,7 +300,6 @@ DO JJ=1,SIZE(TSTATE%XT_ROAD,1)
   !
   ! Use the solver's linearization about the start-of-step temperature for
   ! both the liquid water budget and the road exchange with the air.
-!MV202611 upstream consistency switches: inherited D10 road budget and liquid flux.
 #ifdef TEB_UPSTREAM_CONS_BUGS
   ! D10: subtracting the effective (already updated) temperature loses the
   ! implicit saturation-humidity correction when ZIMPL=1.

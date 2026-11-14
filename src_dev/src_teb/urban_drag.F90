@@ -17,14 +17,12 @@
                           PDUWDU_ROOF, PUSTAR_TOWN, PAC_WIN, PCH_GARDEN_CAN,           &
                           PCD_GARDEN_CAN, PCH_ROAD_CAN, PCH_ROOF, PCH_WALL, PCH_TOP,       &
                           ILMO_ROAD_CAN, ILMO_ROOF, ILMO_TOP, PCD_GARDEN_ATM, PCH_GARDEN_ATM,      &
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
                           PCD_ROAD_CAN, PCDN_ROAD_CAN, PRI_ROAD_CAN, ZZ0H_ROAD_CAN,    &
                           PAC_ROAD_ATM, PCH_ROAD_ATM, PCD_ROAD_ATM, PCDN_ROAD_ATM,    &
                           PRI_ROAD_ATM, ZZ0H_ROAD_ATM, PCDN_GARDEN_CAN, PRI_GARDEN_CAN,&
                           ZZ0H_GARDEN_CAN, PAC_GARDEN_ATM, PCDN_GARDEN_ATM,            &
                           PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM,                              &
                           PAC_ROAD_ATM_WAT,                                              &
-!MV202609 greenroof-to-atm exchange diagnostics
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM,       &
                           PCH_GREENROOF_ATM, PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM   , TPARAMS) 
 !   ##########################################################################
@@ -75,8 +73,19 @@
 !                            canopy/no canopy
 !          09/12 (G. Pigeon) add new formulation for outdoor conv. coef for
 !                            wall/roof/window
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !!
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Add external-garden exchange and expose surface-exchange coefficients
+!!        for atmospheric-model coupling.
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Add configurable town roughness/displacement heights and separate
+!!        canyon/atmosphere exchange paths for CBS.
+!!        Integrate neutral external garden/greenroof exchange with separate
+!!        momentum and scalar roughness lengths.
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -95,7 +104,6 @@ USE MODI_WIND_THRESHOLD
 USE MODE_THERMOS
 USE MODI_URBAN_EXCH_COEF
 USE MODE_GARDEN_BALANCE, ONLY : GARDEN_PCD_NEUTRAL, GARDEN_CA_NEUTRAL
-!MV202609 garden thermal roughness (z0h)
 !* neutral thermal (scalar) coefficient and conductance of the garden: the
 !* 'EXT_NEU' coefficients are the ones the internal diagnostic garden uses
 USE MODE_GARDEN_BALANCE, ONLY : GARDEN_PCH_NEUTRAL, GARDEN_CAH_NEUTRAL
@@ -210,7 +218,6 @@ REAL, DIMENSION(:), INTENT(OUT)   :: ILMO_TOP        ! 1/length of Monin-Obukov
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GARDEN_ATM  ! garden surf. exchange coeff. (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN_ATM  ! garden drag coeff. for heat (atm.)
 !
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* full set of URBAN_EXCH_COEF outputs for the exchange between the road and the
 !* garden surfaces and the air of the canyon (_CAN) or of the forcing level (_ATM)
 !* (diagnostic variables only, see section 8.3 below)
@@ -233,7 +240,6 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GARDEN_ATM   ! garden neutral drag coe
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI_GARDEN_ATM    ! garden Richardson number (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: ZZ0H_GARDEN_ATM   ! garden roughness length for heat (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_ATM_WAT  ! road   conductance for water (atm.)
-!MV202609 greenroof-to-atm exchange diagnostics
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_GREENROOF_ATM   ! greenroof aerodynamical conductance (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GREENROOF_ATM   ! greenroof surf. exchange coefficient (atm.)
 REAL, DIMENSION(:), INTENT(OUT)   :: PCDN_GREENROOF_ATM  ! greenroof neutral drag coefficient (atm.)
@@ -258,7 +264,6 @@ REAL, DIMENSION(SIZE(PTA)) :: ZRI           ! Richardson number
 REAL, DIMENSION(SIZE(PTA)) :: ZLE_MAX       ! maximum latent heat flux available
 REAL, DIMENSION(SIZE(PTA)) :: ZLE           ! roof latent heat flux (free)
 REAL, DIMENSION(SIZE(PTA)) :: ZLE_CAN_FREE  ! road latent heat flux, road -> canyon (unlimited)
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
 REAL, DIMENSION(SIZE(PTA)) :: ZLE_ATM_FREE  ! road latent heat flux, road -> forcing level (unlimited)
 REAL, DIMENSION(SIZE(PTA)) :: ZLE_TOT       ! tau-weighted sum of the free branch latent fluxes
 REAL, DIMENSION(SIZE(PTA)) :: ZFRAC_WAT     ! water availability factor applied to both branches
@@ -300,7 +305,6 @@ REAL, DIMENSION(SIZE(PTA)) :: ZCHTCS_WALL  ! forced natural convective heat tran
 REAL, DIMENSION(SIZE(PTA)) :: ZTS_GROUND   ! Surface temperature of ground (road + garden)
 REAL, DIMENSION(SIZE(PTA)) :: ZRA_GARDEN_ATM
 REAL, DIMENSION(SIZE(PTA)) :: ZILMO_GARDEN_ATM
-!MV202609 greenroof-to-atm exchange diagnostics
 REAL, DIMENSION(SIZE(PTA)) :: ZRA_GREENROOF_ATM
 REAL, DIMENSION(SIZE(PTA)) :: ZILMO_GREENROOF_ATM
 REAL, DIMENSION(SIZE(PTA)) :: ZVMOD_TOWN
@@ -342,7 +346,6 @@ PCDN   (:) = XUNDEF
 PAC_TOP(:) = XUNDEF
 PRI    (:) = XUNDEF
 !
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* diagnostic exchange coefficients between the surfaces and the air of the
 !* canyon or of the forcing level (see section 8.3); the garden ones are filled
 !* for an external garden: 'EXT' with the full URBAN_EXCH_COEF set, 'EXT_NEU'
@@ -368,7 +371,6 @@ PRI_GARDEN_ATM (:) = XUNDEF
 ZZ0H_GARDEN_ATM(:) = XUNDEF
 PCD_GARDEN_ATM (:) = XUNDEF
 PCH_GARDEN_ATM (:) = XUNDEF
-!MV202609 greenroof-to-atm exchange diagnostics
 PAC_GREENROOF_ATM (:) = XUNDEF
 PCD_GREENROOF_ATM (:) = XUNDEF
 PCDN_GREENROOF_ATM(:) = XUNDEF
@@ -469,7 +471,6 @@ ENDDO
 !
 IF (.NOT. TOPTS%LCANOPY) THEN
  
-!MV202609 z0 and zd to namelist
 ! The reference heights are taken above the displacement surface:
 !   (roof height - zd) + PZREF = (TPARAMS%XBLD_HEIGHT - TPARAMS%XZD_TOWN) + PZREF
 ! (the official TEB has a hard-coded '+ TPARAMS%XBLD_HEIGHT/3.' here, which corresponds
@@ -608,7 +609,6 @@ DO JLOOP=1,3
   END WHERE
 !
    
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
   CALL URBAN_EXCH_COEF(TOPTS%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQ_LOWCAN, PEXNS, PEXNA,  &
                        PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
                        PU_LOWCAN+ZW_CAN, ZZ0_ROAD, PRI_ROAD_CAN, PCD_ROAD_CAN, PCDN_ROAD_CAN,         &
@@ -643,7 +643,6 @@ END DO
 !
 !*      8.3    Exchange coefficients between the road and the atmosphere
 !              at the forcing level (direct exchange, without the canyon)
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !              ------------------------------------------------------------
 !
 !* Same kind of diagnostic as the garden/atmosphere (TERRA) coefficients: the
@@ -690,7 +689,6 @@ DO JJ=1,SIZE(PTA)
   !
   ZLE_MAX(JJ)     = TSTATE%XWS_ROAD(JJ) / PTSTEP * XLVTT
   !
-  !MV202609 CBS scheme of the road (revision: single bucket over both branches)
   !* free (unlimited) latent fluxes of the two branches of the road (canyon air
   !* and forcing level), per m2 of snow-free road
   ZLE_CAN_FREE(JJ) = ( PQSAT_ROAD(JJ) - PQ_LOWCAN(JJ) )                 &
@@ -713,7 +711,6 @@ DO JJ=1,SIZE(PTA)
   ZFRAC_WAT(JJ) = 1.
   IF (ZLE_TOT(JJ) > 0.) ZFRAC_WAT(JJ) = MIN(1., ZLE_MAX(JJ)/ZLE_TOT(JJ))
   !
-  !MV202609 road-to-atm and garden-to-atm exchange diagnostics
   !* the canyon and the forcing-level branches get the same water-limitation
   !* factor; PAC_ROAD_ATM_WAT is the conductance used by the road -> atmosphere
   !* flux diagnostic computed in ROAD_LAYER_E_BUDGET (same water as PAC_ROAD_WAT)
@@ -749,7 +746,6 @@ DO JJ=1,SIZE(PTA)
 
 
 !IF (TOPTS%LGARDEN) THEN
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* garden exchange coefficients, canyon path and atmosphere path.
 !*
 !* 'EXT_NEU' - the garden of an external model with the NEUTRAL exchange
@@ -787,7 +783,6 @@ DO JJ=1,SIZE(PTA)
   ELSEIF (TOPTS%CTYPE_GARDEN == 'EXT') THEN
     !* garden/canyon exchange coefficients: computed only when the garden is
     !* provided by an EXTERNAL model (TOPTS%CTYPE_GARDEN == 'EXT')
-    !MV202609 garden thermal roughness (z0h)
     !* the z0/z0h ratio is the one of the namelist item urb_z0_o_z0h_gdn (it used
     !* to be the hard-coded value 4.), so that the coefficients exported here and
     !* the ones used by the internal diagnostic garden cannot disagree
@@ -818,7 +813,6 @@ DO JJ=1,SIZE(PTA)
     !
   ENDIF
 !
-!MV202609 greenroof-to-atm exchange diagnostics
 !* greenroof exchange coefficients (single path: the greenroof is a roof
 !* surface and exchanges with the air of the forcing level only, no canyon
 !* branch and no tau split).

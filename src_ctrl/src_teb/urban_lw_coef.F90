@@ -55,6 +55,10 @@
 !!    MODIFICATIONS
 !!    -------------
 !!      Original    08/09/98 
+!!      TEB-MSU development
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Guard radiative contributions of inactive garden/greenroof surfaces in
+!!        the reference longwave budget.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

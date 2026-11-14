@@ -19,6 +19,14 @@
  * dangling; every other call is passed through to the real setlocale unchanged,
  * so the build gives bit-identical results.
  */
+/*
+ *    MODIFICATIONS
+ *    -------------
+ *      TEB-MSU development
+ *      09/2026 -- Mikhail Varentsov (MV)
+ *        Add the optional Windows UCRT setlocale wrapper needed for reliable
+ *        formatted model output.
+ */
 #include <locale.h>
 #include <string.h>
 

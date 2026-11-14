@@ -1,4 +1,14 @@
 !auto_modi:spll_teb_garden.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Extend the explicit TEB_GARDEN interface for the inherited
+!!        host-coupling implementation.
+!!      09-10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit TEB_GARDEN interface for diagnostic/CBS surface
+!!        coupling and the parameter/state reorganization.
+!!------------------------------------------------------------------------------
 MODULE MODI_TEB_GARDEN
 INTERFACE
     SUBROUTINE TEB_GARDEN (icell, iblock, TOPTS, TSTATE, BOPTS, BSTATE, TPN, TIR, DMT, &
@@ -54,19 +64,9 @@ REAL, DIMENSION(:)  , INTENT(OUT)   :: PCH_GD    ! drag coeifficient for heat
 REAL, DIMENSION(:)  , INTENT(INOUT)   :: PCD_GD  ! garden  surf. exchange coefficient
 
 
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 !* INOUT: read by the canyon air nodes before the snow scheme of TEB writes them
 INTEGER             , INTENT(IN)    :: KDAY    ! Simulation day
 REAL                , INTENT(IN)     :: PTIME  ! current time since midnight (UTC, s)
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-!MV202609 CBS scheme of the road
-!MV202609 CBS scheme of the road (revision: puddle diagnostics)
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-!MV202609 CBS scheme of the road (revision: three-temperature construction)
-!MV202609 garden diagnostics
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-!MV202609 greenroof diagnostics
-!MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
 END SUBROUTINE TEB_GARDEN
 END INTERFACE
 END MODULE MODI_TEB_GARDEN

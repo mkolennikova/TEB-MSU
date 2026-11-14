@@ -1,4 +1,11 @@
 !auto_modi:spll_urban_lw_coef.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit URBAN_LW_COEF interface for separate
+!!        static-parameter and prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_URBAN_LW_COEF
 INTERFACE
     SUBROUTINE URBAN_LW_COEF(BSTATE, TSTATE, PLW_RAD, PEMIS_G, PTS_SR, PTS_G,              &

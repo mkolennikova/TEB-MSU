@@ -1,5 +1,11 @@
 !SFX_LIC Diagnostic consumer of TEB/SURFEX, governed by the CeCILL-C licence.
-!MV202611 Separate executable: the ordinary single-column offline is unchanged.
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Create the runtime-sized diagnostic block-driver entry point linked
+!!        against the common TEB library.
+!!------------------------------------------------------------------------------
 PROGRAM RUN_TEB_OFFLINE_BLOCK
 USE TEB_OFFLINE_BLOCK_HOST, ONLY: BLOCK_CONFIG,READ_BLOCK_CONFIG,RUN_BLOCK_CASE
 IMPLICIT NONE

@@ -37,6 +37,10 @@
 !!    -------------
 !!      Original    04/2008
 !!      Modified by P. Le Moigne 07/2008: HACTION2 added
+!!      TEB-MSU development
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Move offline-only forcing/calendar support to src_offline when
+!!        separating the common TEB library from its offline host.
 !-------------------------------------------------------------------------------
 !
 !*       0.    DECLARATIONS

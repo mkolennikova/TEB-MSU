@@ -27,6 +27,13 @@
 !!    ---------
 !!    TEB-MSU: TEB_MSU_containers.md, section 2 (the contract)
 !!
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Create the static BEM parameter container and its allocation/lifecycle
+!!        routines, separate from prognostic state.
+!!------------------------------------------------------------------------------
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !

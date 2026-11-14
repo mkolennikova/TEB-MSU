@@ -47,6 +47,10 @@ SUBROUTINE WINDOW_DATA(KI, BSTATE, BPARAMS)
 !!    -------------
 !!      Original    11/10
 !!      G. Pigeon & J. Le Bras  09/12 apply new factor to normal incident tran/ref
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

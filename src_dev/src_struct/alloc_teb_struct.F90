@@ -38,6 +38,10 @@
 !!    MODIFICATIONS
 !!    -------------
 !!    Original    03/2018
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate prognostic-state allocation from static parameters and
+!!        support the host-managed container lifecycle.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -140,7 +144,6 @@ ALLOCATE(BSTATE%LNATVENT_NIGHT(1))  !Has nocturnal surventilation been necessary
 !
 ! Geometric Parameters:
 !
-!MV202609 z0 and zd to namelist
 !
 ! Roof parameters
 !
@@ -221,7 +224,6 @@ ALLOCATE(TIR%XRD_24H_IRRIG(1))     ! roads : total irrigation over 24 hours (kg/
 ! TEB diagnostics structure
 !
 !
-!MV202609 CBS scheme of the road (snow-to-atmosphere branch diagnostics)
 !* persistent branch diagnostics of the snow-on-road exchange: they are read by
 !* the canyon air nodes of the NEXT sub-step (see MODD_DIAG_MISC_TEBN), so they
 !* are allocated AND set to zero here (they must not start as undefined memory)
@@ -243,7 +245,6 @@ ALLOCATE(TIR%XRD_24H_IRRIG(1))     ! roads : total irrigation over 24 hours (kg/
 ! windows [W m-2(bld)]
 
 !
-!MV202609 diagnostics moved into the container (Phase 4a)
 !* The fields carry the diagnostics listed in
 !* python_tests/diag_container/container_fields.csv (driver variable -> CSV column):
 !* they are declared, allocated and deallocated here so that the diagnostics can

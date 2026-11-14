@@ -7,15 +7,9 @@
 ! The CeCILL-C licence is compatible with L-GPL
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 ! ======================================================================, 
-!MV202609 explicit interface of the host-model adapter
-!* CALL_DRIVER is the entry point of the physics (the offline driver goes through
-!* RUN_TEB_OFFLINE -> teb_interface -> CALL_DRIVER). Wrapping the implementation in
-!* a module gives every call site a COMPILE-TIME CHECKED interface: while it was an
-!* external procedure the compiler could not see the argument list, so a wrong
-!* order, type or rank of one of the ~265 arguments was silently accepted (see
-!* docs/TEB_MSU_coupling_checklist.md). Wrapping (instead of an mkmf-style
-!* MODI_CALL_DRIVER interface file) also avoids a second copy of the list that
-!* would have to be kept in sync by hand.
+!* The module interface checks CALL_DRIVER arguments at compile time.
+!* The host supplies configuration, forcing, external surfaces and containers;
+!* this routine advances the currently loaded physical column.
 MODULE MODI_CALL_DRIVER
 USE MODD_TEB_n,           ONLY : TEB_t
 USE MODD_BEM_n,           ONLY : BEM_t
@@ -59,6 +53,19 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 !                                            road orientation option
 !                                            separated walls option
 !      Modification   10/13 (V. Masson) adds irrigation and solar panels
+!      TEB-MSU development
+!      Pre-repository -- Maria Tarasova (MT)
+!        Adapt the standalone driver for COSMO coupling and external
+!        garden/greenroof models; integrate the Wang (2012) wind profile.
+!      09/2026 -- Mikhail Varentsov (MV)
+!        Support configurable urban aerodynamics, CBS and diagnostic
+!        garden/greenroof schemes.
+!      10/2026 -- Mikhail Varentsov (MV)
+!        Integrate pedestrian mean radiant temperature calculations for the road
+!        canyon and roof.
+!      10-11/2026 -- Mikhail Varentsov (MV)
+!        Reorganize the model entry around explicit containers and separate
+!        physics calls from offline forcing and output.
 ! ---------------------------------------------------------------
 ! Modules
 ! ---------------------------------------------------------------
@@ -101,7 +108,6 @@ TYPE(BEM_PARAMS_t),  INTENT(INOUT) :: BPARAMS
 ! ---------------------------------------------------------------
 ! Declaration of variables 
 ! ---------------------------------------------------------------
-!MV202611 explicit transient inputs and garden coefficient directions
 ! Input variables from the host
 INTEGER, INTENT(IN) :: ntstep              !IN timestep
 INTEGER, INTENT(IN) :: icell               !IN number of cell in the block
@@ -124,9 +130,6 @@ TYPE(TEB_FORCING_t), INTENT(IN)   :: FORC  !IN atmospheric forcing of the sub-st
 ! 'ORIE' : specified road orientation          
 ! 'UNIF' : uniform walls                       
 ! 'TWO ' : 2 opposite  walls
-!MV202609 z0 and zd to namelist
-!MV202609 garden thermal roughness (z0h)
-!MV202609 greenroof model type, thermal roughness and surface humidity
 										
 ! Input parameters for BEM                                                                                                                                       ! ||   ||
 
@@ -151,15 +154,6 @@ REAL,DIMENSION(1)                 :: ZABS_SW_GRND    !OUT Shortwave radiation ab
 REAL,DIMENSION(1)                 :: ZABS_LW_GRND    !OUT Longwave radiation absorbed by ground
 REAL,DIMENSION(1)                 :: ZILMO_TOP_FLUX  ! 1/length of Monin-Obukov (from fluxes)
 REAL,DIMENSION(1)                 :: ZLMO_TOP        !OUT 1/length of Monin-Obukov 
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-!MV202609 CBS scheme of the road (revision: three-temperature construction)
-!MV202609 CBS scheme of the road
-!MV202609 CBS scheme of the road (revision: puddle diagnostics)
-!MV202609 garden diagnostics
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-!MV202609 greenroof diagnostics
-!MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
  
 ! ---------------------------------------------------------------
 ! TEB Declarations
@@ -205,13 +199,6 @@ REAL,DIMENSION(1)  :: ZPEW_A_COEF         ! implicit coefficients
 REAL,DIMENSION(1)  :: ZPEW_B_COEF         ! for wind coupling                            
 REAL,DIMENSION(1)  :: ZPEW_A_COEF_LOWCAN  !                                             
 REAL,DIMENSION(1)  :: ZPEW_B_COEF_LOWCAN  !                                             
-!MV202609 CBS scheme of the road (revision: puddle diagnostics)
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-!MV202609 garden diagnostics
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-!MV202609 greenroof diagnostics
-!MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
-!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 
 ! Urban fluxes variables                                                              
 REAL,DIMENSION(1)  :: DELTA_TROOF         ! temperature difference between roof and air in sensible heat flux 
@@ -233,7 +220,6 @@ REAL,DIMENSION(1)  :: ZWAKE  ! reduction of average wind speed
 
 ! New arguments created after BEM                                                                                                                                       ! ||   ||            
 REAL, DIMENSION(1) :: PFLOOR_HEIGHT  ! Floor height (m)                           
-!MV202609 anthropogenic heat diagnostics
 !* latent waste heat of the buildings, per horizontal surface area (as the
 !* sensible one DMT%XH_WASTE(1)): it is added to the wall/roof latent fluxes and to the
 !* canyon humidity by URBAN_FLUXES/AVG_URBAN_FLUXES
@@ -275,7 +261,6 @@ REAL, DIMENSION(1)  :: ZN_FLOOR  ! Number of floors
 !============================================================
 !============================================================
 !ZZ0         = TPARAMS%XBLD_HEIGHT(icell:icell) * 0.075   ! Roughness length (m)
-!MV202609 z0 and zd to namelist
 ! z0 of the urban surface and the displacement height come from the namelist
 ! entries urb_z0_town and urb_zd_town: a value in metres, a fraction of the
 ! building height ('<value>H') or 'H/<n>'; a parameterization name is
@@ -369,7 +354,6 @@ BSTATE%XT_ADP = 285.66  ! Apparatus dewpoint temperature of the
 !===========================================================================
 !===========================================================================
 
-!MV202610 cold-start state: initialized by TEB_INIT_STATE at ntstep == 0
 IF (TEB_LOG_VERBOSE_FIRST()) THEN
   !-------------------------------------------------------------------
   ! Print configuration parameters: once per run and only when the host
@@ -434,7 +418,6 @@ IF (TEB_LOG_VERBOSE_FIRST()) THEN
   PRINT*, '  Wind:'
   PRINT*, '    TOPTS%ITYPE_WIND    = ', TOPTS%ITYPE_WIND
   PRINT*, '    TPARAMS%XFAI(icell:icell,:)          = ', TPARAMS%XFAI(icell,:)
-!MV202609 z0 and zd to namelist
   PRINT*, '  Aerodynamics of the urban surface:'
   PRINT*, '    urb_z0_town   = ', ' -> z0   = ', TPARAMS%XZ0_TOWN(icell), ' m'
   PRINT*, '    urb_zd_town   = ', ' -> zd   = ', TPARAMS%XZD_TOWN(icell), ' m'
@@ -520,7 +503,6 @@ XRIMAX = 0.2  ! Maximum richardson number for exchange coefficients computations
 !
 
 
-!MV202609 garden roughness of an EXTERNAL garden
 !* for the external garden the coefficients of URBAN_DRAG are computed with the
 !* roughness of the host (teb_z0_gd, container EXT%XZ0_GD); a non-physical value
 !* would silently give wrong coefficients and a wrong teb_tch_gd/teb_tcm_gd to
@@ -542,7 +524,6 @@ ENDIF
 !* level, wind speed, solar time and sun position, circumsolar partition of the
 !* shortwave) is filled once per sub-step by TEB_FILL_FORCING of TEB_HOST;
 !* only the previous-step copies and the clock are set here
-!MV202611 offline forcing heights and interpolation are owned by the host.
 DMT%XTS_ROOF(1:1)         = 0.
 DMT%XTS_ROAD(1:1)         = 0.
 DMT%XTS_WALL_A(1:1)       = 0.
@@ -663,7 +644,6 @@ DMT%XQSTOWN_S(1:1)    = FORC%XQA(1:1) * FORC%XEXNS(1:1) / FORC%XEXNA(1:1) + DMT%
 DMT%XWSTOWN(1:1)      = (TSTATE%XWS_ROOF(icell) * TPARAMS%XBLD(icell:icell) + TSTATE%XWS_ROAD(icell:icell) * TPARAMS%XROAD(icell:icell)) * 0.001
 !DMT%XRUNOFF_TOWN(1:1)  = DMT%XRUNOFF_TOWN(1) * dt
 
-!MV202611 snow diagnostics normalized by snow-covered area
 !* Diagnose remaining snow after evolution using local fractions.
 ZPDN_RF_DIAG = 0.
 IF (TSTATE%TSNOW_ROOF%WSNOW(icell,1) > 0.) ZPDN_RF_DIAG = DMT%XPDN_RF(1)
@@ -711,7 +691,6 @@ DMT%XTS_ROAD(1:1) = TSTATE%XT_ROAD(icell,1)
 DMT%XTS_WALL_A(1:1) = TSTATE%XT_WALL_A(icell,1)
 DMT%XTS_WALL_B(1:1) = TSTATE%XT_WALL_B(icell,1)
 
-!MV202610 mean radiant temperature of a pedestrian standing on the road
 !* pure diagnostic: it needs the surface temperatures of this sub-step (set just
 !* above), the incident shortwave components of URBAN_SOLAR_ABS (DMT%XSW_*) and
 !* the canyon geometry of TPARAMS; no feedback on the physics. The projection
@@ -719,28 +698,19 @@ DMT%XTS_WALL_B(1:1) = TSTATE%XT_WALL_B(icell,1)
 !* the solar elevation); 'SPHERE' - the default of URBAN_MRT, the globe-like
 !* definition - remains available as an alternative
 CALL URBAN_MRT(icell, iblock, FORC, TPARAMS, TSTATE, DMT, EXT, 'PERSON')
-!MV202610 the same pedestrian on the roof: only the sky and the roof itself
 CALL URBAN_MRT_ROOF(icell, iblock, FORC, TPARAMS, TSTATE, DMT, EXT, 'PERSON')
 
 DMT%XH_ROOF_FR(1:1) = DMT%XH_ROOF(1)*TPARAMS%XBLD(icell:icell)
-!MV202609 CBS scheme of the road
 !* road fluxes (per m2 of road) as computed by the road energy budget, i.e. the
 !* tau-aggregated fluxes when the CBS scheme is activated (see TEB_GARDEN/TEB)
-!MV202609 CBS scheme of the road (revision: puddle diagnostics)
 !* road water diagnostics: effective (water-limited) conductances of both branches,
 !* snow fraction and liquid/snow components of the road latent heat flux
-!MV202609 garden diagnostics
 !* per-m2-of-garden surface diagnostics (net radiation, fluxes, surface
 !* temperature, conductance and saturation humidity)
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-!MV202609 greenroof diagnostics
-!MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
 !
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
 !* roof water diagnostics: snow fraction and liquid/snow components of the roof
 !* latent heat flux (tile-mean, as computed by TEB for the roof reservoir drain)
 !
-!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 !* water runoff of the road and of the roof reservoirs (per m2 of road / roof),
 !* needed to close the water budget of the two reservoirs on every hour (the
 !* runoff is the (only) term that leaves the reservoir without evaporating)
@@ -757,7 +727,6 @@ DELTA_TWALL = DMT%XTS_WALL_A(1) - TSTATE%XT_CANYON(icell:icell)
 ZABS_SW_GRND = TPARAMS%XROAD(icell:icell) /(TPARAMS%XROAD(icell:icell) + TPARAMS%XGARDEN(icell:icell)) * DMT%XABS_SW_ROAD(1) + TPARAMS%XGARDEN(icell:icell) /(TPARAMS%XROAD(icell:icell) + TPARAMS%XGARDEN(icell:icell)) * DMT%XABS_SW_GARDEN(1)
 ZABS_LW_GRND = TPARAMS%XROAD(icell:icell) /(TPARAMS%XROAD(icell:icell) + TPARAMS%XGARDEN(icell:icell)) * DMT%XABS_LW_ROAD(1) + TPARAMS%XGARDEN(icell:icell) /(TPARAMS%XROAD(icell:icell) + TPARAMS%XGARDEN(icell:icell)) * DMT%XABS_LW_GARDEN(1)
 
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
 !* 1/L of the town computed from the fluxes (not exported; distinct from ZILMO_TOP_EXCH
 !* which receives the 1/L from TEB, empty under MASC95)
 ZILMO_TOP_FLUX = -(DMT%XUSTAR_TOWN(1)**3 * FORC%XTA(1:1)) / (XKARMAN * XG * DMT%XH_TOWN(1) / (XCPD * FORC%XRHOA(1:1)))

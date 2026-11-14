@@ -1,4 +1,11 @@
 !auto_modi:spll_window_e_budget.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit WINDOW_E_BUDGET interface for separate
+!!        static-parameter and prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_WINDOW_E_BUDGET
 INTERFACE
 SUBROUTINE WINDOW_E_BUDGET(BSTATE, PEMIS_WIN, PLW_W_TO_WIN, PLW_R_TO_WIN, PLW_G_TO_WIN, &

@@ -1,4 +1,11 @@
 !auto_modi:spll_urban_exch_coef.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Extend the explicit URBAN_EXCH_COEF_TEST_DIFF_Z0H interface for the
+!!        inherited host-coupling implementation.
+!!------------------------------------------------------------------------------
 MODULE MODI_URBAN_EXCH_COEF
 INTERFACE
 SUBROUTINE URBAN_EXCH_COEF(HZ0H, PZ0H, PTG, PQS, PEXNS, PEXNA, PTA, PQA,   &

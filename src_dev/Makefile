@@ -1,6 +1,16 @@
 # MV202611 common static library and offline consumer (GNU Make / POSIX shell).
 # Keep generated files outside the checkout; use a separate BUILD_ROOT for each
 # compiler/flag profile. See README.md for Windows and Linux examples.
+#    MODIFICATIONS
+#    -------------
+#      TEB-MSU development
+#      Pre-repository -- Maria Tarasova (MT)
+#        Build the host-callable driver, standalone adapter and Wang canopy wind
+#        module.
+#      11/2026 -- Mikhail Varentsov (MV)
+#        Split common-library, ordinary-offline and block-offline builds with
+#        isolated external object/module directories and build profiles.
+#-------------------------------------------------------------------------------
 .DEFAULT_GOAL := all
 ifneq (,$(filter 0 1 2 3,$(firstword $(subst ., ,$(MAKE_VERSION)))))
 $(error GNU Make 4.0 or newer is required for response-file generation)

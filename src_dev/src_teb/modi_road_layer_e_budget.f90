@@ -1,4 +1,11 @@
 !auto_modi:spll_road_layer_e_budget.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      09-10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit ROAD_LAYER_E_BUDGET interface for diagnostic/CBS
+!!        surface coupling and the parameter/state reorganization.
+!!------------------------------------------------------------------------------
 MODULE MODI_ROAD_LAYER_E_BUDGET
 INTERFACE
     SUBROUTINE ROAD_LAYER_E_BUDGET(TSTATE, BSTATE, PTSTEP, PDN_ROAD, PRHOA, PAC_ROAD, PAC_ROAD_WAT, &

@@ -1,4 +1,11 @@
 !auto_modi:spll_urban_fluxes.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Update the explicit URBAN_FLUXES interface for separate
+!!        static-parameter and prognostic-state containers.
+!!------------------------------------------------------------------------------
 MODULE MODI_URBAN_FLUXES
 INTERFACE
     SUBROUTINE URBAN_FLUXES(TOPTS, TSTATE, BSTATE, DMT, HIMPLICIT_WIND, PT_CANYON, PPEW_A_COEF, PPEW_B_COEF,      &

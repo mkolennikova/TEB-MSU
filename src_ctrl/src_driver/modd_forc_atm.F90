@@ -32,6 +32,10 @@ MODULE MODD_FORC_ATM
 !!      Original       20/09/02
 !
 !*       0.   DECLARATIONS
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Adapt atmospheric-forcing storage to the one-column physical driver
+!!        used by the host-model interface.
 !             ------------
 !
 !

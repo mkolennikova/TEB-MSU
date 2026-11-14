@@ -31,6 +31,10 @@
 !!      V. Masson       06/2013         splits module in two
 !
 !*       0.   DECLARATIONS
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Move static geometry/material parameters into TEB_PARAMS_t and retain
+!!        the model state in TEB_t.
 !             ------------
 !
 USE MODD_TYPE_SNOW

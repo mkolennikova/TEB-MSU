@@ -49,7 +49,10 @@
 !!
 !!    MODIFICATIONS
 !!    -------------
-!!      Original    09/2026   gathering of the base-model surface constants
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Centralize reference garden/greenroof proxy parameters and shared
+!!        namelist properties while retaining the reference formulations.
 !-------------------------------------------------------------------------------
 !
 !*       0.   DECLARATIONS

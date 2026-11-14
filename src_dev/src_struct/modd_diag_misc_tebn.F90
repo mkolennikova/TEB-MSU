@@ -31,6 +31,13 @@
 !
 !
 !*       0.   DECLARATIONS
+!!      TEB-MSU development
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Extend diagnostics for CBS road/garden exchange and diagnostic
+!!        greenroof schemes.
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Consolidate CAN/ATM branch records and add shared driver and
+!!        pedestrian-radiation diagnostics.
 !             ------------
 !
 !
@@ -104,7 +111,6 @@ TYPE DIAG_MISC_TEB_t
   REAL, POINTER, DIMENSION(:)   :: XLE_ROAD         ! road latent heat flux            (W/m2)
   REAL, POINTER, DIMENSION(:)   :: XLE_STRLROOF     !structural roof latent heat flux (W/m2)
   REAL, POINTER, DIMENSION(:)   :: XLE_BLT          ! built surf latent heat flux      (W/m2)
-!MV202609 CBS scheme of the road (snow-to-atmosphere branch diagnostics)
 !* The snow-on-road pair (PHSN_RD, PLESN_RD) is part of the CBS branch record:
 !* it is PERSISTENT (the canyon nodes read it before the snow scheme writes it),
 !* see the comment inside TEB_CBS_BRANCH_t.
@@ -198,7 +204,6 @@ TYPE DIAG_MISC_TEB_t
 !------------------------------------------------------------------------------
 !
 
-!MV202609 diagnostics moved into the container (Phase 4a)
 !* The fields carry the diagnostics listed in
 !* python_tests/diag_container/container_fields.csv (driver variable -> CSV column):
 !* they are declared, allocated and deallocated here so that the diagnostics can
@@ -220,7 +225,6 @@ TYPE DIAG_MISC_TEB_t
   REAL, POINTER, DIMENSION(:)   :: XAC_TOP           ! teb_ac_top - OUT Canyon-atm. aerodynamical conductance
   REAL, POINTER, DIMENSION(:)   :: XAC_WL            ! teb_ac_wl - OUT Wall aerodynamical conductance
   REAL, POINTER, DIMENSION(:)   :: XALB_SO           ! teb_alb_so - OUT town solar albedo
-!MV202610 town emissivity (EMIS_TOWN) - OUT town equivalent emissivity
   REAL, POINTER, DIMENSION(:)   :: XEMIS_TOWN           ! town equivalent emissivity (CSV EMIS_TOWN)
   REAL, POINTER, DIMENSION(:)   :: XEVAP_GARDEN         ! teb_evap_garden (CSV EVAP_GARDEN) - OUT total evaporation over the garden (kg/m2/s)
   REAL, POINTER, DIMENSION(:)   :: XEVAP_GREENROOF      ! teb_evap_greenroof (CSV EVAP_GREENROOF) - OUT total evaporation over the greenroof (kg/m2/s)
@@ -291,7 +295,6 @@ TYPE DIAG_MISC_TEB_t
   REAL, POINTER, DIMENSION(:)   :: XWSTOWN_NOW          ! teb_wstown_now - OUT town water content (m H2O) at previous time-step
   REAL, POINTER, DIMENSION(:)   :: XZZ0H_GREENROOF_ATM  ! teb_zz0h_greenroof_atm (CSV ZZ0H_GREENROOF_ATM) - OUT greenroof roughness length for heat (atm.)
 
-!MV202610 pedestrian mean radiant temperature on the road (MRT)
 !* URBAN_SOLAR_ABS exposes the two incident shortwave components that the
 !* pedestrian budget needs (the absorbed XABS_SW_ROAD alone cannot be split into
 !* the beam and the wall reflection), URBAN_MRT assembles the MRT of a person
@@ -315,7 +318,6 @@ TYPE DIAG_MISC_TEB_t
   REAL, POINTER, DIMENSION(:)   :: XMRT_LW_SKY     ! MRT_LW_SKY (CSV MRT_LW_SKY) - sky longwave absorbed by the body (W/m2 body)
   REAL, POINTER, DIMENSION(:)   :: XMRT_LW_WALL    ! MRT_LW_WALL (CSV MRT_LW_WALL) - wall longwave absorbed by the body (W/m2 body)
   REAL, POINTER, DIMENSION(:)   :: XMRT_LW_ROAD    ! MRT_LW_ROAD (CSV MRT_LW_ROAD) - road longwave absorbed by the body (W/m2 body)
-!MV202610 pedestrian mean radiant temperature on the roof (MRT)
 !* the same budget for a person standing on the roof: the roof is a flat
 !* infinite surface, so there are no walls (F_sky = F_roof = 0.5) and the roof is
 !* never shadowed by the canyon; the three incident shortwave components are
@@ -337,10 +339,8 @@ CONTAINS
 SUBROUTINE DIAG_MISC_TEB_INIT(YDIAG_MISC_TEB)
 TYPE(DIAG_MISC_TEB_t), INTENT(INOUT) :: YDIAG_MISC_TEB
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
-!MV202609 the absorbed-radiation fields were missing from the NULLIFY list
-!* (they are allocated right after DIAG_MISC_TEB_INIT is called, so this is an
-!* invariant repair, not a behaviour change; found by
-!* python_tests/check_diag_container.py)
+!* Initialize absorbed-radiation pointers before their allocation.
+!* The complete pointer lists are checked by check_diag_container.py.
 NULLIFY(YDIAG_MISC_TEB%XABS_SW_ROOF)
 NULLIFY(YDIAG_MISC_TEB%XABS_SW_SNOW_ROOF)
 NULLIFY(YDIAG_MISC_TEB%XABS_LW_ROOF)
@@ -357,7 +357,6 @@ NULLIFY(YDIAG_MISC_TEB%XABS_SW_GARDEN)
 NULLIFY(YDIAG_MISC_TEB%XABS_LW_GARDEN)
 NULLIFY(YDIAG_MISC_TEB%XABS_SW_GREENROOF)
 
-!MV202609 diagnostics moved into the container (Phase 4a)
 !* The fields carry the diagnostics listed in
 !* python_tests/diag_container/container_fields.csv (driver variable -> CSV column):
 !* they are declared, allocated and deallocated here so that the diagnostics can
@@ -523,7 +522,6 @@ NULLIFY(YDIAG_MISC_TEB%XHU_BLD)
 NULLIFY(YDIAG_MISC_TEB%XTCOOL_TARGET)
 NULLIFY(YDIAG_MISC_TEB%XTHEAT_TARGET)
 NULLIFY(YDIAG_MISC_TEB%XQIN)
-!MV202610 pedestrian mean radiant temperature on the road (MRT)
 NULLIFY(YDIAG_MISC_TEB%XSW_DIR_ROAD)
 NULLIFY(YDIAG_MISC_TEB%XSW_SKY_ROAD)
 NULLIFY(YDIAG_MISC_TEB%XSW_WALL_ROAD)
@@ -541,7 +539,6 @@ NULLIFY(YDIAG_MISC_TEB%XMRT_SW_ROAD)
 NULLIFY(YDIAG_MISC_TEB%XMRT_LW_SKY)
 NULLIFY(YDIAG_MISC_TEB%XMRT_LW_WALL)
 NULLIFY(YDIAG_MISC_TEB%XMRT_LW_ROAD)
-!MV202610 pedestrian mean radiant temperature on the roof (MRT)
 NULLIFY(YDIAG_MISC_TEB%XSW_DIR_ROOF)
 NULLIFY(YDIAG_MISC_TEB%XSW_SKY_ROOF)
 NULLIFY(YDIAG_MISC_TEB%XSW_TOT_ROOF)

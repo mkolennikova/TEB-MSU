@@ -42,6 +42,21 @@
 !!                04/2012 add BSTATE%XTRAN_WIN
 !!    modified    08/2012 TOPTS%CCH_BEM/ ROUGH_WALL and ROUGH_ROOF for buildind conv coef.
 !!    modified    10/2012 add BPARAMS%XF_WIN_WIN as arg
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Couple external garden/greenroof models through their surface
+!!        properties, turbulent fluxes and runoff.
+!!        Develop trace-snowfall filtering for road and roof snow, alongside
+!!        atmospheric-model coupling.
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Integrate selectable diagnostic garden/greenroof schemes and CBS
+!!        garden exchange, including EXT/EXT_NEU modes.
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Integrate parameter/state separation and dedicated atmospheric-forcing
+!!        and external-surface containers.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Integrate the inherited Maria Tarasova trace-snowfall filter with
+!!        configurable controls and inactive-surface radiation guards.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -71,7 +86,6 @@ USE MODI_WINDOW_SHADING_AVAILABILITY
 USE MODI_URBAN_SOLAR_ABS
 USE MODI_URBAN_LW_COEF
 USE MODI_GARDEN
-!MV202609 garden thermal roughness (z0h)
 !* neutral formulation of the garden exchange coefficients (single source
 !* shared with URBAN_DRAG and with the emulator of the offline driver)
 USE MODE_GARDEN_BALANCE, ONLY : GARDEN_PCD_NEUTRAL, GARDEN_PCH_NEUTRAL
@@ -132,7 +146,6 @@ REAL, DIMENSION(:)  , INTENT(INOUT)   :: PCD_GD  ! garden  surf. exchange coeffi
 
 
 !
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
 !* INOUT: the canyon air nodes of TEB_GARDEN2 read these branch diagnostics
 !* (AVG_URBAN_FLUXES) BEFORE the snow scheme of TEB writes them, so they carry the
 !* value of the previous sub-step (they are persistent in DMT)
@@ -142,18 +155,9 @@ REAL, DIMENSION(:)  , INTENT(INOUT)   :: PCD_GD  ! garden  surf. exchange coeffi
 !
 INTEGER             , INTENT(IN)    :: KDAY  ! Simulation day
 ! new argument for the UTCI calculation
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-!MV202609 CBS scheme of the road
-!MV202609 CBS scheme of the road (revision: puddle diagnostics)
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-!MV202609 CBS scheme of the road (revision: three-temperature construction)
-!MV202609 garden diagnostics
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 !* potential garden fluxes per m2 of garden (see GARDEN): the flux that the single
 !* garden surface would release if the whole exchange went through the canyon air
 !* (CAN) or directly to the air of the forcing level (ATM). Diagnostics only.
-!MV202609 greenroof diagnostics
-!MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
 !
 ! new arguments for shading, schedule or natural ventilation
 REAL                , INTENT(IN)     :: PTIME  ! current time since midnight (UTC, s)
@@ -208,9 +212,7 @@ REAL, DIMENSION(SIZE(FORC%XTA)) :: ZDF_RF    ! free-snow fraction on roofs
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ZDF_RD    ! free-snow fraction on roads
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ZDELT_RD  ! fraction of water on roads
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ZDELT_RF  ! fraction of water on roofs
-!MV202609 CBS scheme of the road
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ZTAU  ! CBS scheme weight of the canyon path (-)
-!MV202609 CBS scheme of the road (revision: three-temperature construction)
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ZQ_CAN0  ! canyon air humidity without tau (kg/kg)
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ZQ_CAN1  ! free layer air humidity (kg/kg)
 !REAL, DIMENSION(SIZE(PTA)) :: ZAC_RF       ! roof conductance
@@ -347,7 +349,6 @@ REAL, DIMENSION(SIZE(FORC%XTA)) :: ZEMIT_LW_RF       ! LW flux emitted UPWARDS  
 !
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ZRN_GD, ZDRAIN_GD, ZIRRIG_GD, ZGFLUX_GD
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ZH_GD, ZLE_GD, ZEVAP_GD, ZTSRAD_GD, ZRUNOFF_GD
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ZPH_GD_CAN, ZPH_GD_ATM    ! garden sensible heat flux, canyon / atmosphere branch
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ZPLE_GD_CAN, ZPLE_GD_ATM  ! garden latent  heat flux, canyon / atmosphere branch
 REAL, DIMENSIOn(SIZE(FORC%XTA)) :: ZQV_GD
@@ -384,7 +385,6 @@ ZSCA_SW(:) = 0.
 TSTATE%TSNOW_ROOF%SCHEME = HSNOW_ROOF
 TSTATE%TSNOW_ROAD%SCHEME = HSNOW_ROAD
 !
-!MV202609 the diagnostics container (Phase 4b): OUT diagnostics initialised to XUNDEF
 DMT%XLE_ROAD_SNOW    = XUNDEF
 DMT%XLE_ROAD_WAT     = XUNDEF
 DMT%XLE_ROOF_SNOW    = XUNDEF
@@ -646,7 +646,6 @@ CALL URBAN_LW_COEF(BSTATE, TSTATE, FORC%XLW, ZEMIS_GD(:IGARDEN_SIZE), TSTATE%TSN
 !
 !-------------------------------------------------------------------------------
 !
-!MV202609 CBS scheme of the road (and of the garden)
 !* tau is the fraction of the surface exchange performed with the canyon air, the
 !* remaining part (1-tau) exchanging directly with the air of the forcing level.
 !* tau is a tanh relaxation of the canyon H/W ratio (see CBS_TAU below):
@@ -671,9 +670,8 @@ CALL TEB_GARDEN2
 !              -------------------------
 !
 
-!MV202609 CBS scheme of the road
-!* (tau itself is computed above, before TEB_GARDEN2, and is used by the garden
-!* and by the road energy budget of TEB below)
+!* Tau is computed before the physical budgets and is shared by the
+!* diagnostic garden and the road energy budget below.
 !
 CALL TEB  (icell, iblock, TOPTS, TSTATE, BOPTS, BSTATE, TIR, DMT, HIMPLICIT_WIND, PBEM_AC,     &
            FORC%XTSUN, TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1), TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1),       &
@@ -686,7 +684,6 @@ CALL TEB  (icell, iblock, TOPTS, TSTATE, BOPTS, BSTATE, TIR, DMT, HIMPLICIT_WIND
            ZRN_GR, ZH_GR, ZLE_GR, ZGFLUX_GR, ZDRAIN_GR, ZTSRAD_GR, ZRUNOFF_GR,              &
            PRNSN_RD, DMT%XH_SNOW_ROAD(1:1), DMT%XLE_SNOW_ROAD(1:1), PGSN_RD, PMELT_RD, ZUW_RD, PUW_RF,       &
            ZDUWDU_RD,                                                             &
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
            DMT%CAN%PHSN_RD, DMT%ATM%PHSN_RD, DMT%CAN%PLESN_RD, DMT%ATM%PLESN_RD,                  &
            PDUWDU_RF, DMT%XUSTAR_TOWN(1:1), PCD, PCDN, DMT%XTCH_TOWN(1:1), PRI_TWN, PRESA_TWN, &
            DMT%XAC_RF(1:1), DMT%CAN%PAC_ROAD(1:1), DMT%XAC_WL(1:1), DMT%XAC_TOP(1:1), DMT%CAN%PAC_GARDEN(1:1), ZAC_RF_WAT, DMT%CAN%PAC_ROAD_WAT(1:1),      &
@@ -699,18 +696,14 @@ CALL TEB  (icell, iblock, TOPTS, TSTATE, BOPTS, BSTATE, TIR, DMT, HIMPLICIT_WIND
            DMT%XT_RAD_IND(1:1), DMT%XHU_BLD(1:1), PTIME, ZE_SHADING, DMT%XSNOW_MELT(1:1), DMT%XSNOWD_ROOF(1:1),         &
            DMT%XSNOWD_ROAD(1:1), PCH_GD, PCD_GD, DMT%CAN%PCH_ROAD(1:1), DMT%XTCH_RF(1:1), DMT%XTCH_WL(1:1), DMT%XTCH_TOP(1:1), ILMO_ROAD,&
            ILMO_ROOF, ILMO_TOP, DMT%ATM%PCD_GARDEN(1:1), DMT%ATM%PCH_GARDEN(1:1) ,                         &
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
            DMT%CAN%PCD_ROAD(1:1), DMT%CAN%PCDN_ROAD(1:1), DMT%CAN%PRI_ROAD(1:1), DMT%CAN%ZZ0H_ROAD(1:1), &
            DMT%ATM%PAC_ROAD(1:1), DMT%ATM%PCH_ROAD(1:1), DMT%ATM%PCD_ROAD(1:1), DMT%ATM%PCDN_ROAD(1:1), &
            DMT%ATM%PRI_ROAD(1:1), DMT%ATM%ZZ0H_ROAD(1:1), DMT%CAN%PCDN_GARDEN(1:1), DMT%CAN%PRI_GARDEN(1:1), &
            DMT%CAN%ZZ0H_GARDEN(1:1), DMT%ATM%PAC_GARDEN(1:1), DMT%ATM%PCDN_GARDEN(1:1), DMT%ATM%PRI_GARDEN(1:1), DMT%ATM%ZZ0H_GARDEN(1:1), &
-!MV202609 greenroof-to-atm exchange diagnostics
            DMT%XPAC_GREENROOF_ATM(1:1), DMT%XPCD_GREENROOF_ATM(1:1), DMT%XPCDN_GREENROOF_ATM(1:1), DMT%XPCH_GREENROOF_ATM(1:1), &
            DMT%XPRI_GREENROOF_ATM(1:1), DMT%XZZ0H_GREENROOF_ATM(1:1), &
            DMT%CAN%PH_ROAD(1:1), DMT%CAN%PLE_ROAD(1:1), DMT%ATM%PH_ROAD(1:1), DMT%ATM%PLE_ROAD(1:1),          &
-!MV202609 CBS scheme of the road
            ZTAU, DMT%XPH_ROAD(1:1), DMT%XPLE_ROAD(1:1), DMT%ATM%PAC_ROAD_WAT(1:1), DMT%XLE_ROAD_WAT(1:1), DMT%XLE_ROAD_SNOW(1:1), &
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
            DMT%XLE_ROOF_WAT(1:1), DMT%XLE_ROOF_SNOW(1:1), TPARAMS, BPARAMS)
 !
 !* canyon-path coefficients of the garden, as handed to the host through the
@@ -756,20 +749,15 @@ CALL AVG_URBAN_FLUXES(icell, iblock, TOPTS, TSTATE, BSTATE, TPN, DMT,           
                       ZRD_FRAC, ZGD_FRAC, ZTOTS_O_HORS, ZDF_RF, DMT%XPDN_RF(1:1), ZDF_RD, DMT%XPDN_RD(1:1),  &
                       PLE_WL_A, PLE_WL_B, PLEW_RF, DMT%XLE_SNOW_ROOF(1:1), PLEW_RD, DMT%XLE_SNOW_ROAD(1:1), DMT%XH_SNOW_ROAD(1:1), &
                       ZTSRAD_GD, ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD, ZEVAP_GD,             &
-!MV202609 CBS scheme of the garden (atmosphere branch in the free layer)
                       ZPH_GD_ATM, ZPLE_GD_ATM,                                            &
                       ZRUNOFF_GD, ZEVAP_GR, ZRUNOFF_GR, ZDRAIN_GR,                       &
                       PRN_GRND, PH_GRND, PLE_GRND, PGFLX_GRND, DMT%XRN_TOWN(1:1), DMT%XH_TOWN(1:1), DMT%XLE_TOWN(1:1), &
                       DMT%XGFLUX_TOWN(1:1), DMT%XQVFL(1:1), ZEMIT_LW_RD,ZEMIT_LW_GD, DMT%XEMIT_LW_GRND(1:1), ZEMIS_GD, PLW_UP, &
-!MV202609 CBS scheme of the road
                       ZTAU,                                                               &
-!MV202609 CBS scheme of the road (revision: three-temperature construction)
                       DMT%ATM%PH_ROAD(1:1), DMT%ATM%PLE_ROAD(1:1), DMT%ATM%PCD_ROAD(1:1), DMT%ATM%ZZ0H_ROAD(1:1),             &
                       FORC%XZREF, FORC%XVMOD,                                                       &
                       DMT%XPT_CAN0(1:1), DMT%XPT_CAN1(1:1), DMT%XPPHI_CAN1(1:1), ZQ_CAN0, ZQ_CAN1,                       &
-!MV202609 CBS scheme of the road (revision: snow-to-atmosphere branch)
                       DMT%CAN%PHSN_RD, DMT%ATM%PHSN_RD, DMT%CAN%PLESN_RD, DMT%ATM%PLESN_RD , TPARAMS, BPARAMS)
-!MV202610 town emissivity (EMIS_TOWN) from AVG_URBAN_FLUXES
 DMT%XEMIS_TOWN(:) = PEMIS_TWN(:)
 !
 PSFCO2(:) = TPARAMS%XGARDEN(:) * ZSFCO2_GD(:) + TPARAMS%XBLD(:) * TPARAMS%XGREENROOF(:) * ZSFCO2_GR(:)  ! no CO2 flux from built and road yet.
@@ -791,13 +779,11 @@ DMT%XQSAT_GARDEN(:) = ZQSAT_GD(:)
 !* NOT a diagnostic -- AVG_URBAN_FLUXES uses it for the water budget of the canyon
 !* air (the garden couples back to the canyon air, the greenroof does not)
 DMT%XPHU_GARDEN(:) = ZHU_AGG_GD(:)
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
 DMT%CAN%H_GARDEN(:) = ZPH_GD_CAN(:)
 DMT%ATM%H_GARDEN(:) = ZPH_GD_ATM(:)
 DMT%CAN%LE_GARDEN(:) = ZPLE_GD_CAN(:)
 DMT%ATM%LE_GARDEN(:) = ZPLE_GD_ATM(:)
 !
-!MV202609 greenroof diagnostics (per m2 of greenroof)
 !* Per-m2-of-greenroof values of the greenroof surface (as computed by the
 !* greenroof model selected with teb_type_greenroof); they are diagnostics only.
 !
@@ -832,7 +818,6 @@ IF (LHOOK) CALL DR_HOOK('TEB_GARDEN',1,ZHOOK_HANDLE)
 CONTAINS
 !-------------------------------------------------------------------------------
 !
-!MV202609 CBS scheme of the road
 !!****  *CBS_TAU*
 !!
 !!    PURPOSE
@@ -923,12 +908,10 @@ IF (TOPTS%LGARDEN) THEN
   !* skipped and the coupling quantities are built in the ELSE branch below
   IF (TOPTS%CTYPE_GARDEN /= 'EXT' .AND. TOPTS%CTYPE_GARDEN /= 'EXT_NEU') THEN
     CALL GARDEN_CBS(TOPTS%CTYPE_GARDEN, TPARAMS%XBLD_HEIGHT(icell:icell)/2, TSTATE%XT_CANYON(icell:icell), TSTATE%XQ_CANYON(icell:icell), DMT%XWIND_CANYON(1:1), EXT%XZ0_GD, &
-!MV202609 garden thermal roughness (z0h)
 !* z0/z0h ratio of the garden: the scalar (thermal) coefficient of the diagnostic
 !* balance is built from it (single value of TOPTS, the same one that URBAN_DRAG
 !* exports and that the emulator of the offline driver uses)
                     TOPTS%XZ0_O_Z0H_GD,                                                          &
-!MV202609 CBS scheme of the garden
 !* the split (tau vs 1 - tau) is applied only to the internal diagnostic proxy:
 !* 'PROXY_OLD' has a single flux which is reported in both branches
                     FORC%XUREF, FORC%XVMOD, FORC%XTA, FORC%XQA,                                                     &
@@ -937,9 +920,7 @@ IF (TOPTS%LGARDEN) THEN
                     ZRN_GD, ZH_GD, ZLE_GD, ZGFLUX_GD,                                          &
                     ZSFCO2_GD, ZEVAP_GD, ZUW_GD, ZRUNOFF_GD, DMT%CAN%PAC_GARDEN(1:1), ZQSAT_GD, ZTSRAD_GD,      &
                     ZDRAIN_GD, ZIRRIG_GD,                              &
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
                     ZPH_GD_CAN, ZPH_GD_ATM, ZPLE_GD_CAN, ZPLE_GD_ATM,                          &
-!MV202609 garden exchange coefficients, returned by the garden model
                     PCD_GD, PCH_GD, ZHU_AGG_GD )
   ELSE
     !
@@ -957,7 +938,6 @@ IF (TOPTS%LGARDEN) THEN
     !* are used (they are then also what the caller receives). No wind floor: the
     !* wind is the one of the host, as in the historical proxy and in COSMO-TEB
     ZQSAT_GD(:)  = QSAT(ZTSRAD_GD(:), FORC%XPS(:))
-!MV202609 friction of the external surfaces (URBAN_DRAG momentum coefficient)
     WHERE (PCD_GD(:) > 0. .AND. PCD_GD(:) < XUNDEF)
       ZUW_GD(:) = - PCD_GD(:) * DMT%XWIND_CANYON(1:1)**2
     ELSEWHERE
@@ -975,7 +955,6 @@ IF (TOPTS%LGARDEN) THEN
   DMT%XABS_LW_GARDEN(:) = ZEMIS_GD(:) * ZREC_LW_GD(:) - XSTEFAN * ZEMIS_GD(:) * ZTSRAD_GD(:)**4
   ZEMIT_LW_GD(:) = XSTEFAN * ZTSRAD_GD(:)**4 + (1 - ZEMIS_GD(:)) / ZEMIS_GD(:) * DMT%XABS_LW_GARDEN(:)
   ZQV_GD(:) = 0.
-!MV202609 garden thermal roughness (z0h)
 !* exchange coefficients of the garden: computed and returned by the garden model
 !* itself (GARDEN_CBS / GARDEN of src_proxi_SVAT, section 8.2 above) and handed
 !* over here directly through the argument list of the call. They are exported in
@@ -995,7 +974,6 @@ IF (TOPTS%LGARDEN) THEN
     ZHU_AGG_GD(:) = MAX(ZHU_AGG_GD(:), 0.01)
     ! COSMO+TEB GARDEN
     ZRN_GD(:) =  DMT%XABS_SW_GARDEN(:) + DMT%XABS_LW_GARDEN(:)
-    !MV202609 CBS scheme of the garden
     !* the external model provides a single set of fluxes (already computed for the
     !* averaged forcing), so both branches of the tau split carry the same flux
     ZPH_GD_CAN (:) = ZH_GD(:)
@@ -1023,7 +1001,6 @@ ELSE
   ZHU_AGG_GD (:) = XUNDEF
   PAC_GD_WAT (:) = XUNDEF
   ZEMIT_LW_GD(:) = 0.
-  !MV202609 CBS scheme of the garden
   ZPH_GD_CAN (:) = 0.
   ZPH_GD_ATM (:) = 0.
   ZPLE_GD_CAN(:) = 0.
@@ -1048,7 +1025,6 @@ IF (TOPTS%LGREENROOF) THEN
                    ZPET_A_COEF, ZPEQ_A_COEF, ZPET_B_COEF, ZPEQ_B_COEF, PTSTEP, FORC%XZREF,  &
     FORC%XUREF, FORC%XTA, FORC%XQA, FORC%XEXNS, FORC%XEXNA,FORC%XRHOA, FORC%XCO2, FORC%XPS, FORC%XRAIN, FORC%XSNOW, FORC%XZENITH,  &
                    ZREC_SW_RF, ZREC_LW_RF, FORC%XVMOD, EXT%XALB_GR, EXT%XEMIS_GR, EXT%XZ0_GR,  &
-!MV202609 greenroof thermal roughness (z0h)
 !* z0/z0h ratio of the greenroof: the scalar (thermal) coefficient of the
 !* diagnostic balance is built from it (single value of TOPTS, the same one
 !* that URBAN_DRAG exports and that the emulator of the driver uses)
@@ -1068,7 +1044,6 @@ IF (TOPTS%LGREENROOF) THEN
     !* path (DMT%XPCD_GREENROOF_ATM(1:1), from URBAN_DRAG) and its neutral value only when the
     !* coefficient is not available yet (first sub-step of a run)
     ZQSAT_GR(:)   = QSAT(ZTSRAD_GR(:), FORC%XPS(:))
-!MV202609 friction of the external surfaces (URBAN_DRAG momentum coefficient)
     WHERE (DMT%XPCD_GREENROOF_ATM(:) > 0. .AND. DMT%XPCD_GREENROOF_ATM(:) < XUNDEF)
       ZUW_GR(:) = - DMT%XPCD_GREENROOF_ATM(:) * FORC%XVMOD(:)**2
     ELSEWHERE

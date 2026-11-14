@@ -83,6 +83,10 @@
 !!                  26/04/12 (G. Pigeon) add term of heating of rain (new arg PRR+XCL)
 !!                     09/12 (G. Pigeon) modif of indoor conv. coef and implicit calculation
 !!                     10/12 (G. Pigeon) add indoor solar heat load
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate static TEB/BEM parameters from prognostic state and pass the
+!!        parameter/state containers explicitly.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS

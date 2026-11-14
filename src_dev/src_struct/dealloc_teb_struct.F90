@@ -37,6 +37,10 @@
 !!    MODIFICATIONS
 !!    -------------
 !!    Original    03/2018
+!!      TEB-MSU development
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Separate prognostic-state release from static parameters and support
+!!        the host-managed container lifecycle.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -123,7 +127,6 @@ DEALLOCATE(BSTATE%LNATVENT_NIGHT)  !Has nocturnal surventilation been necessary 
 !
 ! Geometric Parameters:
 !
-!MV202609 z0 and zd to namelist
 !
 ! Roof parameters
 !
@@ -205,7 +208,6 @@ DEALLOCATE(TIR%XRD_24H_IRRIG)     ! roads : total irrigation over 24 hours (kg/m
 !
 ! TEB diagnostics structure
 !
-!MV202609 diagnostics moved into the container (Phase 4a)
 !* The fields carry the diagnostics listed in
 !* python_tests/diag_container/container_fields.csv (driver variable -> CSV column):
 !* they are declared, allocated and deallocated here so that the diagnostics can
@@ -213,7 +215,6 @@ DEALLOCATE(TIR%XRD_24H_IRRIG)     ! roads : total irrigation over 24 hours (kg/m
 !* the following sub-phases of the refactor.
 
 !
-!MV202609 CBS scheme of the road (snow-to-atmosphere branch diagnostics)
 !
 !
 !

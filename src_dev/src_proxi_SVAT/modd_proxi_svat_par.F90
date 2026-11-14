@@ -48,7 +48,10 @@
 !!
 !!    MODIFICATIONS
 !!    -------------
-!!      Original    09/2026   gathering of the garden roughness length
+!!      TEB-MSU development
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Create the shared parameter module for configurable garden/greenroof
+!!        properties, humidity and scalar roughness.
 !-------------------------------------------------------------------------------
 !
 !*       0.   DECLARATIONS
@@ -69,7 +72,6 @@ IMPLICIT NONE
 !*                  *_GARDEN_CAN / *_GARDEN_ATM columns ('EXT' and 'EXT_NEU')
 !
 REAL, PARAMETER :: XZ0_GD = 0.10
-!MV202609 garden thermal roughness (z0h)
 !* Garden thermal (scalar) roughness ratio z0/z0h (-), i.e. z0h = z0/XZ0_O_Z0H_GD.
 !* It is used as the DEFAULT value of the namelist item urb_z0_o_z0h_gdn
 !* (RUN_TEB_OFFLINE), which is the value actually used by all the garden versions:
@@ -84,17 +86,14 @@ REAL, PARAMETER :: XZ0_GD = 0.10
 !* of the scalar one in this formulation); with XZ0_O_Z0H_GD = 1 the garden is
 !* exactly the one without thermal roughness.
 REAL, PARAMETER :: XZ0_O_Z0H_GD = 4.0
-!MV202609 tunable surface relative humidity of the garden
 !* Namelist item proxy_phu_gdn of the garden model (RUN_TEB_OFFLINE), declared and
 !* owned by this module: the proxies read it directly (as the PHU of the diagnostic
 !* balance of 'PROXY_NEW' and as the moisture multiplier PHU_AGG of the internal
 !* modes). TEB_GARDEN does not see it: an external garden takes its multiplier from
 !* the surface humidity of the host.
-!MV202609 default PHU revision
 !* 0.7 is the literature-based estimate for a typical (unstressed-to-mildly
 !* stressed) urban lawn; the BASE model value was 0.8 (a well-watered lawn, on
 !* the wet side). To reproduce the base model bit for bit, set proxy_phu_gdn = 0.8.
-!MV202609 proxy parameters to namelist (rename urb_phu_* -> proxy_phu_*)
 !* The default is a literal of this declaration only: the parameter is used
 !* nowhere else, so it does not need a named constant.
 REAL :: proxy_phu_gdn = 0.7  ! garden surface relative humidity (-)
@@ -102,21 +101,17 @@ REAL :: proxy_phu_gdn = 0.7  ! garden surface relative humidity (-)
 !* (RUN_TEB_OFFLINE); the physical value is propagated as the PZ0_GR argument
 !* of the GREENROOF scheme (and as ZUW_GR to the roof momentum flux).
 REAL, PARAMETER :: XZ0_GR = 0.01
-!MV202609 greenroof thermal roughness (z0h)
 !* Greenroof thermal (scalar) roughness ratio z0/z0h (-), i.e. z0h = z0/XZ0_O_Z0H_GR.
 !* Default of the namelist item urb_z0_o_z0h_grf (RUN_TEB_OFFLINE); the greenroof
 !* exchanges heat and moisture through PCH = kappa**2/(ln(z/z0)*ln(z/z0h)) like the
 !* garden, while its momentum keeps z0.
 REAL, PARAMETER :: XZ0_O_Z0H_GR = 4.0
-!MV202609 tunable surface relative humidity of the greenroof
 !* Namelist item proxy_phu_grf of the greenroof model, declared and owned by this
 !* module (see proxy_phu_gdn): the greenroof proxy reads it directly.
-!MV202609 default PHU revision
 !* 0.7 is the literature-based estimate for an extensive (sedum) greenroof; the
 !* BASE model value was 0.3, which is below the typical ambient relative humidity
 !* and puts the surface into spurious daytime condensation instead of transpiration.
 !* To reproduce the base model bit for bit, set proxy_phu_grf = 0.3.
-!MV202609 proxy parameters to namelist (rename urb_phu_* -> proxy_phu_*)
 REAL :: proxy_phu_grf = 0.7  ! greenroof surface relative humidity (-)
 !
 !-------------------------------------------------------------------------------

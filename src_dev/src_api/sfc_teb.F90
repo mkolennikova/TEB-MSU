@@ -1,5 +1,21 @@
 
 
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Create the COSMO-oriented block adapter with host-supplied forcing,
+!!        surface parameters and model state.
+!!      09/2026 -- Mikhail Varentsov (MV)
+!!        Extend the host interface for CBS and diagnostic garden/greenroof
+!!        schemes.
+!!      10/2026 -- Mikhail Varentsov (MV)
+!!        Reorganize the adapter around reusable workspace containers and
+!!        explicit host/workspace state transfers.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Define the public input/output contract and preserve lagged
+!!        USTAR/greenroof-CD inputs independently for each host column.
+!!------------------------------------------------------------------------------
 MODULE sfc_teb
 
 
@@ -8,17 +24,13 @@ MODULE sfc_teb
 ! Public subroutines
 !------------------------------------------------------------------------------
 
-!MV202609 explicit interface of the host-model adapter
-!* CALL_DRIVER is a module procedure now (see the wrapper in call_driver.F90), so
-!* the compiler checks the arguments of the call below instead of accepting an
-!* implicit interface; IMPLICIT NONE closes the door to a silently created
-!* variable when an identifier is misspelled.
+!* CALL_DRIVER has a compiler-checked module interface.
+!* Host arrays are loaded into a one-column workspace for each physics call.
 USE MODI_CALL_DRIVER, ONLY : CALL_DRIVER
 USE MODI_INI_CSTS,   ONLY : INI_CSTS
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_FILL_FORCING, TEB_FILL_EXT, TEB_HOST_ENSURE, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, DMT, FORC, EXT, TEB_BIND_STATE, TEB_UNBIND_STATE, TEB_INIT_STATE
 USE TEB_LOG,  ONLY : TEB_LOG_SET_FILTER, TEB_LOG_AT_CADENCE, TEB_LOG_EMIT
-!MV202611 explicit public host contract; numerical kind follows the build profile
 IMPLICIT NONE
 PRIVATE
 INTEGER, PARAMETER :: teb_real_kind = KIND(0.0)
@@ -149,12 +161,9 @@ REAL ,DIMENSION(nvec), INTENT(IN) :: urb_fr_bld  !IN Building area fraction with
 REAL ,DIMENSION(nvec), INTENT(IN) :: fr_garden   !IN Garden area fraction with respect to urban tile    (  -  )
 REAL ,DIMENSION(nvec), INTENT(IN) :: urb_h2w     !IN Street canyon H/W ratio   ( m/m )
 REAL ,DIMENSION(nvec), INTENT(IN) :: urb_h_bld   !IN Building height  (  m  )
-!MV202609 z0 and zd to namelist
 CHARACTER(LEN=16), INTENT(IN) :: urb_z0_town  !IN z0 of the urban surface (0.5 | 0.5m | 0.1H | H/3 | <name>)
 CHARACTER(LEN=16), INTENT(IN) :: urb_zd_town  !IN displacement height    (same forms as urb_z0_town)
-!MV202609 garden thermal roughness (z0h)
 REAL, INTENT(IN) :: urb_z0_o_z0h_gdn  !IN garden z0/z0h ratio (-)         ( >= 1 )
-!MV202609 greenroof model type, thermal roughness and surface humidity
 REAL, INTENT(IN) :: urb_z0_o_z0h_grf               !IN greenroof z0/z0h ratio (-)      ( >= 1 )
 CHARACTER(LEN=4), INTENT(IN) :: teb_hroad_dir      !IN road direction option :
                                                    ! 'UNIF' : uniform roads                       
@@ -266,7 +275,6 @@ REAL ,DIMENSION(nvec), INTENT(INOUT) :: teb_cap_sys_rat
 REAL ,DIMENSION(nvec), INTENT(INOUT) :: teb_m_sys_rat
 LOGICAL ,DIMENSION(nvec), INTENT(INOUT) :: teb_shad_day
 LOGICAL ,DIMENSION(nvec), INTENT(INOUT) :: teb_natvent_night
-!MV202609 fixes of the snow melt / roof puddle water path (runoff diagnostics)
 	
 	
 REAL ,DIMENSION(nvec), INTENT(IN) :: teb_tcool_target
@@ -275,20 +283,9 @@ REAL ,DIMENSION(nvec), INTENT(IN) :: teb_bem_vent
 REAL ,DIMENSION(nvec), INTENT(IN) :: teb_bem_inf
 REAL ,DIMENSION(nvec), INTENT(IN) :: teb_bem_cop
 	
-!MV202609 road-to-atm and garden-to-atm exchange diagnostics
-!MV202609 CBS scheme of the road (revision: three-temperature construction)
-!MV202609 CBS scheme of the road
-!MV202609 anthropogenic heat diagnostics
-!MV202609 CBS scheme of the road (revision: puddle diagnostics)
-!MV202609 fixes of the snow melt / roof puddle water path (roof diagnostics)
-!MV202609 garden diagnostics
-!MV202609 CBS scheme of the garden (canyon and atmosphere branch fluxes)
-!MV202609 greenroof diagnostics
-!MV202609 greenroof-to-atm exchange diagnostics (from URBAN_DRAG)
 LOGICAL,              INTENT(IN)  :: teb_lcbs_scheme    ! flag to use the CBS scheme for the road
 REAL,                 INTENT(IN)  :: teb_tau_hw_thresh  ! H/W giving tau = 0.5 (CBS scheme)
 REAL,                 INTENT(IN)  :: teb_tau_hw_width   ! width of the tanh relaxation (CBS scheme)
-!MV202610 emulator inputs as individual fields (no structures across the boundary)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_wind_canyon  ! canyon wind (m/s)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_u_can_ped    ! wind speed at pedestrian height (1.1 m) (m/s)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_u_can_10m    ! wind speed at 10 m height (m/s)
@@ -296,12 +293,10 @@ REAL, DIMENSION(nvec), INTENT(OUT) :: teb_sobs         ! solar radiation absorbe
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_thbs         ! thermal radiation absorbed by the ground (W/m2)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_runoff_road  ! road runoff of this sub-step (kg/m2/s)
 REAL, DIMENSION(nvec), INTENT(OUT) :: teb_runoff_roof  ! roof runoff of this sub-step (kg/m2/s)
-!MV202611 host-owned lagged momentum inputs (one value per column)
 !* Cold start uses u*=0.2 m/s and an unavailable roof CD (neutral fallback).
 !* Later calls, including restart, restore both values from the host.
 REAL, DIMENSION(nvec), INTENT(INOUT) :: teb_ustar_town        ! town friction velocity (m/s)
 REAL, DIMENSION(nvec), INTENT(INOUT) :: teb_cd_greenroof_atm  ! external greenroof momentum coefficient (-)
-!MV202611 optional host diagnostics: native TEB units and normalization
 !* Only ivstart:ivend is valid. The host owns history and unit conversions.
 !* teb_troad_before is sampled after cold-start, before CALL_DRIVER.
 !* HVAC power is zero with DEF; unavailable diagnostics retain XUNDEF.
@@ -349,7 +344,6 @@ REAL, DIMENSION(nvec), OPTIONAL, INTENT(OUT) :: teb_wind_top                    
 REAL, DIMENSION(nvec), OPTIONAL, INTENT(OUT) :: teb_cd_garden_atm                 ! -; none
 REAL, DIMENSION(nvec), OPTIONAL, INTENT(OUT) :: teb_ch_garden_atm                 ! -; none
 REAL, DIMENSION(nvec), OPTIONAL, INTENT(OUT) :: ahf_traffic_now                   ! W/m2; town
-!* MV202610 blocks and points for which the text output is written;
 !* in the coupled model both lists are empty by default (no filter).
 INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_BLOCK  ! blocks to write
 INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT  ! points to write
@@ -359,7 +353,6 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT  ! points to write
 ! Begin Subroutine teb_interface
 !------------------------------------------------------------------------------
     
-!MV202611 block host contract; the physical workspace remains one column.
 IF (nvec < 1) ERROR STOP 'TEB_INTERFACE: nvec must be positive'
 IF (ivstart < 1 .OR. ivstart > nvec+1 .OR. ivend < 0 .OR. ivend > nvec .OR. &
     ivend < ivstart-1) ERROR STOP 'TEB_INTERFACE: invalid window bounds'
@@ -374,7 +367,6 @@ CALL INI_CSTS
 CALL TEB_HOST_ENSURE(1, teb_nroof_layer, teb_nroad_layer, teb_nwall_layer, teb_nfloor_layer)
 DO i = ivstart, ivend
   IF (.NOT. (sa_uc(i) > 0.)) CYCLE
-  !MV202610 parameter containers are filled here, where the configuration is known
   CALL TEB_FILL_PARAMS (1, 1, teb_itype_bem_cool, teb_itype_bem_heat, teb_tcool_target(i:i), &
                         teb_theat_target(i:i), teb_frac_gz(i:i), teb_bem_inf(i:i), teb_bem_vent(i:i), teb_cap_sys_heat(i:i), &
                         teb_bem_cop(i:i), teb_itype_natvent, teb_lgarden, teb_hroad_dir, teb_wall_opt, teb_itype_bem, &
@@ -386,19 +378,16 @@ DO i = ivstart, ivend
                         teb_utc_hour, teb_lgreenroof_ext, teb_lbem_ac, teb_fr_panel(i:i), teb_lroad_irrig, &
                         teb_rd_irrig_start_m(i:i), teb_rd_irrig_end_m(i:i), teb_rd_irrig_start_h(i:i), &
                         teb_rd_irrig_end_h(i:i), teb_rd_irrig_sum(i:i))
-  !MV202610 derived statics: layer profiles, geometry, SVF, z0/zd, BEM constants
   CALL TEB_FILL_DERIVED (1, 1, urb_z0_town, urb_zd_town, urb_hcap_rd(i:i), urb_hcap_rf(i:i), &
                          urb_hcap_wl(i:i), urb_hcon_rd(i:i), urb_hcon_rf(i:i), urb_hcon_wl(i:i), ahf_traffic(i:i), &
                          teb_fai(i:i,:))
-  !MV202610 forcing of the sub-step: raw values and the derived quantities
-  !* (pressure/Exner, density, wind, solar geometry and shortwave partition)
-  !* are recomputed for this host column in the single-column workspace
+  !* Recompute pressure/Exner, density, wind and solar quantities for this
+  !* host column in the single-column workspace.
   CALL TEB_FILL_FORCING (1, 1, teb_year, teb_month, teb_day, teb_hour_seconds(1), lon_teb(i:i), lat_teb(i:i), &
                          u(i:i), v(i:i), t(i:i), qv(i:i), ps(i:i), prr_con(i:i), prs_con(i:i), prr_gsp(i:i), prs_gsp(i:i), &
                          prg_gsp(i:i), lwd_s(i:i), swdir_s(i:i), swdifd_s(i:i), hlev_teb(i:i), hlev_teb(i:i))
-  !MV202611 external garden / greenroof: the host-provided surface state and
-  !* fluxes are copied for this column (the two runoffs
-  !* are converted here from kg/m2 to kg/m2/s with the same /dt as before)
+  !* Copy external garden/greenroof state and fluxes for this column.
+  !* Convert both runoffs from kg/m2 to kg/m2/s by dividing by dt.
   CALL TEB_FILL_EXT (1, 1, dt, teb_z0_gr(i:i), teb_alb_gr(i:i), teb_emis_gr(i:i), teb_ts_gr(i:i), &
                      teb_qs_gr(i:i), teb_shfl_gr(i:i), teb_lhfl_gr(i:i), teb_qvfl_gr(i:i), teb_runoff_gr(i:i), &
                      teb_z0_gd(i:i), teb_alb_gd(i:i), teb_emis_gd(i:i), teb_ts_gd(i:i), teb_qs_gd(i:i), teb_shfl_gd(i:i), &
@@ -410,25 +399,20 @@ DO i = ivstart, ivend
                        teb_esnow_roof(i:i), teb_tssnow_roof(i:i), teb_wsnow_road(i:i,:), teb_tsnow_road(i:i,:), &
                        teb_rsnow_road(i:i,:), teb_asnow_road(i:i), teb_esnow_road(i:i), teb_tssnow_road(i:i), &
                        teb_tcanyon(i:i), teb_qcanyon(i:i), teb_ws_road(i:i), teb_tfloor(i:i,:), teb_tmass(i:i,:))
-  !MV202610 cold start of the first model step: ntstep is 0-based
   IF (ntstep == 0) THEN
     CALL TEB_INIT_STATE (1, 1)
   ELSE
-    !MV202611 restore the lagged inputs of THIS column before physics.
     DMT%XUSTAR_TOWN(1:1) = teb_ustar_town(i:i)
     DMT%XPCD_GREENROOF_ATM(1:1) = teb_cd_greenroof_atm(i:i)
   END IF
-  !MV202611 expose the actual pre-physics road profile, including cold-start
   IF (PRESENT(teb_troad_before)) &
     teb_troad_before(i:i,:) = TSTATE%XT_ROAD(1:1,:)
   CALL CALL_DRIVER (ntstep, 1, iblock, dt, teb_year, teb_month, teb_day, teb_hour, teb_min, &
                     teb_sec, teb_hour_seconds(1), sa_uc(i), lon_teb(i), lat_teb(i), FORC, EXT, &
                     teb_tch_gd(i), teb_tcm_gd(i), &
                     DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR)
-  !MV202611 return the updated momentum inputs for the next host step.
   teb_ustar_town(i:i) = DMT%XUSTAR_TOWN(1:1)
   teb_cd_greenroof_atm(i:i) = DMT%XPCD_GREENROOF_ATM(1:1)
-  !MV202610 keep the post-TEB_GARDEN value on the first model step
   IF (ntstep == 0) DMT%XTSTOWN_S_NOW(1:1) = DMT%XTSTOWN_S(1:1)
   CALL TEB_UNBIND_STATE (1, 1, teb_ti_bld(i:i), teb_twin2(i:i), teb_qi_bld(i:i), teb_cap_sys_rat(i:i), &
                          teb_m_sys_rat(i:i), teb_twin1(i:i), teb_lshade, teb_shad_day(i:i), teb_natvent_night(i:i), &
@@ -438,7 +422,6 @@ DO i = ivstart, ivend
                          teb_rsnow_road(i:i,:), teb_asnow_road(i:i), teb_esnow_road(i:i), teb_tssnow_road(i:i), &
                          teb_tcanyon(i:i), teb_qcanyon(i:i), teb_ws_road(i:i), teb_tfloor(i:i,:), teb_tmass(i:i,:), &
                          teb_albwin(i:i))
-  !MV202610 the emulator of the host reads these as individual fields
   !* sobs/thbs are the solar/thermal radiation absorbed by the garden, i.e. the
   !* XABS_SW_GARDEN/XABS_LW_GARDEN that TEB_GARDEN computes for the sub-step
   !* (the dedicated XSOBS/XTHBS fields of the container were never filled and
@@ -450,7 +433,6 @@ DO i = ivstart, ivend
   teb_thbs(i:i)        = DMT%XABS_LW_GARDEN(1:1)
   teb_runoff_road(i:i) = DMT%XRUNOFF_ROAD(1:1)
   teb_runoff_roof(i:i) = DMT%XRUNOFF_ROOF(1:1)
-  !MV202611 optional results are copied out; the physical containers are unchanged
   IF (PRESENT(teb_ucanyon)) &
     teb_ucanyon(i:i) = DMT%XUCANYON(1:1)
   IF (PRESENT(teb_vcanyon)) &
@@ -544,7 +526,6 @@ DO i = ivstart, ivend
   IF (PRESENT(ahf_traffic_now)) &
     ahf_traffic_now(i:i) = DMT%XAHF_TRAFFIC_NOW(1:1)
 
-  !MV202611 emit only this host cell while its workspace is still loaded.
   IF (LWRITE_LOG) THEN
     CALL TEB_LOG_EMIT (iblock, DMT, TOPTS, TSTATE, BSTATE, FORC, teb_year, teb_month, teb_day, &
                        teb_hour_seconds, t(i:i), qv(i:i), ps(i:i), rho(i:i), u(i:i), v(i:i), prr_con(i:i), &

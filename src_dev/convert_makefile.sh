@@ -2,6 +2,15 @@
 
 # MV202611 the split library/offline build has explicit manifests. This legacy
 # converter must not overwrite it or restore the old mixed source layout.
+#    MODIFICATIONS
+#    -------------
+#      TEB-MSU development
+#      09/2026 -- Mikhail Varentsov (MV)
+#        Provide the legacy source-layout Makefile conversion tool.
+#      11/2026 -- Mikhail Varentsov (MV)
+#        Protect the split common-library/offline build from being overwritten
+#        by the legacy converter.
+#-------------------------------------------------------------------------------
 if [ -f make/teb_sources.mk ]; then
     echo 'Legacy converter disabled: edit Makefile and make/teb_*.mk for the split build.' >&2
     exit 1

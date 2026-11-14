@@ -1,3 +1,14 @@
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      Pre-repository -- Maria Tarasova (MT)
+!!        Extract a standalone host for the COSMO-style TEB interface, with
+!!        namelist configuration and atmospheric forcing.
+!!      09-10/2026 -- Mikhail Varentsov (MV)
+!!        Integrate shared forcing-aware CSV output, strict namelist
+!!        configuration and configurable cold-start inputs for reference/dev
+!!        comparisons.
+!!------------------------------------------------------------------------------
 PROGRAM run_teb_offline
 
 USE sfc_teb,        ONLY : teb_interface
@@ -6,9 +17,7 @@ USE MODI_OL_TIME_INTERP_ATM
 USE MODD_SURF_PAR, ONLY: XUNDEF, teb_snow_check
 USE MODD_CSTS,     ONLY : XCPD, XSTEFAN, XPI, XDAY, XKARMAN,   &
                           XLVTT, XLSTT, XLMTT, XRV, XRD, XG, XP00
-!MV202609 saturation humidity, used by the external garden / greenroof emulator
 USE MODE_THERMOS,  ONLY : QSAT
-!MV202609 the namelist items of the surface parameters and of the urban
 !* aerodynamics of the control tree are carried by MODD_PROXI_SVAT_PAR (a
 !* NAMELIST group can reference use-associated variables); the module also
 !* holds the resolved displacement height XZD_TOWN used by the physics
@@ -397,7 +406,6 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
                     teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                       &
                     teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h,        &
                     teb_rd_irrig_end_h, teb_rd_irrig_sum, teb_utc_hour,                    &
-!MV202609 keys of the shared namelist honoured by the control tree:
 !* urban aerodynamics and garden/greenroof surface parameters
                     urb_z0_town, urb_zd_town, teb_type_garden, urb_z0_gdn, urb_alb_gdn,    &
                     urb_emis_gdn, teb_type_greenroof, urb_z0_grf, urb_alb_grf, urb_emis_grf, &
@@ -514,12 +522,9 @@ teb_itype_bem        = 'BEM'        ! Building energy Model
 ! 'DEF'  : no Building Energy Model
 ! 'BEM'  :    Building Energy Model
 teb_lbem_ac          = .TRUE.       ! Flag to use air conditioners
-!MV202609 window shading: namelist key teb_lshade, plumbed exactly as in src_dev
-!* and main (driver -> TEB_INTERFACE -> CALL_DRIVER, where LSHADE is an
-!* argument). The DEFAULT is the first-commit behaviour: the first commit
-!* hard-codes LSHADE = .FALSE. inside CALL_DRIVER, so an absent key keeps the
-!* base model; set teb_lshade = .TRUE. to activate the shading devices as
-!* src_dev/main do by default.
+!* Window shading is controlled by teb_lshade through TEB_INTERFACE and
+!* CALL_DRIVER. The reference default is .FALSE.; set the namelist key to
+!* .TRUE. to activate shading devices.
 teb_lshade          = .FALSE.       ! Flag for window shading
 teb_itype_natvent   = 'NONE'        ! Natural Ventilation ! 'NONE', 'MANU', 'AUTO', 'MECH'
 teb_itype_bem_cool  = 'IDEAL '      ! Cooling system    ! 'DXCOIL','IDEAL '    
@@ -677,7 +682,6 @@ IF (rc /= 0) THEN
 END IF
 READ(nml=tebforcing, iostat=rc, unit=fu)
 CLOSE(fu)
-!MV202609 strict namelist date/time reading
 IF (rc > 0) THEN
   WRITE(*,*) 'ERROR: cannot read the forcing namelist: ', TRIM(namelist_forcing_path_local)
   WRITE(*,*) '       IOSTAT = ', rc
@@ -732,7 +736,6 @@ IF (rc > 0) THEN
   STOP 1
 END IF
 CALL NML_REPORT_ABSENT('tebparam', namelist_path_local, nml_param_items)
-!MV202610 indoor initial state: teb_ti_bld_init / teb_qi_bld_init
 IF (ALL(teb_ti_bld_init /= XUNDEF)) THEN
   WRITE(*,'(A)') ' TEB-MSU offline: teb_ti_bld_init given in the namelist'
 ELSE IF (ANY(teb_ti_bld_init == XUNDEF)) THEN
@@ -769,7 +772,6 @@ WRITE(*,'(A,F10.1,A,F12.1,A,I0,A)') ' TEB-MSU offline: dt = ', dt(1), ' s, forc_
 ! SURFACE PARAMETERS AND URBAN AERODYNAMICS FROM THE SHARED NAMELIST
 !===========================================================================
 !===========================================================================
-!MV202609 garden and greenroof surface parameters
 !* The control tree has no internal value for these quantities other than the
 !* base-model one: it applies the namelist items (urb_z0_gdn / urb_alb_gdn /
 !* urb_emis_gdn for the garden, urb_z0_grf / urb_alb_grf / urb_emis_grf for the
@@ -788,7 +790,6 @@ WRITE(*,'(A,F8.3,A,F6.3,A,F6.3,A)') ' TEB-MSU offline: garden  z0/alb/emis = ', 
 WRITE(*,'(A,F8.3,A,F6.3,A,F6.3,A)') ' TEB-MSU offline: greenroof z0/alb/emis = ', urb_z0_grf, &
   ' m / ', urb_alb_grf, ' / ', urb_emis_grf
 
-!MV202610 emissivity of the built surfaces (longwave albedo = 1 - emissivity)
 !* The namelist items urb_emis_rf / urb_emis_rd / urb_emis_wl give the emissivity
 !* of the roof / road / wall material, i.e. the quantity called ZEMIS_ROOF /
 !* ZEMIS_ROAD / ZEMIS_WALL in the upstream 2018/2020 namelists. The interface
@@ -798,7 +799,6 @@ CALL NML_RESOLVE_EMIS('urb_emis_rf', 'urb_alb_rf_th', 'roof', urb_emis_rf, urb_a
 CALL NML_RESOLVE_EMIS('urb_emis_rd', 'urb_alb_rd_th', 'road', urb_emis_rd, urb_alb_rd_th, 0.04)
 CALL NML_RESOLVE_EMIS('urb_emis_wl', 'urb_alb_wl_th', 'wall', urb_emis_wl, urb_alb_wl_th, 0.03)
 
-!MV202609 garden / greenroof model types (namelist keys of the dev tree)
 !* The control tree has a SINGLE internal parameterization for the garden and for
 !* the greenroof ('PROXY_OLD' and 'PROXY_NEW' are the same code here). The two
 !* external modes of the dev tree are available as well: 'EXT' and 'EXT_NEU' make
@@ -871,9 +871,7 @@ nout = nout + 1; out_names(nout) = 'RN_TOWN'
 nout = nout + 1; out_names(nout) = 'HVAC_COOL'
 nout = nout + 1; out_names(nout) = 'HVAC_HEAT'
 nout = nout + 1; out_names(nout) = 'WIND_TOP'
-!MV202609 town friction velocity diagnostic
 nout = nout + 1; out_names(nout) = 'USTAR_TOWN'
-!MV202610 integral town albedo (ALB_TOWN), the value exported to the coupled model
 nout = nout + 1; out_names(nout) = 'ALB_TOWN'
 nout = nout + 1; out_names(nout) = 'SOLAR_PROD'
 nout = nout + 1; out_names(nout) = 'AHF_TRAFFIC'
@@ -979,7 +977,6 @@ DO ntstep = 1, nsteps - 1
                    ZDIR )
     
   DO JSURF_STEP=1,INB_ATM
-    !MV202610 0-based model sub-step: the first forcing step contains
     !* INB_ATM calls of TEB, but only the first one is the cold start.
     kstep_model = (ntstep - 1)*INB_ATM + (JSURF_STEP - 1)
     ! time interpolation of the forcing
@@ -1060,7 +1057,6 @@ DO ntstep = 1, nsteps - 1
                         teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
                         teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
                         teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade)
-    !MV202609 external garden / greenroof: the Bowen emulator prescribes the
     !* state and the fluxes of the garden / of the greenroof, which TEB reads
     !* back at the NEXT sub-step through its EXT interface (one sub-step lag)
     IF (teb_lgarden_ext)     CALL PCD_GARDEN
@@ -1095,9 +1091,7 @@ DO ntstep = 1, nsteps - 1
   CALL CSV_APPEND(out_line, teb_hvac_cool(1))
   CALL CSV_APPEND(out_line, teb_hvac_heat(1))
   CALL CSV_APPEND(out_line, teb_wind_top(1))
-!MV202609 town friction velocity diagnostic
   CALL CSV_APPEND(out_line, teb_ustar_town(1))
-!MV202610 integral town albedo (ALB_TOWN), the value exported to the coupled model
   CALL CSV_APPEND(out_line, teb_alb_so(1))
   CALL CSV_APPEND(out_line, teb_solar_prod(1))
   CALL CSV_APPEND(out_line, ahf_traffic_now(1))
@@ -1488,7 +1482,6 @@ DO WHILE (jp <= ll)
   ip = INDEX(line(jp:ll), name(1:ln))
   IF (ip == 0) RETURN
   ip = jp + ip - 1
-!MV202609 strict namelist reading (fix): the character preceding the item must not
 !* be a name character, but there is no character at all when the item starts the
 !* line (ip = 1). The test must not evaluate LINE(0:0) in that case: Fortran does
 !* not guarantee the short-circuit evaluation of .OR. (gfortran evaluates both
@@ -1721,7 +1714,6 @@ WRITE(*,*) '  build/TEB_offline.exe -help'
 WRITE(*,*) ''
 END SUBROUTINE PRINT_USAGE
 
-!MV202609 garden emulation (teb_type_garden = 'EXT'/'EXT_NEU')
 !> BOWEN emulator of an EXTERNAL garden for the control tree: in the 'EXT' mode
 !! TEB_GARDEN reads the state and the fluxes of the garden from the coupling
 !! interface (teb_ts_gd / teb_qs_gd / teb_shfl_gd / teb_lhfl_gd / teb_qvfl_gd /
@@ -1772,7 +1764,6 @@ teb_runoff_gd(:) = 0.
 teb_qs_gd(:) = 0.8 * QSAT(teb_ts_gd(:), ps(:))
 END SUBROUTINE PCD_GARDEN
 
-!MV202609 greenroof emulation (teb_type_greenroof = 'EXT'/'EXT_NEU')
 !> Same emulator for the greenroof. A greenroof is a ROOF surface: it exchanges
 !! with the air of the forcing level (temperature t, humidity qv) and receives
 !! the CITY-LEVEL radiation - it is neither shadowed by the canyon nor irradiated
