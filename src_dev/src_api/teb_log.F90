@@ -6,6 +6,8 @@
 !!      10/2026 -- Mikhail Varentsov (MV)
 !!        Create centralized table-driven diagnostics and host-selectable output
 !!        filters, separate from the physical routines.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Retain logical cell identities across offline storage permutations.
 !!------------------------------------------------------------------------------
 !     ###################
       MODULE TEB_LOG
@@ -38,6 +40,8 @@ INTEGER, SAVE :: NTEB_LOG_CADENCE = 0             ! calls per output row (host p
 INTEGER, SAVE :: NTEB_LOG_NSUB     = 0            ! calls since the last row
 INTEGER, SAVE, ALLOCATABLE :: TEB_LOG_BLOCK(:)    ! selected blocks
 INTEGER, SAVE, ALLOCATABLE :: TEB_LOG_POINT(:)    ! selected cells
+INTEGER, SAVE, ALLOCATABLE :: TEB_LOG_POINT_IDS(:) ! stable IDs of current host block
+INTEGER, SAVE :: NTEB_LOG_ID_BLOCK = 0
 INTEGER, SAVE, ALLOCATABLE :: TEB_LOG_UNITS(:)    ! one unit per selected pair
 LOGICAL, SAVE, ALLOCATABLE :: LTEB_LOG_HDR(:)     ! header written per pair
 !
@@ -56,6 +60,14 @@ LOGICAL, SAVE :: LTEB_LOG_VERBOSE  = .FALSE.  ! host enabled the informational o
 LOGICAL, SAVE :: LTEB_LOG_CFG_DONE = .FALSE.  ! configuration dump already printed
 !
 CONTAINS
+!
+!> The offline host may permute storage while retaining each column's identity.
+!! Coupled hosts which do not set a map retain the existing index-based routing.
+SUBROUTINE TEB_LOG_SET_POINT_IDS(KBLOCK, KIDS)
+INTEGER, INTENT(IN) :: KBLOCK, KIDS(:)
+NTEB_LOG_ID_BLOCK = KBLOCK
+TEB_LOG_POINT_IDS = KIDS
+END SUBROUTINE TEB_LOG_SET_POINT_IDS
 !
 SUBROUTINE TEB_LOG_INIT (CPATH_PREFIX, KCADENCE, KRC)
 !
@@ -139,6 +151,7 @@ DO J = 1, SIZE(KBLOCK)
   ELSE
     TEB_LOG_UNITS(J) = -1
     WRITE(*,*) 'ERROR TEB_LOG: cannot open ', TRIM(CFILE), ' IOSTAT=', IERR
+    ERROR STOP 'TEB_LOG: output file could not be opened'
   END IF
 END DO
 !
@@ -204,12 +217,17 @@ SUBROUTINE TEB_LOG_FINAL
 !
 INTEGER :: J
 !
+IF (ALLOCATED(TEB_LOG_POINT_IDS)) DEALLOCATE(TEB_LOG_POINT_IDS)
+NTEB_LOG_ID_BLOCK = 0
 IF (ALLOCATED(TEB_LOG_UNITS)) THEN
   DO J = 1, SIZE(TEB_LOG_UNITS)
     IF (TEB_LOG_UNITS(J) /= -1) CLOSE(TEB_LOG_UNITS(J))
   END DO
   DEALLOCATE(TEB_LOG_UNITS)
 END IF
+IF (ALLOCATED(TEB_LOG_BLOCK)) DEALLOCATE(TEB_LOG_BLOCK)
+IF (ALLOCATED(TEB_LOG_POINT)) DEALLOCATE(TEB_LOG_POINT)
+IF (ALLOCATED(LTEB_LOG_HDR)) DEALLOCATE(LTEB_LOG_HDR)
 !
 END SUBROUTINE TEB_LOG_FINAL
 !
@@ -465,7 +483,7 @@ REAL, DIMENSION(:), INTENT(IN) :: swdir_s
 REAL, DIMENSION(:), INTENT(IN) :: swdifd_s
 !
 CHARACTER(LEN=4096) :: CHDR, COUT
-INTEGER             :: KNCOL, J, KDATA_CELL
+INTEGER             :: KNCOL, J, KDATA_CELL, KFILE_CELL
 CHARACTER(LEN=24), DIMENSION(192) :: CNAME
 REAL                :: ZFORC_WIND, ZFORC_DIR
 LOGICAL, SAVE :: LTEB_LOG_EMITTED = .FALSE.
@@ -474,7 +492,13 @@ DO J = 1, SIZE(TEB_LOG_BLOCK)
   IF (TEB_LOG_BLOCK(J) /= KIBLOCK) CYCLE
   KDATA_CELL = TEB_LOG_POINT(J)
   IF (PRESENT(KHOST_CELL)) THEN
-    IF (TEB_LOG_POINT(J) /= KHOST_CELL) CYCLE
+    KFILE_CELL = KHOST_CELL
+    IF (ALLOCATED(TEB_LOG_POINT_IDS) .AND. NTEB_LOG_ID_BLOCK == KIBLOCK) THEN
+      IF (KHOST_CELL < 1 .OR. KHOST_CELL > SIZE(TEB_LOG_POINT_IDS)) &
+        ERROR STOP 'TEB_LOG: host cell outside ID map'
+      KFILE_CELL = TEB_LOG_POINT_IDS(KHOST_CELL)
+    END IF
+    IF (TEB_LOG_POINT(J) /= KFILE_CELL) CYCLE
     KDATA_CELL = 1
   END IF
   KNCOL = 0

@@ -8,6 +8,7 @@
 #      11/2026 -- Mikhail Varentsov (MV)
 #        Declare separate common-library and offline source ownership, excluding
 #        experimental snapshots from the production archive.
+#        Share offline modules between the ordinary and block entry points.
 #-------------------------------------------------------------------------------
 COMMON_SRC := \
     src_api/sfc_teb.F90 \
@@ -158,10 +159,14 @@ OFFLINE_SRC := \
     src_offline/ol_time_interp_atm.F90 \
     src_offline/open_close_bin_asc_forc.F90 \
     src_offline/read_surf_atm.F90 \
+    src_offline/teb_offline_host.F90 \
+    src_offline/teb_offline_namelists.F90 \
+    src_offline/teb_offline_surfaces.F90 \
+    src_offline/teb_offline_output.F90 \
+    src_offline/teb_offline_driver.F90 \
     src_offline/run_teb_offline.F90
 
 BLOCK_SRC := \
-    src_offline/teb_offline_block_host.F90 \
     src_offline/run_teb_offline_block.F90
 
 LEGACY_SRC := \

@@ -3,20 +3,38 @@
 Стенд собирает `src_dev` с `-DTEB_UPSTREAM_CONS_BUGS` и обычный `src_ctrl`
 (без `TEB_UPSTREAM_CONS`). Каждая конфигурация создаётся изменением общего
 словаря `tests/CAPITOUL/namelist/namelist.nml`; **один и тот же полученный файл**
-передаётся обоим деревьям. Во всех случаях CBS выключена по умолчанию `src_dev`:
-ключ `teb_lcbs_scheme` отсутствует в общем словаре и не принимается `src_ctrl`.
+передаётся обоим деревьям в формате `tebopts/tebparams`. В `tebopts` явно
+заданы `nvec=1` и `teb_lcbs_scheme=.FALSE.`; логические переключатели и селекторы
+схем отделены от физических параметров. Результат не зависит от неявного
+default CBS в dev.
 
 ```powershell
-python python_tests/ctrl_dev_base_test/compare.py --toolchain-dir C:\msys64\ucrt64\bin
+python -B python_tests/ctrl_dev_base_test/compare.py --toolchain-dir C:\msys64\ucrt64\bin
 ```
 
 По умолчанию выполняются короткий прогон (100 строк) и полный CAPITOUL (17999
-строк) для каждого случая. `--smoke-only` запускает только короткие прогоны;
-`--skip-build` использует сборки в `build/ctrl_dev_base_test/bin/`. `--out-dir`
-меняет каталог результатов. В `report.md` и `report.json` сохраняются результаты
+строк) для каждого случая. `--smoke-only` запускает только короткие прогоны.
+По умолчанию новый внешний каталог создаётся под
+`TEB_WORK_ROOT/TEB-Ru/ctrl_dev_base_test/<timestamp>` (Windows: `W:\Work_TEB`).
+`--out-dir` задаёт другой внешний каталог; существующие расчёты сохраняются,
+путь внутри checkout отклоняется. На другой машине задайте внешний путь явно.
+Сборки находятся в `<out-dir>/build/dev_bugs` и `<out-dir>/build/ctrl`;
+`--build-root` задаёт иной внешний корень. Для повторного использования сборок
+укажите `--skip-build --build-root <существующий корень>` и новый `--out-dir`.
+В `report.md` и `report.json` сохраняются результаты
 по каждому случаю, хеши словарей и программ, число строк с дождём и снегом,
 число строк со снежной долей дороги и кровли, первые расхождения и максимальные
-ошибки. Логи и CSV сохраняются в каталоге стенда.
+ошибки. Логи и CSV сохраняются в каталоге стенда. Форсинг копируется в его `input/`,
+программы запускаются из внешних каталогов случаев с короткими относительными
+аргументами. SHA общего параметрического файла проверяется после копирования
+в каждый случай. Флаги точности/FPE сохранены, включены bounds-проверки;
+игнорированные ошибки рецептов Make также считаются неуспехом.
+
+Обычный `src_ctrl` остаётся одноколоночным. Он читает новый формат и старый
+`tebparam`, сохраняя свои physical defaults и merged `TEB_output.csv`.
+`nvec>1`, CBS и блочный dump отклоняются явно. В новой группе выходные
+переключатели принимаются только с совместимыми значениями по умолчанию
+(три CSV-переключателя `.TRUE.`, `teb_lwrite_test_dump=.FALSE.`).
 
 Для московского форсинга за январь 2024 года из `TEB_Work`:
 
@@ -25,7 +43,7 @@ python python_tests/ctrl_dev_base_test/compare.py `
   --forcing-nml W:\TEB_work\Moscow_winter\forcing_ERA5\namelist_forcing.nml `
   --replacement-wind W:\TEB_work\Moscow_winter_nosnow\forcing_ERA5\forcing_txt\Forc_WIND.txt `
   --irrigation-months 1 1 `
-  --out-dir build\ctrl_dev_moscow_winter `
+  --out-dir W:\Work_TEB\TEB-Ru\ctrl_dev_moscow_winter `
   --toolchain-dir C:\msys64\ucrt64\bin
 ```
 
@@ -51,7 +69,7 @@ python python_tests/ctrl_dev_base_test/compare.py `
 python python_tests/ctrl_dev_base_test/compare.py `
   --forcing-nml D:\TEB_work\Moscow_D5_2023-24\forcing_ERA5\namelist_forcing.nml `
   --irrigation-months 1 4 `
-  --out-dir build\ctrl_dev_moscow_2023_24 `
+  --out-dir W:\Work_TEB\TEB-Ru\ctrl_dev_moscow_2023_24 `
   --toolchain-dir C:\msys64\ucrt64\bin
 ```
 
@@ -62,6 +80,11 @@ python python_tests/ctrl_dev_base_test/compare.py `
 ниже порога применения штор 297.16 K. Поэтому общий статус стенда — `fail` по
 активности при `pass` по сравнению результатов.
 
+Новые словари задают `dt` в `tebopts` и используют ключи `teb_ctype_*`.
+Ветровая схема задаётся строкой `'DEF'` или `'WANG'`. Сохранённый плоский
+CAPITOUL-шаблон преобразуется генератором перед применением сценариев;
+физические значения, критерии сравнения и исключения сохранены.
+
 ## Случаи
 
 | случай | изменения базовой конфигурации |
@@ -71,8 +94,8 @@ python python_tests/ctrl_dev_base_test/compare.py `
 | `greenroof` | зелёная кровля включена, `teb_frac_gr=0.3`, `PROXY_OLD` |
 | `garden_greenroof` | сад и зелёная кровля включены одновременно |
 | `irrigation` | дорожный полив включён при летнем расписании базового словаря |
-| `wang_zd` | `teb_itype_wind=1`, `urb_zd_town='0.4H'` |
-| `no_bem` | `teb_itype_bem='DEF'`, `teb_frac_gz=0.0` |
+| `wang_zd` | `teb_ctype_wind = 'WANG'`, `urb_zd_town='0.4H'` |
+| `no_bem` | `teb_ctype_bem='DEF'`, `teb_frac_gz=0.0` |
 | `shade` | `teb_lshade=.TRUE.` при включённом BEM |
 
 Для `garden`, `greenroof` и их комбинации используется историческая схема
@@ -90,7 +113,7 @@ python python_tests/ctrl_dev_base_test/compare.py `
 показываются в отчёте и сами по себе не нарушают критерий.
 
 `SOLAR_PROD` записывается в `src_ctrl`, но отсутствует в `src_dev` при выключенных
-панелях. `WIND_TOP` имеет разный смысл при `teb_itype_wind=0`, поэтому исключён
+панелях. `WIND_TOP` имеет разный смысл при `teb_ctype_wind = 'DEF'`, поэтому исключён
 для этих случаев; в случае `wang_zd` он сравнивается. В случае `no_bem`
 `HVAC_COOL` и `HVAC_HEAT` отсутствуют в `src_dev`, а `H_WASTE` в `src_ctrl`
 остаётся неинициализированным из-за D6. Эти исключения прописаны только для

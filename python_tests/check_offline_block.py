@@ -176,6 +176,147 @@ def inactive_preserved(dump):
     return count
 
 
+# Explicit fixtures replace the former hard-coded Fortran profile defaults.
+# Values were captured from the pre-unification host's input namelists.
+BASE_PARAMETERS = {'dt': '3.00000000000000000E+002',
+ 'urb_h_bld': '1.20000000000000000E+001',
+ 'urb_fr_bld': '4.00000000000000022E-001',
+ 'fr_garden': '0.00000000000000000E+000',
+ 'urb_h2w': '5.99999999999999978E-001',
+ 'teb_road_dir': '0.00000000000000000E+000',
+ 'teb_hroad_dir': "'UNIF'",
+ 'teb_wall_opt': "'UNIF'",
+ 'urb_alb_rf_so': '4.00000000000000022E-001',
+ 'urb_alb_rf_th': '2.99999999999999989E-002',
+ 'urb_hcap_rf': '1.58000000000000000E+006',
+ 'urb_hcon_rf': '1.14999999999999991E+000',
+ 'urb_alb_rd_so': '8.00000000000000017E-002',
+ 'urb_alb_rd_th': '4.00000000000000008E-002',
+ 'urb_hcap_rd': '1.74000000000000000E+006',
+ 'urb_hcon_rd': '8.19999999999999951E-001',
+ 'urb_alb_wl_so': '3.20000000000000007E-001',
+ 'urb_alb_wl_th': '2.99999999999999989E-002',
+ 'urb_hcap_wl': '1.58000000000000000E+006',
+ 'urb_hcon_wl': '1.14999999999999991E+000',
+ 'teb_ctype_bem': "'DEF'",
+ 'teb_lbem_ac': 'T',
+ 'teb_ctype_natvent': "'NONE'",
+ 'teb_ctype_bem_cool': "'IDEAL'",
+ 'teb_ctype_bem_heat': "'IDEAL'",
+ 'teb_frac_gz': '0.00000000000000000E+000',
+ 'teb_tcool_target': '2.97160000000000025E+002',
+ 'teb_theat_target': '2.92160000000000025E+002',
+ 'teb_zresidential': '1.00000000000000000E+000',
+ 'teb_dt_res': '0.00000000000000000E+000',
+ 'teb_dt_off': '0.00000000000000000E+000',
+ 'teb_bem_inf': '5.00000000000000000E-001',
+ 'teb_bem_vent': '0.00000000000000000E+000',
+ 'teb_bem_cop': '2.50000000000000000E+000',
+ 'teb_cap_sys_rat': '1.00000000000000000E+002',
+ 'teb_m_sys_rat': '6.70000000000000023E-003',
+ 'teb_cap_sys_heat': '9.00000000000000000E+001',
+ 'ahf_traffic': '2.00000000000000000E+001',
+ 'ahf_industry': '5.00000000000000000E+000',
+ 'teb_ctype_wind': "'DEF'",
+ 'teb_fai': '5.00000000000000000E-001,  5.00000000000000000E-001,  5.00000000000000000E-001,  '
+            '5.00000000000000000E-001,  5.00000000000000000E-001,  5.00000000000000000E-001,  '
+            '5.00000000000000000E-001,  5.00000000000000000E-001',
+ 'teb_lgarden': 'F',
+ 'teb_ctype_garden': "'PROXY_NEW'",
+ 'urb_z0_o_z0h_gdn': '4.00000000000000000E+000',
+ 'teb_lgreenroof': 'F',
+ 'teb_ctype_greenroof': "'PROXY_NEW'",
+ 'teb_frac_gr': '0.00000000000000000E+000',
+ 'urb_z0_o_z0h_grf': '4.00000000000000000E+000',
+ 'teb_lsolar_panel': 'F',
+ 'teb_fr_panel': '0.00000000000000000E+000',
+ 'teb_lroad_irrig': 'F',
+ 'teb_rd_irrig_start_m': '0.00000000000000000E+000',
+ 'teb_rd_irrig_end_m': '0.00000000000000000E+000',
+ 'teb_rd_irrig_start_h': '0.00000000000000000E+000',
+ 'teb_rd_irrig_end_h': '0.00000000000000000E+000',
+ 'teb_rd_irrig_sum': '0.00000000000000000E+000',
+ 'teb_utc_hour': '0',
+ 'teb_lshade': 'F',
+ 'urb_z0_town': "'0.1H'",
+ 'urb_zd_town': "'H/3'",
+ 'teb_lcbs_scheme': 'F',
+ 'teb_tau_hw_thresh': '5.00000000000000000E-001',
+ 'teb_tau_hw_width': '2.50000000000000000E-001',
+ 'teb_ti_bld_init': '2.97160000000000025E+002',
+ 'teb_qi_bld_init': '7.00000000000000015E-003'}
+PROFILE_OVERRIDES = {'DEF': {},
+ 'BEM': {'teb_ctype_bem': "'BEM'", 'teb_frac_gz': '2.00000000000000011E-001'},
+ 'WANG': {'teb_ctype_wind': "'WANG'"},
+ 'CBS': {'teb_lcbs_scheme': 'T'},
+ 'BEM_WANG': {'teb_ctype_bem': "'BEM'",
+              'teb_frac_gz': '2.00000000000000011E-001',
+              'teb_ctype_wind': "'WANG'"},
+ 'GARDEN_EXT': {'fr_garden': '2.00000000000000011E-001',
+                'teb_lgarden': 'T',
+                'teb_ctype_garden': "'EXT'",
+                'teb_lcbs_scheme': 'T'},
+ 'GARDEN_NEU': {'fr_garden': '2.00000000000000011E-001',
+                'teb_lgarden': 'T',
+                'teb_ctype_garden': "'EXT_NEU'",
+                'teb_lcbs_scheme': 'T'},
+ 'ROOF_EXT': {'teb_lgreenroof': 'T',
+              'teb_ctype_greenroof': "'EXT'",
+              'teb_frac_gr': '3.49999999999999978E-001',
+              'teb_lcbs_scheme': 'T'},
+ 'ROOF_NEU': {'teb_lgreenroof': 'T',
+              'teb_ctype_greenroof': "'EXT_NEU'",
+              'teb_frac_gr': '3.49999999999999978E-001',
+              'teb_lcbs_scheme': 'T'},
+ 'COMBINED_EXT': {'fr_garden': '2.00000000000000011E-001',
+                  'teb_lgarden': 'T',
+                  'teb_ctype_garden': "'EXT'",
+                  'teb_lgreenroof': 'T',
+                  'teb_ctype_greenroof': "'EXT'",
+                  'teb_frac_gr': '3.49999999999999978E-001',
+                  'teb_lcbs_scheme': 'T'},
+ 'SNOW': {}}
+OPTION_NAMES = {'dt',
+ 'teb_hroad_dir',
+ 'teb_ctype_bem',
+ 'teb_ctype_bem_cool',
+ 'teb_ctype_bem_heat',
+ 'teb_ctype_natvent',
+ 'teb_ctype_wind',
+ 'teb_lbem_ac',
+ 'teb_lcbs_scheme',
+ 'teb_lgarden',
+ 'teb_lgreenroof',
+ 'teb_lroad_irrig',
+ 'teb_lshade',
+ 'teb_lsolar_panel',
+ 'teb_snow_check',
+ 'teb_ctype_garden',
+ 'teb_ctype_greenroof',
+ 'teb_wall_opt'}
+
+
+def write_physics(path, cfg, overrides=None):
+    values = dict(BASE_PARAMETERS)
+    values.update(PROFILE_OVERRIDES[cfg['profile']])
+    values['dt'] = repr(cfg.get('dt', 300.))
+    if overrides:
+        values.update(overrides)
+        values = {name: value for name, value in values.items() if value is not None}
+        for surface in ('rf', 'rd', 'wl'):
+            if 'urb_emis_' + surface in overrides:
+                values.pop('urb_alb_' + surface + '_th', None)
+    enabled = nml_value(cfg.get('model_log', False))
+    opts = dict(nvec=str(cfg['nvec']), teb_lwrite_output=enabled,
+                teb_lwrite_emu=enabled, teb_lwrite_runoff=enabled,
+                teb_lwrite_test_dump='.TRUE.')
+    opts.update((name, value) for name, value in values.items() if name in OPTION_NAMES)
+    params = {name: value for name, value in values.items() if name not in OPTION_NAMES}
+    text = '&tebopts\n' + ''.join(f' {k}={v},\n' for k, v in opts.items()) + '/\n'
+    text += '&tebparams\n' + ''.join(f' {k}={v},\n' for k, v in params.items()) + '/\n'
+    path.write_text(text, encoding='utf-8')
+
+
 class Suite:
     def __init__(self, work, exe, ordinary, env, quick):
         self.work, self.exe, self.ordinary, self.env = work, exe, ordinary, env
@@ -194,7 +335,9 @@ class Suite:
         directory = self.work / 'runs' / (f'{cfg["profile"]}_{cfg["nvec"]}_' + digest)
         # A completed run is never reused across suite invocations.
         directory.mkdir(parents=True, exist_ok=False)
-        write_nml(directory / 'block_test.nml', 'block_test', cfg)
+        write_physics(directory / 'parameters.nml', cfg, cfg.get('parameters'))
+        controls = {k: v for k, v in cfg.items() if k != 'parameters'}
+        write_nml(directory / 'block_test.nml', 'block_test', dict(controls, param_nml='parameters.nml'))
         command([self.exe, '-config', directory / 'block_test.nml', '-output', directory],
                 directory, directory / 'run.log', self.env, 'BLOCK_COMPLETED')
         if not (directory / 'completed.txt').is_file():
@@ -349,9 +492,9 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
         if count != 1:
             raise AssertionError('Review the memory probe: CALL_DRIVER entry was not found')
         objects = [Path(paths['BLOCK_OBJDIR']) / (name + '.o')
-                   for name in ('teb_offline_block_host', 'run_teb_offline_block')]
+                   for name in ('run_teb_offline_block',)]
         objects += sorted(p for p in Path(paths['OFFLINE_OBJDIR']).glob('*.o') if p.stem != 'run_teb_offline')
-        if len(objects) != 10 or not all(p.is_file() for p in objects):
+        if len(objects) != 14 or not all(p.is_file() for p in objects):
             raise RuntimeError('Memory probe requires the matching block and offline helper objects')
         compiler = paths['FC']
         if 'gfortran' not in compiler:
@@ -381,7 +524,8 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
                            factor=1.5, from_step=6, perturb_column=4)
                 directory = out / (tag + '_' + physics)
                 directory.mkdir()
-                write_nml(directory / 'block.nml', 'block_test', cfg)
+                write_physics(directory / 'parameters.nml', cfg)
+                write_nml(directory / 'block.nml', 'block_test', dict(cfg, param_nml='parameters.nml'))
                 args = [exe, '-config', directory / 'block.nml', '-output', directory]
                 log = directory / 'run.log'
                 if field:
@@ -446,6 +590,181 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
         else:
             raise AssertionError('The sensitivity checker missed the intentional broadcast error')
 
+    def unified_namelists(self):
+        # Scalar expansion must agree with explicit lists and independent runs.
+        for profile in ('DEF', 'BEM_WANG', 'COMBINED_EXT'):
+            scalar = self.run(nvec=7, profile=profile)
+            values = dict(BASE_PARAMETERS, **PROFILE_OVERRIDES[profile])
+            repeated = {name: ', '.join([values[name]] * 7)
+                        for name in ('urb_h_bld', 'urb_h2w', 'urb_hcap_rd',
+                                     'ahf_traffic', 'teb_tcool_target', 'teb_qi_bld_init')}
+            explicit = self.run(nvec=7, profile=profile, parameters=repeated)
+            self.comparisons += compare_reference(explicit, dict.fromkeys(range(1, 8), scalar))
+            self.record('namelist_scalar_equals_repeated_list', profile=profile, nvec=7)
+        fai = '0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8'
+        eight = self.run(nvec=8, nsteps=2, profile='WANG', parameters={'teb_fai': fai})
+        for record in eight.before:
+            for direction, value in enumerate(map(float, fai.split(',')), 1):
+                if record.data[eight.field(f'teb_fai[{direction}]')] != value:
+                    raise AssertionError('nvec=8 was confused with the eight FAI directions')
+        self.record('common_fai_when_nvec_equals_eight')
+        long_list = ', '.join(['1.3815800000000000'] * 257)
+        long_case = self.run(nvec=257, nsteps=1, profile='DEF', parameters={'urb_h2w': long_list})
+        if any(r.data[long_case.field('urb_h2w')] != 1.38158 for r in long_case.before):
+            raise AssertionError('A long namelist record was truncated')
+        self.record('long_namelist_record', nvec=257, characters=len(long_list))
+
+        forcing = self.work / 'runs' / 'file_inputs' / 'forcing.nml'
+        series = {
+            'urb_h_bld': [12. + 2*j for j in range(7)],
+            'urb_h2w': [.25 + .25*j for j in range(7)],
+            'urb_hcap_rd': [1740000. + 100000*j for j in range(7)],
+            'urb_alb_rf_so': [.1 + .04*j for j in range(7)],
+            'ahf_traffic': [5.*j for j in range(7)],
+            'teb_tcool_target': [294. + j for j in range(7)],
+            'urb_z0_gdn': [.05 + .02*j for j in range(7)],
+            'urb_z0_grf': [.01 + .005*j for j in range(7)],
+            'urb_alb_gdn': [.1 + .02*j for j in range(7)],
+            'urb_emis_rf': [.9 + .01*j for j in range(7)],
+            'urb_emis_grf': [.9 + .01*j for j in range(7)],
+        }
+        common = dict(teb_ctype_bem="'BEM'", teb_ctype_wind="'WANG'",
+                      teb_ti_bld_init=None, teb_qi_bld_init=None,
+                      teb_fai='0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8')
+        parameters = dict(common, **{name: ', '.join(map(repr, values))
+                                    for name, values in series.items()})
+        cfg = dict(nvec=7, nblocks=2, nsteps=0, profile='COMBINED_EXT',
+                   forcing_source='FILE', forcing_nml=forcing.as_posix(), model_log=True,
+                   parameters=parameters)
+        block = self.run(**cfg)
+        refs = {}
+        for cell in range(1, 8):
+            point_params = dict(common, **{name: repr(values[cell-1]) for name, values in series.items()})
+            refs[cell] = self.run(**dict(cfg, nvec=1, source_nvec=7, sample_column=cell,
+                                        parameters=point_params))
+        self.comparisons += compare_reference(block, refs)
+        for cell, ref in refs.items():
+            for b in (1, 2):
+                for kind in ('output', 'emu', 'runoff'):
+                    name = f'TEB_{kind}_b{b}_c{cell}.csv'
+                    if (block.directory/name).read_bytes() != (ref.directory/name).read_bytes():
+                        raise AssertionError(f'Per-cell CSV differs from an independent process: {name}')
+        for step in range(block.first, block.last + 1):
+            records = [r for r in block.before if r.meta[0] == step]
+            first = records[0]
+            for record in records[1:]:
+                for name in ('t', 'qv', 'u', 'v', 'ps', 'rho', 'lwd_s', 'swdir_s', 'swdifd_s'):
+                    index = block.field(name)
+                    if record.data[index] != first.data[index]:
+                        raise AssertionError(f'Common forcing differs across cells: {name}')
+        for record in block.before:
+            for direction in range(1, 9):
+                expected = float(common['teb_fai'].split(',')[direction-1])
+                if record.data[block.field(f'teb_fai[{direction}]')] != expected:
+                    raise AssertionError('FAI profile was not broadcast across the block')
+        self.record('heterogeneous_namelist_and_all_csv', nvec=7, nblocks=2,
+                    independent_processes=7, varied_parameters=len(series))
+
+        permuted = self.run(**dict(cfg, permute_step=6))
+        self.comparisons += compare_reference(permuted, refs)
+        for name in block.directory.glob('TEB_*.csv'):
+            if name.read_bytes() != (permuted.directory/name.name).read_bytes():
+                raise AssertionError(f'CSV identity changed after a storage permutation: {name.name}')
+        self.record('stable_csv_cell_ids_after_permutation', nvec=7, nblocks=2)
+
+        checkpoint = self.work / 'checks' / 'output_checkpoint.bin'
+        first = self.run(**dict(cfg, stop_after=17, checkpoint_file=checkpoint.as_posix()))
+        resumed = self.run(**dict(cfg, restart_file=checkpoint.as_posix()))
+        for name in block.directory.glob('TEB_*.csv'):
+            whole = name.read_bytes().splitlines()
+            left = (first.directory/name.name).read_bytes().splitlines()
+            right = (resumed.directory/name.name).read_bytes().splitlines()
+            if not whole:
+                if left or right:
+                    raise AssertionError('Unexpected emulator output after restart')
+                continue
+            if left[0] != whole[0] or right[0] != whole[0] or left + right[1:] != whole:
+                raise AssertionError(f'CSV restart changed output or an interval accumulator: {name.name}')
+        self.record('csv_restart_inside_accumulation_interval', split_after=17, cadence=6, nblocks=2)
+
+        # Both entry points consume exactly the same physical namelist at nvec>1.
+        entry_root = self.work / 'runs' / 'unified_entry_points'
+        for tag, exe in (('ordinary', self.ordinary), ('block', self.exe)):
+            directory = entry_root / tag
+            directory.mkdir(parents=True)
+            command([exe, '-param_nml', block.directory/'parameters.nml',
+                     '-forcing_nml', forcing, '-output', directory],
+                    directory, directory/'run.log', self.env, 'ENDS CORRECTLY')
+        a, b = entry_root/'ordinary', entry_root/'block'
+        for name in a.glob('TEB_*.csv'):
+            if name.read_bytes() != (b/name.name).read_bytes():
+                raise AssertionError(f'Entry points differ: {name.name}')
+        self.runs += 2
+        self.record('same_namelist_both_entry_points', nvec=7)
+
+        for wind, code in (('DEF', 0), ('WANG', 1)):
+            for dt in (150., 600.):
+                result = self.run(nvec=2, profile='DEF', dt=dt,
+                                  parameters={'teb_ctype_wind': nml_value(wind)})
+                for record in result.before:
+                    if record.data[result.field('dt')] != dt:
+                        raise AssertionError('tebopts dt did not reach the API')
+                    if record.data[result.field('teb_itype_wind')] != code:
+                        raise AssertionError('Named wind selector did not reach the numeric API')
+                self.record('named_wind_and_option_dt', selector=wind, api_code=code, dt=dt)
+
+    def strict_namelists(self):
+        root = self.work / 'runs' / 'invalid_namelists'
+        forcing = self.work / 'runs' / 'file_inputs' / 'forcing.nml'
+        cases = {
+            'short_list': ("&tebopts nvec=3 / &tebparams urb_h_bld=10.,20. /", 'urb_h_bld'),
+            'long_list': ("&tebopts nvec=3 / &tebparams urb_h_bld=10.,20.,30.,40. /", 'urb_h_bld'),
+            'repeat': ("&tebopts nvec=3 / &tebparams urb_h_bld=3*10. /", 'urb_h_bld'),
+            'null': ("&tebopts nvec=3 / &tebparams urb_h_bld=10.,,30. /", 'urb_h_bld'),
+            'leading_null': ("&tebopts nvec=3 / &tebparams urb_h_bld=,10. /", 'urb_h_bld'),
+            'indexed': ("&tebopts nvec=3 / &tebparams urb_h_bld(1)=10. /", 'urb_h_bld'),
+            'duplicate': ("&tebopts nvec=3 / &tebparams urb_h_bld=10.,urb_h_bld=20. /", 'urb_h_bld'),
+            'logical_array': ("&tebopts nvec=3,teb_lgarden=T,F,T / &tebparams /", 'teb_lgarden'),
+            'selector_array': ("&tebopts nvec=3,teb_ctype_bem='DEF','BEM','DEF' / &tebparams /", 'teb_ctype_bem'),
+            'scalar_array': ("&tebopts nvec=3,dt=300.,300.,300. / &tebparams /", 'dt'),
+            'fai_short': ("&tebopts nvec=3 / &tebparams teb_fai=.1,.2,.3 /", 'teb_fai'),
+            'fai_cells': ("&tebopts nvec=3 / &tebparams teb_fai="+','.join(['.5']*24)+" /", 'teb_fai'),
+            'wrong_group': ("&tebopts nvec=3 / &tebparams teb_lgarden=T /", 'teb_lgarden'),
+            'mixed_formats': ("&tebparam dt=300. / &tebopts nvec=3 / &tebparams /", 'cannot mix'),
+            'invalid_nvec': ("&tebopts nvec=0 / &tebparams /", 'nvec'),
+            'real_nvec': ("&tebopts nvec=3.0 / &tebparams /", 'integer'),
+            'missing_slash': ("&tebopts nvec=3 / &tebparams urb_h_bld=10.", 'terminating slash'),
+            'bad_geometry': ("&tebopts nvec=3 / &tebparams urb_h_bld=10.,-1.,20. /", 'geometry'),
+            'nonfinite': ("&tebopts nvec=3 / &tebparams urb_h_bld=10.,NaN,20. /", 'non-finite'),
+            'long_selector': ("&tebopts nvec=3,teb_ctype_bem='BEM_extra' / &tebparams /", 'length'),
+            'invalid_thermal_ratio': ("&tebopts nvec=3 / &tebparams urb_z0_o_z0h_gdn=1.e30 /", 'ratio'),
+        }
+        cases.update({
+            'dt_in_parameters': ("&tebopts / &tebparams dt=300. /", 'dt'),
+            'numeric_wind_zero': ("&tebopts teb_ctype_wind=0 / &tebparams /", 'DEF or WANG'),
+            'numeric_wind_one': ("&tebopts teb_ctype_wind=1 / &tebparams /", 'DEF or WANG'),
+            'unknown_wind': ("&tebopts teb_ctype_wind='OTHER' / &tebparams /", 'length'),
+            'unknown_wind_short': ("&tebopts teb_ctype_wind='BAD' / &tebparams /", 'DEF or WANG'),
+            'wind_list': ("&tebopts nvec=2,teb_ctype_wind='DEF','WANG' / &tebparams /", 'teb_ctype_wind'),
+            'zero_dt': ("&tebopts dt=0. / &tebparams /", 'dt'),
+        })
+        for key in ('teb_itype_bem', 'teb_itype_natvent', 'teb_itype_bem_cool',
+                    'teb_itype_bem_heat', 'teb_itype_wind', 'teb_type_garden', 'teb_type_greenroof'):
+            cases['legacy_key_' + key] = (f"&tebopts {key}='DEF' / &tebparams /", key)
+        for name, (text, expected) in cases.items():
+            directory = root / name
+            directory.mkdir(parents=True)
+            (directory/'params.nml').write_text(text, encoding='utf-8')
+            with (directory/'run.log').open('w') as log:
+                result = subprocess.run([str(self.ordinary), '-param_nml', 'params.nml',
+                                         '-forcing_nml', str(forcing), '-output', '.'],
+                                        cwd=directory, env=self.env, stdout=log, stderr=subprocess.STDOUT)
+            message = (directory/'run.log').read_text(errors='replace')
+            if result.returncode == 0 or expected.lower() not in message.lower() or (directory/'completed.txt').exists():
+                raise AssertionError(f'Strict namelist validation failed: {name}: {message[-800:]}')
+            self.runs += 1
+        self.record('strict_namelist_rejections', cases=len(cases))
+
     def files(self):
         case = self.work / 'runs' / 'file_inputs'
         case.mkdir(parents=True)
@@ -461,9 +780,8 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
             self.comparisons += compare_reference(block, dict.fromkeys(range(1, 8), scalar))
             out = case / profile
             out.mkdir()
-            # The ordinary CLI uses 100-character path buffers. Relative CLI
-            # names preserve its behavior even when this external root is long.
-            shutil.copyfile(scalar.directory / 'ordinary_parameters.nml', out / 'params.nml')
+            # Both entry points read the same new-format physical namelist.
+            shutil.copyfile(scalar.directory / 'parameters.nml', out / 'params.nml')
             (out / 'forcing.nml').write_text(forcing.read_text(encoding='utf-8').replace(
                 (case / 'input').as_posix() + '/', '../input/'), encoding='utf-8')
             command([self.ordinary, '-forcing_nml', 'forcing.nml', '-param_nml', 'params.nml', '-output', '.'],
@@ -540,6 +858,8 @@ def main():
         suite.restart()
         suite.negative()
         suite.files()
+        suite.unified_namelists()
+        suite.strict_namelists()
     except Exception as error:
         suite.report(error)
         raise

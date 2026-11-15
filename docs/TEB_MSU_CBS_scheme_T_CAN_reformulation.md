@@ -530,7 +530,7 @@ T_ref  = (τ·Ca_h_C·PT_LOWCAN + (1−τ)·Ca_h_A·PTA) / Ca_eff  (аналог
 
 Каньонная ветвь питает узел `T_CAN0`/`PQ_CAN0`, атмосферная — свободный слой
 `T_CAN1`/`PQ_CAN1`; фактический поток равен `H_GARDEN = τ·H_GARDEN_CAN + (1−τ)·H_GARDEN_ATM`
-(то же для `LE`). Расщепление включается только для `teb_type_garden = 'PROXY_NEW'`
+(то же для `LE`). Расщепление включается только для `teb_ctype_garden = 'PROXY_NEW'`
 (`LCBS_SPLIT`); для `'PROXY_OLD'`, `'EXT'`/`'EXT_NEU'` и при выключенной схеме обе
 ветви принудительно равны фактическому потоку. Полное описание схемы сада —
 в `TEB_MSU_garden_diagnostic_scheme.md`.
@@ -587,7 +587,8 @@ T_ref  = (τ·Ca_h_C·PT_LOWCAN + (1−τ)·Ca_h_A·PTA) / Ca_eff  (аналог
 
 ## 5. Диагностики схемы
 
-Все колонки выводятся в `TEB_output.csv` (`src_dev/src_offline/run_teb_offline.F90`).
+Колонки каждой ячейки выводятся в `TEB_output_b<B>_c<C>.csv`
+(`src_dev/src_api/teb_log.F90`).
 
 | колонка | смысл |
 | --- | --- |
@@ -737,7 +738,7 @@ T_ref  = (τ·Ca_h_C·PT_LOWCAN + (1−τ)·Ca_h_A·PTA) / Ca_eff  (аналог
 * `src/src_teb/urban_drag.F90` — проводимости обеих ветвей и ограничение по запасу воды;
 * `src/src_teb/snow_cover_1layer.F90` — ветвь «снег↔атмосфера»;
 * `src/src_teb/urban_fluxes.F90`, `src/src_teb/urban_hydro.F90` — нормировка потоков и водный путь;
-* `src_dev/src_offline/run_teb_offline.F90` — колонки CSV.
+* `src_dev/src_api/teb_log.F90` — модельные колонки CSV.
 
 Документы: `TEB_MSU_garden_diagnostic_scheme.md`, `TEB_MSU_source_defects.md`,
 `TEB_MSU_change_history.md`, `TEB_MSU_variables_description.md`.

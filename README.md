@@ -122,45 +122,89 @@ cd "$case_root"
 The notebook build cell uses an external profile too. Saved notebook output
 may show older paths; new executions use the explicit executable location.
 
-### Runtime-sized diagnostic offline host (`src_dev`)
+### Shared scalar/block offline driver (`src_dev`)
 
-`make -C src_dev offline-block` builds `bin/TEB_offline_block_dev.exe` under
-the same external `BUILD_ROOT`, linked to `libteb.a`. It has separate
-`offline-block/obj` and `offline-block/mod` directories and reuses the eight
-offline forcing/calendar helpers. The ordinary executable and the default
-`all` target are unchanged. Compiler and external-path options are the same
-as above; use a fresh profile when enabling `OTHERFLAGS=-fcheck=all`.
+Both `TEB_offline_dev.exe` and `TEB_offline_block_dev.exe` call the same
+offline driver. `nvec=1` selects an ordinary column; larger values select a
+block. `offline-block` builds the additional thin main program, linked with the
+same offline objects and `libteb.a`. The physics library remains independent of
+the offline configuration, forcing and output modules.
 
-The diagnostic executable accepts `-config <block_test.nml> -output <existing
-external directory>`. The `/block_test/` namelist selects runtime `nvec`,
-physics profile, synthetic or file forcing, array modifications, masks and
-checkpoint/restart. It calls the public API with a whole block; the library
-still evaluates physics one column at a time. This is a diagnostic host,
-not a replacement for the general parameter namelist of ordinary offline.
-Configuration and binary-output details are in
-[the coupling checklist, §7.3](docs/TEB_MSU_coupling_checklist.md#73-блочный-диагностический-offline-драйвер).
+Both entry points accept the same command, run from an external case directory:
 
-Run the permanent suite from the repository root with a new external task path:
+```powershell
+W:/Work_TEB/TEB-Ru/my-build/bin/TEB_offline_dev.exe -param_nml parameters.nml -forcing_nml forcing.nml -output .
+```
+
+The parameter file contains `&tebopts` (runtime `nvec`, timestep `dt`, common scheme selectors
+and output switches) and `&tebparams` (physical parameters and initial values).
+For a cell-dependent parameter, supply one literal for the whole block or
+exactly `nvec` literals. Repetition notation, null elements, partial indexed
+assignments and duplicate keys are rejected. Omitted parameters retain their
+defaults. `teb_fai` is a common eight-direction profile, broadcast to every cell
+and block. The forcing file retains the common `&tebforcing` series.
+
+```fortran
+&tebopts
+ nvec=3,
+ dt=300.,
+ teb_ctype_wind='WANG',
+ teb_ctype_bem='BEM',
+ teb_lcbs_scheme=.TRUE.,
+/
+&tebparams
+ urb_h_bld=12.,20.,28.,
+ urb_h2w=1.5,
+ ahf_traffic=0.,20.,40.,
+ teb_fai=.5,.5,.5,.5,.5,.5,.5,.5,
+/
+```
+
+The split format uses `teb_ctype_*` selector keys; `teb_ctype_wind` is `'DEF'`
+or `'WANG'`. The API retains its original selector names and numeric wind codes.
+The old monolithic `&tebparam` retains its former keys and numeric wind selector
+and remains readable for scalar runs; mixing old and
+new groups is an error. `src_ctrl` also accepts `tebopts/tebparams` for
+`nvec=1` and retains legacy `tebparam` support. Its physical defaults and
+numerical operations are preserved; unsupported enabled options are rejected.
+
+Each active cell produces `TEB_output_b<B>_c<C>.csv`,
+`TEB_emu_b<B>_c<C>.csv` and `TEB_runoff_b<B>_c<C>.csv`. Single-column, single-block
+runs retain `TEB_emu.csv` and `TEB_runoff.csv`. Main and emulator diagnostics
+retain their existing sample timing; runoff is averaged over the forcing
+interval independently for each cell. `cells.csv` and `parameters.csv` identify
+the columns and their expanded configuration. Detailed controls and output
+semantics are in [the variables description](docs/TEB_MSU_variables_description.md).
+
+The optional `-config <block_test.nml>` adds diagnostic controls: synthetic
+forcing, perturbations, masks, permutations and checkpoint/restart. Physics is
+always read from the same `-param_nml` file (or `param_nml` in `block_test`).
+Profile labels select test recipes in Python; Fortran does not maintain a
+second set of profile parameters. The binary test dump is enabled with
+`teb_lwrite_test_dump=.TRUE.` in `tebopts`.
+
+Run the existing suite with a fresh external path:
 
 ```powershell
 python -B python_tests/check_offline_block.py --out-root W:/Work_TEB/TEB-Ru/block-check-001
 ```
 
-On POSIX systems, pass an explicit external path to `python3 -B` instead.
-The script uses the Python standard library and GNU tools, builds both hosts
-with REAL64, bounds and FPE checks, and runs `nvec=1,2,7,16,31` in separate
-processes. It compares all 33 INOUT and 53 OUT at every model step, checks
-targeted physical responses, masks, permutation, external surfaces and
-restart, and compares matched file forcing with ordinary offline. External
-instrumented API copies check both memory loads and detect their deliberate
-removal. No instrumentation enters the production library.
+The suite checks `nvec=1,2,7,16,31`, explicit parameter lists, common forcing,
+independent reference processes, masks, permutations, all three CSV streams and
+restart inside a runoff interval. Instrumented external API copies check both
+inter-step memory loads and their deliberate removal. `--quick` reduces the
+main size matrix; `--exe` uses an existing matching build, and
+`--skip-memory-probe` omits instrumentation. All generated files stay below
+`--out-root`; an FPE or process failure fails the suite.
 
-`--exe <block executable>` skips the regular build and uses its matching build
-objects for memory instrumentation. `--skip-memory-probe` permits executable-only
-checks but omits that audit; `--quick` reduces the size matrix to 1,2,7.
-All configurations, logs, dumps, probe objects and `checks/summary.json` go
-below `--out-root`. Existing results are never reused or overwritten.
-Any process failure or FPE fails the suite; there are no automatic retries.
+### Comparing the control and development trees
+
+`python_tests/ctrl_dev_base_test/compare.py` generates one shared
+`tebopts/tebparams` file per case, with `nvec=1` and CBS explicitly disabled.
+It builds dev with `TEB_UPSTREAM_CONS_BUGS` and ordinary ctrl, preserving the
+existing numerical comparison and activity criteria. Inputs, separate build
+profiles and runs stay outside the checkout. See the
+[comparison test instructions](python_tests/ctrl_dev_base_test/README.md).
 
 ### Two source trees: `src_dev` and `src_ctrl`
 
@@ -170,7 +214,7 @@ The Fortran sources are split into two independent trees, each with its own `Mak
 | Tree | Physics | Builds |
 | --- | --- | --- |
 | `src_dev/` | development line (branch `MV_devs`) with the modern I/O | `<BUILD_ROOT>/lib/libteb.a` and `<BUILD_ROOT>/bin/TEB_offline_dev.exe` |
-| `src_ctrl/` | control line based on the first commit `582c3ab`, with common D7–D9 fixes and the same I/O and namelists | executable selected with absolute external `OBJDIR` and `EXEC` |
+| `src_ctrl/` | control line based on the first commit `582c3ab`, with common D7–D9 fixes and scalar split/legacy namelist support | executable selected with absolute external `OBJDIR` and `EXEC` |
 
 Both trees share `tests/`, `python/` and `docs/`. Dev builds the offline host
 through its common library; ctrl retains its existing Makefile and numerical

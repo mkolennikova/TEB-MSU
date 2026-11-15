@@ -8,10 +8,16 @@
 !!        Integrate shared forcing-aware CSV output, strict namelist
 !!        configuration and configurable cold-start inputs for reference/dev
 !!        comparisons.
+!!      11/2026 -- Mikhail Varentsov (MV)
+!!        Read split options/parameters with strict scalar input, retaining the
+!!        reference defaults, physical inputs and time integration.
+!!        Translate common named scheme selectors to the existing API and
+!!        read the timestep from options; retain the legacy flat format.
 !!------------------------------------------------------------------------------
 PROGRAM run_teb_offline
 
 USE sfc_teb,        ONLY : teb_interface
+USE TEB_CTRL_NAMELIST_INPUT, ONLY : CTRL_PREPARE_NAMELISTS
 USE MODI_OL_READ_ATM
 USE MODI_OL_TIME_INTERP_ATM
 USE MODD_SURF_PAR, ONLY: XUNDEF, teb_snow_check
@@ -390,6 +396,20 @@ CHARACTER(LEN=*), PARAMETER :: nml_param_items =                                
 !* The two groups are declared here (and not next to the READ that uses them): a
 !* NAMELIST statement belongs to the specification part of the program, i.e. it must
 !* appear before the first executable statement.
+! Common input-format controls; none selects new reference physics.
+CHARACTER(LEN=:),ALLOCATABLE :: nml_options_text,nml_parameters_text
+CHARACTER(LEN=1024) :: nml_message
+LOGICAL :: nml_legacy
+CHARACTER(LEN=3) :: teb_ctype_bem
+CHARACTER(LEN=4) :: teb_ctype_natvent
+CHARACTER(LEN=6) :: teb_ctype_bem_cool
+CHARACTER(LEN=6) :: teb_ctype_bem_heat
+CHARACTER(LEN=4) :: teb_ctype_wind
+CHARACTER(LEN=9) :: teb_ctype_garden
+CHARACTER(LEN=9) :: teb_ctype_greenroof
+LOGICAL :: teb_lcbs_scheme=.FALSE.
+LOGICAL :: teb_lwrite_output=.TRUE.,teb_lwrite_emu=.TRUE.,teb_lwrite_runoff=.TRUE.
+LOGICAL :: teb_lwrite_test_dump=.FALSE.
 NAMELIST /tebforcing/ forcing_path, lon_teb, lat_teb, hlev_teb, teb_year,   &
                       teb_month, teb_day, teb_hour, teb_min, nsteps, forc_step
 NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,           &
@@ -410,6 +430,35 @@ NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,
                     urb_z0_town, urb_zd_town, teb_type_garden, urb_z0_gdn, urb_alb_gdn,    &
                     urb_emis_gdn, teb_type_greenroof, urb_z0_grf, urb_alb_grf, urb_emis_grf, &
                     teb_lshade, teb_snow_check
+NAMELIST /tebopts/ &
+  dt, &
+  teb_lbem_ac, teb_lshade, teb_lgarden, &
+  teb_lgreenroof, teb_lsolar_panel, teb_lroad_irrig, &
+  teb_snow_check, teb_ctype_bem, teb_ctype_natvent, &
+  teb_ctype_bem_cool, teb_ctype_bem_heat, teb_ctype_wind, &
+  teb_ctype_garden, teb_ctype_greenroof, teb_hroad_dir, &
+  teb_wall_opt, teb_lcbs_scheme, teb_lwrite_output, &
+  teb_lwrite_emu, teb_lwrite_runoff, teb_lwrite_test_dump
+NAMELIST /tebparams/ &
+  urb_h_bld, urb_fr_bld, &
+  fr_garden, urb_h2w, teb_road_dir, &
+  teb_ti_bld_init, teb_qi_bld_init, urb_alb_rf_so, &
+  urb_alb_rf_th, urb_emis_rf, urb_hcap_rf, &
+  urb_hcon_rf, urb_alb_rd_so, urb_alb_rd_th, &
+  urb_emis_rd, urb_hcap_rd, urb_hcon_rd, &
+  urb_alb_wl_so, urb_alb_wl_th, urb_emis_wl, &
+  urb_hcap_wl, urb_hcon_wl, teb_frac_gz, &
+  teb_tcool_target, teb_theat_target, teb_zresidential, &
+  teb_dt_res, teb_dt_off, teb_bem_inf, &
+  teb_bem_vent, teb_bem_cop, teb_cap_sys_rat, &
+  teb_m_sys_rat, teb_cap_sys_heat, ahf_traffic, &
+  ahf_industry, teb_fai, teb_frac_gr, &
+  teb_fr_panel, teb_rd_irrig_start_m, teb_rd_irrig_end_m, &
+  teb_rd_irrig_start_h, teb_rd_irrig_end_h, teb_rd_irrig_sum, &
+  teb_utc_hour, urb_z0_town, urb_zd_town, &
+  urb_z0_gdn, urb_alb_gdn, urb_emis_gdn, &
+  urb_z0_grf, urb_alb_grf, urb_emis_grf
+
 
 !============================================================
 !============================================================
@@ -720,22 +769,47 @@ forcing_path2=trim(forcing_path)
 !* Same policy as for /tebforcing/ above: a failed READ of the parameter namelist
 !* stops the run (the namelist is only read up to the faulty entry, so every item
 !* that follows it in the file would keep the value of the driver default).
-OPEN(action='read', file=namelist_path_local, iostat=rc, newunit=fu)
-IF (rc /= 0) THEN
-  WRITE(*,*) 'ERROR: Cannot open parameter namelist file: ', TRIM(namelist_path_local)
-  WRITE(*,*) 'IOSTAT = ', rc
-  STOP 1
+CALL CTRL_PREPARE_NAMELISTS(TRIM(namelist_path_local), &
+                            nml_options_text,nml_parameters_text,nml_legacy)
+IF(nml_legacy) THEN
+  READ(nml_parameters_text,NML=tebparam,IOSTAT=rc,IOMSG=nml_message)
+ELSE
+  teb_ctype_bem=teb_itype_bem
+  teb_ctype_natvent=teb_itype_natvent
+  teb_ctype_bem_cool=teb_itype_bem_cool
+  teb_ctype_bem_heat=teb_itype_bem_heat
+  teb_ctype_wind='DEF'
+  teb_ctype_garden=teb_type_garden
+  teb_ctype_greenroof=teb_type_greenroof
+  READ(nml_options_text,NML=tebopts,IOSTAT=rc,IOMSG=nml_message)
+  IF(rc/=0) THEN
+    WRITE(*,*) 'ERROR: tebopts in ',TRIM(namelist_path_local),': ',TRIM(nml_message)
+    ERROR STOP 'Invalid control-tree options'
+  END IF
+  teb_itype_bem=teb_ctype_bem
+  teb_itype_natvent=teb_ctype_natvent
+  teb_itype_bem_cool=teb_ctype_bem_cool
+  teb_itype_bem_heat=teb_ctype_bem_heat
+  teb_type_garden=teb_ctype_garden
+  teb_type_greenroof=teb_ctype_greenroof
+  SELECT CASE(TRIM(teb_ctype_wind))
+  CASE('DEF')
+    teb_itype_wind=0
+  CASE('WANG')
+    teb_itype_wind=1
+  CASE DEFAULT
+    ERROR STOP 'Invalid teb_ctype_wind: expected DEF or WANG'
+  END SELECT
+  IF(teb_lcbs_scheme) ERROR STOP 'src_ctrl does not implement CBS; set teb_lcbs_scheme=.FALSE.'
+  IF(.NOT.teb_lwrite_output .OR. .NOT.teb_lwrite_emu .OR. .NOT.teb_lwrite_runoff .OR. teb_lwrite_test_dump) &
+    ERROR STOP 'src_ctrl retains its merged CSV; independent output switches and block dumps are unsupported'
+  READ(nml_parameters_text,NML=tebparams,IOSTAT=rc,IOMSG=nml_message)
 END IF
-READ(nml=tebparam, iostat=rc, unit=fu)
-CLOSE(fu)
-IF (rc > 0) THEN
-  WRITE(*,*) 'ERROR: cannot read the parameter namelist: ', TRIM(namelist_path_local)
-  WRITE(*,*) '       IOSTAT = ', rc
-  CALL NML_PRINT_DIAG('tebparam', namelist_path_local, nml_param_items, &
-                      'the namelist could not be read completely')
-  STOP 1
+IF(rc/=0) THEN
+  WRITE(*,*) 'ERROR: parameter namelist ',TRIM(namelist_path_local),': ',TRIM(nml_message)
+  ERROR STOP 'Invalid control-tree parameters'
 END IF
-CALL NML_REPORT_ABSENT('tebparam', namelist_path_local, nml_param_items)
+IF(nml_legacy) CALL NML_REPORT_ABSENT('tebparam',namelist_path_local,nml_param_items)
 IF (ALL(teb_ti_bld_init /= XUNDEF)) THEN
   WRITE(*,'(A)') ' TEB-MSU offline: teb_ti_bld_init given in the namelist'
 ELSE IF (ANY(teb_ti_bld_init == XUNDEF)) THEN
@@ -756,10 +830,10 @@ IF (ALL(teb_qi_bld_init /= XUNDEF)) THEN
 ELSE IF (ANY(teb_qi_bld_init == XUNDEF)) THEN
   WRITE(*,'(A)') ' TEB-MSU offline: teb_qi_bld_init not given; 0.5*QSAT(TI_BLD, ps) is used at the first sub-step'
 END IF
-!* dt is read in this group: INB_ATM = forc_step/dt must be an integer number of
-!* model sub-steps per forcing step.
+!* dt comes from tebopts or legacy tebparam: forc_step/dt must be an integer
+!* number of model sub-steps per forcing step.
 IF (dt(1) <= 0. .OR. MOD(forc_step, dt(1)) /= 0.) THEN
-  WRITE(*,*) 'ERROR: inconsistent time steps: dt = ', dt(1), ' s (parameter namelist),'
+  WRITE(*,*) 'ERROR: inconsistent time steps: dt = ', dt(1), ' s (tebopts or legacy tebparam),'
   WRITE(*,*) '       forc_step = ', forc_step, ' s (forcing namelist):'
   WRITE(*,*) '       dt must be > 0 and forc_step must be a multiple of dt'
   STOP 1

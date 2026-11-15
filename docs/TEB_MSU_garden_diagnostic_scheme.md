@@ -35,7 +35,7 @@
 участвует в неявной связи температуры и влажности воздуха каньона
 (`PAC_GARDEN` ненулевая), чего историческая заглушка не делала.
 
-**Режимы (`namelist tebparam`, ключ `teb_type_garden`):**
+**Режимы (`namelist tebopts`, ключ `teb_ctype_garden`):**
 
 | значение | смысл |
 | --- | --- |
@@ -75,7 +75,9 @@
 | `src/src_proxi_SVAT/modd_proxi_svat_par.F90` | значения по умолчанию: шероховатость `XZ0_GD` и отношение `XZ0_O_Z0H_GD` |
 | `src/src_teb/teb_garden.F90` (+ `modi`) | выбор режима, вычисление τ и вызов `GARDEN_CBS`; коэффициенты обмена не пересчитывает — их возвращает прокси |
 | `src/src_teb/urban_drag.F90` | коэффициенты обмена сада с каньоном и с атмосферой (в том числе для `'EXT_NEU'`) |
-| `src_dev/src_offline/run_teb_offline.F90` | колонки CSV и эмулятор внешней модели (§9) |
+| `src_dev/src_offline/teb_offline_surfaces.F90` | эмуляторы внешних поверхностей по ячейкам (§9) |
+| `src_dev/src_api/teb_log.F90` | модельные колонки CSV |
+| `src_dev/src_offline/teb_offline_output.F90` | CSV эмуляторов и интервального стока |
 
 ---
 
@@ -276,7 +278,7 @@ Rn_GARDEN = H_GARDEN + LE_GARDEN                       (G = 0)
 
 **Три случая** (включение: `LCBS_SPLIT = TOP%LCBS_SCHEME .AND. TOP%CTYPE_GARDEN == 'PROXY_NEW'`):
 
-| `teb_type_garden` | ветвь CAN | ветвь ATM | `H_GARDEN` | эффект τ |
+| `teb_ctype_garden` | ветвь CAN | ветвь ATM | `H_GARDEN` | эффект τ |
 | --- | --- | --- | --- | --- |
 | `'PROXY_NEW'` | решение с каньонной связью | то же решение со смешанной связью | `τ·H_CAN + (1−τ)·H_ATM` | есть |
 | `'PROXY_OLD'` | предписано `0.2·Rn` | **то же значение** | `0.2·Rn` | нет |
@@ -558,7 +560,7 @@ PGFLUX  = 0      ! нет обмена с грунтом
 завершает работу (`STOP 1`).
 
 **Эмулятор в offline-драйвере.**
-`'EXT_NEU'`), offline-драйвер (`src_dev/src_offline/run_teb_offline.F90`) сам играет роль
+`'EXT_NEU'`), offline-драйвер (`src_dev/src_offline/teb_offline_surfaces.F90`) сам играет роль
 внешней модели сада (contained-подпрограмма `PCD_GARDEN`). `call_driver`/TEB при
 этом не меняются и не знают, эмуляция это или настоящая внешняя модель: они видят
 штатный интерфейс `EXT`.
@@ -620,7 +622,7 @@ PGFLUX  = 0      ! нет обмена с грунтом
   `CH_eff·max(V*,Vmin) ≡ Ca` точно (у сада `CH_eff` вбирает
   `τ(1−τ)(Cd_C−Cd_A)(V_A−V_C)`).
 
-Режимы кровли (ключ `teb_type_greenroof`) повторяют садовые:
+Режимы кровли (ключ `teb_ctype_greenroof`) повторяют садовые:
 
 | режим | формулировка коэффициентов | эмулятор драйвера |
 | --- | --- | --- |
@@ -651,7 +653,7 @@ cold-start повторно не вызывается. Контракт API — 
 `TEB_MSU_containers.md`; проверка независимости колонок и протокол — §0
 `TEB_MSU_change_history.md`.
 
-**Эмулятор `PCD_GREENROOF`** (offline-драйвер, `src_dev/src_offline/run_teb_offline.F90`)
+**Эмулятор `PCD_GREENROOF`** (offline-драйвер, `src_dev/src_offline/teb_offline_surfaces.F90`)
 — полный аналог `PCD_GARDEN` для крыши: один путь обмена,
 `V* = max(|V_forc|, Vmin)`, `T* = T` воздуха уровня форсинга, `q* = q`,
 `CD_eff = PCD`, `CH_eff = PCH`, радиация `(swdir_s+swdifd_s)·(1−fr_panel)` и
@@ -753,7 +755,8 @@ TEB на следующем подшаге (лаг — один подшаг; п
 * `src/src_teb/teb_garden.F90` — выбор режима, `CBS_TAU`, вызов `GARDEN_CBS` (коэффициенты обмена и проводимости возвращает прокси, `TEB_GARDEN` их только передаёт);
 * `src/src_teb/urban_drag.F90` — коэффициенты обмена сада (включая `'EXT_NEU'`);
 * `src/src_teb/avg_urban_fluxes.F90` — вклад сада в узлы каньона;
-* `src_dev/src_offline/run_teb_offline.F90` — колонки CSV и эмулятор `PCD_GARDEN`.
+* `src_dev/src_offline/teb_offline_surfaces.F90` — эмуляторы `PCD_GARDEN` и `PCD_GREENROOF`;
+* `src_dev/src_offline/teb_offline_output.F90` — CSV эмуляторов.
 
 Документы: `TEB_MSU_CBS_scheme_T_CAN_reformulation.md`,
 `TEB_MSU_source_defects.md`, `TEB_MSU_change_history.md`,

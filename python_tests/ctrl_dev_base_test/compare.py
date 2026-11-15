@@ -15,13 +15,17 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
+from datetime import datetime
+
+sys.dont_write_bytecode = True
 
 
 REPO = Path(__file__).resolve().parents[2]
 CASE = REPO / "tests" / "CAPITOUL"
 PARAM_TEMPLATE = CASE / "namelist" / "namelist.nml"
 FORCING_TEMPLATE = CASE / "namelist" / "namelist_forcing.nml"
-DEFAULT_OUT = REPO / "build" / "ctrl_dev_base_test"
+WORK_ROOT = Path(os.environ.get("TEB_WORK_ROOT", r"W:\Work_TEB" if os.name == "nt" else "/tmp/teb-work"))
+DEFAULT_OUT = WORK_ROOT / "TEB-Ru" / "ctrl_dev_base_test" / datetime.now().strftime("%Y%m%d_%H%M%S")
 ATOL = 1e-10
 RTOL = 1e-10
 
@@ -39,7 +43,7 @@ FORCING_COLUMNS = (
     "Forc_SCA_SW",
 )
 EXCLUDED_CTRL_COLUMNS = {
-    "WIND_TOP": "different diagnostic meaning at teb_itype_wind=0",
+    "WIND_TOP": "different diagnostic meaning at teb_ctype_wind='DEF'",
     "SOLAR_PROD": "dev omits the column when solar panels are off",
 }
 
@@ -47,16 +51,16 @@ EXCLUDED_CTRL_COLUMNS = {
 CASE_OVERRIDES = {
     "base": {},
     "garden": {"teb_lgarden": ".TRUE.", "fr_garden": "0.11",
-               "teb_type_garden": "'PROXY_OLD'"},
+               "teb_ctype_garden": "'PROXY_OLD'"},
     "greenroof": {"teb_lgreenroof": ".TRUE.", "teb_frac_gr": "0.3",
-                  "teb_type_greenroof": "'PROXY_OLD'"},
+                  "teb_ctype_greenroof": "'PROXY_OLD'"},
     "garden_greenroof": {"teb_lgarden": ".TRUE.", "fr_garden": "0.11",
-                         "teb_type_garden": "'PROXY_OLD'",
+                         "teb_ctype_garden": "'PROXY_OLD'",
                          "teb_lgreenroof": ".TRUE.", "teb_frac_gr": "0.3",
-                         "teb_type_greenroof": "'PROXY_OLD'"},
+                         "teb_ctype_greenroof": "'PROXY_OLD'"},
     "irrigation": {"teb_lroad_irrig": ".TRUE."},
-    "wang_zd": {"teb_itype_wind": "1", "urb_zd_town": "'0.4H'"},
-    "no_bem": {"teb_itype_bem": "'DEF'", "teb_frac_gz": "0.0"},
+    "wang_zd": {"teb_ctype_wind": "'WANG'", "urb_zd_town": "'0.4H'"},
+    "no_bem": {"teb_ctype_bem": "'DEF'", "teb_frac_gz": "0.0"},
     "shade": {"teb_lshade": ".TRUE."},
 }
 
@@ -114,14 +118,77 @@ def set_namelist_value(content: str, key: str, value: str) -> str:
     return content
 
 
+OPTION_NAMES = frozenset((
+    "dt",
+    "teb_lbem_ac", "teb_lshade", "teb_lgarden", "teb_lgreenroof",
+    "teb_lsolar_panel", "teb_lroad_irrig", "teb_snow_check", "teb_lcbs_scheme",
+    "teb_ctype_bem", "teb_ctype_natvent", "teb_ctype_bem_cool", "teb_ctype_bem_heat",
+    "teb_ctype_wind", "teb_ctype_garden", "teb_ctype_greenroof",
+    "teb_hroad_dir", "teb_wall_opt",
+))
+
+
+def external(path: Path) -> Path:
+    path = path.expanduser().resolve()
+    if path == REPO or REPO in path.parents:
+        raise ValueError(f"Builds and runs must be outside the checkout: {path}")
+    return path
+
+
+def split_parameters(content: str) -> str:
+    """Regroup the known flat CAPITOUL fixture, retaining literal values."""
+    entries = {}
+    name = None
+    chunks = []
+    for line in content.splitlines():
+        match = re.match(r"\s*([a-zA-Z]\w*)\s*=", line)
+        if match or re.match(r"\s*/\s*$", line):
+            if name is not None:
+                entries[name] = "\n".join(chunks)
+            name = match.group(1).lower() if match else None
+            chunks = []
+        if name is not None:
+            chunks.append(line)
+    if name is not None:
+        raise ValueError("CAPITOUL parameter fixture has no terminating slash")
+    if not entries:
+        raise ValueError("Empty CAPITOUL parameter fixture")
+    options = [" nvec=1,", " teb_lcbs_scheme=.FALSE.,"]
+    options += [text for key, text in entries.items() if key in OPTION_NAMES and key != "teb_lcbs_scheme"]
+    parameters = [text for key, text in entries.items() if key not in OPTION_NAMES]
+    return ("&tebopts\n" + "\n".join(options) + "\n/\n"
+            + "&tebparams\n" + "\n".join(parameters) + "\n/\n").replace("\n", "\r\n")
+
+
+def canonicalize_legacy_selectors(content: str) -> str:
+    """Translate the retained flat CAPITOUL fixture before applying case overlays."""
+    names = {
+        "teb_itype_bem": "teb_ctype_bem",
+        "teb_itype_natvent": "teb_ctype_natvent",
+        "teb_itype_bem_cool": "teb_ctype_bem_cool",
+        "teb_itype_bem_heat": "teb_ctype_bem_heat",
+        "teb_itype_wind": "teb_ctype_wind",
+        "teb_type_garden": "teb_ctype_garden",
+        "teb_type_greenroof": "teb_ctype_greenroof",
+    }
+    for old, new in names.items():
+        content = re.sub(r"(?im)^([ \t]*)" + re.escape(old) + r"([ \t]*=)",
+                         lambda match: match.group(1) + new + match.group(2), content)
+    pattern = re.compile(r"(?im)^([ \t]*teb_ctype_wind[ \t]*=[ \t]*)([^!,\r\n]+)")
+
+    def wind(match):
+        value = match.group(2).strip()
+        if value not in ("0", "1"):
+            raise ValueError(f"unexpected legacy wind selector: {value}")
+        return match.group(1) + ("'DEF'" if value == "0" else "'WANG'")
+
+    return pattern.sub(wind, content)
+
+
 def prepare_namelists(out: Path, smoke_steps: int, forcing_source: Path,
                       forcing_dir: Path | None, irrigation_months: tuple[int, int] | None,
                       replacement_wind: Path | None) -> dict:
-    dev_driver = (REPO / "src_dev" / "src_driver" / "run_teb_offline.F90").read_text(
-        encoding="utf-8", errors="replace")
-    if not re.search(r"(?im)^\s*teb_lcbs_scheme\s*=\s*\.false\.\s*!", dev_driver):
-        raise ValueError("src_dev CBS default is no longer explicitly .FALSE.")
-    param = read_template(PARAM_TEMPLATE)
+    param = canonicalize_legacy_selectors(read_template(PARAM_TEMPLATE))
     expected = {
         "teb_lgarden": ".false.",
         "fr_garden": "0.0",
@@ -129,15 +196,13 @@ def prepare_namelists(out: Path, smoke_steps: int, forcing_source: Path,
         "teb_frac_gr": "0.0",
         "teb_lsolar_panel": ".false.",
         "teb_lroad_irrig": ".false.",
-        "teb_itype_bem": "'bem'",
-        "teb_itype_wind": "0",
+        "teb_ctype_bem": "'bem'",
+        "teb_ctype_wind": "'def'",
     }
     for key, value in expected.items():
         actual = namelist_value(param, key)
         if actual != value:
             raise ValueError(f"base namelist has {key}={actual}, expected {value}")
-    if re.search(r"^\s*teb_lcbs_scheme\s*=", param, re.I | re.M):
-        raise ValueError("teb_lcbs_scheme is not a shared ctrl/dev namelist item")
     if re.search(r"^\s*teb_lshade\s*=", param, re.I | re.M):
         raise ValueError("base namelist already sets teb_lshade; review the test configuration")
     param = set_namelist_value(param, "teb_lshade", ".FALSE.")
@@ -152,41 +217,36 @@ def prepare_namelists(out: Path, smoke_steps: int, forcing_source: Path,
         for key, value in overrides.items():
             case_param = set_namelist_value(case_param, key, value)
         param_path = out / "config" / case / "namelist.nml"
-        write_template(param_path, case_param)
+        write_template(param_path, split_parameters(case_param))
         param_paths[case] = param_path
 
     forcing = read_template(forcing_source)
     full_steps = int(namelist_value(forcing, "nsteps"))
     if not 2 <= smoke_steps <= full_steps:
         raise ValueError(f"smoke-steps must be in 2..{full_steps}")
-    source_forcing_dir = forcing_dir
-    if forcing_dir is not None:
-        if not forcing_dir.is_dir():
-            raise ValueError(f"forcing directory does not exist: {forcing_dir}")
-        if replacement_wind is not None:
-            if not replacement_wind.is_file():
-                raise ValueError(f"replacement wind file does not exist: {replacement_wind}")
-            copied_dir = out / "config" / "forcing_txt"
-            copied_dir.mkdir(parents=True, exist_ok=True)
-            for old_file in copied_dir.glob("Forc_*.txt"):
-                old_file.unlink()
-            for source_file in forcing_dir.glob("Forc_*.txt"):
-                shutil.copyfile(source_file, copied_dir / source_file.name)
-            shutil.copyfile(replacement_wind, copied_dir / "Forc_WIND.txt")
-            forcing_dir = copied_dir.resolve()
-        for name in ("DIR_SW", "DIR", "LW", "PS", "QA", "RAIN", "SCA_SW",
-                     "SNOW", "TA", "WIND"):
-            file = forcing_dir / f"Forc_{name}.txt"
-            if not file.is_file():
-                raise ValueError(f"missing forcing file: {file}")
-            with file.open("r", encoding="utf-8") as stream:
-                rows = sum(1 for _ in stream)
-            if rows < full_steps:
-                raise ValueError(f"{file} has {rows} rows, expected at least {full_steps}")
-        forcing = set_namelist_value(
-            forcing, "forcing_path", "'" + forcing_dir.as_posix().rstrip("/") + "/'")
-    elif replacement_wind is not None:
-        raise ValueError("replacement wind requires an explicit or inferred forcing directory")
+    source_forcing_dir = (forcing_dir or CASE / "input").resolve()
+    if not source_forcing_dir.is_dir():
+        raise ValueError(f"forcing directory does not exist: {source_forcing_dir}")
+    if replacement_wind is not None and not replacement_wind.is_file():
+        raise ValueError(f"replacement wind file does not exist: {replacement_wind}")
+    copied_dir = out / "input"
+    copied_dir.mkdir(parents=True, exist_ok=False)
+    for source_file in source_forcing_dir.glob("Forc_*.txt"):
+        shutil.copyfile(source_file, copied_dir / source_file.name)
+    if replacement_wind is not None:
+        shutil.copyfile(replacement_wind, copied_dir / "Forc_WIND.txt")
+    forcing_dir = copied_dir.resolve()
+    for name in ("DIR_SW", "DIR", "LW", "PS", "QA", "RAIN", "SCA_SW", "SNOW", "TA", "WIND"):
+        file = forcing_dir / f"Forc_{name}.txt"
+        if not file.is_file():
+            raise ValueError(f"missing forcing file: {file}")
+        with file.open("r", encoding="utf-8") as stream:
+            rows = sum(1 for _ in stream)
+        if rows < full_steps:
+            raise ValueError(f"{file} has {rows} rows, expected at least {full_steps}")
+    # Each model runs in out/runs/<case>/<stage>/<tree>; short paths also work
+    # with the reference driver's retained 100-character CLI buffers.
+    forcing = set_namelist_value(forcing, "forcing_path", "'../../../../input/'")
     smoke = set_namelist_value(forcing, "nsteps", str(smoke_steps))
     smoke_path = out / "config" / "namelist_forcing_smoke.nml"
     full_path = out / "config" / "namelist_forcing_full.nml"
@@ -200,10 +260,14 @@ def prepare_namelists(out: Path, smoke_steps: int, forcing_source: Path,
 
 def environment(toolchain_dir: Path | None) -> dict[str, str]:
     env = os.environ.copy()
+    env["PYTHONDONTWRITEBYTECODE"] = "1"
     if toolchain_dir is not None:
         if not toolchain_dir.is_dir():
             raise ValueError(f"toolchain directory does not exist: {toolchain_dir}")
         env["PATH"] = str(toolchain_dir) + os.pathsep + env.get("PATH", "")
+    if os.name == "nt":
+        compiler_dir = toolchain_dir or Path("C:/msys64/ucrt64/bin")
+        env["PATH"] = str(compiler_dir) + ";C:/msys64/usr/bin;" + env.get("PATH", "")
     return env
 
 
@@ -222,55 +286,72 @@ def run_command(command: list[str], cwd: Path, env: dict[str, str], log: Path) -
         stream.flush()
         result = subprocess.run(command, cwd=cwd, env=env, stdout=stream,
                                 stderr=subprocess.STDOUT, check=False)
-    if result.returncode:
+    text = log.read_text(encoding="utf-8", errors="replace")
+    if result.returncode or re.search(r"(?im)^.*(?:fatal error|error:|Error [0-9]+ \(ignored\)).*$", text):
         tail = "\n".join(log.read_text(encoding="utf-8", errors="replace").splitlines()[-18:])
         raise RuntimeError(f"command failed (rc={result.returncode}): {log}\n{tail}")
 
 
-def build_binaries(out: Path, env: dict[str, str], jobs: int) -> dict[str, Path]:
+def binary_paths(build_root: Path) -> dict[str, Path]:
+    return {label: build_root / label / "bin" / ("TEB_offline_" + label + ".exe")
+            for label in ("dev_bugs", "ctrl")}
+
+
+def build_binaries(out: Path, build_root: Path, env: dict[str, str], jobs: int) -> dict[str, Path]:
     make = executable("make", env)
     executable("gfortran", env)
-    binaries = {}
+    binaries = binary_paths(build_root)
     for tree, label, define in (
         ("src_dev", "dev_bugs", "-DTEB_UPSTREAM_CONS_BUGS"),
         ("src_ctrl", "ctrl", ""),
     ):
-        binary = (out / "bin" / ("TEB_offline_" + label + ".exe")).resolve()
+        profile = build_root / label
+        binary = binaries[label]
         binary.parent.mkdir(parents=True, exist_ok=True)
-        obj = (out / ("obj_" + label)).resolve()
-        # Makefile paths are interpreted relative to the source tree.
+        obj = profile / ("common/obj" if label == "dev_bugs" else "obj")
         command = [make, "-C", str(REPO / tree), "-j", str(jobs),
-                   "FC=gfortran", "LD=gfortran", f"OBJDIR={obj}",
-                   f"EXEC={binary}", f"CPPDEFS={define}"]
+                   "FC=gfortran", "LD=gfortran", f"OBJDIR={obj.as_posix()}",
+                   f"EXEC={binary.as_posix()}", f"CPPDEFS={define}", "OTHERFLAGS=-fcheck=all"]
+        if label == "dev_bugs":
+            command.append("BUILD_ROOT=" + profile.as_posix())
+        if os.name == "nt":
+            command += ["SHELL=C:/msys64/usr/bin/sh.exe", "WRAP_LOCALE=1"]
+            if label == "ctrl":
+                command.append("OS=POSIX")
         print(f"build {label} ...", flush=True)
-        run_command(command, REPO, env, out / "logs" / ("build_" + label + ".log"))
+        run_command(command, out, env, out / "logs" / ("build_" + label + ".log"))
         if not binary.is_file():
             raise RuntimeError(f"build did not create {binary}")
-        binaries[label] = binary
     return binaries
 
 
-def get_binaries(out: Path) -> dict[str, Path]:
-    binaries = {label: out / "bin" / ("TEB_offline_" + label + ".exe")
-                for label in ("dev_bugs", "ctrl")}
+def get_binaries(build_root: Path) -> dict[str, Path]:
+    binaries = binary_paths(build_root)
     for binary in binaries.values():
         if not binary.is_file():
             raise ValueError(f"missing {binary}; rerun without --skip-build")
+    profile = build_root / "dev_bugs" / "build-profile.txt"
+    if not profile.is_file() or "CPPDEFS=-DTEB_UPSTREAM_CONS_BUGS" not in profile.read_text(encoding="utf-8"):
+        raise ValueError("dev build profile does not confirm TEB_UPSTREAM_CONS_BUGS")
     return binaries
 
 
 def run_model(binary: Path, label: str, case: str, stage: str, forcing: Path,
               param: Path, out: Path, env: dict[str, str]) -> Path:
     output_dir = out / "runs" / case / stage / label
-    output_dir.mkdir(parents=True, exist_ok=True)
-    output = output_dir / ("TEB_output_b1_c1.csv" if label == "dev_bugs"
-                           else "TEB_output.csv")
-    output.unlink(missing_ok=True)
+    output_dir.mkdir(parents=True, exist_ok=False)
+    output = output_dir / ("TEB_output_b1_c1.csv" if label == "dev_bugs" else "TEB_output.csv")
+    shutil.copyfile(forcing, output_dir / "forcing.nml")
+    shutil.copyfile(param, output_dir / "parameters.nml")
+    if sha256(param) != sha256(output_dir / "parameters.nml"):
+        raise RuntimeError("Staged parameter namelist differs from the shared file")
     log = out / "logs" / f"run_{case}_{stage}_{label}.log"
-    command = [str(binary), "-forcing_nml", str(forcing),
-               "-param_nml", str(param), "-output", str(output_dir)]
+    command = [str(binary), "-forcing_nml", "forcing.nml",
+               "-param_nml", "parameters.nml", "-output", "."]
     print(f"run {case}/{stage} {label} ...", flush=True)
-    run_command(command, CASE, env, log)
+    run_command(command, output_dir, env, log)
+    if "ENDS CORRECTLY" not in log.read_text(encoding="utf-8", errors="replace"):
+        raise RuntimeError(f"Missing model completion marker: {log}")
     if not output.is_file():
         raise RuntimeError(f"model did not write {output}")
     return output
@@ -407,7 +488,7 @@ def report_markdown(report: dict) -> str:
              f"Comparison: **{report['comparison_status']}**; "
              f"case activity: **{report['activity_status']}**.",
              "", "## Configuration", "",
-             "- One shared parameter namelist per case, derived from CAPITOUL; CBS off.",
+             "- One shared parameter namelist per case, derived from CAPITOUL; tebopts/tebparams, nvec=1, CBS explicitly off.",
              f"- Forcing namelist: `{report['forcing_source']}`; full run: {report['full_steps']} steps.",
              f"- Forcing directory: `{report['forcing_dir'] or 'from source namelist'}`.",
              f"- Source forcing directory: `{report['source_forcing_dir'] or 'from source namelist'}`.",
@@ -462,6 +543,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT)
     parser.add_argument("--toolchain-dir", type=Path)
+    parser.add_argument("--build-root", type=Path, help="External build profiles; default: <out-dir>/build")
     parser.add_argument("--forcing-nml", type=Path, default=FORCING_TEMPLATE,
                         help="source forcing namelist (default: CAPITOUL)")
     parser.add_argument("--forcing-dir", type=Path,
@@ -480,10 +562,14 @@ def main() -> int:
         parser.error("smoke-steps must be at least 2 and jobs must be positive")
     if args.irrigation_months and any(not 1 <= month <= 12 for month in args.irrigation_months):
         parser.error("irrigation months must be in 1..12")
-    out = args.out_dir.resolve()
+    try:
+        out = external(args.out_dir)
+        build_root = external(args.build_root or out / "build")
+    except ValueError as error:
+        parser.error(str(error))
+    if any((out / name).exists() for name in ("runs", "config", "report.json", "error.txt")):
+        parser.error("Choose a fresh external --out-dir; previous results are preserved")
     out.mkdir(parents=True, exist_ok=True)
-    for name in ("report.md", "report.json", "error.txt"):
-        (out / name).unlink(missing_ok=True)
     try:
         env = environment(args.toolchain_dir.resolve() if args.toolchain_dir else None)
         forcing_source = args.forcing_nml.resolve()
@@ -494,7 +580,7 @@ def main() -> int:
         paths = prepare_namelists(out, args.smoke_steps, forcing_source, forcing_dir,
                                   tuple(args.irrigation_months) if args.irrigation_months else None,
                                   replacement_wind)
-        binaries = get_binaries(out) if args.skip_build else build_binaries(out, env, args.jobs)
+        binaries = get_binaries(build_root) if args.skip_build else build_binaries(out, build_root, env, args.jobs)
         report = {"status": "pass", "comparison_status": "pass", "activity_status": "pass",
                   "cases": {case: {} for case in CASE_OVERRIDES},
                   "forcing_source": str(paths["forcing_source"]),
@@ -503,6 +589,7 @@ def main() -> int:
                   if paths["source_forcing_dir"] else None,
                   "replacement_wind": str(replacement_wind) if replacement_wind else None,
                   "full_steps": paths["full_steps"], "case_overrides": paths["case_overrides"],
+                  "namelist_format": "tebopts/tebparams", "nvec": 1, "build_root": str(build_root),
                   "sha256": {
             "source_forcing_namelist": sha256(forcing_source),
             "smoke_forcing_namelist": sha256(paths["smoke"]),
@@ -512,7 +599,7 @@ def main() -> int:
         }}
         for case, param in paths["params"].items():
             report["sha256"][case + "_param_namelist"] = sha256(param)
-        if forcing_dir is not None:
+        if paths["forcing_dir"] is not None:
             if replacement_wind is not None:
                 report["sha256"]["source_Forc_WIND.txt"] = sha256(
                     paths["source_forcing_dir"] / "Forc_WIND.txt")

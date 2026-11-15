@@ -6,25 +6,106 @@ This document provides a comprehensive description of all input (namelist) and o
 
 These variables are defined in the Fortran namelist files (`namelist.nml` and `namelist_forcing.nml`) and control the model configuration.
 
-### Basic Building Characteristics
+### Offline namelist layout
 
-| Variable | Type | Dimension/Value | Comment |
-|:---------|:-----|:----------------|:--------|
-| `dt` | External parameter | s | Model time step |
-| `urb_h_bld` | External parameter | m | Average canyon height |
-| `urb_fr_bld` | External parameter | - | Building area fraction |
-| `urb_h2w` | External parameter | - | Canyon aspect ratio |
-| `teb_road_dir` | External parameter | ° | Canyon azimuth |
-| `teb_hroad_dir` | Control variable | "UNIF" / "ORIE" | Canyon orientation: ORIE - with orientation, UNIF - without |
-| `teb_wall_opt` | Control variable | "UNIF" / "TWO" | Wall energy balance: TWO - separate walls, UNIF - uniform |
-| `teb_ti_bld_init` | Initial condition | K | Initial indoor air temperature; default `teb_tcool_target` (297.16 K). Applied once at model step 0 (`ntstep = 0`). The prognostic state remains `teb_ti_bld`. It also anchors the cold-start profiles of the roof/wall layers, the internal window temperature and the initial floor/mass temperatures (as in the 2018 original). |
-| `teb_qi_bld_init` | Initial condition | kg/kg | Initial indoor specific humidity; default `0.5*QSAT(teb_ti_bld, ps)` at model step 0. The prognostic state remains `teb_qi_bld` |
+The ordinary and block offline executables of `src_dev` use the same configuration and numerical driver.
+`&tebopts` contains `nvec` (default 1), `dt` (default 300 s), the common logical switches
+`teb_lbem_ac`, `teb_lgarden`, `teb_lgreenroof`, `teb_lsolar_panel`,
+`teb_lroad_irrig`, `teb_lshade`, `teb_lcbs_scheme`, `teb_snow_check`, and the
+scheme selectors `teb_ctype_bem`, `teb_ctype_natvent`, `teb_ctype_bem_cool`,
+`teb_ctype_bem_heat`, `teb_ctype_wind`, `teb_ctype_garden`,
+`teb_ctype_greenroof`, `teb_hroad_dir` and `teb_wall_opt`.
+Every option has one value shared by all cells.
+
+`&tebparams` contains the remaining physical parameters and initial conditions.
+Parameters mapped to API arrays accept either **one literal**, broadcast across
+the block, or **exactly `nvec` literals**, in input cell order. This includes
+garden/greenroof roughness, albedo and emissivity. Parameters which are scalar
+in the API remain scalar: `teb_utc_hour`, `urb_z0_town`, `urb_zd_town`,
+`urb_z0_o_z0h_gdn/grf`, `teb_tau_hw_thresh`, `teb_tau_hw_width` and the module-owned
+`proxy_phu_gdn/grf`. `teb_fai` accepts exactly eight directional values, common
+to all cells and blocks; its API representation remains `(nvec,8)`.
+
+Omitted parameters retain the model defaults. Repeats (`3*10.`), null elements
+(`,,`), indexed partial assignments, duplicate keys, wrong list lengths and
+overlong selector strings are errors. Comments, line breaks and a final comma
+are supported. Emissivity and the corresponding legacy thermal albedo are
+alternative inputs, each supporting the same scalar/list rule.
+
+`&tebforcing` retains one common atmospheric series, calendar, location and
+forcing height. The old `&tebparam` group remains supported for scalar legacy
+runs; it cannot be mixed with `tebopts/tebparams`. `src_ctrl` currently retains
+the split format for `nvec=1` and its legacy `tebparam` reader. Its physical
+defaults, initialization and numerical operations are preserved. The scalar
+adapter checks `nvec` before native namelist input; `nvec>1` is unsupported.
+Ctrl accepts `teb_lcbs_scheme=.FALSE.` and rejects enabled CBS. Dev-only physical
+parameters remain unsupported. Ctrl retains its merged `TEB_output.csv`;
+its compatibility output switches require the default values listed below.
+
+The split format uses the `teb_ctype_*` names listed below. Its wind selector
+`teb_ctype_wind` accepts `'DEF'` or `'WANG'`, and `dt` belongs to `&tebopts`.
+Legacy `&tebparam` retains the former `teb_itype_*` / `teb_type_*` names,
+numeric `teb_itype_wind=0/1` and its original `dt` entry.
+The public Fortran API keeps its existing names and numeric wind codes.
+
+The `List` column describes **per-cell input in `src_dev`**: `✓` means
+one literal for all cells or exactly `nvec` literals in cell order; `—` means
+no per-cell list. `teb_fai` is the exception to scalar input: its eight
+directional values are always shared by the whole block.
+`src_ctrl` accepts only `nvec=1`, regardless of the checkmarks.
+
+### `&tebopts`: block size, switches and scheme selectors
+
+All entries in this group are common to every cell.
+
+| Variable | Type | Dimension/Value | List | Comment |
+|:---------|:-----|:----------------|:----:|:--------|
+| `nvec` | Integer | >= 1 | — | Number of cells in a block (default `1`); `src_ctrl` requires `1`. |
+| `dt` | External parameter | s | — | Model time step |
+| `teb_lbem_ac` | Flag | True / False | — | Activate air conditioning |
+| `teb_lgarden` | Flag | True / False | — | Activate garden module |
+| `teb_lgreenroof` | Flag | True / False | — | Activate green roof module |
+| `teb_lsolar_panel` | Flag | True / False | — | Activate solar panel module |
+| `teb_lroad_irrig` | Flag | True / False | — | Activate street watering module |
+| `teb_lshade` | External parameter | True / False | — | Activate window shading (not verified) |
+| `teb_lcbs_scheme` | Flag | True / False | — | Activate CBS canyon/garden exchange (default `.FALSE.`); `src_ctrl` accepts only `.FALSE.`. |
+| `teb_snow_check` | Flag | True / False | — | Filter snowfall below `XTEB_SNOW_RATE_MIN` when creating snow cover on bare roads and roofs (default `.FALSE.`). |
+| `teb_ctype_bem` | Control variable | "BEM" / "DEF" | — | Activate BEM model |
+| `teb_ctype_natvent` | Control variable | "NONE" / "MANU" / "AUTO" / "MECH" | — | Natural ventilation mode |
+| `teb_ctype_bem_cool` | Control variable | "DXCOIL" / "IDEAL " | — | Cooling system type |
+| `teb_ctype_bem_heat` | Control variable | "FINCAP" / "IDEAL " | — | Heating system type |
+| `teb_ctype_wind` | Character | `'DEF'` / `'WANG'` | — | Canopy wind scheme: `'DEF'` - basic scheme (default), `'WANG'` - Wang (2012) parameterization |
+| `teb_ctype_garden` | Character | `'PROXY_OLD'` / `'PROXY_NEW'` / `'EXT'` / `'EXT_NEU'` | — | Garden model type (default `'PROXY_NEW'`) |
+| `teb_ctype_greenroof` | Character | `'PROXY_OLD'` / `'PROXY_NEW'` / `'EXT'` / `'EXT_NEU'` | — | Greenroof model type (default `'PROXY_NEW'`); see the scheme descriptions below. |
+| `teb_hroad_dir` | Control variable | "UNIF" / "ORIE" | — | Canyon orientation: ORIE - with orientation, UNIF - without |
+| `teb_wall_opt` | Control variable | "UNIF" / "TWO" | — | Wall energy balance: TWO - separate walls, UNIF - uniform |
+| `teb_lwrite_output` | Flag | True / False | — | Main per-cell model CSV (default `.TRUE.`). |
+| `teb_lwrite_emu` | Flag | True / False | — | Per-cell external-surface emulator CSV (default `.TRUE.`). |
+| `teb_lwrite_runoff` | Flag | True / False | — | Per-cell interval-mean road/roof runoff CSV (default `.TRUE.`). |
+| `teb_lwrite_test_dump` | Flag | True / False | — | Full API before/after binary dump and schema (default `.FALSE.`). |
+
+### `&tebparams`: physical parameters and initial conditions
+
+The tables below describe the development-tree parameters. `src_ctrl` retains its reference defaults and scheme behavior; it does not accept
+`urb_z0_o_z0h_gdn`, `urb_z0_o_z0h_grf`, `proxy_phu_gdn`, `proxy_phu_grf`,
+`teb_tau_hw_thresh` or `teb_tau_hw_width`.
+
+#### Basic Building Characteristics
+
+| Variable | Type | Dimension/Value | List | Comment |
+|:---------|:-----|:----------------|:----:|:--------|
+| `urb_h_bld` | External parameter | m | ✓ | Average canyon height |
+| `urb_fr_bld` | External parameter | - | ✓ | Building area fraction |
+| `urb_h2w` | External parameter | - | ✓ | Canyon aspect ratio |
+| `teb_road_dir` | External parameter | ° | ✓ | Canyon azimuth |
+| `teb_ti_bld_init` | Initial condition | K | ✓ | Initial indoor air temperature; default `teb_tcool_target` (297.16 K). Applied once at model step 0 (`ntstep = 0`). The prognostic state remains `teb_ti_bld`. It also anchors the cold-start profiles of the roof/wall layers, the internal window temperature and the initial floor/mass temperatures (as in the 2018 original). |
+| `teb_qi_bld_init` | Initial condition | kg/kg | ✓ | Initial indoor specific humidity; default `0.5*QSAT(teb_ti_bld, ps)` at model step 0. The prognostic state remains `teb_qi_bld` |
 
 Both `_init` items are applied exactly once per cell at the first model step (`ntstep = 0`, 0-based), not at every forcing step. The offline driver computes this number as `(nstep-1)*INB_ATM + (JSURF_STEP-1)`, so the first forcing step may contain several model sub-steps. `TEB_INIT_STATE` only fills values that are still `XUNDEF`; a value supplied by the driver or by a coupled host is kept. `XTI_BLD`/`XQI_BLD` are resolved before the state is filled, because the cold-start profiles and the floor/mass temperatures are anchored to `XTI_BLD`.
 
 
 <!-- MV202609 z0 and zd to namelist -->
-### Urban Aerodynamics
+#### Urban Aerodynamics
 
 Aerodynamic parameters of the urban (town) surface. Each of the two values below
 accepts the following forms (case insensitive):
@@ -38,10 +119,10 @@ accepts the following forms (case insensitive):
 | parameterization name | `'MACDONALD1998'` | Macdonald et al. (1998) scheme, staggered arrays; `'MACDONALD1998SQ'` selects the square-array coefficients. The scheme sets the value of the entry in which it is given (only `z0` in `urb_z0_town`, only `zd` in `urb_zd_town`) |
 | ... | `'MACDONALD1998SQ'` | same scheme with A = 3.59 and beta = 0.55 (square arrays) |
 
-| Variable | Type | Dimension/Value | Comment |
-|:---------|:-----|:----------------|:--------|
-| `urb_z0_town` | External parameter | m, `H`, `H/n` or name | Roughness length for momentum of the urban surface (default `'0.1H'`, i.e. `0.1*urb_h_bld`) |
-| `urb_zd_town` | External parameter | m, `H`, `H/n` or name | Displacement height of the urban surface, measured from the road level (default `'H/3'`) |
+| Variable | Type | Dimension/Value | List | Comment |
+|:---------|:-----|:----------------|:----:|:--------|
+| `urb_z0_town` | External parameter | m, `H`, `H/n` or name | — | Roughness length for momentum of the urban surface (default `'0.1H'`, i.e. `0.1*urb_h_bld`) |
+| `urb_zd_town` | External parameter | m, `H`, `H/n` or name | — | Displacement height of the urban surface, measured from the road level (default `'H/3'`) |
 
 `urb_zd_town` is used both in the wind profile of the driver and inside TEB: all
 aerodynamic formulas use the height above the displacement surface, i.e.
@@ -69,30 +150,30 @@ Notes:
   `urban_drag.F90`, which corresponds to `zd = 2/3*urb_h_bld` and is inconsistent
   with its own wind profile, where `2/3*urb_h_bld = urb_h_bld - zd` gives
   `zd = 1/3*urb_h_bld`; in TEB-MSU both places use the single value `urb_zd_town`;
-- with the default wind scheme (`teb_itype_wind = 0`) the town exchange coefficient
+- with the default wind scheme (`teb_ctype_wind = 'DEF'`) the town exchange coefficient
   affects only the friction velocity (diagnostics and the coupling with an
   atmospheric model); it changes the offline results when the Wang scheme
-  (`teb_itype_wind = 1`) is used.
+  (`teb_ctype_wind = 'WANG'`) is used.
 
-### Surface Properties
+#### Surface Properties
 
-| Variable | Type | Dimension/Value | Comment |
-|:---------|:-----|:----------------|:--------|
-| `urb_alb_rf_so` | External parameter | - | Roof surface albedo |
-| `urb_alb_rf_th` | External parameter | - | Roof longwave albedo, legacy item (the interface receives this value; `urb_alb_rf_th = 1 - urb_emis_rf`) |
-| `urb_emis_rf` | External parameter | - | Roof surface emissivity, primary item (default `0.97`; must be `> 0` and `<= 1`, otherwise the run stops). Giving both `urb_emis_rf` and `urb_alb_rf_th` stops the run |
-| `urb_hcap_rf` | External parameter | J/m³/K | Roof layers volumetric heat capacity |
-| `urb_hcon_rf` | External parameter | W/m/K | Roof layers thermal conductivity |
-| `urb_alb_rd_so` | External parameter | - | Road surface albedo |
-| `urb_alb_rd_th` | External parameter | - | Road longwave albedo, legacy item (the interface receives this value; `urb_alb_rd_th = 1 - urb_emis_rd`) |
-| `urb_emis_rd` | External parameter | - | Road surface emissivity, primary item (default `0.96`; must be `> 0` and `<= 1`, otherwise the run stops). Giving both `urb_emis_rd` and `urb_alb_rd_th` stops the run |
-| `urb_hcap_rd` | External parameter | J/m³/K | Road layers volumetric heat capacity |
-| `urb_hcon_rd` | External parameter | W/m/K | Road layers thermal conductivity |
-| `urb_alb_wl_so` | External parameter | - | Wall surface albedo |
-| `urb_alb_wl_th` | External parameter | - | Wall longwave albedo, legacy item (the interface receives this value; `urb_alb_wl_th = 1 - urb_emis_wl`) |
-| `urb_emis_wl` | External parameter | - | Wall surface emissivity, primary item (default `0.97`; must be `> 0` and `<= 1`, otherwise the run stops). Giving both `urb_emis_wl` and `urb_alb_wl_th` stops the run |
-| `urb_hcap_wl` | External parameter | J/m³/K | Wall layers volumetric heat capacity |
-| `urb_hcon_wl` | External parameter | W/m/K | Wall layers thermal conductivity |
+| Variable | Type | Dimension/Value | List | Comment |
+|:---------|:-----|:----------------|:----:|:--------|
+| `urb_alb_rf_so` | External parameter | - | ✓ | Roof surface albedo |
+| `urb_alb_rf_th` | External parameter | - | ✓ | Roof longwave albedo, legacy item (the interface receives this value; `urb_alb_rf_th = 1 - urb_emis_rf`) |
+| `urb_emis_rf` | External parameter | - | ✓ | Roof surface emissivity, primary item (default `0.97`; must be `> 0` and `<= 1`, otherwise the run stops). Giving both `urb_emis_rf` and `urb_alb_rf_th` stops the run |
+| `urb_hcap_rf` | External parameter | J/m³/K | ✓ | Roof layers volumetric heat capacity |
+| `urb_hcon_rf` | External parameter | W/m/K | ✓ | Roof layers thermal conductivity |
+| `urb_alb_rd_so` | External parameter | - | ✓ | Road surface albedo |
+| `urb_alb_rd_th` | External parameter | - | ✓ | Road longwave albedo, legacy item (the interface receives this value; `urb_alb_rd_th = 1 - urb_emis_rd`) |
+| `urb_emis_rd` | External parameter | - | ✓ | Road surface emissivity, primary item (default `0.96`; must be `> 0` and `<= 1`, otherwise the run stops). Giving both `urb_emis_rd` and `urb_alb_rd_th` stops the run |
+| `urb_hcap_rd` | External parameter | J/m³/K | ✓ | Road layers volumetric heat capacity |
+| `urb_hcon_rd` | External parameter | W/m/K | ✓ | Road layers thermal conductivity |
+| `urb_alb_wl_so` | External parameter | - | ✓ | Wall surface albedo |
+| `urb_alb_wl_th` | External parameter | - | ✓ | Wall longwave albedo, legacy item (the interface receives this value; `urb_alb_wl_th = 1 - urb_emis_wl`) |
+| `urb_emis_wl` | External parameter | - | ✓ | Wall surface emissivity, primary item (default `0.97`; must be `> 0` and `<= 1`, otherwise the run stops). Giving both `urb_emis_wl` and `urb_alb_wl_th` stops the run |
+| `urb_hcap_wl` | External parameter | J/m³/K | ✓ | Wall layers volumetric heat capacity |
+| `urb_hcon_wl` | External parameter | W/m/K | ✓ | Wall layers thermal conductivity |
 > **Emissivity vs longwave albedo.** The three `urb_emis_*` items are the primary
 > source of the longwave radiative property of the built materials (the upstream
 > 2018/2020 namelists call them `ZEMIS_ROOF` / `ZEMIS_ROAD` / `ZEMIS_WALL`). The
@@ -102,71 +183,72 @@ Notes:
 > giving neither keeps the driver default (`0.97` / `0.96` / `0.97`).
 
 
-### Building Energy Model (BEM)
+#### Building Energy Model (BEM)
 
-| Variable | Type | Dimension/Value | Comment |
-|:---------|:-----|:----------------|:--------|
-| `teb_itype_bem` | Control variable | "BEM" / "DEF" | Activate BEM model |
-| `teb_lbem_ac` | Flag | True / False | Activate air conditioning |
-| `teb_itype_natvent` | Control variable | "NONE" / "MANU" / "AUTO" / "MECH" | Natural ventilation mode |
-| `teb_itype_bem_cool` | Control variable | "DXCOIL" / "IDEAL " | Cooling system type |
-| `teb_itype_bem_heat` | Control variable | "FINCAP" / "IDEAL " | Heating system type |
-| `teb_frac_gz` | External parameter | - | Glazing ratio |
-| `teb_tcool_target` | External parameter | K | Cooling setpoint temperature |
-| `teb_theat_target` | External parameter | K | Heating setpoint temperature |
-| `teb_zresidential` | External parameter | - | Residential fraction of building |
-| `teb_dt_res` | External parameter | K | Temperature change threshold for unoccupied residential building |
-| `teb_dt_off` | External parameter | K | Temperature change threshold for unoccupied office building |
-| `teb_bem_inf` | External parameter | AC/H | Infiltration rate |
-| `teb_bem_vent` | External parameter | AC/H | Ventilation rate |
-| `teb_bem_cop` | External parameter | - | Nominal COP of cooling system |
-| `teb_cap_sys_rat` | External parameter | W/m²(building) | Nominal cooling system capacity (for "DXCOIL" type) |
-| `teb_m_sys_rat` | External parameter | kg/s/m²(building) | Nominal HVAC mass flow rate |
-| `teb_cap_sys_heat` | External parameter | W/m²(building) | Heating system capacity |
-| `teb_lshade` | External parameter | True / False | Activate window shading (not verified) |
+| Variable | Type | Dimension/Value | List | Comment |
+|:---------|:-----|:----------------|:----:|:--------|
+| `teb_frac_gz` | External parameter | - | ✓ | Glazing ratio |
+| `teb_tcool_target` | External parameter | K | ✓ | Cooling setpoint temperature |
+| `teb_theat_target` | External parameter | K | ✓ | Heating setpoint temperature |
+| `teb_zresidential` | External parameter | - | ✓ | Residential fraction of building |
+| `teb_dt_res` | External parameter | K | ✓ | Temperature change threshold for unoccupied residential building |
+| `teb_dt_off` | External parameter | K | ✓ | Temperature change threshold for unoccupied office building |
+| `teb_bem_inf` | External parameter | AC/H | ✓ | Infiltration rate |
+| `teb_bem_vent` | External parameter | AC/H | ✓ | Ventilation rate |
+| `teb_bem_cop` | External parameter | - | ✓ | Nominal COP of cooling system |
+| `teb_cap_sys_rat` | External parameter | W/m²(building) | ✓ | Nominal cooling system capacity (for "DXCOIL" type) |
+| `teb_m_sys_rat` | External parameter | kg/s/m²(building) | ✓ | Nominal HVAC mass flow rate |
+| `teb_cap_sys_heat` | External parameter | W/m²(building) | ✓ | Heating system capacity |
 
-### Anthropogenic Heat Fluxes
+#### Anthropogenic Heat Fluxes
 
-| Variable | Type | Dimension/Value | Comment |
-|:---------|:-----|:----------------|:--------|
-| `ahf_traffic` | External parameter | W/m² | Sensible heat flux from traffic |
-| `ahf_industry` | External parameter | W/m² | Sensible heat flux from industry |
+| Variable | Type | Dimension/Value | List | Comment |
+|:---------|:-----|:----------------|:----:|:--------|
+| `ahf_traffic` | External parameter | W/m² | ✓ | Sensible heat flux from traffic |
+| `ahf_industry` | External parameter | W/m² | ✓ | Sensible heat flux from industry |
+| `teb_utc_hour` | External parameter | h | — | Time-zone offset for the traffic daily cycle (default `3`). |
 
-### Wind Inside Urban Canopy
+#### CBS Exchange Parameters
 
-| Variable | Type | Dimension/Value | Comment |
-|:---------|:-----|:----------------|:--------|
-| `teb_itype_wind` | Control variable | 0 / 1 | Wind speed calculation: 0 - basic scheme, 1 - Wang (2012) parameterization |
-| `teb_fai` | External parameter | - | Frontal area index for 8 wind directions |
+These parameters belong to `src_dev`; `teb_lcbs_scheme` is selected in `&tebopts`.
 
-### Green Infrastructure
+| Variable | Type | Dimension/Value | List | Comment |
+|:---------|:-----|:----------------|:----:|:--------|
+| `teb_tau_hw_thresh` | External parameter | - | — | Canyon H/W ratio at which the CBS canyon-path weight is 0.5 (default `0.5`); common to all cells. |
+| `teb_tau_hw_width` | External parameter | - | — | Width of the CBS tanh transition in canyon H/W ratio (default `0.25`); common to all cells. |
 
-| Variable | Type | Dimension/Value | Comment |
-|:---------|:-----|:----------------|:--------|
-| `teb_lgarden` | Flag | True / False | Activate garden module |
-| `fr_garden` | External parameter | - | Garden area fraction |
-| `teb_type_garden` | Character | `'PROXY_OLD'` / `'PROXY_NEW'` / `'EXT'` / `'EXT_NEU'` | Garden model type (default `'PROXY_NEW'`) |
+#### Wind Inside Urban Canopy
+
+| Variable | Type | Dimension/Value | List | Comment |
+|:---------|:-----|:----------------|:----:|:--------|
+| `teb_fai` | External parameter | - | — | Frontal area index for 8 wind directions |
+
+#### Green Infrastructure
+
 <!-- MV202609 garden thermal roughness (z0h) -->
-| `urb_z0_gdn` | External parameter | m | Garden roughness length for **momentum**, used by **all** the garden models (default `0.1` = `MODD_PROXI_SVAT_PAR:XZ0_GD`; must be `> 0` and `< XUNDEF`, otherwise the run stops) |
-| `urb_z0_o_z0h_gdn` | External parameter | - | Garden `z0/z0h` ratio (`z0h = urb_z0_gdn/urb_z0_o_z0h_gdn` is the **thermal, scalar** roughness of the garden: heat and moisture exchange through it, the momentum keeps `urb_z0_gdn`; default `4.0` = `MODD_PROXI_SVAT_PAR:XZ0_O_Z0H_GD`; must be `>= 1` and `< XUNDEF`, otherwise the run stops; `1.0` reproduces the garden without thermal roughness bit for bit) |
-| `urb_alb_gdn` | External parameter | - | Garden albedo (default `0.15`; must be `>= 0` and `< 1`, otherwise the run stops) |
-| `urb_emis_gdn` | External parameter | - | Garden emissivity (default `0.98`; must be `> 0` and `<= 1`, otherwise the run stops) |
-| `teb_lgreenroof` | Flag | True / False | Activate green roof module |
-| `teb_frac_gr` | External parameter | - | Green roof fraction |
-| `urb_z0_grf` | External parameter | m | Green roof roughness length, used by **all** the greenroof models (default `0.01` = `MODD_PROXI_SVAT_PAR:XZ0_GR`; validated like the garden one) |
-| `urb_alb_grf` | External parameter | - | Green roof albedo (default `0.15`) |
-| `urb_emis_grf` | External parameter | - | Green roof emissivity (default `0.98`) |
 <!-- MV202609 proxy parameters to namelist -->
 > **Rename.** The two parameters below were called `urb_phu_gdn` / `urb_phu_grf`. They are now
 > named after the model that owns them (`proxy_phu_*`, the `PHU` parameter of the proxy module
 > `MODD_PROXI_SVAT_PAR`, read by the proxies themselves): `TEB_GARDEN` no longer sees the
 > parameter, it receives the moisture multiplier from the model. A namelist file that still
 > carries the former names is reported by the driver (an undeclared item is silently ignored).
-| `urb_z0_o_z0h_grf` | External parameter | - | Green roof `z0/z0h` ratio (`z0h = urb_z0_grf/urb_z0_o_z0h_grf` is the **thermal, scalar** roughness of the greenroof, used by the diagnostic greenroof exactly as `urb_z0_o_z0h_gdn` is used by the garden; default `4.0` = `MODD_PROXI_SVAT_PAR:XZ0_O_Z0H_GR`; must be `>= 1` and `< XUNDEF`) |
-| `proxy_phu_gdn` | External parameter | - | Garden surface relative humidity `PHU`, used by **both** garden schemes: `'PROXY_NEW'` drives `LE = rho*Lv*Ca*(PHU*qsat(Ts) - qa)`, `'PROXY_OLD'` drives `PHU_AGG_GARDEN` (default `0.7` = `MODD_PROXI_SVAT_PAR:proxy_phu_gdn`; the **base model** value was `0.8` — set `proxy_phu_gdn = 0.8` to reproduce the base model; must be `> 0` and `<= 1`; read by `src_dev` only — `src_ctrl` keeps the base-model constant `0.8`; an external garden (`'EXT'`/`'EXT_NEU'`) does not use it, its multiplier being the host surface humidity ratio) |
-| `proxy_phu_grf` | External parameter | - | Green roof surface relative humidity `PHU`, used by **both** greenroof schemes (default `0.7` = `MODD_PROXI_SVAT_PAR:proxy_phu_grf`; the **base model** value was `0.3` — set `proxy_phu_grf = 0.3` to reproduce the base model; must be `> 0` and `<= 1`) |
 
-#### Garden model type (`teb_type_garden`)
+| Variable | Type | Dimension/Value | List | Comment |
+|:---------|:-----|:----------------|:----:|:--------|
+| `fr_garden` | External parameter | - | ✓ | Garden area fraction |
+| `urb_z0_gdn` | External parameter | m | ✓ | Garden roughness length for **momentum**, used by **all** the garden models (default `0.1` = `MODD_PROXI_SVAT_PAR:XZ0_GD`; must be `> 0` and `< XUNDEF`, otherwise the run stops) |
+| `urb_z0_o_z0h_gdn` | External parameter | - | — | Garden `z0/z0h` ratio (`z0h = urb_z0_gdn/urb_z0_o_z0h_gdn` is the **thermal, scalar** roughness of the garden: heat and moisture exchange through it, the momentum keeps `urb_z0_gdn`; default `4.0` = `MODD_PROXI_SVAT_PAR:XZ0_O_Z0H_GD`; must be `>= 1` and `< XUNDEF`, otherwise the run stops; `1.0` reproduces the garden without thermal roughness bit for bit) |
+| `urb_alb_gdn` | External parameter | - | ✓ | Garden albedo (default `0.15`; must be `>= 0` and `< 1`, otherwise the run stops) |
+| `urb_emis_gdn` | External parameter | - | ✓ | Garden emissivity (default `0.98`; must be `> 0` and `<= 1`, otherwise the run stops) |
+| `teb_frac_gr` | External parameter | - | ✓ | Green roof fraction |
+| `urb_z0_grf` | External parameter | m | ✓ | Green roof roughness length, used by **all** the greenroof models (default `0.01` = `MODD_PROXI_SVAT_PAR:XZ0_GR`; validated like the garden one) |
+| `urb_alb_grf` | External parameter | - | ✓ | Green roof albedo (default `0.15`) |
+| `urb_emis_grf` | External parameter | - | ✓ | Green roof emissivity (default `0.98`) |
+| `urb_z0_o_z0h_grf` | External parameter | - | — | Green roof `z0/z0h` ratio (`z0h = urb_z0_grf/urb_z0_o_z0h_grf` is the **thermal, scalar** roughness of the greenroof, used by the diagnostic greenroof exactly as `urb_z0_o_z0h_gdn` is used by the garden; default `4.0` = `MODD_PROXI_SVAT_PAR:XZ0_O_Z0H_GR`; must be `>= 1` and `< XUNDEF`) |
+| `proxy_phu_gdn` | External parameter | - | — | Garden surface relative humidity `PHU`, used by **both** garden schemes: `'PROXY_NEW'` drives `LE = rho*Lv*Ca*(PHU*qsat(Ts) - qa)`, `'PROXY_OLD'` drives `PHU_AGG_GARDEN` (default `0.7` = `MODD_PROXI_SVAT_PAR:proxy_phu_gdn`; the **base model** value was `0.8` — set `proxy_phu_gdn = 0.8` to reproduce the base model; must be `> 0` and `<= 1`; read by `src_dev` only — `src_ctrl` keeps the base-model constant `0.8`; an external garden (`'EXT'`/`'EXT_NEU'`) does not use it, its multiplier being the host surface humidity ratio) |
+| `proxy_phu_grf` | External parameter | - | — | Green roof surface relative humidity `PHU`, used by **both** greenroof schemes (default `0.7` = `MODD_PROXI_SVAT_PAR:proxy_phu_grf`; the **base model** value was `0.3` — set `proxy_phu_grf = 0.3` to reproduce the base model; must be `> 0` and `<= 1`) |
+
+##### Garden model type (`teb_ctype_garden`)
 
 Used only when `teb_lgarden = .TRUE.`:
 
@@ -177,7 +259,7 @@ Used only when `teb_lgarden = .TRUE.`:
 | `'EXT'` | The garden fluxes are provided by an external model (the internal call is a placeholder). The diagnostic garden exchange coefficients of `URBAN_DRAG` (`PCD*_GARDEN_*`) use the full `URBAN_EXCH_COEF` set: Richardson number, `z0h = z0/urb_z0_o_z0h_gdn`, `WIND_THRESHOLD`. The **friction flux** of the garden uses the momentum coefficient of that model (`PCD_GARDEN_CAN`, i.e. the value exported to the host as `teb_tcm_gd`; that of the previous sub-step, neutral on the first sub-step of a run). |
 | `'EXT_NEU'` | Same external garden, but the garden exchange coefficients follow the **neutral** formulation of the internal diagnostic garden (`PCD`/`Ca_m` for momentum, `PCH`/`Ca_h` for heat and moisture with the same thermal roughness `z0h` and the same wind floor `XVMIN_GD = 0.5 m/s`), so `PCD = PCDN > PCH = PCDN*ZFH`, `ZZ0H_GARDEN_*` is the thermal roughness used and only `PRI` stays undefined (`XUNDEF`). This is the coefficient set a coupled external garden model is meant to be driven with: it is identical to the canyon-path coefficients of `'PROXY_NEW'` and to the emulator of the offline driver. The friction flux uses the same exported momentum coefficient (the neutral one here). |
 
-#### Greenroof model type (`teb_type_greenroof`)
+##### Greenroof model type (`teb_ctype_greenroof`)
 
 Used only when `teb_lgreenroof = .TRUE.` (the external greenroof keeps its own flag
 `teb_lgreenroof_ext`):
@@ -194,7 +276,7 @@ interface, the counterpart of `teb_qs_gd` of the garden) to form the multiplier
 irrigation are zero in this mode. The friction flux uses the exported momentum coefficient `PCD_GREENROOF_ATM` (that of the previous sub-step, neutral on the first sub-step of a run). |
 | `'EXT_NEU'` | Same external greenroof, but the diagnostic coefficients follow the **neutral** formulation of the internal diagnostic greenroof (`GARDEN_PCD_NEUTRAL`/`GARDEN_PCH_NEUTRAL`/`GARDEN_CAH_NEUTRAL` at `PUREF` with the wind floor `XVMIN_GD = 0.5 m/s` and the same thermal roughness `z0h`): `PCD = PCDN > PCH = PCDN*ZFH`, `ZZ0H_GREENROOF_ATM` is the thermal roughness used and `PRI_GREENROOF_ATM` stays undefined (`XUNDEF`). This is the coefficient set a coupled external greenroof is meant to be driven with. |
 
-#### Surface properties of the garden and of the greenroof
+##### Surface properties of the garden and of the greenroof
 
 One single value **per surface and per property**, shared by all the models of that
 surface (the internal proxy schemes and the external ones) and by the radiation
@@ -243,7 +325,7 @@ the garden conductance and in `URBAN_DRAG`). See
 
 
 <!-- MV202609 garden thermal roughness (z0h) -->
-##### Garden roughness length (`urb_z0_gdn`) and thermal roughness (`urb_z0_o_z0h_gdn`)
+###### Garden roughness length (`urb_z0_gdn`) and thermal roughness (`urb_z0_o_z0h_gdn`)
 
 The driver uses `urb_z0_gdn` as the default of `teb_z0_gd` (see the propagation above);
 inside the canyon it fixes the momentum coefficient and, together with the ratio
@@ -275,7 +357,7 @@ TEB's implicit canyon budget.
 | `4.0` | Default (`MODD_PROXI_SVAT_PAR:XZ0_O_Z0H_GD`): `PCH/PCD = ZFH = 0.71…0.77` for the reference heights of TEB |
 | `2`, `8` | Weaker / stronger thermal-roughness effect, used in the sensitivity bench |
 
-#### Garden output columns
+##### Garden output columns
 
 Written by every garden model (per m² of garden); when `teb_lgarden = .FALSE.`
 they are undefined (`XUNDEF`):
@@ -298,9 +380,9 @@ they are undefined (`XUNDEF`):
 | `LE_GARDEN_CAN` | W/m² | Garden latent heat flux of the canyon branch (`_CAN`) |
 | `LE_GARDEN_ATM` | W/m² | Garden latent heat flux of the direct garden/atmosphere branch (`_ATM`) |
 
-**External garden model (emulator).** With `teb_type_garden = 'EXT'` (or `'EXT_NEU'`)
+**External garden model (emulator).** With `teb_ctype_garden = 'EXT'` (or `'EXT_NEU'`)
 the garden of TEB is prescribed from the outside (surface temperature, surface humidity and
-fluxes). In the offline driver `run_teb_offline.F90` this external model is
+fluxes). In the shared offline module `teb_offline_surfaces.F90` this external model is
 EMULATED by the contained subroutine `PCD_GARDEN`, which is called at every model
 sub-step right after `CALL teb_interface` and which uses `GARDEN_PCD` (the same
 diagnostic surface energy balance as the internal garden scheme). The state
@@ -335,7 +417,7 @@ with two different coefficient sets:
   (`'EXT'` includes stratification in the export while the emulator does not).
 
 
-### Greenroof output columns and the emulator of the external greenroof
+#### Greenroof output columns and the emulator of the external greenroof
 
 The greenroof is a **roof** surface: it exchanges with the air of the forcing level
 only, so it has a single exchange path (no canyon branch, no tau split).
@@ -351,7 +433,7 @@ is a diagnostic only -- it enters no budget, unlike `PHU_GARDEN`) |
 | `PRI_GREENROOF_ATM` | - | Richardson number of the greenroof/atmosphere exchange (`XUNDEF` in `'EXT_NEU'`, whose coefficients are neutral) |
 | `ZZ0H_GREENROOF_ATM` | m | Thermal roughness used (`z0/urb_z0_o_z0h_grf`) |
 
-**External greenroof model (emulator).** With `teb_type_greenroof = 'EXT'` (or
+**External greenroof model (emulator).** With `teb_ctype_greenroof = 'EXT'` (or
 `'EXT_NEU'`) the greenroof is prescribed from the outside. In the offline driver the
 external model is EMULATED by the contained subroutine `PCD_GREENROOF` (the same
 diagnostic balance `GARDEN_PCD` as the internal greenroof, with a single path). The
@@ -374,7 +456,7 @@ neutral ones). The coupling is validated by
 
 
 **Interaction with the CBS scheme of the road.** With `teb_lcbs_scheme = .TRUE.` and
-`teb_type_garden = 'PROXY_NEW'` the garden exchange is split in exactly the same way
+`teb_ctype_garden = 'PROXY_NEW'` the garden exchange is split in exactly the same way
 as the road one: the tau-aggregated conductance and reference air feed the diagnostic
 surface energy balance (`Ca_eff = tau*Ca_canyon + (1-tau)*Ca_atmosphere`,
 `T_ref = (tau*Ca_canyon*T_canyon + (1-tau)*Ca_atmosphere*PTA)/Ca_eff`, the same for
@@ -391,32 +473,51 @@ See `TEB_MSU_garden_diagnostic_scheme.md` (section 2.3) and
 `TEB_MSU_CBS_scheme_T_CAN_reformulation.md` (sections 4.3 and 4.7).
 
 
-### Solar Panels
+#### Solar Panels
 
-| Variable | Type | Dimension/Value | Comment |
-|:---------|:-----|:----------------|:--------|
-| `teb_lsolar_panel` | Flag | True / False | Activate solar panel module |
-| `teb_fr_panel` | External parameter | - | Solar panel fraction on roofs |
+| Variable | Type | Dimension/Value | List | Comment |
+|:---------|:-----|:----------------|:----:|:--------|
+| `teb_fr_panel` | External parameter | - | ✓ | Solar panel fraction on roofs |
 
-### Street Watering
+#### Street Watering
 
-| Variable | Type | Dimension/Value | Comment |
-|:---------|:-----|:----------------|:--------|
-| `teb_lroad_irrig` | Flag | True / False | Activate street watering module |
-| `teb_rd_irrig_start_m` | External parameter | - | Start month for watering |
-| `teb_rd_irrig_end_m` | External parameter | - | End month for watering |
-| `teb_rd_irrig_start_h` | External parameter | - | Start hour for watering |
-| `teb_rd_irrig_end_h` | External parameter | - | End hour for watering |
-| `teb_rd_irrig_sum` | External parameter | liter/m² | 24-hour water amount for road watering |
+| Variable | Type | Dimension/Value | List | Comment |
+|:---------|:-----|:----------------|:----:|:--------|
+| `teb_rd_irrig_start_m` | External parameter | - | ✓ | Start month for watering |
+| `teb_rd_irrig_end_m` | External parameter | - | ✓ | End month for watering |
+| `teb_rd_irrig_start_h` | External parameter | - | ✓ | Start hour for watering |
+| `teb_rd_irrig_end_h` | External parameter | - | ✓ | End hour for watering |
+| `teb_rd_irrig_sum` | External parameter | liter/m² | ✓ | 24-hour water amount for road watering |
 
 ---
 
 ## Output Variables
 
-The model writes all its output variables to a single file
-`<output_dir>/TEB_output.csv` (semicolon-separated, one line per forcing step).
-Column 1 is the time of the model state, then the model variables, then the
-atmospheric forcing used by the model at that step (`Forc_*`).
+`src_dev` writes the main diagnostics to
+`<output_dir>/TEB_output_b<B>_c<C>.csv` for each selected active cell. The
+semicolon-separated schema and numeric formatting are shared by scalar and
+block runs. `src_ctrl` retains `TEB_output.csv`.
+
+The offline host writes `TEB_emu_b<B>_c<C>.csv` and
+`TEB_runoff_b<B>_c<C>.csv`; single-column, single-block runs retain the
+unsuffixed `TEB_emu.csv` and `TEB_runoff.csv`. All three streams use the same
+forcing-interval cadence, determined by the model step rather than API call
+count. Main diagnostics are sampled by the API; emulator diagnostics follow
+the external-surface update. Runoff is the arithmetic mean of substep rates
+over the interval, with independent road/roof accumulators per cell.
+
+Cell IDs follow input order and remain stable through diagnostic permutations.
+Inactive points are not read as computed OUT values. `cells.csv` describes
+initial IDs, positions and activity; `parameters.csv` records the expanded
+configuration at the start of the run segment, including restored host state
+on restart. Console progress is emitted once per output interval.
+
+Diagnostic checkpoints retain the host packet, IDs and partial runoff
+accumulation. Restart writes a separate output segment, preserving global step
+cadence and timestamps; joining segments drops the repeated CSV header.
+Checkpoint version 2 is specific to the same executable, platform and physical
+configuration. The optional `records.bin`/`fields.csv` diagnostic stream keeps
+version 1 and full REAL64 values; its after-API phase precedes emulator updates.
 
 ### Time column
 
@@ -441,7 +542,7 @@ silently use another date (and therefore another solar position and building cal
 The driver therefore
 
 * **stops with an error when a namelist cannot be read** - for both groups,
-  `/tebforcing/` and `/tebparam/` (no warning-and-continue, no silent defaults): the
+  `tebforcing` and the selected parameter/option groups (no warning-and-continue, no silent defaults): the
   log lists every declared item of the failing group with its line number and its
   state (read / not read / not in the file) and reports the **first line at which the
   READ fails**; the items that are not present in the file are reported separately
@@ -458,9 +559,9 @@ The driver therefore
 |:---------|:-----------|:--------|
 | `T_CANYON` | K | Canyon air temperature |
 | `Q_CANYON` | kg/kg | Canyon air specific humidity |
-| `U_CANYON` | m/s | Canyon wind speed (with the Wang scheme, `teb_itype_wind = 1`: the profile value at half building height, `z = H/2`) |
-| `U_CAN_PED` | m/s | Wind speed at pedestrian height (1.1 m above ground): the Wang profile value at that absolute height (`teb_itype_wind = 1`), `XUNDEF` above the roof level; duplicated from `U_CANYON` with the default scheme (`teb_itype_wind = 0`) |
-| `U_CAN_10M` | m/s | Wind speed at the standard 10 m height: the Wang profile value at that absolute height (`teb_itype_wind = 1`), `XUNDEF` when the roof level is below 10 m; duplicated from `U_CANYON` with the default scheme (`teb_itype_wind = 0`) |
+| `U_CANYON` | m/s | Canyon wind speed (with the Wang scheme, `teb_ctype_wind = 'WANG'`: the profile value at half building height, `z = H/2`) |
+| `U_CAN_PED` | m/s | Wind speed at pedestrian height (1.1 m above ground): the Wang profile value at that absolute height (`teb_ctype_wind = 'WANG'`), `XUNDEF` above the roof level; duplicated from `U_CANYON` with the default scheme (`teb_ctype_wind = 'DEF'`) |
+| `U_CAN_10M` | m/s | Wind speed at the standard 10 m height: the Wang profile value at that absolute height (`teb_ctype_wind = 'WANG'`), `XUNDEF` when the roof level is below 10 m; duplicated from `U_CANYON` with the default scheme (`teb_ctype_wind = 'DEF'`) |
 | `P_CANYON` | Pa | Atmospheric pressure at the surface |
 | `T_ROOF1` | K | Roof surface temperature |
 | `T_ROAD1` | K | Road surface temperature |
@@ -479,7 +580,7 @@ The driver therefore
 | `SOLAR_PROD` | W/m²(building) | Average solar panel energy production |
 
 `HVAC_COOL` and `HVAC_HEAT` are written only with the Building Energy Model
-(`teb_itype_bem = 'BEM'`); `SOLAR_PROD` is written only when the solar panels module is
+(`teb_ctype_bem = 'BEM'`); `SOLAR_PROD` is written only when the solar panels module is
 activated (`teb_lsolar_panel = .TRUE.`). The set of columns therefore depends on the
 model options of the run.
 

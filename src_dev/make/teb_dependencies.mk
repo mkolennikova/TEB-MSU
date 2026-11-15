@@ -8,6 +8,7 @@
 #      11/2026 -- Mikhail Varentsov (MV)
 #        Declare explicit module/include dependencies for the split
 #        common-library and offline builds.
+#        Order the shared offline modules before both thin main programs.
 #-------------------------------------------------------------------------------
 $(OBJDIR)/sfc_teb.o: src_api/sfc_teb.F90 \
     $(OBJDIR)/teb_host.o \
@@ -821,23 +822,7 @@ $(OFFLINE_OBJDIR)/open_close_bin_asc_forc.o: src_offline/open_close_bin_asc_forc
 $(OFFLINE_OBJDIR)/read_surf_atm.o: src_offline/read_surf_atm.F90
 
 $(OFFLINE_OBJDIR)/run_teb_offline.o: src_offline/run_teb_offline.F90 \
-    $(OBJDIR)/sfc_teb.o \
-    $(OBJDIR)/teb_log.o \
-    $(OFFLINE_OBJDIR)/modd_forc_atm.o \
-    $(OFFLINE_OBJDIR)/ol_read_atm.o \
-    $(OFFLINE_OBJDIR)/ol_time_interp_atm.o \
-    $(OBJDIR)/garden.o \
-    $(OBJDIR)/modd_proxi_svat_par.o \
-    $(OBJDIR)/modi_garden.o \
-    $(OBJDIR)/modd_bem_optionn.o \
-    $(OBJDIR)/modd_bem_paramsn.o \
-    $(OBJDIR)/modd_diag_misc_tebn.o \
-    $(OBJDIR)/modd_teb_optionn.o \
-    $(OBJDIR)/modd_teb_paramsn.o \
-    $(OBJDIR)/modi_diag_misc_teb_util.o \
-    $(OBJDIR)/modd_csts.o \
-    $(OBJDIR)/modd_surf_par.o \
-    $(OBJDIR)/mode_thermos.o
+    $(OFFLINE_OBJDIR)/teb_offline_driver.o
 
 # Module outputs are also checked when reusing a build directory.
 $(OBJDIR)/flxsurf3bx.o: src_teb/impnone.cdk src_teb/surfcon.cdk src_teb/consphy.cdk src_teb/stabfunc2.cdk
@@ -1042,8 +1027,8 @@ OFFLINE_MODULES := \
     modi_ol_time_interp_atm \
     modi_read_surf_atm
 
-# The diagnostic host is a separate consumer, never an archive member.
-$(BLOCK_OBJDIR)/teb_offline_block_host.o: src_offline/teb_offline_block_host.F90 \
+# Shared offline modules are consumers of the archive, never archive members.
+$(OFFLINE_OBJDIR)/teb_offline_host.o: src_offline/teb_offline_host.F90 \
     $(OBJDIR)/sfc_teb.o $(OBJDIR)/teb_host.o $(OBJDIR)/teb_log.o \
     $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modi_ini_csts.o \
     $(OBJDIR)/mode_thermos.o $(OBJDIR)/modi_garden.o \
@@ -1051,8 +1036,24 @@ $(BLOCK_OBJDIR)/teb_offline_block_host.o: src_offline/teb_offline_block_host.F90
     $(OFFLINE_OBJDIR)/modd_forc_atm.o $(OFFLINE_OBJDIR)/ol_alloc_atm.o \
     $(OFFLINE_OBJDIR)/ol_read_atm.o $(OFFLINE_OBJDIR)/ol_time_interp_atm.o \
     $(OFFLINE_OBJDIR)/add_forecast_to_date_surf.o
+$(OFFLINE_OBJDIR)/teb_offline_namelists.o: src_offline/teb_offline_namelists.F90 \
+    $(OFFLINE_OBJDIR)/teb_offline_host.o
+$(OFFLINE_OBJDIR)/teb_offline_surfaces.o: src_offline/teb_offline_surfaces.F90 \
+    $(OFFLINE_OBJDIR)/teb_offline_host.o
+$(OFFLINE_OBJDIR)/teb_offline_output.o: src_offline/teb_offline_output.F90 \
+    $(OFFLINE_OBJDIR)/teb_offline_host.o
+$(OFFLINE_OBJDIR)/teb_offline_driver.o: src_offline/teb_offline_driver.F90 \
+    $(OFFLINE_OBJDIR)/teb_offline_host.o \
+    $(OFFLINE_OBJDIR)/teb_offline_namelists.o \
+    $(OFFLINE_OBJDIR)/teb_offline_surfaces.o \
+    $(OFFLINE_OBJDIR)/teb_offline_output.o
 $(BLOCK_OBJDIR)/run_teb_offline_block.o: src_offline/run_teb_offline_block.F90 \
-    $(BLOCK_OBJDIR)/teb_offline_block_host.o
-TEB_MODULES_teb_offline_block_host := teb_offline_block_host
+    $(OFFLINE_OBJDIR)/teb_offline_driver.o
+TEB_MODULES_teb_offline_host := teb_offline_host
+TEB_MODULES_teb_offline_namelists := teb_offline_namelists
+TEB_MODULES_teb_offline_surfaces := teb_offline_surfaces
+TEB_MODULES_teb_offline_output := teb_offline_output
+TEB_MODULES_teb_offline_driver := teb_offline_driver
 TEB_MODULES_run_teb_offline_block :=
-BLOCK_MODULES := teb_offline_block_host
+OFFLINE_MODULES += teb_offline_host teb_offline_namelists teb_offline_surfaces teb_offline_output teb_offline_driver
+BLOCK_MODULES :=
