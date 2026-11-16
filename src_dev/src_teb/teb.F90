@@ -417,8 +417,8 @@ REAL, DIMENSION(:), INTENT(IN)  :: PE_SHADING    !energy not ref., nor absorbed,
 REAL, DIMENSION(:), INTENT(OUT) :: PMELT_BLT   ! Snow melt for built & impervious part
 REAL, DIMENSION(:), INTENT(OUT) :: PSNOWD_RF   ! snow depth on roofs
 REAL, DIMENSION(:), INTENT(OUT) :: PSNOWD_RD   ! snow depth on roads                                              
-REAL, DIMENSION(:), INTENT(OUT) :: PCH_GARDEN  ! drag coeifficient for heat
-REAL, DIMENSION(:), INTENT(OUT) :: PCD_GARDEN  ! garden  surf. exchange coefficient
+REAL, DIMENSION(:), INTENT(INOUT) :: PCH_GARDEN  ! drag coeifficient for heat
+REAL, DIMENSION(:), INTENT(INOUT) :: PCD_GARDEN  ! garden  surf. exchange coefficient
 REAL, DIMENSION(:), INTENT(OUT) :: PCH_ROAD    ! drag coeifficient for heat
 REAL, DIMENSION(:), INTENT(OUT) :: PCH_ROOF    ! drag coeifficient for heat
 REAL, DIMENSION(:), INTENT(OUT) :: PCH_WALL    ! drag coeifficient for heat

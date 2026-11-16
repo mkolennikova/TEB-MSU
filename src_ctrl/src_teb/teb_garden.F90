@@ -698,6 +698,10 @@ CALL TEB  (icell, iblock, TOP, T, BOP, B, TIR, DMT, OGARDEN_EXT, HIMPLICIT_WIND,
            PSNOWD_RD, PCH_GD, PCD_GD, PCH_RD, PCH_RF, PCH_WL, PCH_TOP, ILMO_ROAD,&
            ILMO_ROOF, ILMO_TOP, PCD_TERRA, PCH_TERRA )
 
+!* The internal proxy supplies PAC_GD before TEB; URBAN_DRAG supplies it inside
+!* TEB for an external garden. Keep XUNDEF for an inactive garden.
+IF (TOP%LGARDEN) PAC_GD_WAT(:) = PAC_GD(:)
+
 !
 !-------------------------------------------------------------------------------
 !
@@ -842,11 +846,9 @@ IF (TOP%LGARDEN) THEN
     ZSFCO2_GD(:) = 0.
   END IF
 !
-!* moisture multiplier of the canyon node (PAC_GD*PHU_AGG_GD*ZGD): it is returned by
-!* the garden proxy called above for an internal garden (the PHU parameter of that
-!* model) and replaced, for an external garden, by the surface humidity of the host
-!* (clamp(q_v/qsat), as in COSMO-TEB) in the block below
-  PAC_GD_WAT(:) = PAC_GD(:)
+!* moisture multiplier of the canyon node (PAC_GD*PHU_AGG_GD*ZGD): the internal
+!* garden supplies its PHU parameter; the external garden uses the host surface
+!* humidity (clamp(q_v/qsat), as in COSMO-TEB) in the block below.
   DMT%XABS_SW_GARDEN(:) = (1.-ZALB_GD(:)) * ZREC_SW_GD
   DMT%XABS_LW_GARDEN(:) = ZEMIS_GD(:) * ZREC_LW_GD(:) - XSTEFAN * ZEMIS_GD(:) * ZTSRAD_GD(:)**4 
   ZEMIT_LW_GD(:) = XSTEFAN * ZTSRAD_GD(:)**4 + (1 - ZEMIS_GD(:)) / ZEMIS_GD(:) * DMT%XABS_LW_GARDEN(:)

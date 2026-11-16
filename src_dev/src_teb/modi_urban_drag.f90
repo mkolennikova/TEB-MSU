@@ -103,8 +103,8 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PDUWDU_ROAD        !
 REAL, DIMENSION(:), INTENT(OUT)   :: PDUWDU_ROOF        ! 
 REAL, DIMENSION(:), INTENT(OUT)   :: PUSTAR_TOWN        ! Fraction velocity for town
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_WIN            ! aerodynamical conductance for window
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN_CAN     ! drag coeifficient for heat
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GARDEN_CAN     ! garden  surf. exchange coefficient
+REAL, DIMENSION(:), INTENT(INOUT) :: PCH_GARDEN_CAN     ! drag coeifficient for heat
+REAL, DIMENSION(:), INTENT(INOUT) :: PCD_GARDEN_CAN     ! garden  surf. exchange coefficient
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROAD_CAN       ! drag coeifficient for heat
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROOF           ! drag coeifficient for heat
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_WALL           ! drag coeifficient for heat

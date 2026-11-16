@@ -80,7 +80,7 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PAC_WALL      ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD      ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_ROAD_WAT  ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_TOP       ! aerodynamical conductance
-REAL, DIMENSION(:), INTENT(IN)    :: PAC_GARDEN    ! aerodynamical conductance
+REAL, DIMENSION(:), INTENT(INOUT) :: PAC_GARDEN    ! aerodynamical conductance
 REAL, DIMENSION(:), INTENT(OUT)   :: PRI           ! Town Richardson number
 REAL, DIMENSION(:), INTENT(OUT)   :: PUW_ROAD      ! Momentum flux for roads
 REAL, DIMENSION(:), INTENT(OUT)   :: PUW_ROOF      ! Momentum flux for roofs
@@ -88,8 +88,8 @@ REAL, DIMENSION(:), INTENT(OUT)   :: PDUWDU_ROAD   !
 REAL, DIMENSION(:), INTENT(OUT)   :: PDUWDU_ROOF   ! 
 REAL, DIMENSION(:), INTENT(OUT)   :: PUSTAR_TOWN   ! Fraction velocity for town
 REAL, DIMENSION(:), INTENT(OUT)   :: PAC_WIN       ! aerodynamical conductance for window
-REAL, DIMENSION(:), INTENT(OUT)   :: PCH_GARDEN    ! drag coeifficient for heat
-REAL, DIMENSION(:), INTENT(OUT)   :: PCD_GARDEN    ! garden  surf. exchange coefficient
+REAL, DIMENSION(:), INTENT(INOUT) :: PCH_GARDEN    ! drag coeifficient for heat
+REAL, DIMENSION(:), INTENT(INOUT) :: PCD_GARDEN    ! garden  surf. exchange coefficient
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROAD      ! drag coeifficient for heat
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_ROOF      ! drag coeifficient for heat
 REAL, DIMENSION(:), INTENT(OUT)   :: PCH_WALL      ! drag coeifficient for heat
