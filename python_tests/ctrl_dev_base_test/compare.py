@@ -172,6 +172,8 @@ def canonicalize_legacy_selectors(content: str) -> str:
         "teb_itype_wind": "teb_ctype_wind",
         "teb_type_garden": "teb_ctype_garden",
         "teb_type_greenroof": "teb_ctype_greenroof",
+        "teb_tau_hw_thresh": "teb_cbs_hw_thresh",
+        "teb_tau_hw_width": "teb_cbs_hw_width",
     }
     for old, new in names.items():
         content = re.sub(r"(?im)^([ \t]*)" + re.escape(old) + r"([ \t]*=)",

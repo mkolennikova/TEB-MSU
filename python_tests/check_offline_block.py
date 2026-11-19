@@ -241,8 +241,8 @@ BASE_PARAMETERS = {'dt': '3.00000000000000000E+002',
  'teb_ctype_z0_town': "'0.1H'",
  'urb_zd_town': "'H/3'",
  'teb_lcbs_scheme': 'F',
- 'teb_tau_hw_thresh': '5.00000000000000000E-001',
- 'teb_tau_hw_width': '2.50000000000000000E-001',
+ 'teb_cbs_hw_thresh': '5.00000000000000000E-001',
+ 'teb_cbs_hw_width': '2.50000000000000000E-001',
  'teb_ti_bld_init': '2.97160000000000025E+002',
  'teb_qi_bld_init': '7.00000000000000015E-003'}
 PROFILE_OVERRIDES = {'DEF': {},
@@ -726,6 +726,14 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
                         raise AssertionError('Named wind selector did not reach the numeric API')
                 self.record('named_wind_and_option_dt', selector=wind, api_code=code, dt=dt)
 
+        cbs = self.run(nvec=3, profile='CBS',
+                       parameters={'teb_cbs_hw_thresh': '0.8', 'teb_cbs_hw_width': '0.4'})
+        for name, expected in (('teb_tau_hw_thresh', 0.8), ('teb_tau_hw_width', 0.4)):
+            index = cbs.field(name)
+            if any(record.data[index] != expected for record in cbs.before):
+                raise AssertionError(f'CBS parameter did not reach all API columns: {name}')
+        self.record('renamed_cbs_parameters', nvec=3, threshold=0.8, width=0.4)
+
     def strict_namelists(self):
         root = self.work / 'runs' / 'invalid_namelists'
         forcing = self.work / 'runs' / 'file_inputs' / 'forcing.nml'
@@ -767,6 +775,15 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
                 'teb_ctype_exch_roof is deprecated. Use teb_ctype_exch_rf in &tebopts.'),
         }
         cases.update({
+            'deprecated_cbs_threshold': (
+                "&tebopts / &tebparams teb_tau_hw_thresh=0.5,teb_cbs_hw_thresh=0.5 /",
+                'teb_tau_hw_thresh is deprecated. Use teb_cbs_hw_thresh in &tebparams.'),
+            'deprecated_cbs_width': ("&tebopts teb_tau_hw_width=0.25 / &tebparams /",
+                                     'teb_tau_hw_width is deprecated. Use teb_cbs_hw_width in &tebparams.'),
+            'cbs_wrong_group': ("&tebopts teb_cbs_hw_thresh=0.5 / &tebparams /",
+                                'teb_cbs_hw_thresh belongs in &tebparams.'),
+            'cbs_width_list': ("&tebopts nvec=2 / &tebparams teb_cbs_hw_width=0.25,0.30 /",
+                               'teb_cbs_hw_width'),
             'dt_in_parameters': ("&tebopts / &tebparams dt=300. /", 'dt'),
             'numeric_wind_zero': ("&tebopts teb_ctype_wind=0 / &tebparams /", 'DEF or WANG'),
             'numeric_wind_one': ("&tebopts teb_ctype_wind=1 / &tebparams /", 'DEF or WANG'),

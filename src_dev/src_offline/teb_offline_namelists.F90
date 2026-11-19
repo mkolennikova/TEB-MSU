@@ -18,6 +18,7 @@
 !!        Configure the town roughness rule in tebopts.
 !!      11/2026 -- OpenAI Codex
 !!        Read thermal roughness rules and per-column vegetation ratios.
+!!        Read the scalar CBS settings under their split namelist names.
 !-------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_NAMELISTS
 USE TEB_OFFLINE_HOST, ONLY: BLOCK_CONFIG, TEB_BLOCK, allocate_block
@@ -131,8 +132,8 @@ LOGICAL :: teb_lshade
 CHARACTER(LEN=16) :: urb_zd_town
 REAL :: urb_z0_rd, urb_z0_rf, urb_z0_snow
 LOGICAL :: teb_lcbs_scheme
-REAL :: teb_tau_hw_thresh
-REAL :: teb_tau_hw_width
+REAL :: teb_tau_hw_thresh, teb_tau_hw_width  ! Legacy &tebparam and host values.
+REAL :: teb_cbs_hw_thresh, teb_cbs_hw_width
 NAMELIST /tebopts/ &
   dt, &
   nvec, teb_lbem_ac, teb_lgarden, &
@@ -166,7 +167,7 @@ NAMELIST /tebparams/ &
   proxy_phu_grf, teb_fr_panel, teb_rd_irrig_start_m, &
   teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
   teb_rd_irrig_sum, teb_utc_hour, urb_zd_town, &
-  teb_tau_hw_thresh, teb_tau_hw_width, &
+  teb_cbs_hw_thresh, teb_cbs_hw_width, &
   urb_z0_rd, urb_z0_rf, urb_z0_snow
 NAMELIST /tebparam/ &
   dt, urb_h_bld, urb_fr_bld, &
@@ -429,8 +430,12 @@ IF(legacy) THEN
   body=build_text('tebparam',a)
   READ(body,NML=tebparam,IOSTAT=rc,IOMSG=message)
 ELSE
+  teb_cbs_hw_thresh=teb_tau_hw_thresh
+  teb_cbs_hw_width=teb_tau_hw_width
   body=build_text('tebparams',a)
   READ(body,NML=tebparams,IOSTAT=rc,IOMSG=message)
+  teb_tau_hw_thresh=teb_cbs_hw_thresh
+  teb_tau_hw_width=teb_cbs_hw_width
 END IF
 IF(rc/=0) CALL fail(path,'parameters',0,TRIM(message))
 CALL check_z0_input(path,'urb_z0_rd',urb_z0_rd)
@@ -1016,12 +1021,22 @@ DO
     IF(LEN(probe)>LEN(entry%name)) CALL fail(path,group,line,'parameter name is too long')
     entry%name=probe
     IF(LEN_TRIM(entry%name)==0) CALL fail(path,group,line,'expected parameter name')
-    IF(entry%name=='urb_z0_town') &
+    SELECT CASE(entry%name)
+    CASE('urb_z0_town')
       CALL fail(path,group,line,'urb_z0_town is deprecated. Use teb_ctype_z0_town in &tebopts.')
-    IF(entry%name=='teb_ctype_exch_road') &
+    CASE('teb_ctype_exch_road')
       CALL fail(path,group,line,'teb_ctype_exch_road is deprecated. Use teb_ctype_exch_rd in &tebopts.')
-    IF(entry%name=='teb_ctype_exch_roof') &
+    CASE('teb_ctype_exch_roof')
       CALL fail(path,group,line,'teb_ctype_exch_roof is deprecated. Use teb_ctype_exch_rf in &tebopts.')
+    CASE('teb_tau_hw_thresh')
+      IF(group/='tebparam') &
+        CALL fail(path,group,line,'teb_tau_hw_thresh is deprecated. Use teb_cbs_hw_thresh in &tebparams.')
+    CASE('teb_tau_hw_width')
+      IF(group/='tebparam') &
+        CALL fail(path,group,line,'teb_tau_hw_width is deprecated. Use teb_cbs_hw_width in &tebparams.')
+    CASE('teb_cbs_hw_thresh','teb_cbs_hw_width')
+      IF(group/='tebparams') CALL fail(path,group,line,TRIM(entry%name)//' belongs in &tebparams.')
+    END SELECT
     CALL skip_space(text,p,line)
     IF(p>LEN(text)) CALL fail(path,entry%name,line,'missing equals sign')
     IF(text(p:p)/='=') CALL fail(path,entry%name,line,'expected =; indexed assignments are unsupported')

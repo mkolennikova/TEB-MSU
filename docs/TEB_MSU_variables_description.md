@@ -164,8 +164,8 @@ Both trees read the road, roof and snow momentum roughness lengths from
 
 | Variable | Type | Units / values | Default | List | Description |
 | --- | --- | --- | --- | --- | --- |
-| `teb_tau_hw_thresh` | Real | 1 | `0.5` | — | Canyon H/W at CBS canyon-path weight 0.5; [CBS notes](#24-cbs-and-canopy-wind). |
-| `teb_tau_hw_width` | Real | 1 | `0.25` | — | Width of the CBS transition in H/W; [CBS notes](#24-cbs-and-canopy-wind). |
+| `teb_cbs_hw_thresh` | Real | 1 | `0.5` | — | Canyon H/W at CBS canyon-path weight 0.5 in `src_dev`. See [CBS notes](#24-cbs-and-canopy-wind). |
+| `teb_cbs_hw_width` | Real | 1 | `0.25` | — | Width of the CBS transition in H/W in `src_dev`. See [CBS notes](#24-cbs-and-canopy-wind). |
 
 #### 1.2.7 Wind Inside Urban Canopy
 
@@ -327,9 +327,12 @@ still accepts `urb_zd_town`.
 
 ### 2.4 CBS and Canopy Wind
 
-CBS partitions road/garden exchange between canyon and atmosphere paths.
-`teb_tau_hw_thresh` sets the canyon H/W giving a canyon-path weight of 0.5;
-`teb_tau_hw_width` sets the transition width. See the
+In `src_dev`, enable CBS with `teb_lcbs_scheme` in `&tebopts` and set
+`teb_cbs_hw_thresh` and `teb_cbs_hw_width` in `&tebparams`. Both are finite
+scalars shared by the block. In split files, replace `teb_tau_hw_thresh` and
+`teb_tau_hw_width` with the new keys. The legacy single-cell `&tebparam`
+format, the API and the metadata in `parameters.csv` use the
+`teb_tau_hw_*` names. See the
 [CBS scheme description](TEB_MSU_CBS_scheme_T_CAN_reformulation.md).
 
 `DEF` selects the basic canopy wind scheme. `WANG` selects the Wang (2012)

@@ -44,23 +44,27 @@
 «сад↔каньон» / «сад↔атмосфера», см. garden-документ). Стены и окна, крыши,
 трафик и мусорное тепло схемой не расщепляются (см. §6).
 
-**Конфигурация (namelist `tebparam`):**
+**Конфигурация `src_dev`**
 
-| ключ | смысл | значение по умолчанию |
-| --- | --- | --- |
-| `teb_lcbs_scheme` | включить CBS-схему | `.FALSE.` |
-| `teb_tau_hw_thresh` | H/W, при котором τ = 0.5 | `0.5` |
-| `teb_tau_hw_width` | ширина tanh-перехода | `0.25` |
+| Группа неймлиста | Ключ | Смысл | По умолчанию |
+| --- | --- | --- | --- |
+| `&tebopts` | `teb_lcbs_scheme` | включить CBS-схему | `.FALSE.` |
+| `&tebparams` | `teb_cbs_hw_thresh` | H/W, при котором τ = 0.5 | `0.5` |
+| `&tebparams` | `teb_cbs_hw_width` | ширина tanh-перехода | `0.25` |
 
-Флаг хранится в `TOP%LCBS_SCHEME` (`src/src_struct/modd_teb_optionn.F90`), пороги —
-в `TOP%XTAU_HW_THRESH` / `TOP%XTAU_HW_WIDTH`.
+Порог и ширина задаются скалярами для всего блока. В одноячеечном
+`&tebparam` используются прежние имена `teb_tau_hw_thresh` и
+`teb_tau_hw_width`.
 
-**Вес τ** вычисляется один раз на шаг в `TEB_GARDEN`
-(`src/src_teb/teb_garden.F90`, вложенная функция `CBS_TAU`):
+Флаг, порог и ширина хранятся в `TOPTS%LCBS_SCHEME`, `TOPTS%XTAU_HW_THRESH`
+и `TOPTS%XTAU_HW_WIDTH` (`src_dev/src_struct/modd_teb_optionn.F90`).
+Вес `τ` вычисляется один раз на шаг функцией `CBS_TAU` в `TEB_GARDEN`
+(`src_dev/src_teb/teb_garden.F90`).
 
 ```fortran
-IF (TOP%LCBS_SCHEME) THEN
-  ZTAU(:) = CBS_TAU(T%XCAN_HW_RATIO(:), TOP%XTAU_HW_THRESH, TOP%XTAU_HW_WIDTH, T%XBLD_HEIGHT(:))
+IF (TOPTS%LCBS_SCHEME) THEN
+  ZTAU(:) = CBS_TAU(TPARAMS%XCAN_HW_RATIO(:), TOPTS%XTAU_HW_THRESH, &
+                    TOPTS%XTAU_HW_WIDTH, TPARAMS%XBLD_HEIGHT(:))
 ELSE
   ZTAU(:) = 1.
 ENDIF
@@ -143,9 +147,10 @@ END FUNCTION CBS_TAU
   входят в бюджеты каньона и города с полным весом при любом τ (их расщепление
   даёт сам бленд, см. §4.3).
 
-Пороги доступны через namelist без переключения кода: `teb_tau_hw_thresh ≫ H/W`
-(например `−1000`) даёт `τ = 1` точно, `teb_tau_hw_thresh ≪ H/W` (например `+100`) —
-`τ = 0` точно. Это основной приём проверки пределов схемы (§8).
+При ширине по умолчанию порог `teb_cbs_hw_thresh ≪ H/W` даёт `τ = 1`
+(например `−1000`), а порог `teb_cbs_hw_thresh ≫ H/W` даёт `τ = 0`
+(например `+100`).
+Так проверяются пределы схемы (§8).
 
 ---
 
@@ -628,8 +633,8 @@ T_ref  = (τ·Ca_h_C·PT_LOWCAN + (1−τ)·Ca_h_A·PTA) / Ca_eff  (аналог
   `T_CAN = T_CAN1` точно;
 * тождество §4.2 даёт `H_ROAD = H_ROAD_ATM`, `LE_ROAD = LE_ROAD_ATM`.
 
-**Пределы достижимы через namelist** (без переключения кода): `teb_tau_hw_thresh = −1000`
-даёт `τ = 1`, `teb_tau_hw_thresh = +100` — `τ = 0`.
+Для проверки этих пределов задайте `teb_cbs_hw_thresh = -1000` для `τ = 1`
+или `teb_cbs_hw_thresh = +100` для `τ = 0` в `&tebparams`.
 
 **Область значений.** Любая из релаксаций (`T_CAN`, `PQ_CAN`) — взвешенное среднее
 с положительными весами `τ` и `1−τ`, поэтому значения всегда лежат между
