@@ -250,8 +250,10 @@ temperature also anchors the building's cold-start material temperatures.
 
 `teb_ctype_bem='BEM'` enables the building energy model. With `'DEF'`,
 set `teb_frac_gz=0`. The shading, air-conditioning and ventilation switches
-apply to BEM. `IDEAL` selects ideal cooling/heating; `DXCOIL` selects a
+apply to BEM. `IDEAL` selects ideal cooling or heating. `DXCOIL` selects a
 direct-expansion cooling coil, and `FINCAP` selects finite-capacity heating.
+With `teb_ctype_bem='DEF'`, the `src_ctrl` CSV reports zeros for `HVAC_COOL`,
+`HVAC_HEAT` and `H_WASTE`.
 
 The capacity and mass-flow entries initialize BEM state. During cold start,
 cooling capacity is scaled by the number of floors and the rated HVAC mass

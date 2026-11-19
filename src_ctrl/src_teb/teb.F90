@@ -753,6 +753,11 @@ CASE("DEF")
   !other variables
   PHU_BLD(:)     = XUNDEF
 
+  ! The simple building budget leaves HVAC inactive.
+  DMT%XHVAC_COOL(:) = 0.
+  DMT%XHVAC_HEAT(:) = 0.
+  DMT%XH_WASTE(:)   = 0.
+
 CASE("BEM")
   CALL BEM(icell, iblock, BOP, T, B, DMT, PTSTEP, PBEM_AC, PTSUN, KDAY, PPS, PRHOA, PT_CANYON, &
            PQ_CANYON, PU_CANYON, PHU_BLD, PT_RAD_IND, ZFLX_BLD_FL,&
