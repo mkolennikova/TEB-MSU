@@ -61,7 +61,7 @@
 | имя | тип | файл | состав (полей) | роль |
 | --- | --- | --- | --- | --- |
 | `DMT` | `DIAG_MISC_TEB_t` | `src_struct/modd_diag_misc_tebn.F90` | 231 | диагностика: потоки, поглощения, агрегаты города, снег, сад/кровля, MRT пешехода на дороге и на крыше; два межшаговых входа (§3) |
-| `TOPTS` | `TEB_OPTIONS_t` | `src_struct/modd_teb_optionn.F90` | 25 param + 2 work + 3 reserved | опции TEB (схемы, флаги, тип сада/кровли) |
+| `TOPTS` | `TEB_OPTIONS_t` | `src_struct/modd_teb_optionn.F90` | 26 param + 2 work + 3 reserved | опции TEB (схемы, флаги, тип сада/кровли) |
 | `TPARAMS` | `TEB_PARAMS_t` | `src_struct/modd_teb_paramsn.F90` | 39 param + 4 flux | статические параметры TEB (геометрия, материалы, антропогенные потоки) |
 | `TSTATE` | `TEB_t` | `src_struct/modd_tebn.F90` | 10 state + 1 reserved | прогностическое состояние TEB (крыша, дорога, стены, каньон, снег) |
 | `BOPTS` | `BEM_OPTIONS_t` | `src_struct/modd_bem_optionn.F90` | 5 param | опции BEM (тип кондиционирования, coil, autosize) |
@@ -166,7 +166,8 @@ TYPE(TEB_EXT_SURF_t), SAVE :: EXT       ! external garden / greenroof surface (h
 Три необязательных строковых аргумента `teb_ctype_exch_road`,
 `teb_ctype_exch_roof` и `teb_ctype_exch_canyon` выбирают алгоритмы обмена для
 всего блока. Для каждого пропущенного аргумента на текущем вызове применяется
-`'MASC95'`. Offline передаёт значения из `tebopts`.
+`'MASC95'`. Offline передаёт значения `teb_ctype_exch_rd`,
+`teb_ctype_exch_rf` и `teb_ctype_exch_canyon` из `&tebopts` соответственно.
 
 `teb_finalize()` закрывает логи, сбрасывает их настройки и освобождает рабочие
 контейнеры через `TEB_HOST_FINAL`. Вызов допустим до первого шага и повторно.
@@ -333,12 +334,19 @@ run_teb_offline
 `PRI_GREENROOF_ATM`, `ZZ0H_GREENROOF_ATM`: у зелёной кровли ветвей нет, она
 обменивается только с уровнем форсинга.
 
-### 5.2 `TOPTS` — опции TEB (`TEB_OPTIONS_t`, 25 param + 2 work + 3 reserved)
+### 5.2 `TOPTS` — опции TEB (`TEB_OPTIONS_t`, 26 param + 2 work + 3 reserved)
 
 Схемы и флаги: `CGARDEN`/`LGARDEN`, `LGREENROOF(_EXT)`, `CTYPE_GARDEN`/
 `CTYPE_GREENROOF`, `CBEM`, `ITYPE_WIND`, `LSOLAR_PANEL`, `LCBS_SCHEME`,
-`XTAU_HW_THRESH`/`XTAU_HW_WIDTH`, `NUTC_HOUR`, `XZ0_O_Z0H_GD/GR` и `CEXCH_ROAD/ROOF/CANYON`. Поля `work`
-(`TTIME`, `XTSTEP`) заполняет `CALL_DRIVER` на каждом шаге.
+`XTAU_HW_THRESH`/`XTAU_HW_WIDTH`, `NUTC_HOUR`, `XZ0_O_Z0H_GD/GR`,
+`CEXCH_ROAD/ROOF/CANYON` и `TZ0H`. Поля `work` (`TTIME`, `XTSTEP`)
+заполняет `CALL_DRIVER` на каждом шаге.
+
+`TZ0H` хранит правила тепловой шероховатости дороги, крыши и города.
+На время вызова offline-хост передаёт общие правила из `&tebopts` и отношения
+`XZ0_O_Z0H_GD/GR` для текущей колонки. При восстановлении checkpoint v2
+отношения для сада и зелёной крыши берутся из неймлиста по сохранённым
+логическим идентификаторам колонок.
 
 ### 5.3 `TPARAMS` — параметры TEB (`TEB_PARAMS_t`, 39 param + 4 flux)
 

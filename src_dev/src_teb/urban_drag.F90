@@ -89,12 +89,14 @@
 !!      11/2026 -- OpenAI Codex
 !!        Route independent road, roof and canyon exchange algorithms.
 !!        Apply configured road and roof lengths with the road height cap.
+!!      11/2026 -- OpenAI Codex
+!!        Apply separate thermal roughness rules for road, roof and town.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
 !               ------------
 !
-USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
+USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t, CTEB_EXCH_DEFAULT
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
 !
@@ -330,14 +332,18 @@ CHARACTER(LEN=*), PARAMETER       :: ZZ0H_ROAD1 = 'output/ZZ0H_ROAD1.txt'
 !
 INTEGER                   ::  JLOOP, JJ  !! 
 !
-REAL :: ZZ0_O_Z0H = 200.  ! z0/z0h ratio used in Mascart (1995) formulation.
-!                         ! It is set to the maximum value acceptable by
-!                         ! formulation. Observed values are often larger in cities.
+CHARACTER(LEN=6) :: CZ0H_RD, CZ0H_RF, CZ0H_TOWN, CEXCH_TOWN
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 !
 !
 IF (LHOOK) CALL DR_HOOK('URBAN_DRAG',0,ZHOOK_HANDLE)
+!
+CZ0H_RD   = MERGE(TOPTS%TZ0H%RD%CFORM, TOPTS%CZ0H, TOPTS%TZ0H%RD%CFORM /= '')
+CZ0H_RF   = MERGE(TOPTS%TZ0H%RF%CFORM, TOPTS%CZ0H, TOPTS%TZ0H%RF%CFORM /= '')
+CZ0H_TOWN = MERGE(TOPTS%TZ0H%TOWN%CFORM, TOPTS%CZ0H, TOPTS%TZ0H%TOWN%CFORM /= '')
+! A configured town roughness uses the historical exchange algorithm.
+CEXCH_TOWN = MERGE(CTEB_EXCH_DEFAULT, '      ', TOPTS%TZ0H%TOWN%CFORM /= '')
 !
 ZZ0_ROOF(:) = TPARAMS%TZ0%XROOF
 ZZ0_ROAD(:) = MIN(TPARAMS%TZ0%XROAD,0.1*PZ_LOWCAN(:))
@@ -479,9 +485,9 @@ IF (.NOT. TOPTS%LCANOPY) THEN
 ! (the official TEB has a hard-coded '+ TPARAMS%XBLD_HEIGHT/3.' here, which corresponds
 !  to zd = 2/3*H and is not consistent with the wind profile of the driver,
 !  where 2/3*H = H - zd gives zd = H/3)
-  CALL URBAN_EXCH_COEF(TOPTS%CZ0H, ZZ0_O_Z0H, ZTS_TOWN, ZQ_TOWN, PEXNS, PEXNA, PTA, PQA,     &
+  CALL URBAN_EXCH_COEF(CZ0H_TOWN, TOPTS%TZ0H%TOWN%XRATIO, ZTS_TOWN, ZQ_TOWN, PEXNS, PEXNA, PTA, PQA,     &
                        PZREF+ (TPARAMS%XBLD_HEIGHT-TPARAMS%XZD_TOWN), PUREF+(TPARAMS%XBLD_HEIGHT-TPARAMS%XZD_TOWN), PVMOD, TPARAMS%XZ0_TOWN, &
-                       PRI, PCD, PCDN, ZAC, ZRA, ZCH, ZZ0H_TOWN, ILMO_TOWN              )
+                       PRI, PCD, PCDN, ZAC, ZRA, ZCH, ZZ0H_TOWN, ILMO_TOWN, HEXCH=CEXCH_TOWN)
   
 !  OPEN(UNIT=27, FILE = ZZ0H_TOWN1, ACCESS = 'APPEND')
 !  WRITE(27,*) ZZ0H_TOWN
@@ -502,7 +508,7 @@ IF (TOPTS%CCH_BEM == "DOE-2") THEN
   PAC_ROOF = CHTC_ROUGH_DOE(ZCHTCN_ROOF, ZCHTCS_ROOF, TPARAMS%XROUGH_ROOF) / PRHOA / XCPD
 ELSE
    
-  CALL URBAN_EXCH_COEF(TOPTS%CZ0H, ZZ0_O_Z0H, PTS_ROOF, ZQ_ROOF, PEXNS, PEXNA, PTA, PQA, &
+  CALL URBAN_EXCH_COEF(CZ0H_RF, TOPTS%TZ0H%RF%XRATIO, PTS_ROOF, ZQ_ROOF, PEXNS, PEXNA, PTA, PQA, &
                        PZREF, PUREF, PVMOD, ZZ0_ROOF, ZRI, ZCD, ZCDN, PAC_ROOF,        &
                        ZRA_ROOF, PCH_ROOF, ZZ0H_ROOF, ILMO_ROOF, &
                        HEXCH=TOPTS%CEXCH_ROOF)
@@ -614,7 +620,7 @@ DO JLOOP=1,3
   END WHERE
 !
    
-  CALL URBAN_EXCH_COEF(TOPTS%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQ_LOWCAN, PEXNS, PEXNA,  &
+  CALL URBAN_EXCH_COEF(CZ0H_RD, TOPTS%TZ0H%RD%XRATIO, PTS_ROAD, PQ_LOWCAN, PEXNS, PEXNA,  &
                        PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
                        PU_LOWCAN+ZW_CAN, ZZ0_ROAD, PRI_ROAD_CAN, PCD_ROAD_CAN, PCDN_ROAD_CAN,         &
                        PAC_ROAD_CAN, ZRA_ROAD_CAN, PCH_ROAD_CAN, ZZ0H_ROAD_CAN, ILMO_ROAD_CAN, &
@@ -661,7 +667,7 @@ END DO
 !* with reference air and heights for each path. The direct atmospheric
 !* conductance enters the road energy budget when CBS is enabled.
 !
-CALL URBAN_EXCH_COEF(TOPTS%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQA, PEXNS, PEXNA, PTA, PQA, &
+CALL URBAN_EXCH_COEF(CZ0H_RD, TOPTS%TZ0H%RD%XRATIO, PTS_ROAD, PQA, PEXNS, PEXNA, PTA, PQA, &
                      PZREF, PUREF, PVMOD, ZZ0_ROAD, PRI_ROAD_ATM, PCD_ROAD_ATM, &
                      PCDN_ROAD_ATM, PAC_ROAD_ATM, ZRA_ROAD_ATM, PCH_ROAD_ATM,  &
                      ZZ0H_ROAD_ATM, ZILMO_ROAD_ATM, &

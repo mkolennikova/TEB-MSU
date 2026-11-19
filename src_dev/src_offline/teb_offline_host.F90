@@ -14,14 +14,16 @@
 !!        Pass run-level exchange configuration through block and serial steps.
 !!      11/2026 -- OpenAI Codex
 !!        Bind offline road, roof and snow lengths for block and serial calls.
+!!      11/2026 -- OpenAI Codex
+!!        Track vegetation roughness ratios with cell identity across restart.
 !!------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_HOST
 USE sfc_teb, ONLY: teb_interface, teb_real_kind, XUNDEF => teb_undef
-USE TEB_HOST, ONLY: TEB_HOST_FINAL, TEB_BIND_Z0
+USE TEB_HOST, ONLY: TEB_HOST_FINAL, TEB_BIND_Z0, TEB_BIND_Z0H, TEB_Z0H_BINDING_t
 USE MODD_TEB_PARAMS_n, ONLY: TEB_Z0_t
 USE TEB_LOG, ONLY: TEB_LOG_INIT, TEB_LOG_FINAL
 USE MODD_SURF_PAR, ONLY: teb_snow_check
-USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT
+USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT, TEB_Z0H_t
 USE MODD_CSTS, ONLY: XRD,XRV,XG,XSTEFAN
 USE MODI_INI_CSTS, ONLY: INI_CSTS
 USE MODE_THERMOS, ONLY: QSAT
@@ -234,8 +236,9 @@ TYPE TEB_BLOCK
   CHARACTER(LEN=16) :: urb_z0_town
   CHARACTER(LEN=16) :: urb_zd_town
   TYPE(TEB_Z0_t) :: tz0   ! Restored from the parameter file on restart.
-  REAL(teb_real_kind) :: urb_z0_o_z0h_gdn
-  REAL(teb_real_kind) :: urb_z0_o_z0h_grf
+  TYPE(TEB_Z0H_t) :: tz0h
+  REAL(teb_real_kind), ALLOCATABLE :: urb_z0_o_z0h_gdn(:)
+  REAL(teb_real_kind), ALLOCATABLE :: urb_z0_o_z0h_grf(:)
   LOGICAL :: teb_lcbs_scheme
   REAL(teb_real_kind) :: teb_tau_hw_thresh
   REAL(teb_real_kind) :: teb_tau_hw_width
@@ -534,6 +537,7 @@ ALLOCATE(c%swdir_s(knvec))
 ALLOCATE(c%swdifd_s(knvec))
 ALLOCATE(c%urb_fr_bld(knvec))
 ALLOCATE(c%fr_garden(knvec))
+ALLOCATE(c%urb_z0_o_z0h_gdn(knvec),c%urb_z0_o_z0h_grf(knvec))
 ALLOCATE(c%urb_h2w(knvec))
 ALLOCATE(c%urb_h_bld(knvec))
 ALLOCATE(c%urb_hcap_rd(knvec))
@@ -1139,8 +1143,9 @@ d%teb_lshade=s%teb_lshade
 d%urb_z0_town=s%urb_z0_town
 d%urb_zd_town=s%urb_zd_town
 d%tz0=s%tz0
-d%urb_z0_o_z0h_gdn=s%urb_z0_o_z0h_gdn
-d%urb_z0_o_z0h_grf=s%urb_z0_o_z0h_grf
+d%tz0h=s%tz0h
+d%urb_z0_o_z0h_gdn(k)=s%urb_z0_o_z0h_gdn(j)
+d%urb_z0_o_z0h_grf(k)=s%urb_z0_o_z0h_grf(j)
 d%teb_lcbs_scheme=s%teb_lcbs_scheme
 d%teb_tau_hw_thresh=s%teb_tau_hw_thresh
 d%teb_tau_hw_width=s%teb_tau_hw_width
@@ -1346,13 +1351,18 @@ d%teb_ch_garden_atm(k:k)=s%teb_ch_garden_atm(j:j)
 d%ahf_traffic_now(k:k)=s%ahf_traffic_now(j:j)
 END SUBROUTINE
 SUBROUTINE api_step(c,snow_check)
-TYPE(TEB_BLOCK),INTENT(INOUT)::c
+TYPE(TEB_BLOCK),INTENT(INOUT),TARGET::c
 LOGICAL,OPTIONAL,INTENT(IN)::snow_check
 LOGICAL::selected_snow_check
 TYPE(TEB_Z0_t)::previous_z0
+TYPE(TEB_Z0H_BINDING_t)::z0h,previous_z0h
 selected_snow_check=teb_snow_check
 IF(PRESENT(snow_check)) selected_snow_check=snow_check
 CALL TEB_BIND_Z0(c%tz0,previous_z0)
+z0h%RULES=c%tz0h
+z0h%GARDEN=>c%urb_z0_o_z0h_gdn
+z0h%GREENROOF=>c%urb_z0_o_z0h_grf
+CALL TEB_BIND_Z0H(z0h,previous_z0h)
 CALL teb_interface(ntstep=c%ntstep, nvec=c%nvec, iblock=c%iblock, dt=c%dt, teb_year=c%teb_year, &
                    teb_month=c%teb_month, teb_day=c%teb_day, teb_hour=c%teb_hour, teb_min=c%teb_min, &
                    teb_sec=c%teb_sec, &
@@ -1417,8 +1427,8 @@ CALL teb_interface(ntstep=c%ntstep, nvec=c%nvec, iblock=c%iblock, dt=c%dt, teb_y
                    teb_rd_irrig_end_m=c%teb_rd_irrig_end_m, teb_rd_irrig_start_h=c%teb_rd_irrig_start_h, &
                    teb_rd_irrig_end_h=c%teb_rd_irrig_end_h, teb_rd_irrig_sum=c%teb_rd_irrig_sum, &
                    teb_utc_hour=c%teb_utc_hour, teb_lshade=c%teb_lshade, urb_z0_town=c%urb_z0_town, &
-                   urb_zd_town=c%urb_zd_town, urb_z0_o_z0h_gdn=c%urb_z0_o_z0h_gdn, &
-                   urb_z0_o_z0h_grf=c%urb_z0_o_z0h_grf, &
+                   urb_zd_town=c%urb_zd_town, urb_z0_o_z0h_gdn=c%urb_z0_o_z0h_gdn(1), &
+                   urb_z0_o_z0h_grf=c%urb_z0_o_z0h_grf(1), &
                    teb_lcbs_scheme=c%teb_lcbs_scheme, teb_tau_hw_thresh=c%teb_tau_hw_thresh, &
                    teb_tau_hw_width=c%teb_tau_hw_width, teb_wind_canyon=c%teb_wind_canyon, &
                    teb_u_can_ped=c%teb_u_can_ped, &
@@ -1451,6 +1461,7 @@ CALL teb_interface(ntstep=c%ntstep, nvec=c%nvec, iblock=c%iblock, dt=c%dt, teb_y
                    teb_snow_check=selected_snow_check, &
                    teb_ctype_exch_road=c%teb_ctype_exch_road, teb_ctype_exch_roof=c%teb_ctype_exch_roof, &
                    teb_ctype_exch_canyon=c%teb_ctype_exch_canyon)
+CALL TEB_BIND_Z0H(previous_z0h)
 CALL TEB_BIND_Z0(previous_z0)
 END SUBROUTINE
 SUBROUTINE pack(c,j,values)
@@ -1620,8 +1631,8 @@ values(160)=c%teb_rd_irrig_end_h(j)
 values(161)=c%teb_rd_irrig_sum(j)
 values(162)=REAL(c%teb_utc_hour,teb_real_kind)
 values(163)=MERGE(1.,0.,c%teb_lshade)
-values(164)=c%urb_z0_o_z0h_gdn
-values(165)=c%urb_z0_o_z0h_grf
+values(164)=c%urb_z0_o_z0h_gdn(j)
+values(165)=c%urb_z0_o_z0h_grf(j)
 values(166)=MERGE(1.,0.,c%teb_lcbs_scheme)
 values(167)=c%teb_tau_hw_thresh
 values(168)=c%teb_tau_hw_width
@@ -2123,8 +2134,9 @@ WRITE(unit) c%teb_utc_hour
 WRITE(unit) c%teb_lshade
 WRITE(unit) c%urb_z0_town
 WRITE(unit) c%urb_zd_town
-WRITE(unit) c%urb_z0_o_z0h_gdn
-WRITE(unit) c%urb_z0_o_z0h_grf
+! Retain the scalar slots in checkpoint v2. The lists come from the namelist.
+WRITE(unit) c%urb_z0_o_z0h_gdn(1)
+WRITE(unit) c%urb_z0_o_z0h_grf(1)
 WRITE(unit) c%teb_lcbs_scheme
 WRITE(unit) c%teb_tau_hw_thresh
 WRITE(unit) c%teb_tau_hw_width
@@ -2527,9 +2539,9 @@ READ(unit,IOSTAT=rc) c%urb_z0_town
 IF(rc/=0) ERROR STOP "Incomplete checkpoint"
 READ(unit,IOSTAT=rc) c%urb_zd_town
 IF(rc/=0) ERROR STOP "Incomplete checkpoint"
-READ(unit,IOSTAT=rc) c%urb_z0_o_z0h_gdn
+READ(unit,IOSTAT=rc) c%urb_z0_o_z0h_gdn(1)
 IF(rc/=0) ERROR STOP "Incomplete checkpoint"
-READ(unit,IOSTAT=rc) c%urb_z0_o_z0h_grf
+READ(unit,IOSTAT=rc) c%urb_z0_o_z0h_grf(1)
 IF(rc/=0) ERROR STOP "Incomplete checkpoint"
 READ(unit,IOSTAT=rc) c%teb_lcbs_scheme
 IF(rc/=0) ERROR STOP "Incomplete checkpoint"
@@ -3161,14 +3173,15 @@ END DO
 CLOSE(unit)
 END SUBROUTINE
 
-SUBROUTINE load_checkpoint(path,cfg,next_step,blocks,ids)
+SUBROUTINE load_checkpoint(path,cfg,next_step,blocks,ids,base)
 CHARACTER(LEN=*),INTENT(IN)::path
 TYPE(BLOCK_CONFIG),INTENT(IN)::cfg
+TYPE(TEB_BLOCK),INTENT(IN)::base
 INTEGER,INTENT(OUT)::next_step,ids(:,:)
 TYPE(TEB_BLOCK),INTENT(INOUT)::blocks(:)
 TYPE(BLOCK_CONFIG)::saved_cfg
 INTEGER(INT32)::header(4)
-INTEGER::unit,b,rc
+INTEGER::unit,b,rc,columns(SIZE(ids,1))
 OPEN(NEWUNIT=unit,FILE=TRIM(path),ACCESS='STREAM',FORM='UNFORMATTED',STATUS='OLD',IOSTAT=rc)
 IF(rc/=0) ERROR STOP 'Cannot open checkpoint'
 READ(unit,IOSTAT=rc) header
@@ -3183,6 +3196,12 @@ READ(unit,IOSTAT=rc) ids
 IF(rc/=0) ERROR STOP 'Incomplete checkpoint indices'
 DO b=1,SIZE(blocks)
   CALL read_packet(unit,blocks(b))
+  columns=ids(:,b)
+  ! A scalar sample has its original diagnostic ID and one namelist slot.
+  IF (cfg%sample_column>0) columns=1
+  IF (ANY(columns<1) .OR. ANY(columns>base%nvec)) ERROR STOP 'Invalid checkpoint column IDs'
+  blocks(b)%urb_z0_o_z0h_gdn=base%urb_z0_o_z0h_gdn(columns)
+  blocks(b)%urb_z0_o_z0h_grf=base%urb_z0_o_z0h_grf(columns)
 END DO
 CLOSE(unit)
 END SUBROUTINE

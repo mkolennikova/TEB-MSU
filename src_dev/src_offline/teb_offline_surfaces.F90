@@ -44,13 +44,13 @@ DO JI = 1, c%nvec
   !* the internal one use exactly the same coefficients
   c%emu_pcd_can(JI)                         = GARDEN_PCD_NEUTRAL(c%urb_h_bld(JI)/2., c%teb_z0_gd(JI))
   c%emu_pch_can(JI)                         = GARDEN_PCH_NEUTRAL(c%urb_h_bld(JI)/2., c%teb_z0_gd(JI), &
-    c%urb_z0_o_z0h_gdn)
+    c%urb_z0_o_z0h_gdn(JI))
   c%emu_v_can(JI)                           = 0.
   IF (c%emu_pcd_can(JI) > 0.) c%emu_v_can(JI) = MAX(c%teb_wind_canyon(JI), XVMIN_GD)
   !* atmosphere path: reference air of the forcing level
   c%emu_pcd_atm(JI)                         = GARDEN_PCD_NEUTRAL(c%hlev_teb(JI), c%teb_z0_gd(JI))
   c%emu_pch_atm(JI)                         = GARDEN_PCH_NEUTRAL(c%hlev_teb(JI), c%teb_z0_gd(JI), &
-    c%urb_z0_o_z0h_gdn)
+    c%urb_z0_o_z0h_gdn(JI))
   c%emu_v_atm(JI)                           = 0.
   IF (c%emu_pcd_atm(JI) > 0.) c%emu_v_atm(JI) = MAX(SQRT(c%u(JI)**2+c%v(JI)**2), XVMIN_GD)
   !* tau aggregation of the THERMAL conductances (they carry the balance)
@@ -110,7 +110,7 @@ DO JI = 1, c%nvec
   !* shared neutral formulation, see MODE_GARDEN_BALANCE)
   c%emu_gr_pcd(JI)                        = GARDEN_PCD_NEUTRAL(c%hlev_teb(JI), c%teb_z0_gr(JI))
   c%emu_gr_pch(JI)                        = GARDEN_PCH_NEUTRAL(c%hlev_teb(JI), c%teb_z0_gr(JI), &
-    c%urb_z0_o_z0h_grf)
+    c%urb_z0_o_z0h_grf(JI))
   c%emu_gr_v(JI)                          = 0.
   IF (c%emu_gr_pcd(JI) > 0.) c%emu_gr_v(JI) = MAX(SQRT(c%u(JI)**2+c%v(JI)**2), XVMIN_GD)
   c%emu_gr_ca(JI)                         = c%emu_gr_pch(JI)*c%emu_gr_v(JI)

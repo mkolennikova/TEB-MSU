@@ -81,11 +81,12 @@ CASE('teb_itype_natvent','teb_ctype_natvent','teb_ctype_wind','teb_hroad_dir','t
   limit=4
 CASE('teb_itype_bem_cool','teb_itype_bem_heat','teb_ctype_bem_cool','teb_ctype_bem_heat')
   limit=6
-CASE('teb_ctype_exch_road','teb_ctype_exch_roof','teb_ctype_exch_canyon')
+CASE('teb_ctype_exch_rd','teb_ctype_exch_rf','teb_ctype_exch_canyon')
   limit=6
 CASE('teb_type_garden','teb_type_greenroof','teb_ctype_garden','teb_ctype_greenroof')
   limit=9
-CASE('teb_ctype_z0_town','urb_zd_town')
+CASE('teb_ctype_z0_town','urb_zd_town', &
+     'teb_ctype_z0_o_z0h_rd','teb_ctype_z0_o_z0h_rf','teb_ctype_z0_o_z0h_town')
   limit=16
 CASE DEFAULT
   RETURN
@@ -265,6 +266,10 @@ DO
     IF(LEN_TRIM(entry%name)==0) CALL fail(path,group,line,'expected parameter name')
     IF(entry%name=='urb_z0_town') &
       CALL fail(path,group,line,'urb_z0_town is deprecated. Use teb_ctype_z0_town in &tebopts.')
+    IF(entry%name=='teb_ctype_exch_road') &
+      CALL fail(path,group,line,'teb_ctype_exch_road is deprecated. Use teb_ctype_exch_rd in &tebopts.')
+    IF(entry%name=='teb_ctype_exch_roof') &
+      CALL fail(path,group,line,'teb_ctype_exch_roof is deprecated. Use teb_ctype_exch_rf in &tebopts.')
     CALL skip_space(text,p,line)
     IF(p>LEN(text)) CALL fail(path,entry%name,line,'missing equals sign')
     IF(text(p:p)/='=') CALL fail(path,entry%name,line,'expected =; indexed assignments are unsupported')

@@ -401,7 +401,7 @@ DO i = ivstart, ivend
                         teb_utc_hour, teb_lgreenroof_ext, teb_lbem_ac, teb_fr_panel(i:i), teb_lroad_irrig, &
                         teb_rd_irrig_start_m(i:i), teb_rd_irrig_end_m(i:i), teb_rd_irrig_start_h(i:i), &
                         teb_rd_irrig_end_h(i:i), teb_rd_irrig_sum(i:i), &
-                        HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON)
+                        HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON, i)
   CALL TEB_FILL_DERIVED (1, 1, urb_z0_town, urb_zd_town, urb_hcap_rd(i:i), urb_hcap_rf(i:i), &
                          urb_hcap_wl(i:i), urb_hcon_rd(i:i), urb_hcon_rf(i:i), urb_hcon_wl(i:i), ahf_traffic(i:i), &
                          teb_fai(i:i,:))

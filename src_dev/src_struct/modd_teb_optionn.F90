@@ -37,6 +37,8 @@
 !!        aerodynamics and thermal-roughness options.
 !!      11/2026 -- OpenAI Codex
 !!        Configure road, roof and canyon exchange independently.
+!!      11/2026 -- OpenAI Codex
+!!        Configure thermal roughness independently of the exchange algorithm.
 !             ------------
 !
 USE MODD_TYPE_DATE_SURF
@@ -50,6 +52,15 @@ USE PARKIND1  ,ONLY : JPRB
 IMPLICIT NONE
 
 CHARACTER(LEN=6), PARAMETER :: CTEB_EXCH_DEFAULT = 'MASC95'
+
+TYPE TEB_Z0H_RULE_t
+  CHARACTER(LEN=6) :: CFORM = ''  ! Empty selects the caller's legacy CZ0H.
+  REAL :: XRATIO = 200.
+END TYPE TEB_Z0H_RULE_t
+
+TYPE TEB_Z0H_t
+  TYPE(TEB_Z0H_RULE_t) :: RD, RF, TOWN
+END TYPE TEB_Z0H_t
 
 TYPE TEB_OPTIONS_t
 !* CONTRACT (checked by python_tests/container_fields_inventory.py):
@@ -85,6 +96,7 @@ TYPE TEB_OPTIONS_t
   CHARACTER(LEN=6)               :: CEXCH_ROAD = ''
   CHARACTER(LEN=6)               :: CEXCH_ROOF = ''
   CHARACTER(LEN=6)               :: CEXCH_CANYON = ''
+  TYPE(TEB_Z0H_t)                :: TZ0H
   CHARACTER(LEN=5)               :: CCH_BEM     ! BEM option for roof/wall outside convective coefficient
                                                 ! 'DOE-2' : DOE-2 model from
                                                 ! EnergyPlus Engineering reference, p65
@@ -169,6 +181,42 @@ CONTAINS
 
 
 
+ELEMENTAL LOGICAL FUNCTION TEB_Z0_RATIO_VALID(PRATIO)
+USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY : IEEE_IS_FINITE
+REAL, INTENT(IN) :: PRATIO
+
+TEB_Z0_RATIO_VALID = .FALSE.
+IF (IEEE_IS_FINITE(PRATIO)) TEB_Z0_RATIO_VALID = PRATIO >= 1.
+END FUNCTION TEB_Z0_RATIO_VALID
+
+SUBROUTINE TEB_PARSE_Z0H(HSPEC, YRULE, OVALID)
+CHARACTER(LEN=*), INTENT(IN) :: HSPEC
+TYPE(TEB_Z0H_RULE_t), INTENT(OUT) :: YRULE
+LOGICAL, INTENT(OUT) :: OVALID
+CHARACTER(LEN=LEN(HSPEC)) :: CSPEC
+REAL :: ZRATIO
+INTEGER :: IOS
+
+OVALID = .FALSE.
+CSPEC = ADJUSTL(HSPEC)
+SELECT CASE (CSPEC)
+CASE ('KANDA07')
+  YRULE%CFORM = 'KAND07'
+CASE ('BRUT82')
+  YRULE%CFORM = 'BRUT82'
+CASE DEFAULT
+  ! Accept one numeric literal. List-directed READ alone ignores extra tokens.
+  IF (VERIFY(TRIM(CSPEC),'0123456789+-.eEdD') /= 0) RETURN
+  IF (SCAN(CSPEC,'0123456789') == 0) RETURN
+  READ(CSPEC,*,IOSTAT=IOS) ZRATIO
+  IF (IOS /= 0) RETURN
+  IF (.NOT. TEB_Z0_RATIO_VALID(ZRATIO)) RETURN
+  YRULE%XRATIO = ZRATIO
+  YRULE%CFORM = 'MASC95'  ! Fixed-ratio branch of URBAN_EXCH_COEF.
+END SELECT
+OVALID = .TRUE.
+END SUBROUTINE TEB_PARSE_Z0H
+
 PURE LOGICAL FUNCTION TEB_EXCH_VALID(HEXCH)
 CHARACTER(LEN=*), INTENT(IN) :: HEXCH
 TEB_EXCH_VALID = HEXCH == CTEB_EXCH_DEFAULT .OR. HEXCH == 'DELAGE'
@@ -200,6 +248,7 @@ YTEB_OPTIONS%CZ0H=' '
 YTEB_OPTIONS%CEXCH_ROAD=''
 YTEB_OPTIONS%CEXCH_ROOF=''
 YTEB_OPTIONS%CEXCH_CANYON=''
+YTEB_OPTIONS%TZ0H=TEB_Z0H_t()
 YTEB_OPTIONS%CCH_BEM=' '
 YTEB_OPTIONS%CBEM=' '
 YTEB_OPTIONS%CTREE=' '

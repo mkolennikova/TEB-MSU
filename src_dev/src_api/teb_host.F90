@@ -32,12 +32,14 @@
 !!        offline forcing outside the common physics workspace.
 !!      11/2026 -- OpenAI Codex
 !!        Bind the resolved exchange algorithms with the column options.
+!!      11/2026 -- OpenAI Codex
+!!        Bind thermal roughness rules and per-column vegetation ratios.
 !!------------------------------------------------------------------------------
 !*       0.   DECLARATIONS
 !             ------------
 !
 !
-USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
+USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t, TEB_Z0H_t
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t, TEB_Z0_t, ALLOC_TEB_PARAMS, DEALLOC_TEB_PARAMS
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t, ALLOC_BEM_PARAMS, DEALLOC_BEM_PARAMS
@@ -80,6 +82,15 @@ TYPE(TEB_FORCING_t),  SAVE :: FORC     ! atmospheric forcing of the sub-step
 TYPE(TEB_EXT_SURF_t), SAVE :: EXT      ! external garden / greenroof surface (host -> TEB)
 LOGICAL,              SAVE :: LTEB_HOST_ALLOC = .FALSE.
 !$OMP THREADPRIVATE(TOPTS,TPARAMS,TSTATE,BOPTS,BPARAMS,BSTATE,FORC,EXT,TPN,TIR,DMT,LTEB_HOST_ALLOC)
+
+! The offline driver binds its ratios only while the block is being evaluated.
+TYPE TEB_Z0H_BINDING_t
+  TYPE(TEB_Z0H_t) :: RULES
+  REAL, POINTER, CONTIGUOUS :: GARDEN(:) => NULL()
+  REAL, POINTER, CONTIGUOUS :: GREENROOF(:) => NULL()
+END TYPE TEB_Z0H_BINDING_t
+TYPE(TEB_Z0H_BINDING_t), SAVE, PRIVATE :: TZ0H_BINDING
+!$OMP THREADPRIVATE(TZ0H_BINDING)
 !
 CONTAINS
 
@@ -102,14 +113,14 @@ SUBROUTINE TEB_FILL_PARAMS (KSTART, KEND, &
                             teb_lgreenroof_ext, teb_lbem_ac, &
                             teb_fr_panel, teb_lroad_irrig, teb_rd_irrig_start_m, &
                             teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
-                            teb_rd_irrig_sum, HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON)
+                            teb_rd_irrig_sum, HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON, KHOST_CELL)
 !
 !*       0.1  containers
 !             ----------
 !
 !*       0.2  configuration
 !             -------------
-INTEGER, INTENT(IN) :: KSTART, KEND
+INTEGER, INTENT(IN) :: KSTART, KEND, KHOST_CELL
 CHARACTER(LEN=*), INTENT(IN) :: teb_itype_bem_cool, teb_itype_bem_heat, teb_itype_natvent
 CHARACTER(LEN=*), INTENT(IN) :: teb_itype_bem, teb_hroad_dir, teb_wall_opt
 CHARACTER(LEN=*), INTENT(IN) :: teb_type_garden, teb_type_greenroof
@@ -169,6 +180,11 @@ DO K = KSTART, KEND
   TOPTS%XTAU_HW_WIDTH   = teb_tau_hw_width
   TOPTS%XZ0_O_Z0H_GD    = urb_z0_o_z0h_gdn
   TOPTS%XZ0_O_Z0H_GR    = urb_z0_o_z0h_grf
+  TOPTS%TZ0H           = TZ0H_BINDING%RULES
+  IF (ASSOCIATED(TZ0H_BINDING%GARDEN)) &
+    TOPTS%XZ0_O_Z0H_GD = TZ0H_BINDING%GARDEN(KHOST_CELL)
+  IF (ASSOCIATED(TZ0H_BINDING%GREENROOF)) &
+    TOPTS%XZ0_O_Z0H_GR = TZ0H_BINDING%GREENROOF(KHOST_CELL)
 !
 !* TEB parameters
   TPARAMS%XROAD_DIR(K)     = teb_road_dir(K)
@@ -615,6 +631,14 @@ TYPE(TEB_Z0_t), OPTIONAL, INTENT(OUT) :: YPREVIOUS_Z0
 IF (PRESENT(YPREVIOUS_Z0)) YPREVIOUS_Z0 = TPARAMS%TZ0
 TPARAMS%TZ0 = YZ0
 END SUBROUTINE TEB_BIND_Z0
+
+SUBROUTINE TEB_BIND_Z0H(YBINDING, YPREVIOUS)
+TYPE(TEB_Z0H_BINDING_t), INTENT(IN) :: YBINDING
+TYPE(TEB_Z0H_BINDING_t), OPTIONAL, INTENT(OUT) :: YPREVIOUS
+
+IF (PRESENT(YPREVIOUS)) YPREVIOUS = TZ0H_BINDING
+TZ0H_BINDING = YBINDING
+END SUBROUTINE TEB_BIND_Z0H
 !
 SUBROUTINE TEB_BIND_STATE (KSTART, KEND, teb_ti_bld, teb_twin2, teb_qi_bld, teb_cap_sys_rat, teb_m_sys_rat, teb_twin1, teb_lshade, teb_shad_day, teb_natvent_night, teb_ws_roof, teb_troof, teb_troad, teb_twalla, teb_twallb, teb_wsnow_roof, teb_tsnow_roof, teb_rsnow_roof, teb_asnow_roof, teb_esnow_roof, teb_tssnow_roof, teb_wsnow_road, teb_tsnow_road, teb_rsnow_road, teb_asnow_road, teb_esnow_road, teb_tssnow_road, teb_tcanyon, teb_qcanyon, teb_ws_road, teb_tfloor, teb_tmass)
 !

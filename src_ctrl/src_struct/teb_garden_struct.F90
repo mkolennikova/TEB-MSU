@@ -151,7 +151,7 @@
 USE MODD_TYPE_DATE_SURF
 USE MODD_SURF_PAR, ONLY : XUNDEF
 !
-USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
+USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t, TZ0H_OFFLINE
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
 USE MODD_BEM_n, ONLY : BEM_t
@@ -875,6 +875,7 @@ TOP%CZ0H      = HZ0H            ! TEB option for z0h roof & road
 TOP%CEXCH_ROAD   = HEXCH_ROAD
 TOP%CEXCH_ROOF   = HEXCH_ROOF
 TOP%CEXCH_CANYON = HEXCH_CANYON
+TOP%TZ0H        = TZ0H_OFFLINE
 TOP%CCH_BEM   = HCH_BEM         ! BEM option for roof/wall outside convective coefficient
 ! 'DOE-2' : DOE-2 model from
 ! EnergyPlus Engineering reference, p65

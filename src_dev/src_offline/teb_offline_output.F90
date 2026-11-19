@@ -253,14 +253,14 @@ DO b=1,SIZE(blocks)
     WRITE(unit,'(I0,A,I0,A,L1)') b,';',ids(j,b),';teb_lgarden;',blocks(b)%teb_lgarden
     WRITE(unit,'(I0,A,I0,A,A)') b,';',ids(j,b),';teb_type_garden;',blocks(b)%teb_type_garden
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_z0_gdn;',blocks(b)%teb_z0_gd(j)
-    WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_z0_o_z0h_gdn;',blocks(b)%urb_z0_o_z0h_gdn
+    WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_z0_o_z0h_gdn;',blocks(b)%urb_z0_o_z0h_gdn(j)
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_alb_gdn;',blocks(b)%teb_alb_gd(j)
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_emis_gdn;',blocks(b)%teb_emis_gd(j)
     WRITE(unit,'(I0,A,I0,A,L1)') b,';',ids(j,b),';teb_lgreenroof;',blocks(b)%teb_lgreenroof
     WRITE(unit,'(I0,A,I0,A,A)') b,';',ids(j,b),';teb_type_greenroof;',blocks(b)%teb_type_greenroof
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';teb_frac_gr;',blocks(b)%teb_frac_gr(j)
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_z0_grf;',blocks(b)%teb_z0_gr(j)
-    WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_z0_o_z0h_grf;',blocks(b)%urb_z0_o_z0h_grf
+    WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_z0_o_z0h_grf;',blocks(b)%urb_z0_o_z0h_grf(j)
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_alb_grf;',blocks(b)%teb_alb_gr(j)
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_emis_grf;',blocks(b)%teb_emis_gr(j)
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';proxy_phu_gdn;',proxy_phu_gdn

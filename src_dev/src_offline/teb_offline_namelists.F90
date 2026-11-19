@@ -16,12 +16,15 @@
 !!        Read the scalar road, roof and snow momentum roughness lengths.
 !!      11/2026 -- OpenAI Codex
 !!        Configure the town roughness rule in tebopts.
+!!      11/2026 -- OpenAI Codex
+!!        Read thermal roughness rules and per-column vegetation ratios.
 !-------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_NAMELISTS
 USE TEB_OFFLINE_HOST, ONLY: BLOCK_CONFIG, TEB_BLOCK, allocate_block
 USE MODD_SURF_PAR, ONLY: XUNDEF, teb_snow_check
 USE MODD_SNOW_PAR, ONLY: XZ0SN
-USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT, TEB_EXCH_VALID
+USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT, TEB_EXCH_VALID, TEB_Z0H_t, &
+                             TEB_Z0H_RULE_t, TEB_PARSE_Z0H, TEB_Z0_RATIO_VALID
 USE MODD_PROXI_SVAT_PAR, ONLY: XZ0_GD, XZ0_GR, XZ0_O_Z0H_GD, XZ0_O_Z0H_GR, proxy_phu_gdn, proxy_phu_grf
 USE MODE_THERMOS, ONLY: QSAT
 USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_FINITE
@@ -51,10 +54,12 @@ CHARACTER(LEN=4) :: teb_ctype_natvent
 CHARACTER(LEN=6) :: teb_ctype_bem_cool
 CHARACTER(LEN=6) :: teb_ctype_bem_heat
 CHARACTER(LEN=4) :: teb_ctype_wind
-CHARACTER(LEN=6) :: teb_ctype_exch_road, teb_ctype_exch_roof, teb_ctype_exch_canyon
+CHARACTER(LEN=6) :: teb_ctype_exch_rd, teb_ctype_exch_rf, teb_ctype_exch_canyon
 CHARACTER(LEN=9) :: teb_ctype_garden
 CHARACTER(LEN=9) :: teb_ctype_greenroof
 CHARACTER(LEN=16) :: teb_ctype_z0_town
+CHARACTER(LEN=16) :: teb_ctype_z0_o_z0h_rd, teb_ctype_z0_o_z0h_rf, teb_ctype_z0_o_z0h_town
+TYPE(TEB_Z0H_t) :: z0h
 REAL, ALLOCATABLE :: urb_h_bld(:)
 REAL, ALLOCATABLE :: urb_fr_bld(:)
 REAL, ALLOCATABLE :: fr_garden(:)
@@ -103,14 +108,14 @@ REAL :: teb_fai(8)
 LOGICAL :: teb_lgarden
 CHARACTER(LEN=9) :: teb_type_garden
 REAL, ALLOCATABLE :: urb_z0_gdn(:)
-REAL :: urb_z0_o_z0h_gdn
+REAL, ALLOCATABLE :: urb_z0_o_z0h_gdn(:)
 REAL, ALLOCATABLE :: urb_alb_gdn(:)
 REAL, ALLOCATABLE :: urb_emis_gdn(:)
 LOGICAL :: teb_lgreenroof
 CHARACTER(LEN=9) :: teb_type_greenroof
 REAL, ALLOCATABLE :: teb_frac_gr(:)
 REAL, ALLOCATABLE :: urb_z0_grf(:)
-REAL :: urb_z0_o_z0h_grf
+REAL, ALLOCATABLE :: urb_z0_o_z0h_grf(:)
 REAL, ALLOCATABLE :: urb_alb_grf(:)
 REAL, ALLOCATABLE :: urb_emis_grf(:)
 LOGICAL :: teb_lsolar_panel
@@ -136,8 +141,9 @@ NAMELIST /tebopts/ &
   teb_ctype_bem, teb_ctype_natvent, teb_ctype_bem_cool, &
   teb_ctype_bem_heat, teb_ctype_wind, teb_ctype_garden, &
   teb_ctype_greenroof, teb_hroad_dir, teb_wall_opt, &
-  teb_ctype_exch_road, teb_ctype_exch_roof, teb_ctype_exch_canyon, &
+  teb_ctype_exch_rd, teb_ctype_exch_rf, teb_ctype_exch_canyon, &
   teb_ctype_z0_town, &
+  teb_ctype_z0_o_z0h_rd, teb_ctype_z0_o_z0h_rf, teb_ctype_z0_o_z0h_town, &
   teb_lwrite_output, teb_lwrite_emu, teb_lwrite_runoff, &
   teb_lwrite_test_dump
 NAMELIST /tebparams/ &
@@ -250,11 +256,11 @@ ALLOCATE(teb_m_sys_rat(nvec))
 ALLOCATE(teb_cap_sys_heat(nvec))
 ALLOCATE(ahf_traffic(nvec))
 ALLOCATE(ahf_industry(nvec))
-ALLOCATE(urb_z0_gdn(nvec))
+ALLOCATE(urb_z0_gdn(nvec),urb_z0_o_z0h_gdn(nvec))
 ALLOCATE(urb_alb_gdn(nvec))
 ALLOCATE(urb_emis_gdn(nvec))
 ALLOCATE(teb_frac_gr(nvec))
-ALLOCATE(urb_z0_grf(nvec))
+ALLOCATE(urb_z0_grf(nvec),urb_z0_o_z0h_grf(nvec))
 ALLOCATE(urb_alb_grf(nvec))
 ALLOCATE(urb_emis_grf(nvec))
 ALLOCATE(teb_fr_panel(nvec))
@@ -346,9 +352,12 @@ teb_lcbs_scheme=.FALSE.
 teb_tau_hw_thresh=0.5
 teb_tau_hw_width=0.25
 teb_snow_check=.FALSE.
-teb_ctype_exch_road=CTEB_EXCH_DEFAULT
-teb_ctype_exch_roof=CTEB_EXCH_DEFAULT
+teb_ctype_exch_rd=CTEB_EXCH_DEFAULT
+teb_ctype_exch_rf=CTEB_EXCH_DEFAULT
 teb_ctype_exch_canyon=CTEB_EXCH_DEFAULT
+teb_ctype_z0_o_z0h_rd='200'
+teb_ctype_z0_o_z0h_rf='200'
+teb_ctype_z0_o_z0h_town='200'
 teb_lwrite_output=.TRUE.
 teb_lwrite_emu=.TRUE.
 teb_lwrite_runoff=.TRUE.
@@ -372,12 +381,15 @@ IF(.NOT.legacy) THEN
   opts=build_text('tebopts',o)
   READ(opts,NML=tebopts,IOSTAT=rc,IOMSG=message)
   IF(rc/=0) CALL fail(path,'tebopts',0,TRIM(message))
-  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_road)) &
-    CALL fail(path,'teb_ctype_exch_road',0,'expected MASC95 or DELAGE')
-  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_roof)) &
-    CALL fail(path,'teb_ctype_exch_roof',0,'expected MASC95 or DELAGE')
+  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_rd)) &
+    CALL fail(path,'teb_ctype_exch_rd',0,'expected MASC95 or DELAGE')
+  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_rf)) &
+    CALL fail(path,'teb_ctype_exch_rf',0,'expected MASC95 or DELAGE')
   IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_canyon)) &
     CALL fail(path,'teb_ctype_exch_canyon',0,'expected MASC95 or DELAGE')
+  CALL read_z0h_rule(path,'teb_ctype_z0_o_z0h_rd',teb_ctype_z0_o_z0h_rd,z0h%RD)
+  CALL read_z0h_rule(path,'teb_ctype_z0_o_z0h_rf',teb_ctype_z0_o_z0h_rf,z0h%RF)
+  CALL read_z0h_rule(path,'teb_ctype_z0_o_z0h_town',teb_ctype_z0_o_z0h_town,z0h%TOWN)
   teb_itype_bem=teb_ctype_bem
   teb_itype_natvent=teb_ctype_natvent
   teb_itype_bem_cool=teb_ctype_bem_cool
@@ -402,6 +414,7 @@ DO j=1,SIZE(a)
        'teb_frac_gz','teb_tcool_target','teb_theat_target','teb_zresidential','teb_dt_res','teb_dt_off', &
        'teb_bem_inf','teb_bem_vent','teb_bem_cop','teb_cap_sys_rat','teb_m_sys_rat','teb_cap_sys_heat', &
        'ahf_traffic','ahf_industry','urb_z0_gdn','urb_alb_gdn','urb_emis_gdn','teb_frac_gr','urb_z0_grf', &
+       'urb_z0_o_z0h_gdn','urb_z0_o_z0h_grf', &
        'urb_alb_grf','urb_emis_grf','teb_fr_panel','teb_rd_irrig_start_m','teb_rd_irrig_end_m', &
        'teb_rd_irrig_start_h','teb_rd_irrig_end_h','teb_rd_irrig_sum','urb_emis_rf','urb_emis_rd', &
        'urb_emis_wl')
@@ -494,6 +507,8 @@ DO j=1,SIZE(a)
     ahf_industry=ahf_industry(1)
   CASE('urb_z0_gdn')
     urb_z0_gdn=urb_z0_gdn(1)
+  CASE('urb_z0_o_z0h_gdn')
+    urb_z0_o_z0h_gdn=urb_z0_o_z0h_gdn(1)
   CASE('urb_alb_gdn')
     urb_alb_gdn=urb_alb_gdn(1)
   CASE('urb_emis_gdn')
@@ -502,6 +517,8 @@ DO j=1,SIZE(a)
     teb_frac_gr=teb_frac_gr(1)
   CASE('urb_z0_grf')
     urb_z0_grf=urb_z0_grf(1)
+  CASE('urb_z0_o_z0h_grf')
+    urb_z0_o_z0h_grf=urb_z0_o_z0h_grf(1)
   CASE('urb_alb_grf')
     urb_alb_grf=urb_alb_grf(1)
   CASE('urb_emis_grf')
@@ -592,15 +609,13 @@ IF(ANY(teb_frac_gr<0. .OR. teb_frac_gr>1.)) CALL fail(path,'teb_frac_gr',0,'expe
 IF(ANY(urb_z0_gdn<=0. .OR. urb_z0_gdn>=XUNDEF)) CALL fail(path,'urb_z0_gdn',0,'invalid roughness')
 IF(ANY(urb_alb_gdn<0. .OR. urb_alb_gdn>=1.)) CALL fail(path,'urb_alb_gdn',0,'expected 0 <= albedo < 1')
 IF(ANY(urb_emis_gdn<=0. .OR. urb_emis_gdn>1.)) CALL fail(path,'urb_emis_gdn',0,'expected 0 < emissivity <= 1')
-IF(.NOT.IEEE_IS_FINITE(urb_z0_o_z0h_gdn) .OR. urb_z0_o_z0h_gdn<1. .OR. urb_z0_o_z0h_gdn>=XUNDEF) &
-  CALL fail(path,'urb_z0_o_z0h_gdn',0,'expected finite ratio >= 1')
+CALL check_vegetation_ratio(path,'urb_z0_o_z0h_gdn',urb_z0_o_z0h_gdn)
 IF(.NOT.IEEE_IS_FINITE(proxy_phu_gdn) .OR. proxy_phu_gdn<=0. .OR. proxy_phu_gdn>1.) &
   CALL fail(path,'proxy_phu_gdn',0,'expected finite humidity > 0 and <= 1')
 IF(ANY(urb_z0_grf<=0. .OR. urb_z0_grf>=XUNDEF)) CALL fail(path,'urb_z0_grf',0,'invalid roughness')
 IF(ANY(urb_alb_grf<0. .OR. urb_alb_grf>=1.)) CALL fail(path,'urb_alb_grf',0,'expected 0 <= albedo < 1')
 IF(ANY(urb_emis_grf<=0. .OR. urb_emis_grf>1.)) CALL fail(path,'urb_emis_grf',0,'expected 0 < emissivity <= 1')
-IF(.NOT.IEEE_IS_FINITE(urb_z0_o_z0h_grf) .OR. urb_z0_o_z0h_grf<1. .OR. urb_z0_o_z0h_grf>=XUNDEF) &
-  CALL fail(path,'urb_z0_o_z0h_grf',0,'expected finite ratio >= 1')
+CALL check_vegetation_ratio(path,'urb_z0_o_z0h_grf',urb_z0_o_z0h_grf)
 IF(.NOT.IEEE_IS_FINITE(proxy_phu_grf) .OR. proxy_phu_grf<=0. .OR. proxy_phu_grf>1.) &
   CALL fail(path,'proxy_phu_grf',0,'expected finite humidity > 0 and <= 1')
 SELECT CASE(TRIM(teb_type_garden))
@@ -698,8 +713,8 @@ c%teb_cap_sys_heat=teb_cap_sys_heat
 c%ahf_traffic=ahf_traffic
 c%ahf_industry=ahf_industry
 c%teb_itype_wind=teb_itype_wind
-c%teb_ctype_exch_road=teb_ctype_exch_road
-c%teb_ctype_exch_roof=teb_ctype_exch_roof
+c%teb_ctype_exch_road=teb_ctype_exch_rd
+c%teb_ctype_exch_roof=teb_ctype_exch_rf
 c%teb_ctype_exch_canyon=teb_ctype_exch_canyon
 c%teb_lgarden=teb_lgarden
 c%teb_type_garden=teb_type_garden
@@ -725,6 +740,7 @@ c%teb_rd_irrig_sum=teb_rd_irrig_sum
 c%teb_utc_hour=teb_utc_hour
 c%teb_lshade=teb_lshade
 c%urb_z0_town=teb_ctype_z0_town
+c%tz0h=z0h
 c%tz0%XROAD=urb_z0_rd
 c%tz0%XROOF=urb_z0_rf
 c%tz0%XSNOW=urb_z0_snow
@@ -817,11 +833,12 @@ CASE('teb_itype_natvent','teb_ctype_natvent','teb_ctype_wind','teb_hroad_dir','t
   limit=4
 CASE('teb_itype_bem_cool','teb_itype_bem_heat','teb_ctype_bem_cool','teb_ctype_bem_heat')
   limit=6
-CASE('teb_ctype_exch_road','teb_ctype_exch_roof','teb_ctype_exch_canyon')
+CASE('teb_ctype_exch_rd','teb_ctype_exch_rf','teb_ctype_exch_canyon')
   limit=6
 CASE('teb_type_garden','teb_type_greenroof','teb_ctype_garden','teb_ctype_greenroof')
   limit=9
-CASE('teb_ctype_z0_town','urb_zd_town')
+CASE('teb_ctype_z0_town','urb_zd_town', &
+     'teb_ctype_z0_o_z0h_rd','teb_ctype_z0_o_z0h_rf','teb_ctype_z0_o_z0h_town')
   limit=16
 CASE DEFAULT
   RETURN
@@ -1001,6 +1018,10 @@ DO
     IF(LEN_TRIM(entry%name)==0) CALL fail(path,group,line,'expected parameter name')
     IF(entry%name=='urb_z0_town') &
       CALL fail(path,group,line,'urb_z0_town is deprecated. Use teb_ctype_z0_town in &tebopts.')
+    IF(entry%name=='teb_ctype_exch_road') &
+      CALL fail(path,group,line,'teb_ctype_exch_road is deprecated. Use teb_ctype_exch_rd in &tebopts.')
+    IF(entry%name=='teb_ctype_exch_roof') &
+      CALL fail(path,group,line,'teb_ctype_exch_roof is deprecated. Use teb_ctype_exch_rf in &tebopts.')
     CALL skip_space(text,p,line)
     IF(p>LEN(text)) CALL fail(path,entry%name,line,'missing equals sign')
     IF(text(p:p)/='=') CALL fail(path,entry%name,line,'expected =; indexed assignments are unsupported')
@@ -1063,6 +1084,25 @@ DO j=1,SIZE(a)
 END DO
 text=text//'/'//ACHAR(10)
 END FUNCTION
+
+SUBROUTINE read_z0h_rule(path,key,spec,rule)
+CHARACTER(LEN=*),INTENT(IN)::path,key,spec
+TYPE(TEB_Z0H_RULE_t),INTENT(OUT)::rule
+LOGICAL::valid
+
+CALL TEB_PARSE_Z0H(spec,rule,valid)
+IF (.NOT.valid) CALL fail(path,key,0,'expected a finite ratio >= 1, KANDA07 or BRUT82')
+END SUBROUTINE read_z0h_rule
+
+SUBROUTINE check_vegetation_ratio(path,key,ratio)
+CHARACTER(LEN=*),INTENT(IN)::path,key
+REAL,INTENT(IN)::ratio(:)
+
+IF (ALL(TEB_Z0_RATIO_VALID(ratio))) THEN
+  IF (ALL(ratio < XUNDEF)) RETURN
+END IF
+CALL fail(path,key,0,'expected finite ratio >= 1')
+END SUBROUTINE check_vegetation_ratio
 
 SUBROUTINE check_z0_input(path,key,z0)
 CHARACTER(LEN=*),INTENT(IN)::path,key

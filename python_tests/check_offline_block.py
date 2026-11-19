@@ -284,6 +284,12 @@ OPTION_NAMES = {'dt',
  'teb_ctype_natvent',
  'teb_ctype_wind',
  'teb_ctype_z0_town',
+ 'teb_ctype_exch_rd',
+ 'teb_ctype_exch_rf',
+ 'teb_ctype_exch_canyon',
+ 'teb_ctype_z0_o_z0h_rd',
+ 'teb_ctype_z0_o_z0h_rf',
+ 'teb_ctype_z0_o_z0h_town',
  'teb_lbem_ac',
  'teb_lcbs_scheme',
  'teb_lgarden',
@@ -598,7 +604,8 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
             values = dict(BASE_PARAMETERS, **PROFILE_OVERRIDES[profile])
             repeated = {name: ', '.join([values[name]] * 7)
                         for name in ('urb_h_bld', 'urb_h2w', 'urb_hcap_rd',
-                                     'ahf_traffic', 'teb_tcool_target', 'teb_qi_bld_init')}
+                                     'ahf_traffic', 'teb_tcool_target', 'teb_qi_bld_init',
+                                     'urb_z0_o_z0h_gdn', 'urb_z0_o_z0h_grf')}
             explicit = self.run(nvec=7, profile=profile, parameters=repeated)
             self.comparisons += compare_reference(explicit, dict.fromkeys(range(1, 8), scalar))
             self.record('namelist_scalar_equals_repeated_list', profile=profile, nvec=7)
@@ -625,6 +632,8 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
             'teb_tcool_target': [294. + j for j in range(7)],
             'urb_z0_gdn': [.05 + .02*j for j in range(7)],
             'urb_z0_grf': [.01 + .005*j for j in range(7)],
+            'urb_z0_o_z0h_gdn': [1. + j for j in range(7)],
+            'urb_z0_o_z0h_grf': [8. - j for j in range(7)],
             'urb_alb_gdn': [.1 + .02*j for j in range(7)],
             'urb_emis_rf': [.9 + .01*j for j in range(7)],
             'urb_emis_grf': [.9 + .01*j for j in range(7)],
@@ -666,7 +675,8 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
         self.record('heterogeneous_namelist_and_all_csv', nvec=7, nblocks=2,
                     independent_processes=7, varied_parameters=len(series))
 
-        permuted = self.run(**dict(cfg, permute_step=6))
+        permuted_cfg = dict(cfg, permute_step=6)
+        permuted = self.run(**permuted_cfg)
         self.comparisons += compare_reference(permuted, refs)
         for name in block.directory.glob('TEB_*.csv'):
             if name.read_bytes() != (permuted.directory/name.name).read_bytes():
@@ -674,8 +684,9 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
         self.record('stable_csv_cell_ids_after_permutation', nvec=7, nblocks=2)
 
         checkpoint = self.work / 'checks' / 'output_checkpoint.bin'
-        first = self.run(**dict(cfg, stop_after=17, checkpoint_file=checkpoint.as_posix()))
-        resumed = self.run(**dict(cfg, restart_file=checkpoint.as_posix()))
+        first = self.run(**dict(permuted_cfg, stop_after=17, checkpoint_file=checkpoint.as_posix()))
+        resumed = self.run(**dict(permuted_cfg, restart_file=checkpoint.as_posix()))
+        self.comparisons += compare_reference(first, refs) + compare_reference(resumed, refs)
         for name in block.directory.glob('TEB_*.csv'):
             whole = name.read_bytes().splitlines()
             left = (first.directory/name.name).read_bytes().splitlines()
@@ -686,7 +697,8 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
                 continue
             if left[0] != whole[0] or right[0] != whole[0] or left + right[1:] != whole:
                 raise AssertionError(f'CSV restart changed output or an interval accumulator: {name.name}')
-        self.record('csv_restart_inside_accumulation_interval', split_after=17, cadence=6, nblocks=2)
+        self.record('csv_restart_inside_accumulation_interval', split_after=17, cadence=6,
+                    nblocks=2, permute_step=6)
 
         # Both entry points consume exactly the same physical namelist at nvec>1.
         entry_root = self.work / 'runs' / 'unified_entry_points'
@@ -739,6 +751,20 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
             'nonfinite': ("&tebopts nvec=3 / &tebparams urb_h_bld=10.,NaN,20. /", 'non-finite'),
             'long_selector': ("&tebopts nvec=3,teb_ctype_bem='BEM_extra' / &tebparams /", 'length'),
             'invalid_thermal_ratio': ("&tebopts nvec=3 / &tebparams urb_z0_o_z0h_gdn=1.e30 /", 'ratio'),
+            'short_thermal_ratio_list': ("&tebopts nvec=3 / &tebparams urb_z0_o_z0h_grf=3.,4. /",
+                                         'urb_z0_o_z0h_grf'),
+            'invalid_thermal_ratio_list_value': (
+                "&tebopts nvec=3 / &tebparams urb_z0_o_z0h_gdn=1.,0.5,4. /", 'finite ratio >= 1'),
+            'invalid_road_z0h_rule': ("&tebopts teb_ctype_z0_o_z0h_rd='200 300' / &tebparams /",
+                                     'expected a finite ratio >= 1, KANDA07 or BRUT82'),
+            'roof_z0h_rule_list': ("&tebopts nvec=2,teb_ctype_z0_o_z0h_rf='200','BRUT82' / &tebparams /",
+                                   'teb_ctype_z0_o_z0h_rf'),
+            'deprecated_road_exchange': (
+                "&tebopts teb_ctype_exch_road='MASC95' / &tebparams /",
+                'teb_ctype_exch_road is deprecated. Use teb_ctype_exch_rd in &tebopts.'),
+            'deprecated_roof_exchange_with_replacement': (
+                "&tebopts teb_ctype_exch_rf='MASC95',teb_ctype_exch_roof='DELAGE' / &tebparams /",
+                'teb_ctype_exch_roof is deprecated. Use teb_ctype_exch_rf in &tebopts.'),
         }
         cases.update({
             'dt_in_parameters': ("&tebopts / &tebparams dt=300. /", 'dt'),

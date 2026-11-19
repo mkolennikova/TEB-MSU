@@ -79,12 +79,14 @@
 !!      11/2026 -- OpenAI Codex
 !!        Route independent road, roof and canyon exchange algorithms.
 !!        Apply configured road and roof lengths with the road height cap.
+!!      11/2026 -- OpenAI Codex
+!!        Apply separate thermal roughness rules for road, roof and town.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
 !               ------------
 !
-USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
+USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t, CTEB_EXCH_DEFAULT
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
 !
@@ -98,7 +100,7 @@ USE MODE_THERMOS
 USE MODI_URBAN_EXCH_COEF
 !* CALL_DRIVER resolves XZD_TOWN from urb_zd_town in /tebparam/.
 !* The reference displacement-height default is urb_h_bld/3.
-USE MODD_PROXI_SVAT_PAR, ONLY : XZD_TOWN, urb_z0_rd, urb_z0_rf
+USE MODD_PROXI_SVAT_PAR, ONLY : XZD_TOWN, urb_z0_rd, urb_z0_rf, urb_z0_o_z0h_gdn
 
 USE MODE_CONV_DOE
 !
@@ -288,14 +290,18 @@ CHARACTER(LEN=*), PARAMETER       :: ZZ0H_ROAD1 = 'output/ZZ0H_ROAD1.txt'
 !
 INTEGER                   ::  JLOOP, JJ  !! 
 !
-REAL :: ZZ0_O_Z0H = 200.  ! z0/z0h ratio used in Mascart (1995) formulation.
-!                         ! It is set to the maximum value acceptable by
-!                         ! formulation. Observed values are often larger in cities.
+CHARACTER(LEN=6) :: CZ0H_RD, CZ0H_RF, CZ0H_TOWN, CEXCH_TOWN
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 !
 !
 IF (LHOOK) CALL DR_HOOK('URBAN_DRAG',0,ZHOOK_HANDLE)
+!
+CZ0H_RD   = MERGE(TOP%TZ0H%RD%CFORM, TOP%CZ0H, TOP%TZ0H%RD%CFORM /= '')
+CZ0H_RF   = MERGE(TOP%TZ0H%RF%CFORM, TOP%CZ0H, TOP%TZ0H%RF%CFORM /= '')
+CZ0H_TOWN = MERGE(TOP%TZ0H%TOWN%CFORM, TOP%CZ0H, TOP%TZ0H%TOWN%CFORM /= '')
+! A configured town roughness uses the historical exchange algorithm.
+CEXCH_TOWN = MERGE(CTEB_EXCH_DEFAULT, '      ', TOP%TZ0H%TOWN%CFORM /= '')
 !
 ZZ0_ROOF(:) = urb_z0_rf
 ZZ0_ROAD(:) = MIN(urb_z0_rd,0.1*PZ_LOWCAN(:))
@@ -398,13 +404,13 @@ IF (.NOT. TOP%LCANOPY) THEN
 ! D7: use the same roof height above displacement (H-zd) as the wind profile.
 ! TEB_UPSTREAM_CONS retains the original +zd offset for upstream comparison.
 #ifdef TEB_UPSTREAM_CONS
-  CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, ZTS_TOWN, ZQ_TOWN, PEXNS, PEXNA, PTA, PQA,     &
+  CALL URBAN_EXCH_COEF(CZ0H_TOWN, TOP%TZ0H%TOWN%XRATIO, ZTS_TOWN, ZQ_TOWN, PEXNS, PEXNA, PTA, PQA,     &
                        PZREF+ XZD_TOWN, PUREF+XZD_TOWN, PVMOD, T%XZ0_TOWN,                 &
-                       PRI, PCD, PCDN, ZAC, ZRA, ZCH, ZZ0H_TOWN, ILMO_TOWN              )
+                       PRI, PCD, PCDN, ZAC, ZRA, ZCH, ZZ0H_TOWN, ILMO_TOWN, HEXCH=CEXCH_TOWN)
 #else
-  CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, ZTS_TOWN, ZQ_TOWN, PEXNS, PEXNA, PTA, PQA,     &
+  CALL URBAN_EXCH_COEF(CZ0H_TOWN, TOP%TZ0H%TOWN%XRATIO, ZTS_TOWN, ZQ_TOWN, PEXNS, PEXNA, PTA, PQA,     &
                        PZREF+(T%XBLD_HEIGHT-XZD_TOWN), PUREF+(T%XBLD_HEIGHT-XZD_TOWN), PVMOD, T%XZ0_TOWN, &
-                       PRI, PCD, PCDN, ZAC, ZRA, ZCH, ZZ0H_TOWN, ILMO_TOWN              )
+                       PRI, PCD, PCDN, ZAC, ZRA, ZCH, ZZ0H_TOWN, ILMO_TOWN, HEXCH=CEXCH_TOWN)
 #endif
   
 !  OPEN(UNIT=27, FILE = ZZ0H_TOWN1, ACCESS = 'APPEND')
@@ -426,7 +432,7 @@ IF (TOP%CCH_BEM == "DOE-2") THEN
   PAC_ROOF = CHTC_ROUGH_DOE(ZCHTCN_ROOF, ZCHTCS_ROOF, T%XROUGH_ROOF) / PRHOA / XCPD
 ELSE
    
-  CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROOF, ZQ_ROOF, PEXNS, PEXNA, PTA, PQA, &
+  CALL URBAN_EXCH_COEF(CZ0H_RF, TOP%TZ0H%RF%XRATIO, PTS_ROOF, ZQ_ROOF, PEXNS, PEXNA, PTA, PQA, &
                        PZREF, PUREF, PVMOD, ZZ0_ROOF, ZRI, ZCD, ZCDN, PAC_ROOF,        &
                        ZRA_ROOF, PCH_ROOF, ZZ0H_ROOF, ILMO_ROOF, &
                        HEXCH=TOP%CEXCH_ROOF)
@@ -544,7 +550,7 @@ DO JLOOP=1,3
 !  ZTS_GROUND(:) = PTS_ROAD(:) * T%XROAD  (:)/(T%XROAD(:)+T%XGARDEN(:)) + PTS_GARDEN(:) * T%XGARDEN  (:)/(T%XROAD(:)+T%XGARDEN(:))
 !  ZZ0_GROUND(:) = ZZ0_ROAD(:) * T%XROAD  (:)/(T%XROAD(:)+T%XGARDEN(:)) + ZZ0_GARDEN(:) * T%XGARDEN  (:)/(T%XROAD(:)+T%XGARDEN(:))
    
-  CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQ_LOWCAN, PEXNS, PEXNA,  &
+  CALL URBAN_EXCH_COEF(CZ0H_RD, TOP%TZ0H%RD%XRATIO, PTS_ROAD, PQ_LOWCAN, PEXNS, PEXNA,  &
                        PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
                        PU_LOWCAN+ZW_CAN, ZZ0_ROAD, ZRI, ZCD_ROAD, ZCDN,         &
                        PAC_ROAD, ZRA_ROAD, PCH_ROAD, ZZ0H_ROAD, ILMO_ROAD, &
@@ -633,7 +639,7 @@ DO JJ=1,SIZE(PTA)
 !IF (TOP%LGARDEN) THEN
   IF (OGARDEN_EXT) THEN
    
-    CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
+    CALL URBAN_EXCH_COEF(TOP%CZ0H, urb_z0_o_z0h_gdn, PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
                          PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
                          PU_LOWCAN, PZ0_GARDEN_EXT, ZRI, PCD_GARDEN, ZCDN_GARDEN,         &
                          PAC_GARDEN, ZRA_GARDEN, PCH_GARDEN, ZZ0H_GARDEN, ILMO_GARDEN        )	
@@ -642,7 +648,7 @@ DO JJ=1,SIZE(PTA)
 !                       PTA, PQA, PZREF, PZREF,              &
 !                       PVMOD, PZ0_GARDEN, ZRI, PCD_TERRA, ZCDN_TERRA,         &
 !                       ZAC_TERRA, ZRA_TERRA, PCH_TERRA, ZZ0H_TERRA, ILMO_TERRA        )
-    CALL URBAN_EXCH_COEF(TOP%CZ0H, 4., PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
+    CALL URBAN_EXCH_COEF(TOP%CZ0H, urb_z0_o_z0h_gdn, PTS_GARDEN, PQS_GARDEN, PEXNS, PEXNA,  &
                          PTA, PQA, PZREF, PZREF,              &
                          PVMOD, PZ0_GARDEN_EXT, ZRI, PCD_TERRA, ZCDN_TERRA,         &
                          ZAC_TERRA, ZRA_TERRA, PCH_TERRA, ZZ0H_TERRA, ILMO_TERRA        )					   

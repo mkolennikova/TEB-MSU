@@ -39,15 +39,17 @@
 
 ## 1. Namelist variables
 
-This reference describes the current `src_dev` offline model. Defaults are the
-values used by its namelist reader when an entry is omitted; initialization
-expressions are explained in [§2.2](#22-initial-conditions-and-bem).
+This reference describes the `src_dev` offline model and notes `src_ctrl`
+behavior for shared options. The table defaults apply to `src_dev` when an
+entry is omitted. See [§2.2](#22-initial-conditions-and-bem) for initialization
+expressions.
 
-The model file contains `&tebopts` and `&tebparams`; the forcing file contains
+The model file uses `&tebopts` and `&tebparams`. The forcing file uses
 `&tebforcing`. Options and atmospheric forcing are common to all cells.
-In the `List` column, ✓ means one value for the whole block or exactly `nvec`
-values in input-cell order. A — means no per-cell list. `teb_fai` always takes
-eight directional values shared by every cell.
+In the `List` column, ✓ marks parameters that accept one value for the whole
+`src_dev` block or exactly `nvec` values in input-cell order. A — marks
+entries with a fixed count. `src_ctrl` accepts a single cell (`nvec=1`).
+In both trees, `teb_fai` takes eight directional values when supplied.
 
 ### 1.1 tebopts
 
@@ -61,16 +63,19 @@ eight directional values shared by every cell.
 | `teb_lsolar_panel` | Logical | True / False | `.FALSE.` | — | Enable solar panels. |
 | `teb_lroad_irrig` | Logical | True / False | `.FALSE.` | — | Enable road watering; [schedule](#26-solar-panels-and-road-watering). |
 | `teb_lshade` | Logical | True / False | `.TRUE.` | — | Enable window shading. |
-| `teb_lcbs_scheme` | Logical | True / False | `.FALSE.` | — | Enable CBS exchange; [scheme notes](#24-cbs-and-canopy-wind). |
+| `teb_lcbs_scheme` | Logical | True / False | `.FALSE.` | — | Enable CBS exchange in `src_dev`. See [scheme notes](#24-cbs-and-canopy-wind). |
 | `teb_snow_check` | Logical | True / False | `.FALSE.` | — | Filter weak snowfall when forming snow cover; [snow filter](#27-snowfall-filter). |
 | `teb_ctype_bem` | Character | `'BEM'` / `'DEF'` | `'BEM'` | — | Building energy scheme; [BEM notes](#22-initial-conditions-and-bem). |
 | `teb_ctype_natvent` | Character | `'NONE'` / `'MANU'` / `'AUTO'` / `'MECH'` | `'NONE'` | — | Natural ventilation mode. |
 | `teb_ctype_bem_cool` | Character | `'IDEAL'` / `'DXCOIL'` | `'IDEAL'` | — | Cooling system type. |
 | `teb_ctype_bem_heat` | Character | `'IDEAL'` / `'FINCAP'` | `'IDEAL'` | — | Heating system type. |
-| `teb_ctype_exch_road` | Character | `'MASC95'` / `'DELAGE'` | `'MASC95'` | — | Road/canyon and, in `src_dev`, direct road/atmosphere exchange. |
-| `teb_ctype_exch_roof` | Character | `'MASC95'` / `'DELAGE'` | `'MASC95'` | — | Conventional roof/atmosphere exchange through `URBAN_EXCH_COEF`. |
+| `teb_ctype_exch_rd` | Character | `'MASC95'` / `'DELAGE'` | `'MASC95'` | — | Road/canyon and, in `src_dev`, direct road/atmosphere exchange. |
+| `teb_ctype_exch_rf` | Character | `'MASC95'` / `'DELAGE'` | `'MASC95'` | — | Conventional roof/atmosphere exchange through `URBAN_EXCH_COEF`. |
 | `teb_ctype_exch_canyon` | Character | `'MASC95'` / `'DELAGE'` | `'MASC95'` | — | Canyon/atmosphere exchange (`PAC_TOP`, `PCH_TOP`). |
 | `teb_ctype_z0_town` | Character | Metres, height expression or scheme name | `'0.1H'` | — | Town momentum roughness rule for the block in both trees. See [accepted forms](#23-urban-aerodynamics). |
+| `teb_ctype_z0_o_z0h_rd` | Character | Ratio >= 1 or `'KANDA07'` / `'BRUT82'` | `'200'` | — | Road thermal roughness for canyon exchange and direct atmosphere exchange in `src_dev`. |
+| `teb_ctype_z0_o_z0h_rf` | Character | Ratio >= 1 or `'KANDA07'` / `'BRUT82'` | `'200'` | — | Roof thermal roughness in `URBAN_EXCH_COEF`. |
+| `teb_ctype_z0_o_z0h_town` | Character | Ratio >= 1 or `'KANDA07'` / `'BRUT82'` | `'200'` | — | Thermal roughness for the bulk town drag coefficients `PCD` and `PCDN`. |
 | `teb_ctype_wind` | Character | `'DEF'` / `'WANG'` | `'DEF'` | — | Canopy wind scheme; [wind notes](#24-cbs-and-canopy-wind). |
 | `teb_ctype_garden` | Character | `'PROXY_NEW'` / `'PROXY_OLD'` / `'EXT'` / `'EXT_NEU'` | `'PROXY_NEW'` | — | [Garden scheme](#25-garden-and-greenroof-schemes). |
 | `teb_ctype_greenroof` | Character | `'PROXY_NEW'` / `'PROXY_OLD'` / `'EXT'` / `'EXT_NEU'` | `'PROXY_NEW'` | — | [Greenroof scheme](#25-garden-and-greenroof-schemes). |
@@ -81,11 +86,9 @@ eight directional values shared by every cell.
 | `teb_lwrite_runoff` | Logical | True / False | `.TRUE.` | — | Write interval-mean road and roof runoff. |
 | `teb_lwrite_test_dump` | Logical | True / False | `.FALSE.` | — | Write full API input/output dumps and their schema. |
 
-The three `teb_ctype_exch_*` keys are also available in `src_ctrl`. Each key
-selects the existing `SURFACE_*` routines (`'MASC95'`) or `FLXSURF3BX`
-(`'DELAGE'`) for its exchange path. Both algorithms receive `z0h=z0/200` for
-road and roof and `z0h=z0` for canyon/atmosphere. The legacy `&tebparam` format
-uses `'MASC95'` for all three paths.
+In both trees, each `teb_ctype_exch_*` key selects the `SURFACE_*` routines
+(`'MASC95'`) or `FLXSURF3BX` (`'DELAGE'`) for its exchange path. See
+[§2.3](#23-urban-aerodynamics) for thermal roughness settings and renamed keys.
 
 ### 1.2 tebparams
 
@@ -105,13 +108,12 @@ uses `'MASC95'` for all three paths.
 | Variable | Type | Units / values | Default | List | Description |
 | --- | --- | --- | --- | --- | --- |
 | `urb_zd_town` | Character | m, height expression or scheme name | `'H/3'` | — | Town displacement height; [accepted forms](#23-urban-aerodynamics). |
-| `urb_z0_rd` | Real | m, positive | `0.05` | — | Nominal momentum roughness of the snow-free road. The effective length is capped at `0.1 * PZ_LOWCAN` in both road exchange paths. |
-| `urb_z0_rf` | Real | m, positive | `0.15` | — | Momentum roughness of the snow-free conventional roof. |
-| `urb_z0_snow` | Real | m, positive | `0.001` | — | Momentum roughness shared by snow on the road and roof. |
+| `urb_z0_rd` | Real | m, finite and positive | `0.05` | — | Nominal momentum roughness of the snow-free road. The model caps it at `0.1 * PZ_LOWCAN` for road/canyon exchange and for direct road/atmosphere exchange in `src_dev`. |
+| `urb_z0_rf` | Real | m, finite and positive | `0.15` | — | Momentum roughness of the snow-free conventional roof. |
+| `urb_z0_snow` | Real | m, finite and positive | `0.001` | — | Momentum roughness shared by snow on the road and roof. |
 
-Both trees accept these three inputs in `&tebparams`. The legacy `&tebparam`
-group uses their defaults. Canyon-to-atmosphere exchange uses the resolved
-town momentum roughness.
+Both trees read the road, roof and snow momentum roughness lengths from
+`&tebparams`. The legacy `&tebparam` group uses their defaults.
 
 #### 1.2.3 Surface Properties
 
@@ -177,14 +179,14 @@ town momentum roughness.
 | --- | --- | --- | --- | --- | --- |
 | `fr_garden` | Real | 1 | `0.2` | ✓ | Garden area fraction. |
 | `urb_z0_gdn` | Real | m | `0.1` | ✓ | Garden momentum roughness; [surface properties](#25-garden-and-greenroof-schemes). |
-| `urb_z0_o_z0h_gdn` | Real | >= 1 | `4.0` | — | Garden momentum/thermal roughness ratio. |
+| `urb_z0_o_z0h_gdn` | Real | Finite ratio >= 1 | `4.0` | ✓ | Garden momentum/thermal roughness ratio. In `src_ctrl`, a scalar for external garden exchange. |
 | `urb_alb_gdn` | Real | 1 | `0.15` | ✓ | Garden albedo. |
 | `urb_emis_gdn` | Real | 1 | `0.98` | ✓ | Garden emissivity. |
 | `teb_frac_gr` | Real | 1 | `0.0` | ✓ | Greenroof fraction of roofs. |
 | `urb_z0_grf` | Real | m | `0.01` | ✓ | Greenroof momentum roughness. |
 | `urb_alb_grf` | Real | 1 | `0.15` | ✓ | Greenroof albedo. |
 | `urb_emis_grf` | Real | 1 | `0.98` | ✓ | Greenroof emissivity. |
-| `urb_z0_o_z0h_grf` | Real | >= 1 | `4.0` | — | Greenroof momentum/thermal roughness ratio. |
+| `urb_z0_o_z0h_grf` | Real | Finite ratio >= 1 | `4.0` | ✓ | Greenroof momentum/thermal roughness ratio in `src_dev`. |
 | `proxy_phu_gdn` | Real | 0 < PHU <= 1 | `0.7` | — | Garden proxy surface relative humidity. |
 | `proxy_phu_grf` | Real | 0 < PHU <= 1 | `0.7` | — | Greenroof proxy surface relative humidity. |
 
@@ -224,9 +226,10 @@ town momentum roughness.
 
 ### 2.1 Input rules
 
-The split model namelist must contain `&tebparams`. Omitted `&tebopts` entries use
-their defaults. Scheme selectors are common to the block and use the uppercase
-names shown in the tables.
+A split model namelist requires `&tebparams`. Omitted `&tebopts` entries use
+their defaults. The legacy `&tebparam` group is a separate single-cell format.
+Scheme selectors are common to the block and use the uppercase names shown in
+the tables.
 
 For list-enabled parameters, supply one literal or exactly `nvec` literals.
 Repetition syntax (`3*10.`), missing elements (`,,`), indexed assignments,
@@ -261,19 +264,6 @@ update these state variables.
 `urb_zd_town` in `&tebparams` sets the displacement height independently.
 Both accept the case-insensitive forms below, using `H=urb_h_bld` of each cell.
 
-```fortran
-&tebopts
-  teb_ctype_z0_town = '0.1H',
-/
-&tebparams
-  urb_zd_town = 'H/3',
-/
-```
-
-The old namelist key `urb_z0_town` is deprecated and causes an input error.
-Move its value to `teb_ctype_z0_town` in `&tebopts`. Legacy `&tebparam` files
-use the default `'0.1H'` for town roughness.
-
 | Form | Example | Meaning |
 | --- | --- | --- |
 | Metres | `'0.5'` or `'0.5m'` | A fixed length in metres. |
@@ -282,10 +272,56 @@ use the default `'0.1H'` for town roughness.
 | Staggered-array scheme | `'MACDONALD1998'` | Macdonald et al. roughness/displacement parameterization in `src_dev`. |
 | Square-array scheme | `'MACDONALD1998SQ'` | Square-array coefficients of the same parameterization in `src_dev`. |
 
-A fixed value can be combined with a scheme name in the other entry.
-Displacement height is measured from road level. The town drag coefficient
-determines `USTAR_TOWN` and supplies the friction velocity used by the Wang
-wind scheme.
+Displacement height is measured from road level. In `src_dev`, a fixed
+length or height expression can be combined with a scheme name in the other
+entry. The town drag coefficient determines `USTAR_TOWN`, which is used by
+the Wang wind scheme.
+
+The road, roof and town thermal roughness keys in `&tebopts` each take one
+value. A numeric ratio `R=z0/z0h` gives `z0h=z0/R`. Use a finite ratio of at
+least 1 written as a character value, for example `'200'`, or select
+`'KANDA07'` or `'BRUT82'`. For the road, the calculation uses the effective
+length `z0=min(urb_z0_rd, 0.1*PZ_LOWCAN)`. The roof setting applies to the
+conventional roof exchange through `URBAN_EXCH_COEF`.
+
+Road and roof exchange each use the selected thermal roughness with either
+exchange algorithm. The bulk town coefficients `PCD` and `PCDN` use the
+town thermal roughness with `'MASC95'`. Canyon/atmosphere exchange uses the
+resolved town momentum roughness and `z0h=z0` with either exchange algorithm.
+Snow uses `z0h=0.0001` m for any `urb_z0_snow`.
+
+The example uses the default momentum roughness and different thermal
+roughness rules for the road, roof and town. It works in both trees.
+
+```fortran
+&tebopts
+  teb_ctype_z0_town = '0.1H',
+  teb_ctype_exch_rd = 'DELAGE',
+  teb_ctype_exch_rf = 'MASC95',
+  teb_ctype_z0_o_z0h_rd = '100',
+  teb_ctype_z0_o_z0h_rf = 'KANDA07',
+  teb_ctype_z0_o_z0h_town = 'BRUT82',
+/
+&tebparams
+  urb_zd_town = 'H/3',
+  urb_z0_rd = 0.05,
+  urb_z0_rf = 0.15,
+  urb_z0_snow = 0.001,
+/
+```
+
+The reader stops with a replacement hint when it encounters a deprecated key,
+including when the replacement already appears in the file.
+
+| Deprecated key | Replacement in `&tebopts` |
+| --- | --- |
+| `urb_z0_town` | `teb_ctype_z0_town` |
+| `teb_ctype_exch_road` | `teb_ctype_exch_rd` |
+| `teb_ctype_exch_roof` | `teb_ctype_exch_rf` |
+
+The legacy `&tebparam` format uses `'0.1H'` for town momentum roughness,
+`'MASC95'` for exchange and `'200'` for the road, roof and town ratios. It
+still accepts `urb_zd_town`.
 
 ### 2.4 CBS and Canopy Wind
 
@@ -303,7 +339,7 @@ shared by the entire block, including when `nvec=8`.
 ### 2.5 Garden and Greenroof Schemes
 
 The selectors apply when the corresponding `teb_lgarden` or
-`teb_lgreenroof` switch is true.
+`teb_lgreenroof` switch is true. The table describes `src_dev`.
 
 | Value | Garden | Greenroof |
 | --- | --- | --- |
@@ -318,12 +354,46 @@ coefficients used by these emulators. The garden exchanges with canyon air
 and, with CBS, with the atmosphere; the greenroof exchanges at roof level.
 
 Surface albedo, emissivity and momentum roughness apply to the selected
-surface model. Thermal roughness is `z0h=z0/(z0/z0h)`. Roughness must be
-positive, albedo must be in `[0,1)`, emissivity in `(0,1]` and `z0/z0h>=1`.
-In `src_ctrl`, omitting `urb_z0_gdn` uses `0.80` m for external-garden exchange
+surface model. Roughness must be positive, albedo must be in `[0,1)` and
+emissivity in `(0,1]`. For each vegetation surface that uses thermal roughness,
+`z0h=z0/R` with the corresponding numeric ratio `R=z0/z0h` from `&tebparams`.
+
+In `src_dev`, `PROXY_NEW`, `EXT` and `EXT_NEU` use the cell's ratio. The
+offline emulators use the same cell values in the external modes. Each ratio
+must satisfy `1 <= R < XUNDEF`. Supply one value for all cells or exactly
+`nvec` values in input-cell order. The expanded values appear in
+`parameters.csv`. The legacy `&tebparam` format accepts both ratios as
+scalars.
+
+In this `src_dev` example, the garden ratio varies by cell and the greenroof
+ratio is shared.
+
+```fortran
+&tebopts
+  nvec = 3,
+  teb_lgarden = .TRUE.,
+  teb_ctype_garden = 'EXT',
+  teb_lgreenroof = .TRUE.,
+  teb_ctype_greenroof = 'EXT_NEU',
+/
+&tebparams
+  teb_frac_gr = 0.25,
+  urb_z0_o_z0h_gdn = 4.0, 6.0, 8.0,
+  urb_z0_o_z0h_grf = 4.0,
+/
+```
+
+In `src_ctrl`, `PROXY_NEW` and `PROXY_OLD` share the fixed-Bowen-ratio
+formulation. `EXT` and `EXT_NEU` select the same external mode with the offline
+Bowen emulators. For the external garden, set a scalar `urb_z0_o_z0h_gdn`
+in `&tebparams`. It must be finite and at least 1 and applies to both
+canyon and forcing-level exchange. The legacy `&tebparam` format uses
+`4.0` for the external garden.
+
+Omitting `urb_z0_gdn` in `src_ctrl` uses `0.80` m for external-garden exchange
 and `0.10` m for garden friction. An explicit `urb_z0_gdn` in `&tebparams`
 supplies both lengths. In the legacy `&tebparam` group, the key supplies
-external-garden exchange, with friction using the historical `0.10` m.
+external-garden exchange and friction uses `0.10` m.
 
 The `proxy_phu_*` inputs prescribe surface humidity for the internal proxies
 and their offline external-surface emulators.
@@ -342,9 +412,10 @@ included; the daily hour interval includes its start and excludes its end.
 
 ### 2.7 Snowfall Filter
 
-With `teb_snow_check=.TRUE.`, snowfall below
-`XTEB_SNOW_RATE_MIN=1.e-8 kg/(m² s)` does not create a new snow cover on a bare
-road or roof. An existing snow cover receives the full snowfall rate.
+Both trees read `teb_snow_check` from `&tebopts` or legacy `&tebparam`.
+When the switch is true, a bare road or roof can gain snow cover only at
+snowfall rates of at least `XTEB_SNOW_RATE_MIN=1.e-8 kg/(m² s)`. An existing
+snow cover receives the full snowfall rate.
 
 ### 2.8 Emissivity and Longwave Albedo
 

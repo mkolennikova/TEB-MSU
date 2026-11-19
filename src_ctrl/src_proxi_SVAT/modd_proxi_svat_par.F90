@@ -130,6 +130,7 @@ CHARACTER(LEN=16), PARAMETER :: XURB_ZD_TOWN_DEF = 'H/3'
 !* Garden surface parameters: z0 (m), albedo (-), emissivity (-).
 REAL :: urb_z0_gdn   = XZ0_GD
 REAL :: XZ0_GD_FRICTION = 0.10  ! historical garden friction length (m)
+REAL :: urb_z0_o_z0h_gdn = 4.0  ! z0/z0h for the external garden
 REAL :: urb_alb_gdn  = XALB_GD
 REAL :: urb_emis_gdn = XEMIS_GD
 !* Greenroof surface parameters: z0 (m), albedo (-), emissivity (-).

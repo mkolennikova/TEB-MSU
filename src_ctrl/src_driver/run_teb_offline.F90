@@ -19,6 +19,8 @@
 !!        Read surface z0 and honor explicit split garden roughness.
 !!      11/2026 -- OpenAI Codex
 !!        Read the town roughness rule from tebopts.
+!!      11/2026 -- OpenAI Codex
+!!        Read thermal roughness rules and the external garden ratio.
 !!------------------------------------------------------------------------------
 PROGRAM run_teb_offline
 
@@ -27,7 +29,8 @@ USE TEB_CTRL_NAMELIST_INPUT, ONLY : CTRL_PREPARE_NAMELISTS
 USE MODI_OL_READ_ATM
 USE MODI_OL_TIME_INTERP_ATM
 USE MODD_SURF_PAR, ONLY: XUNDEF, teb_snow_check
-USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT, TEB_EXCH_VALID
+USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT, TEB_EXCH_VALID, TEB_Z0H_RULE_t, &
+                             TEB_PARSE_Z0H, TEB_Z0_RATIO_VALID, TZ0H_OFFLINE
 USE MODD_CSTS,     ONLY : XCPD, XSTEFAN, XPI, XDAY, XKARMAN,   &
                           XLVTT, XLSTT, XLMTT, XRV, XRD, XG, XP00
 USE MODE_THERMOS,  ONLY : QSAT
@@ -38,7 +41,7 @@ USE MODD_PROXI_SVAT_PAR, ONLY : urb_z0_town, urb_zd_town,                       
                                 urb_z0_gdn, urb_alb_gdn, urb_emis_gdn,           &
                                 urb_z0_grf, urb_alb_grf, urb_emis_grf,           &
                                 teb_type_garden, teb_type_greenroof,           &
-                                urb_z0_rd, urb_z0_rf, XZ0_GD_FRICTION
+                                urb_z0_rd, urb_z0_rf, XZ0_GD_FRICTION, urb_z0_o_z0h_gdn
 USE MODD_SNOW_PAR, ONLY : XZ0SN
 USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY : IEEE_IS_FINITE
 USE MODD_FORC_ATM, ONLY: CSV         ,&  ! name of all scalar variables
@@ -416,10 +419,11 @@ CHARACTER(LEN=4) :: teb_ctype_natvent
 CHARACTER(LEN=6) :: teb_ctype_bem_cool
 CHARACTER(LEN=6) :: teb_ctype_bem_heat
 CHARACTER(LEN=4) :: teb_ctype_wind
-CHARACTER(LEN=6) :: teb_ctype_exch_road, teb_ctype_exch_roof, teb_ctype_exch_canyon
+CHARACTER(LEN=6) :: teb_ctype_exch_rd, teb_ctype_exch_rf, teb_ctype_exch_canyon
 CHARACTER(LEN=9) :: teb_ctype_garden
 CHARACTER(LEN=9) :: teb_ctype_greenroof
 CHARACTER(LEN=16) :: teb_ctype_z0_town
+CHARACTER(LEN=16) :: teb_ctype_z0_o_z0h_rd, teb_ctype_z0_o_z0h_rf, teb_ctype_z0_o_z0h_town
 LOGICAL :: teb_lcbs_scheme=.FALSE.
 LOGICAL :: teb_lwrite_output=.TRUE.,teb_lwrite_emu=.TRUE.,teb_lwrite_runoff=.TRUE.
 LOGICAL :: teb_lwrite_test_dump=.FALSE.
@@ -450,8 +454,9 @@ NAMELIST /tebopts/ &
   teb_snow_check, teb_ctype_bem, teb_ctype_natvent, &
   teb_ctype_bem_cool, teb_ctype_bem_heat, teb_ctype_wind, &
   teb_ctype_garden, teb_ctype_greenroof, teb_hroad_dir, &
-  teb_ctype_exch_road, teb_ctype_exch_roof, teb_ctype_exch_canyon, &
+  teb_ctype_exch_rd, teb_ctype_exch_rf, teb_ctype_exch_canyon, &
   teb_ctype_z0_town, &
+  teb_ctype_z0_o_z0h_rd, teb_ctype_z0_o_z0h_rf, teb_ctype_z0_o_z0h_town, &
   teb_wall_opt, teb_lcbs_scheme, teb_lwrite_output, &
   teb_lwrite_emu, teb_lwrite_runoff, teb_lwrite_test_dump
 NAMELIST /tebparams/ &
@@ -472,7 +477,7 @@ NAMELIST /tebparams/ &
   teb_rd_irrig_start_h, teb_rd_irrig_end_h, teb_rd_irrig_sum, &
   teb_utc_hour, urb_zd_town, &
   urb_z0_rd, urb_z0_rf, urb_z0_snow, &
-  urb_z0_gdn, urb_alb_gdn, urb_emis_gdn, &
+  urb_z0_gdn, urb_z0_o_z0h_gdn, urb_alb_gdn, urb_emis_gdn, &
   urb_z0_grf, urb_alb_grf, urb_emis_grf
 
 
@@ -785,9 +790,12 @@ forcing_path2=trim(forcing_path)
 !* Same policy as for /tebforcing/ above: a failed READ of the parameter namelist
 !* stops the run (the namelist is only read up to the faulty entry, so every item
 !* that follows it in the file would keep the value of the driver default).
-teb_ctype_exch_road=CTEB_EXCH_DEFAULT
-teb_ctype_exch_roof=CTEB_EXCH_DEFAULT
+teb_ctype_exch_rd=CTEB_EXCH_DEFAULT
+teb_ctype_exch_rf=CTEB_EXCH_DEFAULT
 teb_ctype_exch_canyon=CTEB_EXCH_DEFAULT
+teb_ctype_z0_o_z0h_rd='200'
+teb_ctype_z0_o_z0h_rf='200'
+teb_ctype_z0_o_z0h_town='200'
 urb_z0_snow=XZ0SN
 CALL CTRL_PREPARE_NAMELISTS(TRIM(namelist_path_local), &
                             nml_options_text,nml_parameters_text,nml_legacy,garden_z0_explicit)
@@ -807,12 +815,15 @@ ELSE
     WRITE(*,*) 'ERROR: tebopts in ',TRIM(namelist_path_local),': ',TRIM(nml_message)
     ERROR STOP 'Invalid control-tree options'
   END IF
-  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_road)) &
-    ERROR STOP 'Invalid teb_ctype_exch_road: expected MASC95 or DELAGE'
-  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_roof)) &
-    ERROR STOP 'Invalid teb_ctype_exch_roof: expected MASC95 or DELAGE'
+  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_rd)) &
+    ERROR STOP 'Invalid teb_ctype_exch_rd: expected MASC95 or DELAGE'
+  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_rf)) &
+    ERROR STOP 'Invalid teb_ctype_exch_rf: expected MASC95 or DELAGE'
   IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_canyon)) &
     ERROR STOP 'Invalid teb_ctype_exch_canyon: expected MASC95 or DELAGE'
+  CALL READ_Z0H_RULE('teb_ctype_z0_o_z0h_rd',teb_ctype_z0_o_z0h_rd,TZ0H_OFFLINE%RD)
+  CALL READ_Z0H_RULE('teb_ctype_z0_o_z0h_rf',teb_ctype_z0_o_z0h_rf,TZ0H_OFFLINE%RF)
+  CALL READ_Z0H_RULE('teb_ctype_z0_o_z0h_town',teb_ctype_z0_o_z0h_town,TZ0H_OFFLINE%TOWN)
   teb_itype_bem=teb_ctype_bem
   teb_itype_natvent=teb_ctype_natvent
   teb_itype_bem_cool=teb_ctype_bem_cool
@@ -840,6 +851,8 @@ END IF
 CALL CHECK_Z0_INPUT('urb_z0_rd',urb_z0_rd)
 CALL CHECK_Z0_INPUT('urb_z0_rf',urb_z0_rf)
 CALL CHECK_Z0_INPUT('urb_z0_snow',urb_z0_snow)
+IF (.NOT. TEB_Z0_RATIO_VALID(urb_z0_o_z0h_gdn)) &
+  ERROR STOP 'Invalid urb_z0_o_z0h_gdn: expected a finite ratio >= 1'
 XZ0SN=urb_z0_snow
 ! An explicit split input supplies the same z0 for both garden calculations.
 IF (.NOT. nml_legacy .AND. garden_z0_explicit) THEN
@@ -1168,7 +1181,7 @@ DO ntstep = 1, nsteps - 1
                         teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
                         teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
                         teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade, &
-                        teb_ctype_exch_road=teb_ctype_exch_road, teb_ctype_exch_roof=teb_ctype_exch_roof, &
+                        teb_ctype_exch_road=teb_ctype_exch_rd, teb_ctype_exch_roof=teb_ctype_exch_rf, &
                         teb_ctype_exch_canyon=teb_ctype_exch_canyon)
     !* state and the fluxes of the garden / of the greenroof, which TEB reads
     !* back at the NEXT sub-step through its EXT interface (one sub-step lag)
@@ -1259,6 +1272,18 @@ WRITE(*,*) ' '
 !  ported from the dev tree (src_dev), identical source
 !===============================================================================
 CONTAINS
+
+SUBROUTINE READ_Z0H_RULE(key,spec,rule)
+CHARACTER(LEN=*), INTENT(IN) :: key,spec
+TYPE(TEB_Z0H_RULE_t), INTENT(OUT) :: rule
+LOGICAL :: valid
+
+CALL TEB_PARSE_Z0H(spec,rule,valid)
+IF (valid) RETURN
+WRITE(*,'(A,A,A,A,A)') 'ERROR namelist ',TRIM(namelist_path_local),': ',key, &
+                      ': expected a finite ratio >= 1, KANDA07 or BRUT82'
+ERROR STOP 1
+END SUBROUTINE READ_Z0H_RULE
 
 SUBROUTINE CHECK_Z0_INPUT(key,z0)
 CHARACTER(LEN=*), INTENT(IN) :: key

@@ -137,7 +137,7 @@ DO b=1,cfg%nblocks
 END DO
 IF(cfg%layout=='SERIAL') CALL allocate_block(single,1)
 first_step=0
-IF(LEN_TRIM(cfg%restart_file)>0) CALL load_checkpoint(cfg%restart_file,cfg,first_step,blocks,ids)
+IF(LEN_TRIM(cfg%restart_file)>0) CALL load_checkpoint(cfg%restart_file,cfg,first_step,blocks,ids,base)
 last_step=cfg%nsteps-1
 IF(cfg%stop_after>0) THEN
   IF(cfg%stop_after<=first_step .OR. cfg%stop_after>=cfg%nsteps) ERROR STOP 'Invalid stop_after'
