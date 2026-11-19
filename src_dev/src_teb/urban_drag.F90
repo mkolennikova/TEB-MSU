@@ -86,6 +86,9 @@
 !!      10/2026 -- Mikhail Varentsov (MV)
 !!        Separate static TEB/BEM parameters from prognostic state and pass the
 !!        parameter/state containers explicitly.
+!!      11/2026 -- OpenAI Codex
+!!        Route independent road, roof and canyon exchange algorithms.
+!!        Apply configured road and roof lengths with the road height cap.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -336,8 +339,8 @@ REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !
 IF (LHOOK) CALL DR_HOOK('URBAN_DRAG',0,ZHOOK_HANDLE)
 !
-ZZ0_ROOF(:) = 0.15                         ! z0 for roofs
-ZZ0_ROAD(:) = MIN(0.05,0.1*PZ_LOWCAN(:))     ! z0 for roads
+ZZ0_ROOF(:) = TPARAMS%TZ0%XROOF
+ZZ0_ROAD(:) = MIN(TPARAMS%TZ0%XROAD,0.1*PZ_LOWCAN(:))
 !
 ZZ0_TOP(:) = TPARAMS%XZ0_TOWN(:)
 !
@@ -501,7 +504,8 @@ ELSE
    
   CALL URBAN_EXCH_COEF(TOPTS%CZ0H, ZZ0_O_Z0H, PTS_ROOF, ZQ_ROOF, PEXNS, PEXNA, PTA, PQA, &
                        PZREF, PUREF, PVMOD, ZZ0_ROOF, ZRI, ZCD, ZCDN, PAC_ROOF,        &
-                       ZRA_ROOF, PCH_ROOF, ZZ0H_ROOF, ILMO_ROOF               )
+                       ZRA_ROOF, PCH_ROOF, ZZ0H_ROOF, ILMO_ROOF, &
+                       HEXCH=TOPTS%CEXCH_ROOF)
 
 
 ENDIF
@@ -537,7 +541,8 @@ IF (.NOT. TOPTS%LCANOPY) THEN
 
   CALL URBAN_EXCH_COEF('MASC95', 1., PT_CANYON, PQ_CANYON, PEXNS, PEXNA, PTA, PQA,    &
                        PZREF+TPARAMS%XBLD_HEIGHT-PZ_LOWCAN, PUREF+TPARAMS%XBLD_HEIGHT-PZ_LOWCAN, &
-                       PVMOD, ZZ0_TOP,  ZRI, ZCD, ZCDN, PAC_TOP, ZRA_TOP, PCH_TOP, ZZ0H_TOP, ILMO_TOP  )
+                       PVMOD, ZZ0_TOP,  ZRI, ZCD, ZCDN, PAC_TOP, ZRA_TOP, PCH_TOP, ZZ0H_TOP, ILMO_TOP, &
+                       HEXCH=TOPTS%CEXCH_CANYON)
 
 !  CALL URBAN_EXCH_COEF(TOPTS%CZ0H, 1., PT_CANYON, PQ_CANYON, PEXNS, PEXNA, PTA, PQA,    &
 !                        PZREF+TPARAMS%XBLD_HEIGHT-PZ_LOWCAN, PUREF+TPARAMS%XBLD_HEIGHT-PZ_LOWCAN, &
@@ -612,7 +617,8 @@ DO JLOOP=1,3
   CALL URBAN_EXCH_COEF(TOPTS%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQ_LOWCAN, PEXNS, PEXNA,  &
                        PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
                        PU_LOWCAN+ZW_CAN, ZZ0_ROAD, PRI_ROAD_CAN, PCD_ROAD_CAN, PCDN_ROAD_CAN,         &
-                       PAC_ROAD_CAN, ZRA_ROAD_CAN, PCH_ROAD_CAN, ZZ0H_ROAD_CAN, ILMO_ROAD_CAN        )
+                       PAC_ROAD_CAN, ZRA_ROAD_CAN, PCH_ROAD_CAN, ZZ0H_ROAD_CAN, ILMO_ROAD_CAN, &
+                       HEXCH=TOPTS%CEXCH_ROAD)
   
   !
 					   
@@ -651,18 +657,15 @@ END DO
 !  the heights PZREF and PUREF) instead of the low canyon air (PT_LOWCAN,
 !  PQ_LOWCAN and PU_LOWCAN at the height PZ_LOWCAN).
 !
-!* This call is the exact analogue of the road/canyon one (section 8.2): same
-!  roughness length for momentum (ZZ0_ROAD), same option for the roughness length
-!  for heat (TOPTS%CZ0H with the ZZ0_O_Z0H ratio) and same wind thresholding, only
-!  the reference air is changed.
-!
-!* These coefficients are diagnostic variables only: they do not feed back on the
-!  surface energy budget.
+!* Both road paths use the same roughness lengths and exchange algorithm,
+!* with reference air and heights for each path. The direct atmospheric
+!* conductance enters the road energy budget when CBS is enabled.
 !
 CALL URBAN_EXCH_COEF(TOPTS%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQA, PEXNS, PEXNA, PTA, PQA, &
                      PZREF, PUREF, PVMOD, ZZ0_ROAD, PRI_ROAD_ATM, PCD_ROAD_ATM, &
                      PCDN_ROAD_ATM, PAC_ROAD_ATM, ZRA_ROAD_ATM, PCH_ROAD_ATM,  &
-                     ZZ0H_ROAD_ATM, ZILMO_ROAD_ATM                              )
+                     ZZ0H_ROAD_ATM, ZILMO_ROAD_ATM, &
+                     HEXCH=TOPTS%CEXCH_ROAD)
 !
 !PCH_ROAD_CAN(:) = PCH_ROAD_CAN(:) * 2.
 !PAC_ROAD_CAN(:) = PAC_ROAD_CAN(:) * 2.

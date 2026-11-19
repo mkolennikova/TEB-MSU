@@ -101,7 +101,8 @@
                                   PRUNOFF_GR_EXT, PALB_GD_EXT, PEMIS_GD_EXT, PTSRAD_GD_EXT, PQV_GD_EXT, PH_GD_EXT, &
                                   PLE_GD_EXT, PEVAP_GD_EXT, PCH_GD, PCD_GD, PRUNOFF_GD_EXT, PCH_RD,    &
                                   PCH_RF, PCH_WL, PCH_TOP, PAC_TOP, ILMO_ROAD, ILMO_ROOF,  &
-                                  ILMO_TOP, PCD_TERRA, PCH_TERRA )
+                                  ILMO_TOP, PCD_TERRA, PCH_TERRA, &
+                                  HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON)
 !   ##########################################################################
 !
 !!****  *TEB_GARDEN_STRUCT*  
@@ -140,6 +141,8 @@
 !!      Pre-repository -- Maria Tarasova (MT)
 !!        Bind host-model surface/state arguments to the TEB/BEM structures,
 !!        including external garden and greenroof coupling.
+!!      11/2026 -- OpenAI Codex
+!!        Copy the three exchange selections to the reference options.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -179,6 +182,7 @@ CHARACTER(LEN=6)    , INTENT(IN)    :: HZ0H            ! TEB option for z0h roof
 !                                                         ! 'MASC95' : Mascart et al 1995
 !                                                         ! 'BRUT82' : Brustaert     1982
 !                                                         ! 'KAND07' : Kanda         2007
+CHARACTER(LEN=6),     INTENT(IN)  :: HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON
 CHARACTER(LEN=*),     INTENT(IN)  :: HIMPLICIT_WIND  ! wind implicitation option
 !                                                         ! 'OLD' = direct
 !                                                         ! 'NEW' = Taylor serie, order 1
@@ -868,6 +872,9 @@ TOP%CZ0H      = HZ0H            ! TEB option for z0h roof & road
 ! 'MASC95' : Mascart et al 1995
 ! 'BRUT82' : Brustaert     1982
 ! 'KAND07' : Kanda         2007
+TOP%CEXCH_ROAD   = HEXCH_ROAD
+TOP%CEXCH_ROOF   = HEXCH_ROOF
+TOP%CEXCH_CANYON = HEXCH_CANYON
 TOP%CCH_BEM   = HCH_BEM         ! BEM option for roof/wall outside convective coefficient
 ! 'DOE-2' : DOE-2 model from
 ! EnergyPlus Engineering reference, p65

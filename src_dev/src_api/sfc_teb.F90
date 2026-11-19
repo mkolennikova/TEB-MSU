@@ -15,6 +15,8 @@
 !!      11/2026 -- Mikhail Varentsov (MV)
 !!        Define the public input/output contract and preserve lagged
 !!        USTAR/greenroof-CD inputs independently for each host column.
+!!      11/2026 -- OpenAI Codex
+!!        Expose independent optional road, roof and canyon exchange algorithms.
 !!------------------------------------------------------------------------------
 MODULE sfc_teb
 
@@ -99,8 +101,9 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
                           teb_ac_rd, teb_ac_wl, teb_ac_top, &
                           teb_tch_rf, teb_tch_rd, teb_tch_wl, &
                           teb_tch_top, teb_wind_top, teb_cd_garden_atm, &
-                          teb_ch_garden_atm, ahf_traffic_now)
-USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
+                          teb_ch_garden_atm, ahf_traffic_now, &
+                          teb_ctype_exch_road, teb_ctype_exch_roof, teb_ctype_exch_canyon)
+USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t, TEB_EXCH_METHOD
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
@@ -115,6 +118,10 @@ INTEGER, INTENT(IN) :: ivend    !IN optional end   index                   ! ive
 INTEGER, INTENT(IN) :: iblock   !IN number of block
 INTEGER :: i
 LOGICAL :: LWRITE_LOG
+CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_road
+CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_roof
+CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_canyon
+CHARACTER(LEN=6) :: HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON
 REAL, INTENT(IN) :: dt          !IN integration timestep
 	
 INTEGER, INTENT(IN) :: &
@@ -358,6 +365,9 @@ IF (ivstart < 1 .OR. ivstart > nvec+1 .OR. ivend < 0 .OR. ivend > nvec .OR. &
     ivend < ivstart-1) ERROR STOP 'TEB_INTERFACE: invalid window bounds'
 IF (ANY([teb_nroof_layer, teb_nroad_layer, teb_nwall_layer, teb_nfloor_layer] /= 5)) &
   ERROR STOP 'TEB_INTERFACE: roof/road/wall/floor require five layers'
+HEXCH_ROAD = TEB_EXCH_METHOD(teb_ctype_exch_road, 'teb_ctype_exch_road')
+HEXCH_ROOF = TEB_EXCH_METHOD(teb_ctype_exch_roof, 'teb_ctype_exch_roof')
+HEXCH_CANYON = TEB_EXCH_METHOD(teb_ctype_exch_canyon, 'teb_ctype_exch_canyon')
 CALL TEB_LOG_SET_FILTER(KTEB_LOG_BLOCK, KTEB_LOG_POINT)
 ! All blocks of the same model step share the output decision.
 LWRITE_LOG = TEB_LOG_AT_CADENCE(ntstep)
@@ -377,7 +387,8 @@ DO i = ivstart, ivend
                         teb_zresidential(i:i), teb_dt_res(i:i), teb_dt_off(i:i), ahf_industry(i:i), teb_itype_wind, &
                         teb_utc_hour, teb_lgreenroof_ext, teb_lbem_ac, teb_fr_panel(i:i), teb_lroad_irrig, &
                         teb_rd_irrig_start_m(i:i), teb_rd_irrig_end_m(i:i), teb_rd_irrig_start_h(i:i), &
-                        teb_rd_irrig_end_h(i:i), teb_rd_irrig_sum(i:i))
+                        teb_rd_irrig_end_h(i:i), teb_rd_irrig_sum(i:i), &
+                        HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON)
   CALL TEB_FILL_DERIVED (1, 1, urb_z0_town, urb_zd_town, urb_hcap_rd(i:i), urb_hcap_rf(i:i), &
                          urb_hcap_wl(i:i), urb_hcon_rd(i:i), urb_hcon_rf(i:i), urb_hcon_wl(i:i), ahf_traffic(i:i), &
                          teb_fai(i:i,:))

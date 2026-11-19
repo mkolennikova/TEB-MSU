@@ -53,6 +53,8 @@
 !!      11/2026 -- Mikhail Varentsov (MV)
 !!        Use filtered snow-cover fractions to activate snow evolution and
 !!        preserve the road-snow fraction needed by conservative melt transfer.
+!!      11/2026 -- OpenAI Codex
+!!        Use the same configured momentum length for road and roof snow.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -156,6 +158,7 @@ REAL, DIMENSION(SIZE(PTA)) :: ZLW2_RD  ! to be multiplied by
 REAL, DIMENSION(SIZE(PTA)) :: ZLW2_RF  ! 4th power of
 !                                         ! surface temperature
 
+REAL :: ZZ0_SNOW                   ! snow roughness length for momentum (m)
 REAL, DIMENSION(SIZE(PTA)) :: ZSR_RF  ! snow fall on roof snow (kg/s/m2 of snow)
 REAL, DIMENSION(SIZE(PTA)) :: ZSR_RD  ! snow fall on road snow (kg/s/m2 of snow)
 !
@@ -177,6 +180,8 @@ REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 !
 IF (LHOOK) CALL DR_HOOK('URBAN_SNOW_EVOL',0,ZHOOK_HANDLE)
+ZZ0_SNOW = XZ0SN
+IF (TPARAMS%TZ0%XSNOW > 0.) ZZ0_SNOW = TPARAMS%TZ0%XSNOW
 PRNSN_RF(:)=0.
 PHSN_RF (:)=0.
 PLESN_RF(:)=0.
@@ -237,7 +242,7 @@ IF ( GSN_RF ) THEN
   IF (TSTATE%TSNOW_ROOF%SCHEME=='1-L')  &
     CALL SNOW_COVER_1LAYER(PTSTEP, XANSMIN_ROOF, XANSMAX_ROOF, XANS_TODRY_ROOF,   &
                              XRHOSMIN_ROOF, XRHOSMAX_ROOF, XANS_T_ROOF, .TRUE., 0., &
-                             XWCRN_ROOF, XZ0SN, XZ0HSN, TSTATE%TSNOW_ROOF, PTS_RF,       &
+                             XWCRN_ROOF, ZZ0_SNOW, XZ0HSN, TSTATE%TSNOW_ROOF, PTS_RF,       &
                              ZTS_COEFA, ZTS_COEFB, PABS_SW_SN_RF, ZLW1_RF,  ZLW2_RF,&
                              PTA, PQA, PVMOD, PPS, PRHOA, ZSR_RF, PZREF, PUREF,     &
                              PRNSN_RF, PHSN_RF, PLESN_RF, PGSN_RF, PMELT_RF,        &
@@ -288,7 +293,7 @@ IF ( GSN_RD ) THEN
   IF (TSTATE%TSNOW_ROAD%SCHEME=='1-L')                &
     CALL SNOW_COVER_1LAYER(PTSTEP, XANSMIN_ROAD, XANSMAX_ROAD, XANS_TODRY_ROAD,   &
                              XRHOSMIN_ROAD, XRHOSMAX_ROAD, XANS_T_ROAD, .FALSE.,    &
-                             0., XWCRN_ROAD, XZ0SN, XZ0HSN, TSTATE%TSNOW_ROAD, PTS_RD,   & 
+                             0., XWCRN_ROAD, ZZ0_SNOW, XZ0HSN, TSTATE%TSNOW_ROAD, PTS_RD,   &
                              ZTS_COEFA, ZTS_COEFB,  PABS_SW_SN_RD, ZLW1_RD, ZLW2_RD,&
                              PT_LWCN, PQ_LWCN, PU_LWCN, PPS, PRHOA, ZSR_RD, PZ_LWCN,&
                              PZ_LWCN, PRNSN_RD, PHSN_RD, PLESN_RD, PGSN_RD,         &

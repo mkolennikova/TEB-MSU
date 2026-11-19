@@ -10,10 +10,18 @@
 !!        Share strict options/parameters and scalar-or-nvec expansion.
 !!        Read timestep and named scheme selectors from common options,
 !!        translating them to the unchanged API and retaining legacy input.
+!!      11/2026 -- OpenAI Codex
+!!        Read independent road, roof and canyon exchange algorithms.
+!!      11/2026 -- OpenAI Codex
+!!        Read the scalar road, roof and snow momentum roughness lengths.
+!!      11/2026 -- OpenAI Codex
+!!        Configure the town roughness rule in tebopts.
 !-------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_NAMELISTS
 USE TEB_OFFLINE_HOST, ONLY: BLOCK_CONFIG, TEB_BLOCK, allocate_block
 USE MODD_SURF_PAR, ONLY: XUNDEF, teb_snow_check
+USE MODD_SNOW_PAR, ONLY: XZ0SN
+USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT, TEB_EXCH_VALID
 USE MODD_PROXI_SVAT_PAR, ONLY: XZ0_GD, XZ0_GR, XZ0_O_Z0H_GD, XZ0_O_Z0H_GR, proxy_phu_gdn, proxy_phu_grf
 USE MODE_THERMOS, ONLY: QSAT
 USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_FINITE
@@ -43,8 +51,10 @@ CHARACTER(LEN=4) :: teb_ctype_natvent
 CHARACTER(LEN=6) :: teb_ctype_bem_cool
 CHARACTER(LEN=6) :: teb_ctype_bem_heat
 CHARACTER(LEN=4) :: teb_ctype_wind
+CHARACTER(LEN=6) :: teb_ctype_exch_road, teb_ctype_exch_roof, teb_ctype_exch_canyon
 CHARACTER(LEN=9) :: teb_ctype_garden
 CHARACTER(LEN=9) :: teb_ctype_greenroof
+CHARACTER(LEN=16) :: teb_ctype_z0_town
 REAL, ALLOCATABLE :: urb_h_bld(:)
 REAL, ALLOCATABLE :: urb_fr_bld(:)
 REAL, ALLOCATABLE :: fr_garden(:)
@@ -113,8 +123,8 @@ REAL, ALLOCATABLE :: teb_rd_irrig_end_h(:)
 REAL, ALLOCATABLE :: teb_rd_irrig_sum(:)
 INTEGER :: teb_utc_hour
 LOGICAL :: teb_lshade
-CHARACTER(LEN=16) :: urb_z0_town
 CHARACTER(LEN=16) :: urb_zd_town
+REAL :: urb_z0_rd, urb_z0_rf, urb_z0_snow
 LOGICAL :: teb_lcbs_scheme
 REAL :: teb_tau_hw_thresh
 REAL :: teb_tau_hw_width
@@ -126,6 +136,8 @@ NAMELIST /tebopts/ &
   teb_ctype_bem, teb_ctype_natvent, teb_ctype_bem_cool, &
   teb_ctype_bem_heat, teb_ctype_wind, teb_ctype_garden, &
   teb_ctype_greenroof, teb_hroad_dir, teb_wall_opt, &
+  teb_ctype_exch_road, teb_ctype_exch_roof, teb_ctype_exch_canyon, &
+  teb_ctype_z0_town, &
   teb_lwrite_output, teb_lwrite_emu, teb_lwrite_runoff, &
   teb_lwrite_test_dump
 NAMELIST /tebparams/ &
@@ -147,8 +159,9 @@ NAMELIST /tebparams/ &
   urb_alb_grf, urb_emis_grf, proxy_phu_gdn, &
   proxy_phu_grf, teb_fr_panel, teb_rd_irrig_start_m, &
   teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
-  teb_rd_irrig_sum, teb_utc_hour, urb_z0_town, &
-  urb_zd_town, teb_tau_hw_thresh, teb_tau_hw_width
+  teb_rd_irrig_sum, teb_utc_hour, urb_zd_town, &
+  teb_tau_hw_thresh, teb_tau_hw_width, &
+  urb_z0_rd, urb_z0_rf, urb_z0_snow
 NAMELIST /tebparam/ &
   dt, urb_h_bld, urb_fr_bld, &
   fr_garden, urb_h2w, teb_road_dir, &
@@ -173,8 +186,8 @@ NAMELIST /tebparam/ &
   proxy_phu_grf, teb_lsolar_panel, teb_fr_panel, &
   teb_lroad_irrig, teb_rd_irrig_start_m, teb_rd_irrig_end_m, &
   teb_rd_irrig_start_h, teb_rd_irrig_end_h, teb_rd_irrig_sum, &
-  teb_utc_hour, teb_lshade, urb_z0_town, &
-  urb_zd_town, teb_lcbs_scheme, teb_tau_hw_thresh, &
+  teb_utc_hour, teb_lshade, urb_zd_town, &
+  teb_lcbs_scheme, teb_tau_hw_thresh, &
   teb_tau_hw_width, teb_snow_check
 CALL read_text(path,text)
 CALL scan_group(text,'tebparam',a,found,path)
@@ -324,12 +337,18 @@ teb_rd_irrig_end_h=9.
 teb_rd_irrig_sum=1.
 teb_utc_hour=3
 teb_lshade=.TRUE.
-urb_z0_town='0.1H'
+teb_ctype_z0_town='0.1H'
+urb_z0_rd=c%tz0%XROAD
+urb_z0_rf=c%tz0%XROOF
+urb_z0_snow=XZ0SN
 urb_zd_town='H/3'
 teb_lcbs_scheme=.FALSE.
 teb_tau_hw_thresh=0.5
 teb_tau_hw_width=0.25
 teb_snow_check=.FALSE.
+teb_ctype_exch_road=CTEB_EXCH_DEFAULT
+teb_ctype_exch_roof=CTEB_EXCH_DEFAULT
+teb_ctype_exch_canyon=CTEB_EXCH_DEFAULT
 teb_lwrite_output=.TRUE.
 teb_lwrite_emu=.TRUE.
 teb_lwrite_runoff=.TRUE.
@@ -353,6 +372,12 @@ IF(.NOT.legacy) THEN
   opts=build_text('tebopts',o)
   READ(opts,NML=tebopts,IOSTAT=rc,IOMSG=message)
   IF(rc/=0) CALL fail(path,'tebopts',0,TRIM(message))
+  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_road)) &
+    CALL fail(path,'teb_ctype_exch_road',0,'expected MASC95 or DELAGE')
+  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_roof)) &
+    CALL fail(path,'teb_ctype_exch_roof',0,'expected MASC95 or DELAGE')
+  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_canyon)) &
+    CALL fail(path,'teb_ctype_exch_canyon',0,'expected MASC95 or DELAGE')
   teb_itype_bem=teb_ctype_bem
   teb_itype_natvent=teb_ctype_natvent
   teb_itype_bem_cool=teb_ctype_bem_cool
@@ -395,6 +420,9 @@ ELSE
   READ(body,NML=tebparams,IOSTAT=rc,IOMSG=message)
 END IF
 IF(rc/=0) CALL fail(path,'parameters',0,TRIM(message))
+CALL check_z0_input(path,'urb_z0_rd',urb_z0_rd)
+CALL check_z0_input(path,'urb_z0_rf',urb_z0_rf)
+CALL check_z0_input(path,'urb_z0_snow',urb_z0_snow)
 DO j=1,SIZE(a)
   IF(a(j)%count/=1) CYCLE
   SELECT CASE(a(j)%name)
@@ -670,6 +698,9 @@ c%teb_cap_sys_heat=teb_cap_sys_heat
 c%ahf_traffic=ahf_traffic
 c%ahf_industry=ahf_industry
 c%teb_itype_wind=teb_itype_wind
+c%teb_ctype_exch_road=teb_ctype_exch_road
+c%teb_ctype_exch_roof=teb_ctype_exch_roof
+c%teb_ctype_exch_canyon=teb_ctype_exch_canyon
 c%teb_lgarden=teb_lgarden
 c%teb_type_garden=teb_type_garden
 c%teb_z0_gd=urb_z0_gdn
@@ -693,7 +724,10 @@ c%teb_rd_irrig_end_h=teb_rd_irrig_end_h
 c%teb_rd_irrig_sum=teb_rd_irrig_sum
 c%teb_utc_hour=teb_utc_hour
 c%teb_lshade=teb_lshade
-c%urb_z0_town=urb_z0_town
+c%urb_z0_town=teb_ctype_z0_town
+c%tz0%XROAD=urb_z0_rd
+c%tz0%XROOF=urb_z0_rf
+c%tz0%XSNOW=urb_z0_snow
 c%urb_zd_town=urb_zd_town
 c%teb_lcbs_scheme=teb_lcbs_scheme
 c%teb_tau_hw_thresh=teb_tau_hw_thresh
@@ -783,9 +817,11 @@ CASE('teb_itype_natvent','teb_ctype_natvent','teb_ctype_wind','teb_hroad_dir','t
   limit=4
 CASE('teb_itype_bem_cool','teb_itype_bem_heat','teb_ctype_bem_cool','teb_ctype_bem_heat')
   limit=6
+CASE('teb_ctype_exch_road','teb_ctype_exch_roof','teb_ctype_exch_canyon')
+  limit=6
 CASE('teb_type_garden','teb_type_greenroof','teb_ctype_garden','teb_ctype_greenroof')
   limit=9
-CASE('urb_z0_town','urb_zd_town')
+CASE('teb_ctype_z0_town','urb_zd_town')
   limit=16
 CASE DEFAULT
   RETURN
@@ -963,6 +999,8 @@ DO
     IF(LEN(probe)>LEN(entry%name)) CALL fail(path,group,line,'parameter name is too long')
     entry%name=probe
     IF(LEN_TRIM(entry%name)==0) CALL fail(path,group,line,'expected parameter name')
+    IF(entry%name=='urb_z0_town') &
+      CALL fail(path,group,line,'urb_z0_town is deprecated. Use teb_ctype_z0_town in &tebopts.')
     CALL skip_space(text,p,line)
     IF(p>LEN(text)) CALL fail(path,entry%name,line,'missing equals sign')
     IF(text(p:p)/='=') CALL fail(path,entry%name,line,'expected =; indexed assignments are unsupported')
@@ -1025,6 +1063,15 @@ DO j=1,SIZE(a)
 END DO
 text=text//'/'//ACHAR(10)
 END FUNCTION
+
+SUBROUTINE check_z0_input(path,key,z0)
+CHARACTER(LEN=*),INTENT(IN)::path,key
+REAL,INTENT(IN)::z0
+IF (IEEE_IS_FINITE(z0)) THEN
+  IF (z0 > 0.) RETURN
+END IF
+CALL fail(path,key,0,'expected a finite positive roughness in m')
+END SUBROUTINE check_z0_input
 
 SUBROUTINE fail(path,item,line,message)
 CHARACTER(LEN=*),INTENT(IN)::path,item,message

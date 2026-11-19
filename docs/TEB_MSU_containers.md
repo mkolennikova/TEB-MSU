@@ -61,8 +61,8 @@
 | имя | тип | файл | состав (полей) | роль |
 | --- | --- | --- | --- | --- |
 | `DMT` | `DIAG_MISC_TEB_t` | `src_struct/modd_diag_misc_tebn.F90` | 231 | диагностика: потоки, поглощения, агрегаты города, снег, сад/кровля, MRT пешехода на дороге и на крыше; два межшаговых входа (§3) |
-| `TOPTS` | `TEB_OPTIONS_t` | `src_struct/modd_teb_optionn.F90` | 22 param + 2 work + 3 reserved | опции TEB (схемы, флаги, тип сада/кровли) |
-| `TPARAMS` | `TEB_PARAMS_t` | `src_struct/modd_teb_paramsn.F90` | 38 param + 4 flux | статические параметры TEB (геометрия, материалы, антропогенные потоки) |
+| `TOPTS` | `TEB_OPTIONS_t` | `src_struct/modd_teb_optionn.F90` | 25 param + 2 work + 3 reserved | опции TEB (схемы, флаги, тип сада/кровли) |
+| `TPARAMS` | `TEB_PARAMS_t` | `src_struct/modd_teb_paramsn.F90` | 39 param + 4 flux | статические параметры TEB (геометрия, материалы, антропогенные потоки) |
 | `TSTATE` | `TEB_t` | `src_struct/modd_tebn.F90` | 10 state + 1 reserved | прогностическое состояние TEB (крыша, дорога, стены, каньон, снег) |
 | `BOPTS` | `BEM_OPTIONS_t` | `src_struct/modd_bem_optionn.F90` | 5 param | опции BEM (тип кондиционирования, coil, autosize) |
 | `BPARAMS` | `BEM_PARAMS_t` | `src_struct/modd_bem_paramsn.F90` | 40 param | статические параметры BEM (полы, HVAC, окна) |
@@ -155,6 +155,11 @@ TYPE(TEB_EXT_SURF_t), SAVE :: EXT       ! external garden / greenroof surface (h
 `sfc_teb`: модуль публично экспортирует только `teb_interface` и
 `teb_real_kind = KIND(0.0)`; входы, состояния и результаты имеют явные INTENT.
 
+Три необязательных строковых аргумента `teb_ctype_exch_road`,
+`teb_ctype_exch_roof` и `teb_ctype_exch_canyon` выбирают алгоритмы обмена для
+всего блока. Для каждого пропущенного аргумента на текущем вызове применяется
+`'MASC95'`. Offline передаёт значения из `tebopts`.
+
 **Колонки.** Публичный API принимает блок с `nvec>=1` и окном
 `ivstart:ivend`; обрабатываются только точки с `sa_uc(i)>0`. Физические
 контейнеры имеют размер 1. Для каждой городской колонки `teb_interface`
@@ -205,7 +210,7 @@ Offline-хост находится в `src_dev/src_offline/` и линкует�
 
 ```
 run_teb_offline
-  → teb_interface (202: 158 обязательных + 44 OPTIONAL)                   src_api/sfc_teb.F90
+  → teb_interface (205: 158 обязательных + 44 OPTIONAL OUT + 3 OPTIONAL IN) src_api/sfc_teb.F90
       → проверка блока/слоёв; маска ivstart:ivend, sa_uc>0
       → TEB_LOG_AT_CADENCE(ntstep)   одно решение для всех блоков шага
       → INI_CSTS             физические константы
@@ -314,20 +319,25 @@ run_teb_offline
 `PRI_GREENROOF_ATM`, `ZZ0H_GREENROOF_ATM`: у зелёной кровли ветвей нет, она
 обменивается только с уровнем форсинга.
 
-### 5.2 `TOPTS` — опции TEB (`TEB_OPTIONS_t`, 22 param + 2 work + 3 reserved)
+### 5.2 `TOPTS` — опции TEB (`TEB_OPTIONS_t`, 25 param + 2 work + 3 reserved)
 
 Схемы и флаги: `CGARDEN`/`LGARDEN`, `LGREENROOF(_EXT)`, `CTYPE_GARDEN`/
 `CTYPE_GREENROOF`, `CBEM`, `ITYPE_WIND`, `LSOLAR_PANEL`, `LCBS_SCHEME`,
-`XTAU_HW_THRESH`/`XTAU_HW_WIDTH`, `NUTC_HOUR`, `XZ0_O_Z0H_GD/GR`. Поля `work`
+`XTAU_HW_THRESH`/`XTAU_HW_WIDTH`, `NUTC_HOUR`, `XZ0_O_Z0H_GD/GR` и `CEXCH_ROAD/ROOF/CANYON`. Поля `work`
 (`TTIME`, `XTSTEP`) заполняет `CALL_DRIVER` на каждом шаге.
 
-### 5.3 `TPARAMS` — параметры TEB (`TEB_PARAMS_t`, 38 param + 4 flux)
+### 5.3 `TPARAMS` — параметры TEB (`TEB_PARAMS_t`, 39 param + 4 flux)
 
 Статическая геометрия и материалы: доли (`XBLD`, `XROAD`, `XGARDEN`,
 `XGREENROOF`), `XCAN_HW_RATIO`, `XBLD_HEIGHT`, альбедо/эмиссивность/теплоёмкость/
 проводимость крыши-дороги-стен, СВФ, `XZ0_TOWN`/`XZD_TOWN`, застройка
 (`XRESIDENTIAL`, `XDT_RES/OFF`). Поля `flux` — антропогенные потоки
 (`XH_/XLE_TRAFFIC`, `XH_/XLE_INDUSTRY`). `INTENT(IN)` во всей физике.
+
+`TZ0` содержит шероховатости дороги, крыши и снега для импульса. Offline-хост
+передаёт их из параметров блока в `TPARAMS` на время вызова и восстанавливает
+предыдущую настройку после него. При restart значения читаются из того же
+неймлиста.
 
 ### 5.4 `TSTATE` — состояние TEB (`TEB_t`, 10 state + 1 reserved)
 
@@ -438,7 +448,7 @@ HVAC-уставки (`XTCOOL_TARGET`, `XTHEAT_TARGET`, `XCAP_SYS_HEAT`, `XCOP_RA
 
 | процедура | файл | аргументы |
 | --- | --- | --- |
-| `teb_interface` | `src_api/sfc_teb.F90` | **202** (158 обязательных + 44 OPTIONAL OUT), включая обязательные INOUT `teb_ustar_town`/`teb_cd_greenroof_atm` и выходные массивы ветра, радиации и стока; собственный интерфейс COSMO описан в чек-листе |
+| `teb_interface` | `src_api/sfc_teb.F90` | **205** (158 обязательных + 44 OPTIONAL OUT + 3 OPTIONAL IN), включая обязательные INOUT `teb_ustar_town`/`teb_cd_greenroof_atm` и выходные массивы ветра, радиации и стока. Три необязательных входа задают алгоритмы обмена. Собственный интерфейс COSMO описан в чек-листе |
 | `CALL_DRIVER` | `src_driver/call_driver.F90` | **27** dummy = 14 transient + 2 host-export + 11 container |
 | `TEB_GARDEN` | `src_teb/teb_garden.F90` | **29** = 2 индекса + 11 контейнеров + 5 флагов/строк + 4 коэффициента связи + 1 `KSW` + 2 (`PH_TRAFFIC`, `PTSTEP`) + 2 (`KDAY`, `PTIME`) + 2 проводимости (`PCH_GD`, `PCD_GD`) |
 
@@ -524,7 +534,7 @@ python python_tests/bem_option_sensitivity.py      # опции BEM: A/B + чу�
 Итоговые счётчики: `TEB_GARDEN_STRUCT` был 411 → 326 → 304 → 83 → 68 аргументов
 и затем удалён; `TEB_GARDEN` — **29** аргументов (было 46/65); `CALL_DRIVER` — **27**
 dummy (было 44/57; 11 контейнеров); `teb_interface` на этапе дедупликации — **154**
-(текущая подпись — 202, §6). `DMT` вырос до **208** полей, после удаления незаполняемых `XSOBS`/`XTHBS`/`XALB_TH`
+(текущая подпись — 205, §6). `DMT` вырос до **208** полей, после удаления незаполняемых `XSOBS`/`XTHBS`/`XALB_TH`
 (см. `TEB_MSU_change_history.md`, §5.6, N3) — **205**, после объединения диагностик
 ветвей CBS-схемы в запись `TEB_CBS_BRANCH_t` — **207**. Вся дедупликация побитово
 идентична эталону: полный A/B (18 000 шагов) — `IDENTICAL`, SHA-256 CSV `30499e1f…`.

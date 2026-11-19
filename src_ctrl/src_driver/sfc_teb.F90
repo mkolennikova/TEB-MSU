@@ -9,6 +9,8 @@
 !!      10/2026 -- Mikhail Varentsov (MV)
 !!        Maintain the reference host adapter with shared offline configuration
 !!        and diagnostics.
+!!      11/2026 -- OpenAI Codex
+!!        Pass optional per-surface exchange algorithms to reference physics.
 !!------------------------------------------------------------------------------
 MODULE sfc_teb
 
@@ -63,7 +65,9 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
                           teb_hroad_dir, teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, teb_dt_off,&
                           teb_cap_sys_heat, teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                  &
                           teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
-                          teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade)
+                          teb_rd_irrig_sum, teb_solar_prod, teb_utc_hour, teb_lshade, &
+                          teb_ctype_exch_road, teb_ctype_exch_roof, teb_ctype_exch_canyon)
+USE MODD_TEB_OPTION_n, ONLY : TEB_EXCH_METHOD
 
 !-------------------------------------------------------------------------------
 ! Declarations
@@ -74,6 +78,10 @@ INTEGER :: ivstart        !IN optional start index                   ! ivstart
 INTEGER :: ivend          !IN optional end   index                   ! ivend
 INTEGER :: iblock         !IN number of block
 INTEGER :: i
+CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_road
+CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_roof
+CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_canyon
+CHARACTER(LEN=6) :: HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON
 REAL,DIMENSION(1)  :: dt  !IN integration timestep
 	
 INTEGER                           :: &
@@ -300,6 +308,10 @@ REAL ,DIMENSION(nvec) :: teb_solar_prod
 ! Begin Subroutine teb_interface
 !------------------------------------------------------------------------------
     
+HEXCH_ROAD = TEB_EXCH_METHOD(teb_ctype_exch_road, 'teb_ctype_exch_road')
+HEXCH_ROOF = TEB_EXCH_METHOD(teb_ctype_exch_roof, 'teb_ctype_exch_roof')
+HEXCH_CANYON = TEB_EXCH_METHOD(teb_ctype_exch_canyon, 'teb_ctype_exch_canyon')
+
 DO i = ivstart, ivend
   CALL CALL_DRIVER (ntstep, i, iblock, dt, teb_year, teb_month, teb_day, teb_hour,                                &
                     teb_min, teb_sec, teb_hour_seconds, sa_uc(i), lon_teb(i), lat_teb(i), hlev_teb(i),                      &
@@ -334,7 +346,7 @@ DO i = ivstart, ivend
                     teb_wall_opt, teb_road_dir(i), teb_zresidential(i), teb_dt_res(i), teb_dt_off(i), teb_cap_sys_heat(i),  &
                     teb_lsolar_panel, teb_fr_panel(i), teb_lroad_irrig, teb_rd_irrig_start_m(i), teb_rd_irrig_end_m(i),     &
                     teb_rd_irrig_start_h(i), teb_rd_irrig_end_h(i), teb_rd_irrig_sum(i), teb_solar_prod(i), teb_utc_hour,   &
-                    teb_lshade)
+                    teb_lshade, HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON)
 END DO
 	
 END SUBROUTINE teb_interface

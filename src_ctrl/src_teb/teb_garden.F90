@@ -87,7 +87,7 @@ USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
 USE MODD_CSTS,              ONLY: XTT, XSTEFAN, XKARMAN
 USE MODD_SURF_PAR,          ONLY: XUNDEF, teb_snow_check, XTEB_SNOW_RATE_MIN
-USE MODD_PROXI_SVAT_PAR,    ONLY: urb_alb_gdn, urb_emis_gdn, urb_alb_grf, urb_emis_grf
+USE MODD_PROXI_SVAT_PAR,    ONLY: urb_alb_gdn, urb_emis_gdn, urb_alb_grf, urb_emis_grf, XZ0_GD_FRICTION
 USE MODD_SNOW_PAR,          ONLY: XEMISSN, XANSMAX
 !
 USE MODE_THERMOS
@@ -841,7 +841,7 @@ IF (TOP%LGARDEN) THEN
 !* outside (the block below and URBAN_DRAG respectively)
   ELSE
     ZQSAT_GD(:)  = QSAT(ZTSRAD_GD(:), PPS(:))
-    ZUW_GD(:)    = - (XKARMAN/LOG(PZ_LOWCAN(:)/0.1))**2 * PU_LOWCAN(:)**2
+    ZUW_GD(:)    = - (XKARMAN/LOG(PZ_LOWCAN(:)/XZ0_GD_FRICTION))**2 * PU_LOWCAN(:)**2
     ZGFLUX_GD(:) = 0.
     ZSFCO2_GD(:) = 0.
   END IF

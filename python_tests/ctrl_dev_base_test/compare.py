@@ -123,7 +123,7 @@ OPTION_NAMES = frozenset((
     "teb_lbem_ac", "teb_lshade", "teb_lgarden", "teb_lgreenroof",
     "teb_lsolar_panel", "teb_lroad_irrig", "teb_snow_check", "teb_lcbs_scheme",
     "teb_ctype_bem", "teb_ctype_natvent", "teb_ctype_bem_cool", "teb_ctype_bem_heat",
-    "teb_ctype_wind", "teb_ctype_garden", "teb_ctype_greenroof",
+    "teb_ctype_wind", "teb_ctype_garden", "teb_ctype_greenroof", "teb_ctype_z0_town",
     "teb_hroad_dir", "teb_wall_opt",
 ))
 
@@ -136,7 +136,7 @@ def external(path: Path) -> Path:
 
 
 def split_parameters(content: str) -> str:
-    """Regroup the known flat CAPITOUL fixture, retaining literal values."""
+    """Regroup a flat scalar-run namelist, retaining literal values."""
     entries = {}
     name = None
     chunks = []
@@ -153,8 +153,8 @@ def split_parameters(content: str) -> str:
         raise ValueError("CAPITOUL parameter fixture has no terminating slash")
     if not entries:
         raise ValueError("Empty CAPITOUL parameter fixture")
-    options = [" nvec=1,", " teb_lcbs_scheme=.FALSE.,"]
-    options += [text for key, text in entries.items() if key in OPTION_NAMES and key != "teb_lcbs_scheme"]
+    options = [" nvec=1,"]
+    options += [text for key, text in entries.items() if key in OPTION_NAMES]
     parameters = [text for key, text in entries.items() if key not in OPTION_NAMES]
     return ("&tebopts\n" + "\n".join(options) + "\n/\n"
             + "&tebparams\n" + "\n".join(parameters) + "\n/\n").replace("\n", "\r\n")
@@ -216,6 +216,7 @@ def prepare_namelists(out: Path, smoke_steps: int, forcing_source: Path,
         case_param = param
         for key, value in overrides.items():
             case_param = set_namelist_value(case_param, key, value)
+        case_param = set_namelist_value(case_param, "teb_lcbs_scheme", ".FALSE.")
         param_path = out / "config" / case / "namelist.nml"
         write_template(param_path, split_parameters(case_param))
         param_paths[case] = param_path

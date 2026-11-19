@@ -6,6 +6,8 @@
 !!        Validate split/legacy scalar namelists without owning model defaults.
 !!        Reuse dev's strict literal/group syntax while retaining ctrl physics.
 !!        Validate named common selectors while accepting legacy key lengths.
+!!      11/2026 -- OpenAI Codex
+!!        Require the town roughness option under its new namelist key.
 !-------------------------------------------------------------------------------
 MODULE TEB_CTRL_NAMELIST_INPUT
 IMPLICIT NONE
@@ -18,10 +20,10 @@ TYPE NML_ASSIGNMENT
   INTEGER :: count=0
 END TYPE
 CONTAINS
-SUBROUTINE CTRL_PREPARE_NAMELISTS(path,opts_text,param_text,legacy)
+SUBROUTINE CTRL_PREPARE_NAMELISTS(path,opts_text,param_text,legacy,garden_z0_explicit)
 CHARACTER(LEN=*),INTENT(IN)::path
 CHARACTER(LEN=:),ALLOCATABLE,INTENT(OUT)::opts_text,param_text
-LOGICAL,INTENT(OUT)::legacy
+LOGICAL,INTENT(OUT)::legacy,garden_z0_explicit
 TYPE(NML_ASSIGNMENT),ALLOCATABLE::o(:),a(:),probe(:),native_opts(:)
 CHARACTER(LEN=:),ALLOCATABLE::text
 LOGICAL::found
@@ -59,6 +61,7 @@ DO j=1,SIZE(a)
     CALL require_count(a(j),1,1,path)
   END IF
 END DO
+garden_z0_explicit=ANY(a%name=='urb_z0_gdn')
 opts_text=build_text('tebopts',native_opts)
 IF(legacy) THEN
   param_text=build_text('tebparam',a)
@@ -78,9 +81,11 @@ CASE('teb_itype_natvent','teb_ctype_natvent','teb_ctype_wind','teb_hroad_dir','t
   limit=4
 CASE('teb_itype_bem_cool','teb_itype_bem_heat','teb_ctype_bem_cool','teb_ctype_bem_heat')
   limit=6
+CASE('teb_ctype_exch_road','teb_ctype_exch_roof','teb_ctype_exch_canyon')
+  limit=6
 CASE('teb_type_garden','teb_type_greenroof','teb_ctype_garden','teb_ctype_greenroof')
   limit=9
-CASE('urb_z0_town','urb_zd_town')
+CASE('teb_ctype_z0_town','urb_zd_town')
   limit=16
 CASE DEFAULT
   RETURN
@@ -258,6 +263,8 @@ DO
     IF(LEN(probe)>LEN(entry%name)) CALL fail(path,group,line,'parameter name is too long')
     entry%name=probe
     IF(LEN_TRIM(entry%name)==0) CALL fail(path,group,line,'expected parameter name')
+    IF(entry%name=='urb_z0_town') &
+      CALL fail(path,group,line,'urb_z0_town is deprecated. Use teb_ctype_z0_town in &tebopts.')
     CALL skip_space(text,p,line)
     IF(p>LEN(text)) CALL fail(path,entry%name,line,'missing equals sign')
     IF(text(p:p)/='=') CALL fail(path,entry%name,line,'expected =; indexed assignments are unsupported')

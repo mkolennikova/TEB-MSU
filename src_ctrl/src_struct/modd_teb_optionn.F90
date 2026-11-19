@@ -29,6 +29,9 @@
 !!      Original       01/2004
 !!      A. Lemonsu      07/2012         Key for urban hydrology
 !!      V. Masson       06/2013         splits module
+!!      TEB-MSU development
+!!      11/2026 -- OpenAI Codex
+!!        Configure reference road, roof and canyon exchange independently.
 !
 !*       0.   DECLARATIONS
 !             ------------
@@ -41,6 +44,7 @@ USE PARKIND1  ,ONLY : JPRB
 !
 IMPLICIT NONE
 
+CHARACTER(LEN=6), PARAMETER :: CTEB_EXCH_DEFAULT = 'MASC95'
 
 TYPE TEB_OPTIONS_t
 ! TEB scheme option
@@ -65,6 +69,10 @@ TYPE TEB_OPTIONS_t
                                                 ! 'MASC95' : Mascart et al 1995
                                                 ! 'BRUT82' : Brustaert     1982
                                                 ! 'KAND07' : Kanda         2007
+  ! Blank keeps the legacy algorithm for callers that set CZ0H directly.
+  CHARACTER(LEN=6)               :: CEXCH_ROAD = ''
+  CHARACTER(LEN=6)               :: CEXCH_ROOF = ''
+  CHARACTER(LEN=6)               :: CEXCH_CANYON = ''
   CHARACTER(LEN=5)               :: CCH_BEM     ! BEM option for roof/wall outside convective coefficient
                                                 ! 'DOE-2' : DOE-2 model from
                                                 ! EnergyPlus Engineering reference, p65
@@ -122,6 +130,24 @@ CONTAINS
 
 
 
+PURE LOGICAL FUNCTION TEB_EXCH_VALID(HEXCH)
+CHARACTER(LEN=*), INTENT(IN) :: HEXCH
+TEB_EXCH_VALID = HEXCH == CTEB_EXCH_DEFAULT .OR. HEXCH == 'DELAGE'
+END FUNCTION TEB_EXCH_VALID
+
+FUNCTION TEB_EXCH_METHOD(HEXCH, HKEY) RESULT(CMETHOD)
+CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: HEXCH
+CHARACTER(LEN=*), INTENT(IN) :: HKEY
+CHARACTER(LEN=6) :: CMETHOD
+
+CMETHOD = CTEB_EXCH_DEFAULT
+IF (PRESENT(HEXCH)) THEN
+  IF (.NOT. TEB_EXCH_VALID(HEXCH)) &
+    ERROR STOP 'Invalid '//HKEY//': expected MASC95 or DELAGE'
+  CMETHOD = HEXCH
+END IF
+END FUNCTION TEB_EXCH_METHOD
+
 SUBROUTINE TEB_OPTIONS_INIT(YTEB_OPTIONS)
 TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: YTEB_OPTIONS
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
@@ -136,6 +162,9 @@ YTEB_OPTIONS%CROAD_DIR=' '
 YTEB_OPTIONS%CWALL_OPT=' '
 YTEB_OPTIONS%CBLD_ATYPE=' '
 YTEB_OPTIONS%CZ0H=' '
+YTEB_OPTIONS%CEXCH_ROAD=''
+YTEB_OPTIONS%CEXCH_ROOF=''
+YTEB_OPTIONS%CEXCH_CANYON=''
 YTEB_OPTIONS%CCH_BEM=' '
 YTEB_OPTIONS%CBEM=' '
 YTEB_OPTIONS%CTREE=' '

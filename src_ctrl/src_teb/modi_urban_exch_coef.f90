@@ -1,11 +1,17 @@
 !auto_modi:spll_urban_exch_coef.D
+!!    MODIFICATIONS
+!!    -------------
+!!      TEB-MSU development
+!!      11/2026 -- OpenAI Codex
+!!        Declare the optional exchange algorithm in the explicit interface.
 MODULE MODI_URBAN_EXCH_COEF
 INTERFACE
 SUBROUTINE URBAN_EXCH_COEF(HZ0H, PZ0_O_Z0H, PTG, PQS, PEXNS, PEXNA, PTA, PQA,   &
                            PZREF, PUREF, PVMOD, PZ0,                            &
-                           PRI, PCD, PCDN, PAC, PRA, PCH, ZZ0H, ilmo              )  
+                           PRI, PCD, PCDN, PAC, PRA, PCH, ZZ0H, ilmo, HEXCH)
 IMPLICIT NONE
-CHARACTER(LEN=6)                 :: HZ0H        ! TEB option for z0h roof & road
+CHARACTER(LEN=6),   INTENT(IN)    :: HZ0H        ! thermal roughness formulation
+CHARACTER(LEN=6),   INTENT(IN), OPTIONAL :: HEXCH ! exchange algorithm
 REAL,               INTENT(IN)    :: PZ0_O_Z0H  ! z0/z0h ratio used in Mascart (1995)
 REAL, DIMENSION(:), INTENT(IN)    :: PTG        ! surface temperature
 REAL, DIMENSION(:), INTENT(IN)    :: PQS        ! surface specific humidity

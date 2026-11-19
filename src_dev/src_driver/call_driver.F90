@@ -261,10 +261,8 @@ REAL, DIMENSION(1)  :: ZN_FLOOR  ! Number of floors
 !============================================================
 !============================================================
 !ZZ0         = TPARAMS%XBLD_HEIGHT(icell:icell) * 0.075   ! Roughness length (m)
-! z0 of the urban surface and the displacement height come from the namelist
-! entries urb_z0_town and urb_zd_town: a value in metres, a fraction of the
-! building height ('<value>H') or 'H/<n>'; a parameterization name is
-! accepted but not implemented yet
+! TEB_FILL_DERIVED resolves the town roughness and displacement height.
+! The offline namelist supplies teb_ctype_z0_town and urb_zd_town.
 
 !
 !============================================================

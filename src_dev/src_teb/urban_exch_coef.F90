@@ -5,7 +5,7 @@
 !     #########
 SUBROUTINE URBAN_EXCH_COEF(HZ0H, PZ0_O_Z0H, PTG, PQS, PEXNS, PEXNA, PTA, PQA,   &
                            PZREF, PUREF, PVMOD, PZ0,                            &
-                           PRI, PCD, PCDN, PAC, PRA, PCH, ZZ0H, ilmo            )  
+                           PRI, PCD, PCDN, PAC, PRA, PCH, ZZ0H, ilmo, HEXCH)
 !          #######################################################################
 !
 !!****  *URBAN_DRAG*  
@@ -46,6 +46,9 @@ SUBROUTINE URBAN_EXCH_COEF(HZ0H, PZ0_O_Z0H, PTG, PQS, PEXNS, PEXNA, PTA, PQA,   
 !         01/2009 (S. Leroyer) option (HZ0H) for z0h applied on roof, road and town
 !!      B. Decharme    06/2009 limitation of Ri
 !!      B. Decharme    09/2009 limitation of Ri in surface_ri.F90
+!!      TEB-MSU development
+!!      11/2026 -- OpenAI Codex
+!!        Select the exchange algorithm independently of thermal roughness.
 !
 !-------------------------------------------------------------------------------
 
@@ -64,7 +67,8 @@ USE MODI_FLXSURF3BX
 !
 IMPLICIT NONE
 !
-CHARACTER(LEN=6)                 :: HZ0H        ! TEB option for z0h roof & road
+CHARACTER(LEN=6),   INTENT(IN)    :: HZ0H        ! thermal roughness formulation
+CHARACTER(LEN=6),   INTENT(IN), OPTIONAL :: HEXCH ! exchange algorithm
 REAL,               INTENT(IN)    :: PZ0_O_Z0H  ! z0/z0h ratio used in Mascart (1995)
 REAL, DIMENSION(:), INTENT(IN)    :: PTG        ! surface temperature
 REAL, DIMENSION(:), INTENT(IN)    :: PQS        ! surface specific humidity
@@ -96,71 +100,69 @@ REAL, DIMENSION(:), INTENT(OUT)   :: ilmo  ! 1/length of Monin-Obukov
 !* local variables
 !
 !REAL, DIMENSION(SIZE(PZ0))         :: ZZ0H     ! roughness length for heat
-!* BRUT82 & KAND07 cases
-REAL,DIMENSION(SIZE(PTA)) :: cmu, ctu, rib,ftemp,fvap        !ilmo  ! temporary var for
-REAL,DIMENSION(SIZE(PTA)) :: ue,fcor, hBL,lzz0,lzz0t,fm, fh  ! flxsurf3
-REAL,DIMENSION(SIZE(PTA)) :: z0h_roof,z0h_town,z0h_road      ! local thermal roughness
-REAL,DIMENSION(SIZE(PTA)) :: zustar, zta, ztg
-REAL,DIMENSION(SIZE(PTA)) :: ZVMOD                           ! wind
-INTEGER N
-!
-!* MASC95 case
-REAL,DIMENSION(SIZE(PTA)) :: ZDIRCOSZW  ! orography slope cosine
+REAL,DIMENSION(SIZE(PTA)) :: CMU, CTU, FTEMP, FVAP
+REAL,DIMENSION(SIZE(PTA)) :: UE, FCOR, HBL, LZZ0, LZZ0T, FM, FH
+REAL,DIMENSION(SIZE(PTA)) :: ZUSTAR, ZTA, ZTG, ZVMOD, ZDIRCOSZW
+INTEGER :: N
+CHARACTER(LEN=6) :: CMETHOD
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !-------------------------------------------------------------------------------
 !
-!*      1.     Mascart 1995 exchange coefficients
-!              ----------------------------------
-!
 IF (LHOOK) CALL DR_HOOK('URBAN_EXCH_COEF',0,ZHOOK_HANDLE)
-IF (HZ0H=='MASC95') THEN
-  ZZ0H = PZ0 / PZ0_O_Z0H  ! fixed ratio for MASC95
-  ZDIRCOSZW=1.           ! no orography slope effect taken into account in TEB
 !
-  CALL SURFACE_RI(PTG, PQS, PEXNS, PEXNA, PTA, PQA,   &
-                  PZREF, PUREF, ZDIRCOSZW, PVMOD, PRI )  
+!*      1.     Thermal roughness
+!              -----------------
 !
-  CALL SURFACE_CD(PRI, PZREF, PUREF, PZ0, ZZ0H, PCD, PCDN)
-!
-  CALL SURFACE_AERO_COND(PRI, PZREF, PUREF, PVMOD, PZ0, ZZ0H, PAC, PRA, PCH)
-!
-!
-!*      2.     Brutsaert 1982  or Kanda 2007 exchange coefficients
-!              ---------------------------------------------------
-!
-ELSEIF(HZ0H=='BRUT82' .OR. HZ0H=='KAND07')THEN
-  ! initialisations
-  fcor(:)=1.0372462E-04
-!RJ: can be removed
-  N=SIZE(PTA)
-  !
-  ! Set a minimum threshold to the wind
+SELECT CASE (HZ0H)
+CASE ('MASC95')
+  ZZ0H = PZ0 / PZ0_O_Z0H
+  CMETHOD = 'MASC95'
+CASE ('BRUT82','KAND07')
+  CMETHOD = 'DELAGE'
   ZVMOD(:) = WIND_THRESHOLD(PVMOD(:),PUREF(:))
-  !
-  ! First guess of u*
+  ! Neutral first guess of u* for the roughness Reynolds number.
   ZUSTAR(:) = 0.4 * ZVMOD(:) / LOG( PUREF/PZ0(:) )
-  
-  IF (HZ0H=='KAND07') THEN  ! Kanda 2007
-    ZZ0H(:)= PZ0(:) * 7.4 * EXP( - 1.29 *( PZ0(:)*zustar(:)/1.461e-5)**0.25)
-  ELSEIF (HZ0H=='BRUT82') THEN  ! Brutsaert 1982
-    ZZ0H(:)= PZ0(:) * 7.4 * EXP( - 2.46 *( PZ0(:)*zustar(:)/1.461e-5)**0.25)
-  ENDIF
-
+  IF (HZ0H=='KAND07') THEN
+    ZZ0H(:)= PZ0(:) * 7.4 * EXP( - 1.29 *( PZ0(:)*ZUSTAR(:)/1.461e-5)**0.25)
+  ELSE
+    ZZ0H(:)= PZ0(:) * 7.4 * EXP( - 2.46 *( PZ0(:)*ZUSTAR(:)/1.461e-5)**0.25)
+  END IF
+CASE DEFAULT
+  ERROR STOP 'URBAN_EXCH_COEF: expected MASC95, BRUT82 or KAND07 for HZ0H'
+END SELECT
+!
+!*      2.     Exchange coefficients at the specified roughness
+!              ------------------------------------------------
+!
+IF (PRESENT(HEXCH)) THEN
+  IF (HEXCH /= '') CMETHOD = HEXCH
+END IF
+SELECT CASE (CMETHOD)
+CASE ('MASC95')
+  ZDIRCOSZW=1.           ! no orography slope effect taken into account in TEB
+  CALL SURFACE_RI(PTG, PQS, PEXNS, PEXNA, PTA, PQA,   &
+                  PZREF, PUREF, ZDIRCOSZW, PVMOD, PRI )
+  CALL SURFACE_CD(PRI, PZREF, PUREF, PZ0, ZZ0H, PCD, PCDN)
+  CALL SURFACE_AERO_COND(PRI, PZREF, PUREF, PVMOD, PZ0, ZZ0H, PAC, PRA, PCH)
+CASE ('DELAGE')
+  FCOR(:)=1.0372462E-04
+  N=SIZE(PTA)
+  IF (HZ0H=='MASC95') ZVMOD(:) = WIND_THRESHOLD(PVMOD(:),PUREF(:))
   ZTA = PTA/PEXNA
   ZTG = PTG/PEXNS
-  CALL FLXSURF3BX( cmu, ctu, PRI,ftemp,fvap,ilmo,    &
-                   ue, fcor, ZTA, PQA,           &
-                   PUREF, PZREF, ZVMOD, ZTG, PQS,&
-                   hBL, PZ0,ZZ0H,                      &
-                   lzz0, lzz0t, fm, fh,N               )  
-!
-  PCD(:) = (cmu(:)/ue(:))**2  
+  CALL FLXSURF3BX( CMU, CTU, PRI, FTEMP, FVAP, ILMO,  &
+                    UE, FCOR, ZTA, PQA,                &
+                    PUREF, PZREF, ZVMOD, ZTG, PQS,      &
+                    HBL, PZ0, ZZ0H,                   &
+                    LZZ0, LZZ0T, FM, FH, N             )
+  PCD(:) = (CMU(:)/UE(:))**2
   PCDN(:) = (XKARMAN/LOG(PUREF(:)/PZ0(:)))**2
-  PAC(:) = (cmu(:)*ctu(:)/ue(:)**2) * ZVMOD(:)
+  PAC(:) = (CMU(:)*CTU(:)/UE(:)**2) * ZVMOD(:)
   PRA(:) = 1. / PAC(:)
   PCH(:) = 1. / (PRA(:) * ZVMOD(:))
-!
-END IF
+CASE DEFAULT
+  ERROR STOP 'URBAN_EXCH_COEF: expected MASC95 or DELAGE for HEXCH'
+END SELECT
 IF (LHOOK) CALL DR_HOOK('URBAN_EXCH_COEF',1,ZHOOK_HANDLE)
 
 

@@ -67,6 +67,10 @@ eight directional values shared by every cell.
 | `teb_ctype_natvent` | Character | `'NONE'` / `'MANU'` / `'AUTO'` / `'MECH'` | `'NONE'` | — | Natural ventilation mode. |
 | `teb_ctype_bem_cool` | Character | `'IDEAL'` / `'DXCOIL'` | `'IDEAL'` | — | Cooling system type. |
 | `teb_ctype_bem_heat` | Character | `'IDEAL'` / `'FINCAP'` | `'IDEAL'` | — | Heating system type. |
+| `teb_ctype_exch_road` | Character | `'MASC95'` / `'DELAGE'` | `'MASC95'` | — | Road/canyon and, in `src_dev`, direct road/atmosphere exchange. |
+| `teb_ctype_exch_roof` | Character | `'MASC95'` / `'DELAGE'` | `'MASC95'` | — | Conventional roof/atmosphere exchange through `URBAN_EXCH_COEF`. |
+| `teb_ctype_exch_canyon` | Character | `'MASC95'` / `'DELAGE'` | `'MASC95'` | — | Canyon/atmosphere exchange (`PAC_TOP`, `PCH_TOP`). |
+| `teb_ctype_z0_town` | Character | Metres, height expression or scheme name | `'0.1H'` | — | Town momentum roughness rule for the block in both trees. See [accepted forms](#23-urban-aerodynamics). |
 | `teb_ctype_wind` | Character | `'DEF'` / `'WANG'` | `'DEF'` | — | Canopy wind scheme; [wind notes](#24-cbs-and-canopy-wind). |
 | `teb_ctype_garden` | Character | `'PROXY_NEW'` / `'PROXY_OLD'` / `'EXT'` / `'EXT_NEU'` | `'PROXY_NEW'` | — | [Garden scheme](#25-garden-and-greenroof-schemes). |
 | `teb_ctype_greenroof` | Character | `'PROXY_NEW'` / `'PROXY_OLD'` / `'EXT'` / `'EXT_NEU'` | `'PROXY_NEW'` | — | [Greenroof scheme](#25-garden-and-greenroof-schemes). |
@@ -76,6 +80,12 @@ eight directional values shared by every cell.
 | `teb_lwrite_emu` | Logical | True / False | `.TRUE.` | — | Write external-surface emulator CSV. |
 | `teb_lwrite_runoff` | Logical | True / False | `.TRUE.` | — | Write interval-mean road and roof runoff. |
 | `teb_lwrite_test_dump` | Logical | True / False | `.FALSE.` | — | Write full API input/output dumps and their schema. |
+
+The three `teb_ctype_exch_*` keys are also available in `src_ctrl`. Each key
+selects the existing `SURFACE_*` routines (`'MASC95'`) or `FLXSURF3BX`
+(`'DELAGE'`) for its exchange path. Both algorithms receive `z0h=z0/200` for
+road and roof and `z0h=z0` for canyon/atmosphere. The legacy `&tebparam` format
+uses `'MASC95'` for all three paths.
 
 ### 1.2 tebparams
 
@@ -94,8 +104,14 @@ eight directional values shared by every cell.
 
 | Variable | Type | Units / values | Default | List | Description |
 | --- | --- | --- | --- | --- | --- |
-| `urb_z0_town` | Character | m, height expression or scheme name | `'0.1H'` | — | Town momentum roughness; [accepted forms](#23-urban-aerodynamics). |
 | `urb_zd_town` | Character | m, height expression or scheme name | `'H/3'` | — | Town displacement height; [accepted forms](#23-urban-aerodynamics). |
+| `urb_z0_rd` | Real | m, positive | `0.05` | — | Nominal momentum roughness of the snow-free road. The effective length is capped at `0.1 * PZ_LOWCAN` in both road exchange paths. |
+| `urb_z0_rf` | Real | m, positive | `0.15` | — | Momentum roughness of the snow-free conventional roof. |
+| `urb_z0_snow` | Real | m, positive | `0.001` | — | Momentum roughness shared by snow on the road and roof. |
+
+Both trees accept these three inputs in `&tebparams`. The legacy `&tebparam`
+group uses their defaults. Canyon-to-atmosphere exchange uses the resolved
+town momentum roughness.
 
 #### 1.2.3 Surface Properties
 
@@ -208,7 +224,7 @@ eight directional values shared by every cell.
 
 ### 2.1 Input rules
 
-The model namelist must contain `&tebparams`. Omitted `&tebopts` entries use
+The split model namelist must contain `&tebparams`. Omitted `&tebopts` entries use
 their defaults. Scheme selectors are common to the block and use the uppercase
 names shown in the tables.
 
@@ -241,16 +257,30 @@ update these state variables.
 
 ### 2.3 Urban Aerodynamics
 
-`urb_z0_town` and `urb_zd_town` accept the following case-insensitive forms,
-with `H=urb_h_bld`. Each entry is resolved independently.
+`teb_ctype_z0_town` in `&tebopts` sets the town momentum roughness rule.
+`urb_zd_town` in `&tebparams` sets the displacement height independently.
+Both accept the case-insensitive forms below, using `H=urb_h_bld` of each cell.
+
+```fortran
+&tebopts
+  teb_ctype_z0_town = '0.1H',
+/
+&tebparams
+  urb_zd_town = 'H/3',
+/
+```
+
+The old namelist key `urb_z0_town` is deprecated and causes an input error.
+Move its value to `teb_ctype_z0_town` in `&tebopts`. Legacy `&tebparam` files
+use the default `'0.1H'` for town roughness.
 
 | Form | Example | Meaning |
 | --- | --- | --- |
 | Metres | `'0.5'` or `'0.5m'` | A fixed length in metres. |
 | Fraction of height | `'0.1H'` | 0.1 times the building height. |
 | Height divided by a number | `'H/3'` | One third of the building height. |
-| Staggered-array scheme | `'MACDONALD1998'` | Macdonald et al. roughness/displacement parameterization. |
-| Square-array scheme | `'MACDONALD1998SQ'` | Square-array coefficients of the same parameterization. |
+| Staggered-array scheme | `'MACDONALD1998'` | Macdonald et al. roughness/displacement parameterization in `src_dev`. |
+| Square-array scheme | `'MACDONALD1998SQ'` | Square-array coefficients of the same parameterization in `src_dev`. |
 
 A fixed value can be combined with a scheme name in the other entry.
 Displacement height is measured from road level. The town drag coefficient
@@ -290,6 +320,11 @@ and, with CBS, with the atmosphere; the greenroof exchanges at roof level.
 Surface albedo, emissivity and momentum roughness apply to the selected
 surface model. Thermal roughness is `z0h=z0/(z0/z0h)`. Roughness must be
 positive, albedo must be in `[0,1)`, emissivity in `(0,1]` and `z0/z0h>=1`.
+In `src_ctrl`, omitting `urb_z0_gdn` uses `0.80` m for external-garden exchange
+and `0.10` m for garden friction. An explicit `urb_z0_gdn` in `&tebparams`
+supplies both lengths. In the legacy `&tebparam` group, the key supplies
+external-garden exchange, with friction using the historical `0.10` m.
+
 The `proxy_phu_*` inputs prescribe surface humidity for the internal proxies
 and their offline external-surface emulators.
 

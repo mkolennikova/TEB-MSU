@@ -37,12 +37,20 @@
 !!      10/2026 -- Mikhail Varentsov (MV)
 !!        Create the static TEB parameter container and its allocation/lifecycle
 !!        routines, separate from prognostic state.
+!!      11/2026 -- OpenAI Codex
+!!        Carry the road, roof and snow momentum roughness with the parameters.
 !!------------------------------------------------------------------------------
 USE YOMHOOK   ,ONLY : LHOOK,   DR_HOOK
 USE PARKIND1  ,ONLY : JPRB
 !
 IMPLICIT NONE
 !--------------------------------------------------------------------------
+
+TYPE TEB_Z0_t
+  REAL :: XROAD = 0.05     ! Nominal snow-free road roughness (m).
+  REAL :: XROOF = 0.15     ! Snow-free roof roughness (m).
+  REAL :: XSNOW = 0.       ! Zero uses the roughness in MODD_SNOW_PAR.
+END TYPE TEB_Z0_t
 
 TYPE TEB_PARAMS_t
 !* CONTRACT (checked by python_tests/container_fields_inventory.py):
@@ -64,6 +72,7 @@ TYPE TEB_PARAMS_t
   REAL, POINTER, DIMENSION(:)   :: XWALL_O_GRND    ! wall surf. / (road + garden surf.) (-)
   REAL, POINTER, DIMENSION(:)   :: XWALL_O_BLD     ! wall surf. / bld surf. (-)
   REAL, POINTER, DIMENSION(:)   :: XZ0_TOWN        ! roughness length for momentum    (m)
+  TYPE(TEB_Z0_t)                :: TZ0             ! road, roof and snow roughness
   REAL, POINTER, DIMENSION(:)   :: XZD_TOWN     ! displacement height of the town  (m)
   REAL, POINTER, DIMENSION(:)   :: XSVF_ROAD    ! road sky view factor             (-)
   REAL, POINTER, DIMENSION(:)   :: XSVF_GARDEN  ! green area sky view factor       (-)
@@ -169,6 +178,7 @@ END SUBROUTINE TEB_PARAMS_INIT
 SUBROUTINE ALLOC_TEB_PARAMS(YTEB_PARAMS, KROOF_LAYER, KROAD_LAYER, KWALL_LAYER)
 TYPE(TEB_PARAMS_t), INTENT(INOUT) :: YTEB_PARAMS
 INTEGER, INTENT(IN) :: KROOF_LAYER, KROAD_LAYER, KWALL_LAYER
+! The host can bind TZ0 before the workspace is first allocated.
 CALL TEB_PARAMS_INIT(YTEB_PARAMS)
 ALLOCATE(YTEB_PARAMS%XROAD_DIR(1))     ! Road direction (deg from North, clockwise)
 ALLOCATE(YTEB_PARAMS%XGARDEN(1))       ! fraction of veg in the streets   (-)

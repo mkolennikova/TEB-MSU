@@ -77,7 +77,7 @@ USE MODD_CSTS, ONLY : XLVTT , &   ! Latent heat constant for evaporation
                       XKARMAN     ! Von Karman constant
 USE MODE_THERMOS                  ! Function to compute humidity at saturation
 USE MODD_TYPE_DATE_SURF,    ONLY: DATE_TIME
-USE MODD_PROXI_SVAT_PAR, ONLY : XPHU_GD
+USE MODD_PROXI_SVAT_PAR, ONLY : XPHU_GD, XZ0_GD_FRICTION
 !
 IMPLICIT NONE
 !
@@ -153,8 +153,8 @@ PSFCO2(:) = 0.
 !* evaporation
 PEVAP_GARDEN(:) = PLE_GARDEN(:) / XLVTT
 !
-!* Friction flux: assumes neutral formulation with roughness length of 0.1m
-PUW_GARDEN(:) = - (XKARMAN/LOG(PZ_LOWCAN(:)/0.1))**2 * PU_LOWCAN(:)**2
+!* Friction flux from the neutral profile, using the resolved garden length.
+PUW_GARDEN(:) = - (XKARMAN/LOG(PZ_LOWCAN(:)/XZ0_GD_FRICTION))**2 * PU_LOWCAN(:)**2
 !
 !* Aerodynamical conductance: neglected because used further only for
 !  implicitation of canyon air temperature when the heat flux depends on the

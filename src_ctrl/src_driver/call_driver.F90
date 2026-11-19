@@ -30,7 +30,8 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
                         ZUSTAR_TOWN, ZCD_TERRA, ZCH_TERRA, ZH_TRAFFIC_NOW, ZRN_TOWN, ZU_CANYON, ZU_CAN_PED, ZU_CAN_10M, ZTS_ROAD, LGARDEN_EXT, &
                         LGREENROOF_EXT, HROAD_DIR, HWALL_OPT, ZROAD_DIR, ZRESIDENTIAL, ZDT_RES, ZDT_OFF, ZCAP_SYS_HEAT, &
                         LSOLAR_PANEL, ZFRAC_PANEL, LPAR_RD_IRRIG, ZRD_START_MONTH, ZRD_END_MONTH, ZRD_START_HOUR,        &
-                        ZRD_END_HOUR, ZRD_24H_IRRIG, ZPROD_BLD, ZUTC_HOUR, LSHADE)
+                        ZRD_END_HOUR, ZRD_24H_IRRIG, ZPROD_BLD, ZUTC_HOUR, LSHADE, &
+                        HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON)
 							
 ! ======================================================================
 ! 
@@ -74,6 +75,8 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 !        the accepted common corrections.
 !        Add opt-in upstream-consistency comparison paths for validation of
 !        inherited formulas.
+!      11/2026 -- OpenAI Codex
+!        Pass explicit exchange selections into the reference TEB options.
 ! ---------------------------------------------------------------
 ! Modules
 ! ---------------------------------------------------------------
@@ -384,6 +387,7 @@ REAL,DIMENSION(1)  :: ZGARDEN_O_GRND  ! Garden to ground surface ratio
 
 ! Urban options                                                                                                                   
 CHARACTER(LEN=6)   :: HZ0H                  ! TEB option for z0h roof & road                  
+CHARACTER(LEN=6), INTENT(IN) :: HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON
 CHARACTER(LEN=3)   :: HIMPLICIT_WIND='NEW'  ! Implicitation option for wind fluxes
 CHARACTER(LEN=3)   :: HSNOW_ROOF = "1-L"    ! Option for roof snow                        
 CHARACTER(LEN=3)   :: HSNOW_ROAD = "1-L"    ! Option for road snow 
@@ -679,7 +683,7 @@ HZ0H = 'MASC95'
 !============================================================
 !ZZ0         = ZBLD_HEIGHT * 0.075   ! Roughness length (m)
 !* z0 of the urban surface and the displacement height are resolved from the
-!* namelist entries urb_z0_town / urb_zd_town (/tebparam/, shared with src_dev).
+!* settings teb_ctype_z0_town and urb_zd_town in the offline namelist.
 !* The base-model formulas of the first commit are kept: z0 = 0.1*urb_h_bld and
 !* zd = urb_h_bld/3 - which are exactly the values of the default entries
 !* ('0.1H' and 'H/3' of the shared namelist file), so the default run of the
@@ -1413,7 +1417,8 @@ CALL TEB_GARDEN_STRUCT (icell, iblock, LGARDEN, LGARDEN_EXT, LGREENROOF, LGREENR
                         ZRUNOFF_GR_EXT, ZALB_GD_EXT, ZEMIS_GD_EXT, ZTSRAD_GD_EXT, ZQV_GD_EXT, ZH_GD_EXT, &
                         ZLE_GD_EXT, ZEVAP_GD_EXT, ZCH_GD, ZCD_GD, ZRUNOFF_GD_EXT, ZCH_RD,    &
                         ZCH_RF, ZCH_WL, ZCH_TOP, ZAC_TOP, ZILMO_ROAD, ZILMO_ROOF,&
-                        ZILMO_TOP, ZCD_TERRA, ZCH_TERRA )
+                        ZILMO_TOP, ZCD_TERRA, ZCH_TERRA, &
+                        HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON)
 !*****************************************************************************
 !*****************************************************************************
 !*****************************************************************************
@@ -1526,8 +1531,8 @@ CONTAINS
 
 SUBROUTINE URB_AERO_PARAMS(CZ0, CZD, PBLD_HEIGHT, PZ0, PZD)
 ! Aerodynamic parameters of the urban surface: z0 of the town and the
-! displacement height zd, both given by the namelist entries urb_z0_town and
-! urb_zd_town (/tebparam/, carried by MODD_PROXI_SVAT_PAR). The two entries are
+! displacement height zd. The offline namelist supplies teb_ctype_z0_town
+! and urb_zd_town via MODD_PROXI_SVAT_PAR. The two settings are
 ! resolved independently and accept (case insensitive):
 !   <value>    - value in metres        ('0.5')
 !   <value>m   - value in metres        ('0.5m')
@@ -1550,7 +1555,7 @@ CHARACTER(LEN=16) :: CSCHEME
 
 ! z0 of the town: explicit value or (unsupported) scheme name
 CALL URB_AERO_ONE(CZ0, PBLD_HEIGHT, PZ0, LSCHEME, CSCHEME)
-IF (LSCHEME) CALL URB_AERO_STOP('urb_z0_town', CZ0, CZD)
+IF (LSCHEME) CALL URB_AERO_STOP('teb_ctype_z0_town', CZ0, CZD)
 
 ! displacement height: explicit value or (unsupported) scheme name
 CALL URB_AERO_ONE(CZD, PBLD_HEIGHT, PZD, LSCHEME, CSCHEME)
@@ -1563,7 +1568,7 @@ CHARACTER(LEN=*), INTENT(IN) :: CNAME     ! offending namelist entry
 CHARACTER(LEN=*), INTENT(IN) :: CZ0, CZD  ! both namelist entries
 
 WRITE(*,*) 'ERROR in CALL_DRIVER: cannot interpret the namelist entry '//TRIM(CNAME)
-WRITE(*,*) '   urb_z0_town = ', TRIM(CZ0)
+WRITE(*,*) '   teb_ctype_z0_town = ', TRIM(CZ0)
 WRITE(*,*) '   urb_zd_town = ', TRIM(CZD)
 WRITE(*,*) '   accepted forms: <value> (m), <value>m, <value>H, H/<n>'
 WRITE(*,*) '   note: the named parameterizations of src_dev (MACDONALD1998,'

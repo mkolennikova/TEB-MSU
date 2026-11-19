@@ -1029,7 +1029,9 @@ OFFLINE_MODULES := \
 
 # Shared offline modules are consumers of the archive, never archive members.
 $(OFFLINE_OBJDIR)/teb_offline_host.o: src_offline/teb_offline_host.F90 \
+    $(OBJDIR)/modd_teb_paramsn.o \
     $(OBJDIR)/sfc_teb.o $(OBJDIR)/teb_host.o $(OBJDIR)/teb_log.o \
+    $(OBJDIR)/modd_teb_optionn.o \
     $(OBJDIR)/modd_surf_par.o $(OBJDIR)/modd_csts.o $(OBJDIR)/modi_ini_csts.o \
     $(OBJDIR)/mode_thermos.o $(OBJDIR)/modi_garden.o \
     $(OBJDIR)/garden.o $(OBJDIR)/modd_proxi_svat_par.o \
@@ -1037,6 +1039,8 @@ $(OFFLINE_OBJDIR)/teb_offline_host.o: src_offline/teb_offline_host.F90 \
     $(OFFLINE_OBJDIR)/ol_read_atm.o $(OFFLINE_OBJDIR)/ol_time_interp_atm.o \
     $(OFFLINE_OBJDIR)/add_forecast_to_date_surf.o
 $(OFFLINE_OBJDIR)/teb_offline_namelists.o: src_offline/teb_offline_namelists.F90 \
+    $(OBJDIR)/modd_snow_par.o \
+    $(OBJDIR)/modd_teb_optionn.o \
     $(OFFLINE_OBJDIR)/teb_offline_host.o
 $(OFFLINE_OBJDIR)/teb_offline_surfaces.o: src_offline/teb_offline_surfaces.F90 \
     $(OFFLINE_OBJDIR)/teb_offline_host.o

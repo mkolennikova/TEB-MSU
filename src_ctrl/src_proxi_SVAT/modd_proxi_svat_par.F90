@@ -53,6 +53,8 @@
 !!      10/2026 -- Mikhail Varentsov (MV)
 !!        Centralize reference garden/greenroof proxy parameters and shared
 !!        namelist properties while retaining the reference formulations.
+!!      11/2026 -- OpenAI Codex
+!!        Define configurable road and roof lengths and resolve garden drag.
 !-------------------------------------------------------------------------------
 !
 !*       0.   DECLARATIONS
@@ -127,6 +129,7 @@ CHARACTER(LEN=16), PARAMETER :: XURB_ZD_TOWN_DEF = 'H/3'
 !
 !* Garden surface parameters: z0 (m), albedo (-), emissivity (-).
 REAL :: urb_z0_gdn   = XZ0_GD
+REAL :: XZ0_GD_FRICTION = 0.10  ! historical garden friction length (m)
 REAL :: urb_alb_gdn  = XALB_GD
 REAL :: urb_emis_gdn = XEMIS_GD
 !* Greenroof surface parameters: z0 (m), albedo (-), emissivity (-).
@@ -139,6 +142,9 @@ REAL :: urb_emis_grf = XEMIS_GR
 !* (MACDONALD1998...) are NOT implemented in the control tree and stop the run.
 CHARACTER(LEN=16) :: urb_z0_town = XURB_Z0_TOWN_DEF
 CHARACTER(LEN=16) :: urb_zd_town = XURB_ZD_TOWN_DEF
+! Snow-free surfaces (m). The nominal road length is capped in URBAN_DRAG.
+REAL :: urb_z0_rd = 0.05
+REAL :: urb_z0_rf = 0.15
 !* Garden and greenroof model types. The control tree has a single internal
 !* (proxy) parameterization for each of them, so only the proxy names of the
 !* dev tree are accepted; 'EXT'/'EXT_NEU' (external emulators) are a src_dev

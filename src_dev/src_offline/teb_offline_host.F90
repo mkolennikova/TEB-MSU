@@ -9,12 +9,18 @@
 !!        columns, masks, permutations, restart and external-surface emulation.
 !!        Share the complete packet with the ordinary offline driver and retain
 !!        per-cell diagnostic/interval state in checkpoints.
+!!      11/2026 -- OpenAI Codex
+!!        Pass run-level exchange configuration through block and serial steps.
+!!      11/2026 -- OpenAI Codex
+!!        Bind offline road, roof and snow lengths for block and serial calls.
 !!------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_HOST
 USE sfc_teb, ONLY: teb_interface, teb_real_kind
-USE TEB_HOST, ONLY: TEB_HOST_FINAL
+USE TEB_HOST, ONLY: TEB_HOST_FINAL, TEB_BIND_Z0
+USE MODD_TEB_PARAMS_n, ONLY: TEB_Z0_t
 USE TEB_LOG, ONLY: TEB_LOG_INIT, TEB_LOG_FINAL
 USE MODD_SURF_PAR, ONLY: XUNDEF
+USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT
 USE MODD_CSTS, ONLY: XRD,XRV,XG,XSTEFAN
 USE MODI_INI_CSTS, ONLY: INI_CSTS
 USE MODE_THERMOS, ONLY: QSAT
@@ -199,6 +205,10 @@ TYPE TEB_BLOCK
   REAL(teb_real_kind) ,ALLOCATABLE, DIMENSION(:) :: teb_tcm_gd
   REAL(teb_real_kind) ,ALLOCATABLE, DIMENSION(:) :: teb_runoff_gd
   INTEGER :: teb_itype_wind
+  ! Run options are reread from the parameter namelist on restart.
+  CHARACTER(LEN=6) :: teb_ctype_exch_road=CTEB_EXCH_DEFAULT
+  CHARACTER(LEN=6) :: teb_ctype_exch_roof=CTEB_EXCH_DEFAULT
+  CHARACTER(LEN=6) :: teb_ctype_exch_canyon=CTEB_EXCH_DEFAULT
   REAL(teb_real_kind) ,ALLOCATABLE, DIMENSION(:,:) :: teb_fai
   CHARACTER(LEN=9) :: teb_type_garden
   CHARACTER(LEN=9) :: teb_type_greenroof
@@ -222,6 +232,7 @@ TYPE TEB_BLOCK
   LOGICAL :: teb_lshade
   CHARACTER(LEN=16) :: urb_z0_town
   CHARACTER(LEN=16) :: urb_zd_town
+  TYPE(TEB_Z0_t) :: tz0   ! Restored from the parameter file on restart.
   REAL(teb_real_kind) :: urb_z0_o_z0h_gdn
   REAL(teb_real_kind) :: urb_z0_o_z0h_grf
   LOGICAL :: teb_lcbs_scheme
@@ -1100,6 +1111,9 @@ d%teb_tch_gd(k:k)=s%teb_tch_gd(j:j)
 d%teb_tcm_gd(k:k)=s%teb_tcm_gd(j:j)
 d%teb_runoff_gd(k:k)=s%teb_runoff_gd(j:j)
 d%teb_itype_wind=s%teb_itype_wind
+d%teb_ctype_exch_road=s%teb_ctype_exch_road
+d%teb_ctype_exch_roof=s%teb_ctype_exch_roof
+d%teb_ctype_exch_canyon=s%teb_ctype_exch_canyon
 d%teb_fai(k:k,:)=s%teb_fai(j:j,:)
 d%teb_type_garden=s%teb_type_garden
 d%teb_type_greenroof=s%teb_type_greenroof
@@ -1123,6 +1137,7 @@ d%teb_utc_hour=s%teb_utc_hour
 d%teb_lshade=s%teb_lshade
 d%urb_z0_town=s%urb_z0_town
 d%urb_zd_town=s%urb_zd_town
+d%tz0=s%tz0
 d%urb_z0_o_z0h_gdn=s%urb_z0_o_z0h_gdn
 d%urb_z0_o_z0h_grf=s%urb_z0_o_z0h_grf
 d%teb_lcbs_scheme=s%teb_lcbs_scheme
@@ -1331,6 +1346,8 @@ d%ahf_traffic_now(k:k)=s%ahf_traffic_now(j:j)
 END SUBROUTINE
 SUBROUTINE api_step(c)
 TYPE(TEB_BLOCK),INTENT(INOUT)::c
+TYPE(TEB_Z0_t)::previous_z0
+CALL TEB_BIND_Z0(c%tz0,previous_z0)
 CALL teb_interface(ntstep=c%ntstep, nvec=c%nvec, iblock=c%iblock, dt=c%dt, teb_year=c%teb_year, &
                    teb_month=c%teb_month, teb_day=c%teb_day, teb_hour=c%teb_hour, teb_min=c%teb_min, &
                    teb_sec=c%teb_sec, &
@@ -1425,7 +1442,10 @@ CALL teb_interface(ntstep=c%ntstep, nvec=c%nvec, iblock=c%iblock, dt=c%dt, teb_y
                    teb_tch_wl=c%teb_tch_wl, &
                    teb_tch_top=c%teb_tch_top, teb_wind_top=c%teb_wind_top, &
                    teb_cd_garden_atm=c%teb_cd_garden_atm, &
-                   teb_ch_garden_atm=c%teb_ch_garden_atm, ahf_traffic_now=c%ahf_traffic_now)
+                   teb_ch_garden_atm=c%teb_ch_garden_atm, ahf_traffic_now=c%ahf_traffic_now, &
+                   teb_ctype_exch_road=c%teb_ctype_exch_road, teb_ctype_exch_roof=c%teb_ctype_exch_roof, &
+                   teb_ctype_exch_canyon=c%teb_ctype_exch_canyon)
+CALL TEB_BIND_Z0(previous_z0)
 END SUBROUTINE
 SUBROUTINE pack(c,j,values)
 TYPE(TEB_BLOCK),INTENT(IN)::c

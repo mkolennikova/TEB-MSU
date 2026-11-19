@@ -30,13 +30,15 @@
 !!      11/2026 -- Mikhail Varentsov (MV)
 !!        Make cold-start and per-column state transfers explicit and keep
 !!        offline forcing outside the common physics workspace.
+!!      11/2026 -- OpenAI Codex
+!!        Bind the resolved exchange algorithms with the column options.
 !!------------------------------------------------------------------------------
 !*       0.   DECLARATIONS
 !             ------------
 !
 !
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
-USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t, ALLOC_TEB_PARAMS, DEALLOC_TEB_PARAMS
+USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t, TEB_Z0_t, ALLOC_TEB_PARAMS, DEALLOC_TEB_PARAMS
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t, ALLOC_BEM_PARAMS, DEALLOC_BEM_PARAMS
 USE MODD_TEB_n,           ONLY : TEB_t
@@ -100,7 +102,7 @@ SUBROUTINE TEB_FILL_PARAMS (KSTART, KEND, &
                             teb_lgreenroof_ext, teb_lbem_ac, &
                             teb_fr_panel, teb_lroad_irrig, teb_rd_irrig_start_m, &
                             teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
-                            teb_rd_irrig_sum)
+                            teb_rd_irrig_sum, HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON)
 !
 !*       0.1  containers
 !             ----------
@@ -111,6 +113,7 @@ INTEGER, INTENT(IN) :: KSTART, KEND
 CHARACTER(LEN=*), INTENT(IN) :: teb_itype_bem_cool, teb_itype_bem_heat, teb_itype_natvent
 CHARACTER(LEN=*), INTENT(IN) :: teb_itype_bem, teb_hroad_dir, teb_wall_opt
 CHARACTER(LEN=*), INTENT(IN) :: teb_type_garden, teb_type_greenroof
+CHARACTER(LEN=6), INTENT(IN) :: HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON
 LOGICAL, INTENT(IN) :: teb_lgarden, teb_lgreenroof, teb_lsolar_panel, teb_lcbs_scheme
 INTEGER, INTENT(IN) :: teb_itype_wind, teb_utc_hour
 LOGICAL, INTENT(IN) :: teb_lgreenroof_ext, teb_lbem_ac, teb_lroad_irrig
@@ -150,6 +153,9 @@ DO K = KSTART, KEND
   TOPTS%LGARDEN         = teb_lgarden
   TOPTS%CROAD_DIR       = teb_hroad_dir
   TOPTS%CWALL_OPT       = teb_wall_opt
+  TOPTS%CEXCH_ROAD     = HEXCH_ROAD
+  TOPTS%CEXCH_ROOF     = HEXCH_ROOF
+  TOPTS%CEXCH_CANYON   = HEXCH_CANYON
   TOPTS%CBEM            = teb_itype_bem
   TOPTS%LGREENROOF      = teb_lgreenroof
   TOPTS%CTYPE_GARDEN    = teb_type_garden
@@ -600,6 +606,15 @@ IF (LTEB_HOST_ALLOC) THEN
 END IF
 !
 END SUBROUTINE TEB_HOST_FINAL
+
+! Bind the offline roughness for a single call in this thread's workspace.
+SUBROUTINE TEB_BIND_Z0(YZ0, YPREVIOUS_Z0)
+TYPE(TEB_Z0_t), INTENT(IN) :: YZ0
+TYPE(TEB_Z0_t), OPTIONAL, INTENT(OUT) :: YPREVIOUS_Z0
+
+IF (PRESENT(YPREVIOUS_Z0)) YPREVIOUS_Z0 = TPARAMS%TZ0
+TPARAMS%TZ0 = YZ0
+END SUBROUTINE TEB_BIND_Z0
 !
 SUBROUTINE TEB_BIND_STATE (KSTART, KEND, teb_ti_bld, teb_twin2, teb_qi_bld, teb_cap_sys_rat, teb_m_sys_rat, teb_twin1, teb_lshade, teb_shad_day, teb_natvent_night, teb_ws_roof, teb_troof, teb_troad, teb_twalla, teb_twallb, teb_wsnow_roof, teb_tsnow_roof, teb_rsnow_roof, teb_asnow_roof, teb_esnow_roof, teb_tssnow_roof, teb_wsnow_road, teb_tsnow_road, teb_rsnow_road, teb_asnow_road, teb_esnow_road, teb_tssnow_road, teb_tcanyon, teb_qcanyon, teb_ws_road, teb_tfloor, teb_tmass)
 !

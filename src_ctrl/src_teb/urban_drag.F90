@@ -76,6 +76,9 @@
 !!      11/2026 -- Mikhail Varentsov (MV)
 !!        Add opt-in upstream-consistency comparison paths for validation of
 !!        inherited formulas.
+!!      11/2026 -- OpenAI Codex
+!!        Route independent road, roof and canyon exchange algorithms.
+!!        Apply configured road and roof lengths with the road height cap.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -95,7 +98,7 @@ USE MODE_THERMOS
 USE MODI_URBAN_EXCH_COEF
 !* CALL_DRIVER resolves XZD_TOWN from urb_zd_town in /tebparam/.
 !* The reference displacement-height default is urb_h_bld/3.
-USE MODD_PROXI_SVAT_PAR, ONLY : XZD_TOWN
+USE MODD_PROXI_SVAT_PAR, ONLY : XZD_TOWN, urb_z0_rd, urb_z0_rf
 
 USE MODE_CONV_DOE
 !
@@ -294,8 +297,8 @@ REAL(KIND=JPRB) :: ZHOOK_HANDLE
 !
 IF (LHOOK) CALL DR_HOOK('URBAN_DRAG',0,ZHOOK_HANDLE)
 !
-ZZ0_ROOF(:) = 0.15                         ! z0 for roofs
-ZZ0_ROAD(:) = MIN(0.05,0.1*PZ_LOWCAN(:))     ! z0 for roads
+ZZ0_ROOF(:) = urb_z0_rf
+ZZ0_ROAD(:) = MIN(urb_z0_rd,0.1*PZ_LOWCAN(:))
 !ZZ0_GARDEN(:)  = 0.1   
 ZPZ0_GARDEN(:)  = 1.                       ! z0 for gardens
 !
@@ -425,7 +428,8 @@ ELSE
    
   CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROOF, ZQ_ROOF, PEXNS, PEXNA, PTA, PQA, &
                        PZREF, PUREF, PVMOD, ZZ0_ROOF, ZRI, ZCD, ZCDN, PAC_ROOF,        &
-                       ZRA_ROOF, PCH_ROOF, ZZ0H_ROOF, ILMO_ROOF               )
+                       ZRA_ROOF, PCH_ROOF, ZZ0H_ROOF, ILMO_ROOF, &
+                       HEXCH=TOP%CEXCH_ROOF)
 
 
 ENDIF
@@ -461,7 +465,8 @@ IF (.NOT. TOP%LCANOPY) THEN
 
   CALL URBAN_EXCH_COEF('MASC95', 1., PT_CANYON, PQ_CANYON, PEXNS, PEXNA, PTA, PQA,    &
                        PZREF+T%XBLD_HEIGHT-PZ_LOWCAN, PUREF+T%XBLD_HEIGHT-PZ_LOWCAN, &
-                       PVMOD, ZZ0_TOP,  ZRI, ZCD, ZCDN, PAC_TOP, ZRA_TOP, PCH_TOP, ZZ0H_TOP, ILMO_TOP  )
+                       PVMOD, ZZ0_TOP,  ZRI, ZCD, ZCDN, PAC_TOP, ZRA_TOP, PCH_TOP, ZZ0H_TOP, ILMO_TOP, &
+                       HEXCH=TOP%CEXCH_CANYON)
 
 !  CALL URBAN_EXCH_COEF(TOP%CZ0H, 1., PT_CANYON, PQ_CANYON, PEXNS, PEXNA, PTA, PQA,    &
 !                        PZREF+T%XBLD_HEIGHT-PZ_LOWCAN, PUREF+T%XBLD_HEIGHT-PZ_LOWCAN, &
@@ -542,7 +547,8 @@ DO JLOOP=1,3
   CALL URBAN_EXCH_COEF(TOP%CZ0H, ZZ0_O_Z0H, PTS_ROAD, PQ_LOWCAN, PEXNS, PEXNA,  &
                        PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
                        PU_LOWCAN+ZW_CAN, ZZ0_ROAD, ZRI, ZCD_ROAD, ZCDN,         &
-                       PAC_ROAD, ZRA_ROAD, PCH_ROAD, ZZ0H_ROAD, ILMO_ROAD        )
+                       PAC_ROAD, ZRA_ROAD, PCH_ROAD, ZZ0H_ROAD, ILMO_ROAD, &
+                       HEXCH=TOP%CEXCH_ROAD)
   
   !
   !CALL URBAN_EXCH_COEF('MASC95', ZZ0_O_Z0H, ZTS_GROUND, PQ_LOWCAN, PEXNS, PEXNA,  &

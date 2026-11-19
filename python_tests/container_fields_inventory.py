@@ -79,6 +79,7 @@ CATEGORY = {
     'TEB_OPTIONS_t': {
         'param': {
             'LCANOPY', 'LGARDEN', 'CROAD_DIR', 'CWALL_OPT', 'CBLD_ATYPE', 'CZ0H',
+            'CEXCH_ROAD', 'CEXCH_ROOF', 'CEXCH_CANYON',
             'CCH_BEM', 'CBEM', 'CTREE', 'LGREENROOF', 'LHYDRO', 'LSOLAR_PANEL',
             'CTYPE_GARDEN', 'XZ0_O_Z0H_GD', 'CTYPE_GREENROOF', 'XZ0_O_Z0H_GR',
             'LCBS_SCHEME', 'XTAU_HW_THRESH', 'XTAU_HW_WIDTH',
@@ -101,7 +102,7 @@ CATEGORY = {
         'param': {
             'XROAD_DIR', 'XGARDEN', 'XGREENROOF', 'XBLD', 'XROAD', 'XCAN_HW_RATIO',
             'XBLD_HEIGHT', 'XWALL_O_HOR', 'XROAD_O_GRND', 'XGARDEN_O_GRND',
-            'XWALL_O_GRND', 'XWALL_O_BLD', 'XZ0_TOWN', 'XZD_TOWN',
+            'XWALL_O_GRND', 'XWALL_O_BLD', 'XZ0_TOWN', 'XZD_TOWN', 'TZ0',
             'XSVF_ROAD', 'XSVF_GARDEN', 'XSVF_WALL',
             'XALB_ROOF', 'XEMIS_ROOF', 'XHC_ROOF', 'XTC_ROOF', 'XD_ROOF', 'XROUGH_ROOF',
             'XALB_ROAD', 'XEMIS_ROAD', 'XHC_ROAD', 'XTC_ROAD', 'XD_ROAD',
