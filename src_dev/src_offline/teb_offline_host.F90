@@ -9,17 +9,18 @@
 !!        columns, masks, permutations, restart and external-surface emulation.
 !!        Share the complete packet with the ordinary offline driver and retain
 !!        per-cell diagnostic/interval state in checkpoints.
+!!        Forward the shared snow-filter option through the public API.
 !!      11/2026 -- OpenAI Codex
 !!        Pass run-level exchange configuration through block and serial steps.
 !!      11/2026 -- OpenAI Codex
 !!        Bind offline road, roof and snow lengths for block and serial calls.
 !!------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_HOST
-USE sfc_teb, ONLY: teb_interface, teb_real_kind
+USE sfc_teb, ONLY: teb_interface, teb_real_kind, XUNDEF => teb_undef
 USE TEB_HOST, ONLY: TEB_HOST_FINAL, TEB_BIND_Z0
 USE MODD_TEB_PARAMS_n, ONLY: TEB_Z0_t
 USE TEB_LOG, ONLY: TEB_LOG_INIT, TEB_LOG_FINAL
-USE MODD_SURF_PAR, ONLY: XUNDEF
+USE MODD_SURF_PAR, ONLY: teb_snow_check
 USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT
 USE MODD_CSTS, ONLY: XRD,XRV,XG,XSTEFAN
 USE MODI_INI_CSTS, ONLY: INI_CSTS
@@ -1344,9 +1345,13 @@ d%teb_cd_garden_atm(k:k)=s%teb_cd_garden_atm(j:j)
 d%teb_ch_garden_atm(k:k)=s%teb_ch_garden_atm(j:j)
 d%ahf_traffic_now(k:k)=s%ahf_traffic_now(j:j)
 END SUBROUTINE
-SUBROUTINE api_step(c)
+SUBROUTINE api_step(c,snow_check)
 TYPE(TEB_BLOCK),INTENT(INOUT)::c
+LOGICAL,OPTIONAL,INTENT(IN)::snow_check
+LOGICAL::selected_snow_check
 TYPE(TEB_Z0_t)::previous_z0
+selected_snow_check=teb_snow_check
+IF(PRESENT(snow_check)) selected_snow_check=snow_check
 CALL TEB_BIND_Z0(c%tz0,previous_z0)
 CALL teb_interface(ntstep=c%ntstep, nvec=c%nvec, iblock=c%iblock, dt=c%dt, teb_year=c%teb_year, &
                    teb_month=c%teb_month, teb_day=c%teb_day, teb_hour=c%teb_hour, teb_min=c%teb_min, &
@@ -1443,6 +1448,7 @@ CALL teb_interface(ntstep=c%ntstep, nvec=c%nvec, iblock=c%iblock, dt=c%dt, teb_y
                    teb_tch_top=c%teb_tch_top, teb_wind_top=c%teb_wind_top, &
                    teb_cd_garden_atm=c%teb_cd_garden_atm, &
                    teb_ch_garden_atm=c%teb_ch_garden_atm, ahf_traffic_now=c%ahf_traffic_now, &
+                   teb_snow_check=selected_snow_check, &
                    teb_ctype_exch_road=c%teb_ctype_exch_road, teb_ctype_exch_roof=c%teb_ctype_exch_roof, &
                    teb_ctype_exch_canyon=c%teb_ctype_exch_canyon)
 CALL TEB_BIND_Z0(previous_z0)

@@ -102,6 +102,16 @@ compiler, numerical kind and ABI. Compile against `common/mod`, then link
 consumer objects followed by `libteb.a`. The Windows/GNU runtime workaround
 is applied during final linking and is not stored in the physics archive.
 
+The public `sfc_teb` module exports `teb_interface`, `teb_finalize`,
+`teb_real_kind` and `teb_undef` (the library's undefined-value sentinel).
+The optional `teb_interface` argument, `teb_snow_check`, selects the
+shared snow filter for that call; omitting it preserves the current setting.
+The offline driver passes the namelist setting at every step. Call
+`teb_finalize()` at host shutdown to close diagnostic files and release the
+workspace. It is safe before initialization and on repeated calls, and leaves
+host-owned state and physical settings intact. A subsequent warm call must
+provide the saved state and a nonzero `ntstep`.
+
 A build profile records compilation and linking settings and rejects reuse
 with different settings. Choose a new `BUILD_ROOT`, or explicitly clean that
 profile. `clean` removes only named artifacts of that profile; it does not

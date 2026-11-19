@@ -15,6 +15,8 @@
 !!      11/2026 -- Mikhail Varentsov (MV)
 !!        Define the public input/output contract and preserve lagged
 !!        USTAR/greenroof-CD inputs independently for each host column.
+!!        Expose the snow-filter option, undefined sentinel and workspace/log
+!!        finalization through the public API.
 !!      11/2026 -- OpenAI Codex
 !!        Expose independent optional road, roof and canyon exchange algorithms.
 !!------------------------------------------------------------------------------
@@ -31,19 +33,27 @@ MODULE sfc_teb
 USE MODI_CALL_DRIVER, ONLY : CALL_DRIVER
 USE MODI_INI_CSTS,   ONLY : INI_CSTS
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
-USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_FILL_FORCING, TEB_FILL_EXT, TEB_HOST_ENSURE, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, DMT, FORC, EXT, TEB_BIND_STATE, TEB_UNBIND_STATE, TEB_INIT_STATE
-USE TEB_LOG,  ONLY : TEB_LOG_SET_FILTER, TEB_LOG_AT_CADENCE, TEB_LOG_EMIT
+USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_FILL_FORCING, TEB_FILL_EXT, TEB_HOST_ENSURE, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, DMT, FORC, EXT, TEB_BIND_STATE, TEB_UNBIND_STATE, TEB_INIT_STATE, TEB_HOST_FINAL
+USE TEB_LOG,  ONLY : TEB_LOG_SET_FILTER, TEB_LOG_AT_CADENCE, TEB_LOG_EMIT, TEB_LOG_FINAL
+USE MODD_SURF_PAR, ONLY : teb_undef => XUNDEF, module_snow_check => teb_snow_check
 IMPLICIT NONE
 PRIVATE
 INTEGER, PARAMETER :: teb_real_kind = KIND(0.0)
 
-PUBLIC :: teb_interface, teb_real_kind
+PUBLIC :: teb_interface, teb_finalize, teb_real_kind, teb_undef
 
 !------------------------------------------------------------------------------
 ! Parameters and variables which are global in this module
 !------------------------------------------------------------------------------
 
 CONTAINS
+
+!> Release library-owned resources; host-owned column state is unchanged.
+!! Safe before the first model call and on repeated calls.
+SUBROUTINE teb_finalize
+CALL TEB_LOG_FINAL
+CALL TEB_HOST_FINAL
+END SUBROUTINE teb_finalize
 
 !==============================================================================
 !! Computation of the first part of the soil parameterization scheme
@@ -101,7 +111,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
                           teb_ac_rd, teb_ac_wl, teb_ac_top, &
                           teb_tch_rf, teb_tch_rd, teb_tch_wl, &
                           teb_tch_top, teb_wind_top, teb_cd_garden_atm, &
-                          teb_ch_garden_atm, ahf_traffic_now, &
+                          teb_ch_garden_atm, ahf_traffic_now, teb_snow_check, &
                           teb_ctype_exch_road, teb_ctype_exch_roof, teb_ctype_exch_canyon)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t, TEB_EXCH_METHOD
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
@@ -118,6 +128,8 @@ INTEGER, INTENT(IN) :: ivend    !IN optional end   index                   ! ive
 INTEGER, INTENT(IN) :: iblock   !IN number of block
 INTEGER :: i
 LOGICAL :: LWRITE_LOG
+! VALUE permits the module flag itself to be passed without input aliasing.
+LOGICAL, OPTIONAL, INTENT(IN), VALUE :: teb_snow_check
 CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_road
 CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_roof
 CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_canyon
@@ -368,6 +380,7 @@ IF (ANY([teb_nroof_layer, teb_nroad_layer, teb_nwall_layer, teb_nfloor_layer] /=
 HEXCH_ROAD = TEB_EXCH_METHOD(teb_ctype_exch_road, 'teb_ctype_exch_road')
 HEXCH_ROOF = TEB_EXCH_METHOD(teb_ctype_exch_roof, 'teb_ctype_exch_roof')
 HEXCH_CANYON = TEB_EXCH_METHOD(teb_ctype_exch_canyon, 'teb_ctype_exch_canyon')
+IF (PRESENT(teb_snow_check)) module_snow_check = teb_snow_check
 CALL TEB_LOG_SET_FILTER(KTEB_LOG_BLOCK, KTEB_LOG_POINT)
 ! All blocks of the same model step share the output decision.
 LWRITE_LOG = TEB_LOG_AT_CADENCE(ntstep)

@@ -7,7 +7,7 @@
 `run_teb_offline → TEB_OFFLINE_DRIVER → teb_interface → CALL_DRIVER → TEB_GARDEN`. Обёртка
 `TEB_GARDEN_STRUCT` удалена: `CALL_DRIVER` вызывает физику `TEB_GARDEN` напрямую.
 
-> Состояние кода: `main`, коммит `0287dfa` и рабочая копия `src_dev`.
+> Состояние кода: `main`, коммит `1ecb04e` и рабочие изменения API `src_dev`.
 
 Смежные документы:
 
@@ -152,13 +152,27 @@ TYPE(TEB_EXT_SURF_t), SAVE :: EXT       ! external garden / greenroof surface (h
 для DEF мощности HVAC выдаются нулями без чтения неопределённой диагностики.
 Полный контракт, неактивные режимы и отображение в COSMO — §3.4
 `TEB_MSU_coupling_checklist.md`. Внешний хост не получает внутренний `DMT` через
-`sfc_teb`: модуль публично экспортирует только `teb_interface` и
-`teb_real_kind = KIND(0.0)`; входы, состояния и результаты имеют явные INTENT.
+`sfc_teb`: модуль публично экспортирует `teb_interface`, `teb_finalize`,
+`teb_real_kind = KIND(0.0)` и `teb_undef` (точное значение параметра `XUNDEF`
+с тем же REAL-kind); входы, состояния и результаты имеют явные INTENT.
+
+**Настройка и завершение вызовов.** API принимает скалярный аргумент
+`LOGICAL, OPTIONAL, INTENT(IN), VALUE :: teb_snow_check`, общий для блока.
+Если он передан, модульный флаг устанавливается перед физикой; если опущен,
+сохраняется текущая настройка (начальное значение `.FALSE.`). Offline передаёт
+выбор из неймлиста на каждом шаге. Внешний хост может передавать `.TRUE.` при
+каждом вызове без прямого доступа к модулю физических параметров.
 
 Три необязательных строковых аргумента `teb_ctype_exch_road`,
 `teb_ctype_exch_roof` и `teb_ctype_exch_canyon` выбирают алгоритмы обмена для
 всего блока. Для каждого пропущенного аргумента на текущем вызове применяется
 `'MASC95'`. Offline передаёт значения из `tebopts`.
+
+`teb_finalize()` закрывает логи, сбрасывает их настройки и освобождает рабочие
+контейнеры через `TEB_HOST_FINAL`. Вызов допустим до первого шага и повторно.
+Состояние колонок хоста, константы и снежный флаг не меняются. Для продолжения
+после освобождения хост передаёт сохранённое состояние с ненулевым `ntstep`;
+рабочая память выделяется лениво. Само освобождение не означает cold-start.
 
 **Колонки.** Публичный API принимает блок с `nvec>=1` и окном
 `ivstart:ivend`; обрабатываются только точки с `sa_uc(i)>0`. Физические
@@ -210,7 +224,7 @@ Offline-хост находится в `src_dev/src_offline/` и линкует�
 
 ```
 run_teb_offline
-  → teb_interface (205: 158 обязательных + 44 OPTIONAL OUT + 3 OPTIONAL IN) src_api/sfc_teb.F90
+  → teb_interface (206: 158 обязательных + 44 OPTIONAL OUT + 4 OPTIONAL IN) src_api/sfc_teb.F90
       → проверка блока/слоёв; маска ivstart:ivend, sa_uc>0
       → TEB_LOG_AT_CADENCE(ntstep)   одно решение для всех блоков шага
       → INI_CSTS             физические константы
@@ -232,7 +246,7 @@ run_teb_offline
           → TEB_UNBIND_STATE     состояние колонки i ← TSTATE/BSTATE
           → OPTIONAL OUT         текущие результаты в позицию i хоста
           → TEB_LOG_EMIT         KHOST_CELL=i, данные из рабочей позиции 1
-  → TEB_HOST_FINAL           деаллокация (конец прогона)
+  → teb_finalize             закрытие логов и TEB_HOST_FINAL (конец прогона)
 ```
 
 Контейнеры **не объявляются** в `teb_interface`/`CALL_DRIVER` как локальные:
@@ -448,7 +462,7 @@ HVAC-уставки (`XTCOOL_TARGET`, `XTHEAT_TARGET`, `XCAP_SYS_HEAT`, `XCOP_RA
 
 | процедура | файл | аргументы |
 | --- | --- | --- |
-| `teb_interface` | `src_api/sfc_teb.F90` | **205** (158 обязательных + 44 OPTIONAL OUT + 3 OPTIONAL IN), включая обязательные INOUT `teb_ustar_town`/`teb_cd_greenroof_atm` и выходные массивы ветра, радиации и стока. Три необязательных входа задают алгоритмы обмена. Собственный интерфейс COSMO описан в чек-листе |
+| `teb_interface` | `src_api/sfc_teb.F90` | **206** (158 обязательных + 44 OPTIONAL OUT + 4 OPTIONAL IN), включая INOUT `teb_ustar_town`/`teb_cd_greenroof_atm`, выходные массивы ветра, радиации и стока и общие опции снежного фильтра и обмена; собственный интерфейс COSMO описан в чек-листе |
 | `CALL_DRIVER` | `src_driver/call_driver.F90` | **27** dummy = 14 transient + 2 host-export + 11 container |
 | `TEB_GARDEN` | `src_teb/teb_garden.F90` | **29** = 2 индекса + 11 контейнеров + 5 флагов/строк + 4 коэффициента связи + 1 `KSW` + 2 (`PH_TRAFFIC`, `PTSTEP`) + 2 (`KDAY`, `PTIME`) + 2 проводимости (`PCH_GD`, `PCD_GD`) |
 
@@ -534,7 +548,7 @@ python python_tests/bem_option_sensitivity.py      # опции BEM: A/B + чу�
 Итоговые счётчики: `TEB_GARDEN_STRUCT` был 411 → 326 → 304 → 83 → 68 аргументов
 и затем удалён; `TEB_GARDEN` — **29** аргументов (было 46/65); `CALL_DRIVER` — **27**
 dummy (было 44/57; 11 контейнеров); `teb_interface` на этапе дедупликации — **154**
-(текущая подпись — 205, §6). `DMT` вырос до **208** полей, после удаления незаполняемых `XSOBS`/`XTHBS`/`XALB_TH`
+(текущая подпись — 206, §6). `DMT` вырос до **208** полей, после удаления незаполняемых `XSOBS`/`XTHBS`/`XALB_TH`
 (см. `TEB_MSU_change_history.md`, §5.6, N3) — **205**, после объединения диагностик
 ветвей CBS-схемы в запись `TEB_CBS_BRANCH_t` — **207**. Вся дедупликация побитово
 идентична эталону: полный A/B (18 000 шагов) — `IDENTICAL`, SHA-256 CSV `30499e1f…`.

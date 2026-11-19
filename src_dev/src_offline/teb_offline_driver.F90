@@ -5,17 +5,19 @@
 !!      11/2026 -- Mikhail Varentsov (MV)
 !!        Share namelists, initialization, forcing, model calls and per-cell
 !!        output between ordinary and diagnostic block offline executables.
+!!        Pass the run's snow-filter option on each API call and release
+!!        library resources through the public finalization procedure.
 !-------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_DRIVER
-USE sfc_teb, ONLY: teb_real_kind
+USE sfc_teb, ONLY: teb_real_kind, teb_finalize, XUNDEF => teb_undef
 USE TEB_OFFLINE_HOST
 USE TEB_OFFLINE_NAMELISTS, ONLY: READ_OFFLINE_PARAMETERS
 USE TEB_OFFLINE_OUTPUT
 USE TEB_OFFLINE_SURFACES, ONLY: EXTERNAL_SURFACES
-USE TEB_LOG, ONLY: TEB_LOG_INIT, TEB_LOG_FINAL, TEB_LOG_SET_VERBOSE, TEB_LOG_SET_POINT_IDS
+USE TEB_LOG, ONLY: TEB_LOG_INIT, TEB_LOG_SET_VERBOSE, TEB_LOG_SET_POINT_IDS
 USE TEB_HOST, ONLY: TEB_HOST_FINAL
 USE MODI_INI_CSTS, ONLY: INI_CSTS
-USE MODD_SURF_PAR, ONLY: XUNDEF
+USE MODD_SURF_PAR, ONLY: teb_snow_check
 USE MODE_THERMOS, ONLY: QSAT
 USE, INTRINSIC :: ISO_FORTRAN_ENV, ONLY: INT32
 IMPLICIT NONE
@@ -100,8 +102,10 @@ REAL(teb_real_kind),ALLOCATABLE::table(:,:)
 INTEGER,ALLOCATABLE::ids(:,:),log_blocks(:),log_points(:)
 CHARACTER(LEN=:),ALLOCATABLE::prefix
 INTEGER::b,j,k,m,nselected,cadence,rc,unit,meta_unit,step,first_step,last_step
+LOGICAL::run_snow_check
 CALL INI_CSTS
 CALL READ_OFFLINE_PARAMETERS(TRIM(cfg%param_nml),base,cfg)
+run_snow_check=teb_snow_check
 IF(cfg%test_dump .AND. STORAGE_SIZE(base%t)/=64) ERROR STOP 'Block dump requires REAL64'
 CALL validate(cfg)
 cadence=1
@@ -200,14 +204,14 @@ DO step=first_step,last_step
     IF(cfg%fresh_work) CALL TEB_HOST_FINAL
     CALL TEB_LOG_SET_POINT_IDS(b,ids(:,b))
     IF(cfg%layout=='BLOCK') THEN
-      CALL api_step(blocks(b))
+      CALL api_step(blocks(b),run_snow_check)
     ELSE
       DO j=1,cfg%nvec
         IF(.NOT.active(blocks(b),j)) CYCLE
         CALL copy_column(single,1,blocks(b),j)
         single%ivstart=1
         single%ivend=1
-        CALL api_step(single)
+        CALL api_step(single,run_snow_check)
         CALL copy_result(blocks(b),j,single,1)
       END DO
     END IF
@@ -222,8 +226,7 @@ END DO
 IF(cfg%test_dump) CLOSE(unit)
 IF(LEN_TRIM(cfg%checkpoint_file)>0) CALL save_checkpoint(cfg%checkpoint_file,cfg,last_step+1,blocks,ids)
 CALL CLOSE_OFFLINE_OUTPUT(files)
-CALL TEB_LOG_FINAL
-CALL TEB_HOST_FINAL
+CALL teb_finalize
 OPEN(NEWUNIT=meta_unit,FILE=prefix//'completed.txt',STATUS='REPLACE',ACTION='WRITE',IOSTAT=rc)
 IF(rc/=0) ERROR STOP 'Cannot create completion marker'
 WRITE(meta_unit,*) 'BLOCK_COMPLETED',first_step,last_step,cfg%nvec,cfg%nblocks,NFIELDS

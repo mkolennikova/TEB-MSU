@@ -8,6 +8,7 @@
 !!        filters, separate from the physical routines.
 !!      11/2026 -- Mikhail Varentsov (MV)
 !!        Retain logical cell identities across offline storage permutations.
+!!        Reset log configuration when the public API releases its resources.
 !!------------------------------------------------------------------------------
 !     ###################
       MODULE TEB_LOG
@@ -127,7 +128,7 @@ END IF
 !
 IF (ALLOCATED(TEB_LOG_UNITS)) THEN
   DO J = 1, SIZE(TEB_LOG_UNITS)
-    CLOSE(TEB_LOG_UNITS(J))
+    IF (TEB_LOG_UNITS(J) /= -1) CLOSE(TEB_LOG_UNITS(J))
   END DO
 END IF
 IF (ALLOCATED(TEB_LOG_BLOCK))  DEALLOCATE(TEB_LOG_BLOCK)
@@ -139,6 +140,7 @@ TEB_LOG_BLOCK(:) = KBLOCK(:)
 TEB_LOG_POINT(:) = KPOINT(:)
 IF (SIZE(KBLOCK) == 0 .OR. SIZE(KBLOCK) /= SIZE(KPOINT)) RETURN
 ALLOCATE(TEB_LOG_UNITS(SIZE(KBLOCK)), LTEB_LOG_HDR(SIZE(KBLOCK)))
+TEB_LOG_UNITS(:) = -1
 LTEB_LOG_HDR(:) = .FALSE.
 IF (LEN_TRIM(CTEB_LOG_PREFIX) == 0) RETURN
 DO J = 1, SIZE(KBLOCK)
@@ -228,6 +230,11 @@ END IF
 IF (ALLOCATED(TEB_LOG_BLOCK)) DEALLOCATE(TEB_LOG_BLOCK)
 IF (ALLOCATED(TEB_LOG_POINT)) DEALLOCATE(TEB_LOG_POINT)
 IF (ALLOCATED(LTEB_LOG_HDR)) DEALLOCATE(LTEB_LOG_HDR)
+CTEB_LOG_PREFIX = ''
+NTEB_LOG_CADENCE = 0
+NTEB_LOG_NSUB = 0
+LTEB_LOG_VERBOSE = .FALSE.
+LTEB_LOG_CFG_DONE = .FALSE.
 !
 END SUBROUTINE TEB_LOG_FINAL
 !

@@ -19,6 +19,7 @@ $(OBJDIR)/sfc_teb.o: src_api/sfc_teb.F90 \
     $(OBJDIR)/modd_diag_misc_tebn.o \
     $(OBJDIR)/modd_teb_optionn.o \
     $(OBJDIR)/modd_teb_paramsn.o \
+    $(OBJDIR)/modd_surf_par.o \
     $(OBJDIR)/modi_ini_csts.o
 
 $(OBJDIR)/teb_host.o: src_api/teb_host.F90 \
