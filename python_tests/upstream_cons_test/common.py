@@ -61,7 +61,8 @@ FORCING_STEPS = 18000
 FORCING_STEP_SECONDS = 1800
 
 #: namelist groups of the two drivers
-GROUP_CTRL = 'tebparam'
+GROUP_CTRL_OPTS = 'tebopts'
+GROUP_CTRL_PARAMS = 'tebparams'
 GROUP_CTRL_FORCING = 'tebforcing'
 GROUP_UPSTREAM = 'parameters'
 
@@ -96,7 +97,7 @@ def _find_group(lines: List[str], group: str) -> Tuple[int, int]:
     token = '&' + group.lower()
     start = None
     for i, line in enumerate(lines):
-        if line.strip().lower().startswith(token):
+        if line.partition('!')[0].strip().lower() == token:
             start = i
             break
     if start is None:

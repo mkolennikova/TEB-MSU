@@ -31,7 +31,7 @@ TEB 4.0.0 не имел такого параметра. Обычная сбор
 | --- | --- |
 | `common.py` | пути, строчный патч неймлистов, запуск драйверов, генерация начального состояния 2020 из cold start control-линии, чтение выходов, метрика (только stdlib) |
 | `cases.py` | набор кейсов: `C0_control` + `D1…D5` |
-| `deploy.py` | развёртывание стенда в `--target`: клон 2020, копии control-дерева/форсинга/шаблонов, сборка |
+| `deploy.py` | развёртывание стенда в `--target`, подготовка шаблонов и сборка обеих программ |
 | `sensitivity.py` | прогон и метрика: `prepare → run → compare → report` |
 
 Код 2020-модели в репозитории **не хранится**: `deploy.py` клонирует её из
@@ -58,7 +58,7 @@ config/templates/           шаблоны неймлистов обеих мо�
 data/capitoul/input/        форсинг CAPITOUL репозитория (11 файлов, 18000 шагов)
 src/teb_msu_ctrl/src_ctrl/  копия control-дерева
 src/teb_orig_2020/          клон TEB 4.0.0 (тег 4.0.0)
-tools/                      common.py, cases.py, deploy.py, sensitivity.py
+tools/                      common.py, cases.py, deploy.py, sensitivity.py, teb_namelist.py
 build/, cases/, report/     экзешник control, каталоги прогонов, отчёты
 README.md, run.ps1          описание и запуск одной командой
 ```
@@ -82,14 +82,19 @@ python tools/sensitivity.py --target <target> --stage all
 
 ## Набор кейсов
 
-| кейс | блок | control (`&tebparam`) | 2020 (`&parameters`) |
+В control-шаблоне `&tebopts` содержит переключатели, схемы обмена и правила
+`z0/z0h`, а `&tebparams` содержит длины шероховатости и другие физические
+параметры. `C0_control` явно задаёт `MASC95` и отношение `200` для дороги
+и крыши, отношение `200` для города и дефолтные длины шероховатости.
+
+| кейс | блок | control (`&tebopts` и `&tebparams`) | 2020 (`&parameters`) |
 | --- | --- | --- | --- |
 | `C0_control` | — | сценарий родного неймлиста CAPITOUL: сад 0.11, кровля 0.3, `teb_frac_gz=0.1`, natvent `'NONE'`, `teb_cap_sys_rat=100/7`, `teb_ti_bld_init=292.15`, `teb_dt_res/off=3`, `urb_emis_*` вместо legacy `urb_alb_*_th` | pristine-неймлист + `XTSTEP_SURF=300`, `HZ0H='MASC95'`, `CCH_BEM=' '`; начальное состояние — cold start control-линии (якорь 292.15 K) |
 | `D1_garden_off` | сад | `teb_lgarden=.FALSE.`, `fr_garden=0.0` | `LGARDEN=.FALSE.`, `ZGARDEN=0.0` |
 | `D2_greenroof_off` | зелёная кровля | `teb_lgreenroof=.FALSE.`, `teb_frac_gr=0.0` | `LGREENROOF=.FALSE.`, `ZFRAC_GR=0.0` |
 | `D3_solar_on` | солнечные панели | `teb_lsolar_panel=.TRUE.`, `teb_fr_panel=0.5` | `LSOLAR_PANEL=.TRUE.`, `ZFRAC_PANEL=0.5` |
 | `D4_shading_on` | затенение окон | `teb_lshade=.TRUE.` | `LSHADE=.TRUE.`, `ZSHADE=1.` |
-| `D5_no_bem` | BEM (выключение) | `teb_itype_bem='DEF'`, `teb_frac_gz=0.0` | `CBEM="DEF"`, `ZGR=0.0` |
+| `D5_no_bem` | BEM (выключение) | `teb_ctype_bem='DEF'`, `teb_frac_gz=0.0` | `CBEM="DEF"`, `ZGR=0.0` |
 
 `D1…D5` наследуют неймлисты `C0_control`, поэтому на 2020-стороне сохраняются
 pristine-сценарий и начальное состояние; отличие — только переключатель блока.
@@ -141,9 +146,9 @@ rel      = max|residual| / signal
 --stage all` воспроизвели эти вердикты и числа (`rel`, строки максимумов,
 `base_residual`) — 12 прогонов по 17999 строк, 0 nonfinite.
 
-Найденная особенность диагностики: при выключенном BEM control-драйвер печатает
-нефизические `HVAC_COOL`/`HVAC_HEAT` (до 2.9e25) вместо нулей, тогда как
-2020-драйвер пишет пустой файл. На вердикты остальных переменных не влияет.
+В `D5_no_bem` тест проверяет нули для `HVAC_COOL`, `HVAC_HEAT` и `H_WASTE`
+в control-выводе. Для `HVAC_COOL` и `HVAC_HEAT` upstream записывает пустые
+файлы, поэтому эти две строки получают вердикт `no-output`.
 
 ## Требования
 

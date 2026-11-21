@@ -18,6 +18,10 @@ from pathlib import Path
 from datetime import datetime
 
 sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from teb_namelist import (AERODYNAMIC_DEFAULTS, canonicalize_legacy_selectors,
+                          split_parameters)  # noqa: E402
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -118,75 +122,11 @@ def set_namelist_value(content: str, key: str, value: str) -> str:
     return content
 
 
-OPTION_NAMES = frozenset((
-    "dt",
-    "teb_lbem_ac", "teb_lshade", "teb_lgarden", "teb_lgreenroof",
-    "teb_lsolar_panel", "teb_lroad_irrig", "teb_snow_check", "teb_lcbs_scheme",
-    "teb_ctype_bem", "teb_ctype_natvent", "teb_ctype_bem_cool", "teb_ctype_bem_heat",
-    "teb_ctype_wind", "teb_ctype_garden", "teb_ctype_greenroof", "teb_ctype_z0_town",
-    "teb_ctype_exch_rd", "teb_ctype_exch_rf", "teb_ctype_exch_canyon",
-    "teb_ctype_z0_o_z0h_rd", "teb_ctype_z0_o_z0h_rf", "teb_ctype_z0_o_z0h_town",
-    "teb_hroad_dir", "teb_wall_opt",
-))
-
-
 def external(path: Path) -> Path:
     path = path.expanduser().resolve()
     if path == REPO or REPO in path.parents:
         raise ValueError(f"Builds and runs must be outside the checkout: {path}")
     return path
-
-
-def split_parameters(content: str) -> str:
-    """Regroup a flat scalar-run namelist, retaining literal values."""
-    entries = {}
-    name = None
-    chunks = []
-    for line in content.splitlines():
-        match = re.match(r"\s*([a-zA-Z]\w*)\s*=", line)
-        if match or re.match(r"\s*/\s*$", line):
-            if name is not None:
-                entries[name] = "\n".join(chunks)
-            name = match.group(1).lower() if match else None
-            chunks = []
-        if name is not None:
-            chunks.append(line)
-    if name is not None:
-        raise ValueError("CAPITOUL parameter fixture has no terminating slash")
-    if not entries:
-        raise ValueError("Empty CAPITOUL parameter fixture")
-    options = [" nvec=1,"]
-    options += [text for key, text in entries.items() if key in OPTION_NAMES]
-    parameters = [text for key, text in entries.items() if key not in OPTION_NAMES]
-    return ("&tebopts\n" + "\n".join(options) + "\n/\n"
-            + "&tebparams\n" + "\n".join(parameters) + "\n/\n").replace("\n", "\r\n")
-
-
-def canonicalize_legacy_selectors(content: str) -> str:
-    """Translate the retained flat CAPITOUL fixture before applying case overlays."""
-    names = {
-        "teb_itype_bem": "teb_ctype_bem",
-        "teb_itype_natvent": "teb_ctype_natvent",
-        "teb_itype_bem_cool": "teb_ctype_bem_cool",
-        "teb_itype_bem_heat": "teb_ctype_bem_heat",
-        "teb_itype_wind": "teb_ctype_wind",
-        "teb_type_garden": "teb_ctype_garden",
-        "teb_type_greenroof": "teb_ctype_greenroof",
-        "teb_tau_hw_thresh": "teb_cbs_hw_thresh",
-        "teb_tau_hw_width": "teb_cbs_hw_width",
-    }
-    for old, new in names.items():
-        content = re.sub(r"(?im)^([ \t]*)" + re.escape(old) + r"([ \t]*=)",
-                         lambda match: match.group(1) + new + match.group(2), content)
-    pattern = re.compile(r"(?im)^([ \t]*teb_ctype_wind[ \t]*=[ \t]*)([^!,\r\n]+)")
-
-    def wind(match):
-        value = match.group(2).strip()
-        if value not in ("0", "1"):
-            raise ValueError(f"unexpected legacy wind selector: {value}")
-        return match.group(1) + ("'DEF'" if value == "0" else "'WANG'")
-
-    return pattern.sub(wind, content)
 
 
 def prepare_namelists(out: Path, smoke_steps: int, forcing_source: Path,
@@ -222,7 +162,7 @@ def prepare_namelists(out: Path, smoke_steps: int, forcing_source: Path,
             case_param = set_namelist_value(case_param, key, value)
         case_param = set_namelist_value(case_param, "teb_lcbs_scheme", ".FALSE.")
         param_path = out / "config" / case / "namelist.nml"
-        write_template(param_path, split_parameters(case_param))
+        write_template(param_path, split_parameters(case_param, defaults=AERODYNAMIC_DEFAULTS))
         param_paths[case] = param_path
 
     forcing = read_template(forcing_source)
@@ -374,10 +314,10 @@ def compare_outputs(dev_csv: Path, ctrl_csv: Path, expected_rows: int,
     excluded = dict(EXCLUDED_CTRL_COLUMNS)
     if case == "wang_zd":
         excluded.pop("WIND_TOP")
+    ctrl_zero = ("HVAC_COOL", "HVAC_HEAT", "H_WASTE") if case == "no_bem" else ()
     if case == "no_bem":
         excluded.update({"HVAC_COOL": "dev omits HVAC without BEM",
-                         "HVAC_HEAT": "dev omits HVAC without BEM",
-                         "H_WASTE": "D6: uninitialized ctrl diagnostic without BEM"})
+                         "HVAC_HEAT": "dev omits HVAC without BEM"})
     model_columns = tuple(key for key in MODEL_COLUMNS if key not in excluded)
     if case == "wang_zd":
         model_columns += ("WIND_TOP",)
@@ -433,6 +373,9 @@ def compare_outputs(dev_csv: Path, ctrl_csv: Path, expected_rows: int,
                 if not math.isfinite(snow_fraction):
                     raise ValueError(f"nonfinite {key} at row {row_number}")
                 result[count_key] += snow_fraction > 0.0
+            for key in ctrl_zero:
+                if float(crow[key]) != 0.0:
+                    raise ValueError(f"expected zero CTRL {key} with DEF at row {row_number}: {crow[key]}")
             for key in model_columns:
                 a, b = float(drow[key]), float(crow[key])
                 if not math.isfinite(a) or not math.isfinite(b):
@@ -493,14 +436,15 @@ def report_markdown(report: dict) -> str:
              f"Comparison: **{report['comparison_status']}**; "
              f"case activity: **{report['activity_status']}**.",
              "", "## Configuration", "",
-             "- One shared parameter namelist per case, derived from CAPITOUL; tebopts/tebparams, nvec=1, CBS explicitly off.",
+             "- One shared CAPITOUL namelist per case with tebopts/tebparams and nvec=1.",
+             "- CBS is off. The namelists explicitly set the shared exchange and roughness defaults.",
              f"- Forcing namelist: `{report['forcing_source']}`; full run: {report['full_steps']} steps.",
              f"- Forcing directory: `{report['forcing_dir'] or 'from source namelist'}`.",
              f"- Source forcing directory: `{report['source_forcing_dir'] or 'from source namelist'}`.",
              f"- Replacement wind file: `{report['replacement_wind'] or 'none'}`.",
              "- src_dev: `-DTEB_UPSTREAM_CONS_BUGS`; src_ctrl: no `TEB_UPSTREAM_CONS`.",
              f"- Numeric threshold: `abs(dev-ctrl) <= {ATOL:g} + {RTOL:g} * max(abs(dev),abs(ctrl))`.",
-             "- BEM-off exclusions: `HVAC_COOL`, `HVAC_HEAT` (absent from dev) and `H_WASTE` (D6 in ctrl).",
+             "- With DEF, both models are compared for `H_WASTE`. CTRL's three HVAC diagnostics are checked for zeros.",
              "", "## Summary", "",
              "| case | overrides | smoke | full | active | failing columns |",
              "| --- | --- | --- | --- | --- | ---: |"]

@@ -26,6 +26,9 @@ import sys
 import time
 
 sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from teb_namelist import AERODYNAMIC_DEFAULTS, OPTION_NAMES  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 PROFILES = ('DEF', 'BEM', 'WANG', 'CBS', 'BEM_WANG', 'GARDEN_EXT',
@@ -223,7 +226,6 @@ BASE_PARAMETERS = {'dt': '3.00000000000000000E+002',
             '5.00000000000000000E-001,  5.00000000000000000E-001',
  'teb_lgarden': 'F',
  'teb_ctype_garden': "'PROXY_NEW'",
- 'urb_z0_o_z0h_gdn': '4.00000000000000000E+000',
  'teb_lgreenroof': 'F',
  'teb_ctype_greenroof': "'PROXY_NEW'",
  'teb_frac_gr': '0.00000000000000000E+000',
@@ -238,8 +240,7 @@ BASE_PARAMETERS = {'dt': '3.00000000000000000E+002',
  'teb_rd_irrig_sum': '0.00000000000000000E+000',
  'teb_utc_hour': '0',
  'teb_lshade': 'F',
- 'teb_ctype_z0_town': "'0.1H'",
- 'urb_zd_town': "'H/3'",
+ **AERODYNAMIC_DEFAULTS,
  'teb_lcbs_scheme': 'F',
  'teb_cbs_hw_thresh': '5.00000000000000000E-001',
  'teb_cbs_hw_width': '2.50000000000000000E-001',
@@ -276,33 +277,6 @@ PROFILE_OVERRIDES = {'DEF': {},
                   'teb_frac_gr': '3.49999999999999978E-001',
                   'teb_lcbs_scheme': 'T'},
  'SNOW': {}}
-OPTION_NAMES = {'dt',
- 'teb_hroad_dir',
- 'teb_ctype_bem',
- 'teb_ctype_bem_cool',
- 'teb_ctype_bem_heat',
- 'teb_ctype_natvent',
- 'teb_ctype_wind',
- 'teb_ctype_z0_town',
- 'teb_ctype_exch_rd',
- 'teb_ctype_exch_rf',
- 'teb_ctype_exch_canyon',
- 'teb_ctype_z0_o_z0h_rd',
- 'teb_ctype_z0_o_z0h_rf',
- 'teb_ctype_z0_o_z0h_town',
- 'teb_lbem_ac',
- 'teb_lcbs_scheme',
- 'teb_lgarden',
- 'teb_lgreenroof',
- 'teb_lroad_irrig',
- 'teb_lshade',
- 'teb_lsolar_panel',
- 'teb_snow_check',
- 'teb_ctype_garden',
- 'teb_ctype_greenroof',
- 'teb_wall_opt'}
-
-
 def write_physics(path, cfg, overrides=None):
     values = dict(BASE_PARAMETERS)
     values.update(PROFILE_OVERRIDES[cfg['profile']])
@@ -733,6 +707,26 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
             if any(record.data[index] != expected for record in cbs.before):
                 raise AssertionError(f'CBS parameter did not reach all API columns: {name}')
         self.record('renamed_cbs_parameters', nvec=3, threshold=0.8, width=0.4)
+
+        aero = self.run(nvec=2, nsteps=3, profile='CBS', model_log=True, parameters={
+            'urb_z0_rd': '0.12',
+            'urb_z0_rf': '0.25',
+            'teb_ctype_exch_rd': "'DELAGE'",
+            'teb_ctype_z0_o_z0h_rd': "'80'",
+            'teb_ctype_z0_o_z0h_rf': "'KANDA07'",
+            'teb_ctype_z0_o_z0h_town': "'BRUT82'",
+        })
+        for cell in range(1, 3):
+            path = aero.directory / f'TEB_output_b1_c{cell}.csv'
+            with path.open(encoding='utf-8', newline='') as stream:
+                rows = list(csv.DictReader(stream, delimiter=';'))
+            if len(rows) != 3:
+                raise AssertionError(f'Expected three rows of exchange diagnostics in {path}')
+            for row in rows:
+                for name in ('ZZ0H_ROAD_CAN', 'ZZ0H_ROAD_ATM'):
+                    if float(row[name]) != 0.12 / 80.:
+                        raise AssertionError(f'Unexpected road thermal roughness in {path}: {name}={row[name]}')
+        self.record('named_and_numeric_z0h_rules', nvec=2, road_paths=2, road_z0h=0.12 / 80.)
 
     def strict_namelists(self):
         root = self.work / 'runs' / 'invalid_namelists'

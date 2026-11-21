@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -45,14 +46,18 @@ import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.dont_write_bytecode = True
+
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+sys.path.insert(1, str(HERE.parent))
 
 import common as bc          # noqa: E402
+import teb_namelist           # noqa: E402
 import cases as case_set     # noqa: E402
 
 #: kit files copied into <target>/tools
-KIT_FILES = ('common.py', 'cases.py', 'deploy.py', 'sensitivity.py')
+KIT_FILES = ('common.py', 'cases.py', 'deploy.py', 'sensitivity.py', 'teb_namelist.py')
 
 #: directories of the upstream clone that are not needed by the test
 UPSTREAM_SKIP = ('.git', 'build', '__pycache__', 'docs', 'paper')
@@ -315,16 +320,16 @@ def materialize(layout: bc.Layout, args) -> dict:
 
     # -- templates ----------------------------------------------------------
     layout.templates.mkdir(parents=True, exist_ok=True)
-    pairs = (
-        (bc.CAPITOUL_PARAM_NML, layout.template_ctrl()),
-        (bc.CAPITOUL_FORCING_NML, layout.template_ctrl_forcing()),
-    )
-    templates = {}
-    for source, target in pairs:
+    for source in (bc.CAPITOUL_PARAM_NML, bc.CAPITOUL_FORCING_NML):
         if not source.is_file():
             raise SystemExit(f'ERROR: missing template: {source}')
-        shutil.copy2(source, target)
-        templates[target.name] = bc.sha256(target)
+    legacy = bc.CAPITOUL_PARAM_NML.read_text(encoding='utf-8')
+    ctrl = teb_namelist.split_parameters(teb_namelist.canonicalize_legacy_selectors(legacy),
+                                         defaults=teb_namelist.AERODYNAMIC_DEFAULTS)
+    bc.write_text(layout.template_ctrl(), ctrl)
+    shutil.copy2(bc.CAPITOUL_FORCING_NML, layout.template_ctrl_forcing())
+    templates = {target.name: bc.sha256(target)
+                 for target in (layout.template_ctrl(), layout.template_ctrl_forcing())}
     upstream_nml = layout.upstream_src / 'examples' / 'CAPITOUL' / 'input.nml'
     if not upstream_nml.is_file():
         raise SystemExit(f'ERROR: the upstream clone has no CAPITOUL namelist: '
@@ -338,7 +343,7 @@ def materialize(layout: bc.Layout, args) -> dict:
     # -- kit ----------------------------------------------------------------
     layout.tools.mkdir(parents=True, exist_ok=True)
     for name in KIT_FILES:
-        source = HERE / name
+        source = Path(teb_namelist.__file__) if name == 'teb_namelist.py' else HERE / name
         if source.is_file():
             shutil.copy2(source, layout.tools / name)
     print(f'kit: {len(KIT_FILES)} files copied to '
@@ -356,8 +361,10 @@ def build_ctrl(layout: bc.Layout, jobs: int, dry_run: bool,
     """Build the control tree with -DTEB_UPSTREAM_CONS."""
     exe = layout.exe_ctrl()
     objdir = layout.build / bc.CTRL_OBJDIR_NAME
-    cmd = ['make', '-C', str(layout.ctrl_src), 'FC=gfortran',
-           f'OBJDIR={objdir}', f'EXEC={exe}', f'CPPDEFS={bc.CTRL_CPPDEFS}']
+    cmd = ['make', '-C', layout.ctrl_src.as_posix(), 'FC=gfortran', 'LD=gfortran',
+           f'OBJDIR={objdir.as_posix()}', f'EXEC={exe.as_posix()}', f'CPPDEFS={bc.CTRL_CPPDEFS}']
+    if os.name == 'nt':
+        cmd += ['SHELL=C:/Windows/System32/cmd.exe', 'WRAP_LOCALE=1']
     if jobs > 1:
         cmd.append(f'-j{jobs}')
     log = layout.logs / 'deploy_build_ctrl.log'
@@ -365,7 +372,9 @@ def build_ctrl(layout: bc.Layout, jobs: int, dry_run: bool,
     if dry_run:
         print('  dry run: ' + ' '.join(cmd))
         return exe
-    if bc.run_command(cmd, layout.root, log, None, env) != 0:
+    rc = bc.run_command(cmd, layout.root, log, None, env)
+    output = log.read_text(encoding='utf-8', errors='replace')
+    if rc or re.search(r'(?im)fatal error|\berror:|Error \d+ \(ignored\)', output):
         raise SystemExit(f'ERROR: control build failed, see {log}')
     if not exe.is_file():
         raise SystemExit(f'ERROR: expected executable not found: {exe}')
@@ -519,7 +528,8 @@ Deployed by `python_tests/upstream_cons_test/deploy.py` from
 The bench compares the control tree of this repository, built with
 `-DTEB_UPSTREAM_CONS`, against the official TEB {teb_tag} driver
 (`{teb_url}`, revision `{teb_revision}`), on the CAPITOUL forcing of the
-repository.
+repository. Control cases use `&tebopts` and `&tebparams`. The upstream
+driver reads its own `&parameters` input.
 
 ## Layout
 
@@ -530,7 +540,7 @@ repository.
 | `data/capitoul/input/` | the CAPITOUL forcing (11 files, 18000 steps of 1800 s) |
 | `src/teb_msu_ctrl/src_ctrl/` | control tree, built with `{cppdefs}` |
 | `src/teb_orig_2020/` | upstream clone at revision `{teb_revision}` |
-| `tools/` | the kit: `common.py`, `cases.py`, `sensitivity.py` |
+| `tools/` | test scripts and the shared `teb_namelist.py` helper |
 | `build/`, `cases/`, `report/` | executable, run directories, reports |
 
 ## Upstream adaptation
@@ -672,6 +682,8 @@ def parse_args(argv=None):
 def main(argv=None) -> int:
     args = parse_args(argv)
     layout = bc.Layout(Path(args.target))
+    if layout.root == bc.REPO or layout.root.is_relative_to(bc.REPO):
+        raise SystemExit(f'ERROR: --target must be outside the checkout: {layout.root}')
     print(f'target: {layout.root}')
     if args.dry_run:
         print('dry run: nothing will be written')

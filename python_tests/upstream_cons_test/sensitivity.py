@@ -42,11 +42,15 @@ import shutil
 import sys
 from pathlib import Path
 
+sys.dont_write_bytecode = True
+
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+sys.path.insert(1, str(HERE.parent))
 
 import common as bc          # noqa: E402
 import cases as case_set     # noqa: E402
+from teb_namelist import OPTION_NAMES  # noqa: E402
 
 #: fields of report/sensitivity/summary.csv
 FIELDS = ['case', 'base_case', 'variable', 'rows', 'signal_ctrl', 'signal_2020',
@@ -135,13 +139,16 @@ def prepare(layout: bc.Layout, args) -> int:
 
         # -- control parameter namelist -------------------------------------
         overrides = spec.get('ctrl_param_overrides') or {}
-        text = bc.render_namelist(ctrl_tpl, bc.GROUP_CTRL, overrides)
+        options = {name: value for name, value in overrides.items() if name in OPTION_NAMES}
+        params = {name: value for name, value in overrides.items() if name not in OPTION_NAMES}
+        text = bc.render_namelist(ctrl_tpl, bc.GROUP_CTRL_OPTS, options)
+        text = bc.apply_namelist_overrides(text, bc.GROUP_CTRL_PARAMS, params)
         removals = spec.get('ctrl_param_removals') or []
         if removals:
-            text = bc.remove_namelist_items(text, bc.GROUP_CTRL, removals)
+            text = bc.remove_namelist_items(text, bc.GROUP_CTRL_PARAMS, removals)
         bc.write_text(layout.param_nml(case, bc.VERSION_CTRL), text)
-        bc.assert_overrides(text, bc.GROUP_CTRL, overrides,
-                            f'{case}/ctrl')
+        bc.assert_overrides(text, bc.GROUP_CTRL_OPTS, options, f'{case}/ctrl')
+        bc.assert_overrides(text, bc.GROUP_CTRL_PARAMS, params, f'{case}/ctrl')
 
         # -- control forcing namelist ---------------------------------------
         forcing_over = dict(spec.get('ctrl_forcing_overrides') or {})
@@ -183,18 +190,22 @@ def validate_run(layout: bc.Layout, case: str, version: str) -> tuple:
         if not path.is_file():
             raise SystemExit(f'ERROR: no output written: {path}')
         header, rows = bc.read_ctrl_csv(path)
-        missing = [v for v in bc.COMMON_VARIABLES if v not in header]
+        ctrl_zero = ('HVAC_COOL', 'HVAC_HEAT', 'H_WASTE') if case == 'D5_no_bem' else ()
+        columns = dict.fromkeys(bc.COMMON_VARIABLES + ctrl_zero)
+        missing = [name for name in columns if name not in header]
         if missing:
             raise SystemExit(f'ERROR: {path.name} lacks columns: {missing}')
-        index = {name: header.index(name) for name in bc.COMMON_VARIABLES}
+        index = {name: header.index(name) for name in columns}
         nonfinite = 0
-        for row in rows:
+        for row_number, row in enumerate(rows, start=1):
             for name, column in index.items():
                 try:
                     value = float(row[column])
                 except (ValueError, IndexError):
                     nonfinite += 1
                     continue
+                if name in ctrl_zero and value != 0.0:
+                    raise SystemExit(f'ERROR: {case}: expected zero {name} at row {row_number}, got {value}')
                 if not math.isfinite(value):
                     nonfinite += 1
         return len(rows), nonfinite
@@ -428,14 +439,6 @@ def conclusions(rows: list) -> list:
         for row in noout:
             lines.append(f"  - `{row['case']}` / `{row['variable']}`: "
                          f"ctrl response {bc.fmt(row['signal_ctrl'])}")
-    big = [r for r in noout if math.isfinite(r['signal_ctrl'])
-           and r['signal_ctrl'] > 1e6]
-    if big:
-        lines.append('- **diagnostic anomaly**: with BEM switched off the '
-                     'control driver prints non-physical `HVAC_COOL` / '
-                     '`HVAC_HEAT` (up to 2.9e25) instead of zeros, while the '
-                     'upstream driver writes an empty file. It does not affect '
-                     'the verdicts of the other variables.')
     lines.append('')
     return lines
 

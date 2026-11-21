@@ -6,8 +6,8 @@ control tree: garden 0.11 on, green roof 0.3 on, glazing ratio 0.1, natural
 ventilation off, effective cooling capacity 100 W m-2(bld), initial building
 temperature 292.15 K, emissivity items instead of the legacy longwave albedo.
 The upstream side keeps the pristine CAPITOUL namelist except ``XTSTEP_SURF``,
-``HZ0H`` and ``CCH_BEM`` (options the control tree does not have); its initial
-state is written by ``common.apply_initial_state`` from the control cold start.
+``HZ0H`` and ``CCH_BEM``. Its initial state is written by
+``common.apply_initial_state`` from the control cold start.
 
 Every other case inherits ``C0_control`` (``base_case``) and switches exactly
 one model block, so that the *responses* of the two models can be compared:
@@ -23,7 +23,8 @@ Keys of a case dict:
 ``level``, ``data``, ``description``      metadata
 ``base_case``                             inherit the namelists of that case
 ``init_anchor``                           initial building temperature [K]
-``ctrl_param_overrides`` / ``..._removals``  &tebparam of the control driver
+``ctrl_param_overrides``                &tebopts and &tebparams of the control driver
+``ctrl_param_removals``                 items removed from &tebparams
 ``ctrl_forcing_overrides``                &tebforcing of the control driver
 ``upstream_param_overrides``              &parameters of the upstream driver
 """
@@ -61,12 +62,14 @@ CASES = {
             'cold start anchored to 292.15 K.'),
         'init_anchor': 292.15,
         'ctrl_param_overrides': {
+            'teb_lcbs_scheme': '.FALSE.',
+            'teb_lshade': '.FALSE.',
             'teb_lgarden': '.TRUE.',
             'fr_garden': '0.11',
             'teb_lgreenroof': '.TRUE.',
             'teb_frac_gr': '0.3',
             'teb_frac_gz': '0.1',
-            'teb_itype_natvent': "'NONE'",
+            'teb_ctype_natvent': "'NONE'",
             'teb_cap_sys_rat': '14.285714285714286',
             'teb_ti_bld_init': '292.15',
             'teb_dt_res': '3.',
@@ -161,7 +164,7 @@ CASES = {
         'description': (
             'No BEM relative to C0_control (BEM -> DEF, glazing ratio -> 0): '
             'sensitivity to the building energy model block '
-            '(teb_itype_bem/teb_frac_gz vs CBEM/ZGR). With BEM off the HVAC, '
+            '(teb_ctype_bem/teb_frac_gz vs CBEM/ZGR). With BEM off the HVAC, '
             'window, shading and natural-ventilation branches are inactive, so '
             'this is the base (non-BEM) urban canopy configuration. The glazing '
             'ratio belongs to the switch: both drivers stop with "Building '
@@ -169,7 +172,7 @@ CASES = {
             'is given" (call_driver.F90) if it is left non-zero.'),
         'base_case': BASE_CASE,
         'ctrl_param_overrides': {
-            'teb_itype_bem': "'DEF'",
+            'teb_ctype_bem': "'DEF'",
             'teb_frac_gz': '0.0',
         },
         'upstream_param_overrides': {
