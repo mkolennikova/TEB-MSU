@@ -25,6 +25,7 @@
   - [2.6 Solar Panels and Road Watering](#26-solar-panels-and-road-watering)
   - [2.7 Snowfall Filter](#27-snowfall-filter)
   - [2.8 Emissivity and Longwave Albedo](#28-emissivity-and-longwave-albedo)
+  - [2.9 Layer Configuration](#29-layer-configuration)
 - [3. Output variables](#3-output-variables)
   - [3.1 Files and Time Sampling](#31-files-and-time-sampling)
   - [3.2 Main Model Diagnostics](#32-main-model-diagnostics)
@@ -57,6 +58,9 @@ In both trees, `teb_fai` takes eight directional values when supplied.
 | --- | --- | --- | --- | --- | --- |
 | `nvec` | Integer | >= 1 | `1` | — | Number of cells in the block. |
 | `dt` | Real | s | `300` | — | Model timestep; `forc_step/dt` must be an integer. |
+| `teb_nroof_layer` | Integer | >= 1 | `5` | — | Number of roof material layers in `src_dev`; [layer configuration](#29-layer-configuration). |
+| `teb_nwall_layer` | Integer | >= 1 | `5` | — | Number of wall material layers in `src_dev`; [layer configuration](#29-layer-configuration). |
+| `teb_nroad_layer` | Integer | >= 1 | `5` | — | Number of road material layers in `src_dev`; [layer configuration](#29-layer-configuration). |
 | `teb_lbem_ac` | Logical | True / False | `.TRUE.` | — | Enable building air conditioning. |
 | `teb_lgarden` | Logical | True / False | `.TRUE.` | — | Enable the garden surface. |
 | `teb_lgreenroof` | Logical | True / False | `.FALSE.` | — | Enable the greenroof surface. |
@@ -122,18 +126,21 @@ Both trees read the road, roof and snow momentum roughness lengths from
 | `urb_alb_rf_so` | Real | 1 | `0.40` | ✓ | Roof shortwave albedo. |
 | `urb_alb_rf_th` | Real | 1 | `0.03` | ✓ | Roof longwave albedo; [alternative to emissivity](#28-emissivity-and-longwave-albedo). |
 | `urb_emis_rf` | Real | 1 | `0.97` | ✓ | Roof emissivity; [input rule](#28-emissivity-and-longwave-albedo). |
-| `urb_hcap_rf` | Real | J/(m³ K) | `1580000` | ✓ | Roof material volumetric heat capacity. |
-| `urb_hcon_rf` | Real | W/(m K) | `1.15` | ✓ | Roof material thermal conductivity. |
+| `urb_hcap_rf` | Real | J/(m³ K) | `1580000` | ✓ | Roof material volumetric heat capacity; [layer assignment](#29-layer-configuration). |
+| `urb_hcon_rf` | Real | W/(m K) | `1.15` | ✓ | Roof material thermal conductivity; [layer assignment](#29-layer-configuration). |
+| `urb_d_rf` | Real array | m, finite and positive | `0.001, 0.098, 0.132, 0.098, 0.001` | — | Roof depth profile shared by all `src_dev` cells; [layer configuration](#29-layer-configuration). |
 | `urb_alb_rd_so` | Real | 1 | `0.08` | ✓ | Road shortwave albedo. |
 | `urb_alb_rd_th` | Real | 1 | `0.04` | ✓ | Road longwave albedo; [alternative to emissivity](#28-emissivity-and-longwave-albedo). |
 | `urb_emis_rd` | Real | 1 | `0.96` | ✓ | Road emissivity; [input rule](#28-emissivity-and-longwave-albedo). |
-| `urb_hcap_rd` | Real | J/(m³ K) | `1740000` | ✓ | Road material volumetric heat capacity. |
-| `urb_hcon_rd` | Real | W/(m K) | `0.82` | ✓ | Road material thermal conductivity. |
+| `urb_hcap_rd` | Real | J/(m³ K) | `1740000` | ✓ | Road material volumetric heat capacity; [layer assignment](#29-layer-configuration). |
+| `urb_hcon_rd` | Real | W/(m K) | `0.82` | ✓ | Road material thermal conductivity; [layer assignment](#29-layer-configuration). |
+| `urb_d_rd` | Real array | m, finite and positive | `0.001, 0.045296296, 0.092592593, 0.27777778, 0.83333333` | — | Road depth profile shared by all `src_dev` cells; [layer configuration](#29-layer-configuration). |
 | `urb_alb_wl_so` | Real | 1 | `0.32` | ✓ | Wall shortwave albedo. |
 | `urb_alb_wl_th` | Real | 1 | `0.03` | ✓ | Wall longwave albedo; [alternative to emissivity](#28-emissivity-and-longwave-albedo). |
 | `urb_emis_wl` | Real | 1 | `0.97` | ✓ | Wall emissivity; [input rule](#28-emissivity-and-longwave-albedo). |
-| `urb_hcap_wl` | Real | J/(m³ K) | `1580000` | ✓ | Wall material volumetric heat capacity. |
-| `urb_hcon_wl` | Real | W/(m K) | `1.15` | ✓ | Wall material thermal conductivity. |
+| `urb_hcap_wl` | Real | J/(m³ K) | `1580000` | ✓ | Wall material volumetric heat capacity; [layer assignment](#29-layer-configuration). |
+| `urb_hcon_wl` | Real | W/(m K) | `1.15` | ✓ | Wall material thermal conductivity; [layer assignment](#29-layer-configuration). |
+| `urb_d_wl` | Real array | m, finite and positive | `0.001, 0.098, 0.132, 0.098, 0.001` | — | Wall depth profile shared by all `src_dev` cells; [layer configuration](#29-layer-configuration). |
 
 #### 1.2.4 Building Energy Model (BEM)
 
@@ -428,6 +435,39 @@ For each built surface, choose either `urb_emis_*` or `urb_alb_*_th`.
 Supplying both is an error. The driver computes the other quantity from
 `albedo=1-emissivity`. If both are omitted, the table defaults apply.
 Emissivity must be in `(0,1]`; longwave albedo must be in `[0,1)`.
+
+### 2.9 Layer Configuration
+
+In `src_dev`, `teb_nroof_layer`, `teb_nwall_layer` and `teb_nroad_layer` in
+`&tebopts` select the positive number of material layers. The corresponding
+`urb_d_rf`, `urb_d_wl` and `urb_d_rd` vectors in `&tebparams` contain exactly
+one finite, positive depth in metres per layer, ordered from the outside
+surface towards the building interior or deep ground. Each profile is common
+to every cell; the `List` column refers to cell-specific inputs.
+
+With five layers, an omitted depth vector uses its table default. For any
+other layer count, supply the corresponding complete vector. Floor and
+internal-mass profiles retain five layers.
+
+The `urb_hcap_*` and `urb_hcon_*` values apply uniformly to **all** material
+layers of their surface in `src_dev`. They retain their scalar-or-`nvec`
+input rule, so cells may have different material properties while sharing the
+same depth profile. Layer-count and depth inputs described here apply to
+`src_dev`. Keep layer configuration unchanged when restarting a calculation.
+
+```fortran
+&tebopts
+  nvec = 4,
+  teb_nroof_layer = 3,
+  teb_nwall_layer = 4,
+  teb_nroad_layer = 6,
+/
+&tebparams
+  urb_d_rf = 0.01, 0.18, 0.01,
+  urb_d_wl = 0.01, 0.09, 0.09, 0.01,
+  urb_d_rd = 0.01, 0.04, 0.10, 0.20, 0.30, 0.60,
+/
+```
 
 ## 3. Output variables
 

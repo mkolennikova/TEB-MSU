@@ -19,9 +19,11 @@
 !!      11/2026 -- OpenAI Codex
 !!        Read thermal roughness rules and per-column vegetation ratios.
 !!        Read the scalar CBS settings under their split namelist names.
+!!        Read layer counts and one positive depth profile per surface.
 !-------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_NAMELISTS
 USE TEB_OFFLINE_HOST, ONLY: BLOCK_CONFIG, TEB_BLOCK, allocate_block
+USE TEB_HOST, ONLY: TEB_DEFAULT_D_RF, TEB_DEFAULT_D_RD, TEB_DEFAULT_D_WL
 USE MODD_SURF_PAR, ONLY: XUNDEF, teb_snow_check
 USE MODD_SNOW_PAR, ONLY: XZ0SN
 USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT, TEB_EXCH_VALID, TEB_Z0H_t, &
@@ -48,6 +50,8 @@ TYPE(NML_ASSIGNMENT), ALLOCATABLE :: a(:),o(:)
 CHARACTER(LEN=:), ALLOCATABLE :: text,body,opts
 CHARACTER(LEN=1024) :: message
 INTEGER :: nvec,rc,j,k,unit
+INTEGER :: teb_nroof_layer, teb_nroad_layer, teb_nwall_layer
+REAL, ALLOCATABLE :: urb_d_rf(:), urb_d_rd(:), urb_d_wl(:)
 LOGICAL :: legacy,found,teb_lwrite_output,teb_lwrite_emu,teb_lwrite_runoff,teb_lwrite_test_dump
 REAL :: dt
 CHARACTER(LEN=3) :: teb_ctype_bem
@@ -136,7 +140,8 @@ REAL :: teb_tau_hw_thresh, teb_tau_hw_width  ! Legacy &tebparam and host values.
 REAL :: teb_cbs_hw_thresh, teb_cbs_hw_width
 NAMELIST /tebopts/ &
   dt, &
-  nvec, teb_lbem_ac, teb_lgarden, &
+  nvec, teb_nroof_layer, teb_nroad_layer, teb_nwall_layer, &
+  teb_lbem_ac, teb_lgarden, &
   teb_lgreenroof, teb_lsolar_panel, teb_lroad_irrig, &
   teb_lshade, teb_lcbs_scheme, teb_snow_check, &
   teb_ctype_bem, teb_ctype_natvent, teb_ctype_bem_cool, &
@@ -148,6 +153,7 @@ NAMELIST /tebopts/ &
   teb_lwrite_output, teb_lwrite_emu, teb_lwrite_runoff, &
   teb_lwrite_test_dump
 NAMELIST /tebparams/ &
+  urb_d_rf, urb_d_rd, urb_d_wl, &
   urb_h_bld, urb_fr_bld, &
   fr_garden, urb_h2w, teb_road_dir, &
   teb_ti_bld_init, teb_qi_bld_init, urb_alb_rf_so, &
@@ -196,6 +202,9 @@ NAMELIST /tebparam/ &
   teb_utc_hour, teb_lshade, urb_zd_town, &
   teb_lcbs_scheme, teb_tau_hw_thresh, &
   teb_tau_hw_width, teb_snow_check
+teb_nroof_layer=5
+teb_nroad_layer=5
+teb_nwall_layer=5
 CALL read_text(path,text)
 CALL scan_group(text,'tebparam',a,found,path)
 legacy=found
@@ -210,20 +219,40 @@ ELSE
   nvec=1
   IF(found) THEN
     DO j=1,SIZE(o)
-      IF(o(j)%name=='nvec') THEN
+      SELECT CASE(o(j)%name)
+      CASE('nvec','teb_nroof_layer','teb_nroad_layer','teb_nwall_layer')
         CALL require_count(o(j),1,1,path)
-        READ(o(j)%value,*,IOSTAT=rc) nvec
-        IF(rc/=0) CALL fail(path,'nvec',o(j)%line,'expected an integer')
-      END IF
+        SELECT CASE(o(j)%name)
+        CASE('nvec')
+          READ(o(j)%value,*,IOSTAT=rc) nvec
+        CASE('teb_nroof_layer')
+          READ(o(j)%value,*,IOSTAT=rc) teb_nroof_layer
+        CASE('teb_nroad_layer')
+          READ(o(j)%value,*,IOSTAT=rc) teb_nroad_layer
+        CASE('teb_nwall_layer')
+          READ(o(j)%value,*,IOSTAT=rc) teb_nwall_layer
+        END SELECT
+        IF(rc/=0) CALL fail(path,o(j)%name,o(j)%line,'expected an integer')
+      END SELECT
     END DO
   END IF
   CALL scan_group(text,'tebparams',a,found,path)
   IF(.NOT.found) CALL fail(path,'tebparams',0,'missing namelist group')
 END IF
 IF(nvec<1) CALL fail(path,'nvec',0,'must be positive')
+IF(teb_nroof_layer<1) CALL fail(path,'teb_nroof_layer',0,'must be positive')
+IF(teb_nroad_layer<1) CALL fail(path,'teb_nroad_layer',0,'must be positive')
+IF(teb_nwall_layer<1) CALL fail(path,'teb_nwall_layer',0,'must be positive')
 IF(cfg%test_mode .AND. cfg%nvec>0 .AND. cfg%nvec/=nvec) CALL fail(path,'nvec',0, &
   'differs from block_test nvec')
 cfg%nvec=nvec
+ALLOCATE(urb_d_rf(teb_nroof_layer),urb_d_rd(teb_nroad_layer),urb_d_wl(teb_nwall_layer))
+urb_d_rf=XUNDEF
+urb_d_rd=XUNDEF
+urb_d_wl=XUNDEF
+IF(teb_nroof_layer==5) urb_d_rf=TEB_DEFAULT_D_RF
+IF(teb_nroad_layer==5) urb_d_rd=TEB_DEFAULT_D_RD
+IF(teb_nwall_layer==5) urb_d_wl=TEB_DEFAULT_D_WL
 ALLOCATE(urb_h_bld(nvec))
 ALLOCATE(urb_fr_bld(nvec))
 ALLOCATE(fr_garden(nvec))
@@ -422,6 +451,12 @@ DO j=1,SIZE(a)
     CALL require_count(a(j),1,nvec,path)
   CASE('teb_fai')
     CALL require_count(a(j),8,8,path)
+  CASE('urb_d_rf')
+    CALL require_count(a(j),teb_nroof_layer,teb_nroof_layer,path)
+  CASE('urb_d_rd')
+    CALL require_count(a(j),teb_nroad_layer,teb_nroad_layer,path)
+  CASE('urb_d_wl')
+    CALL require_count(a(j),teb_nwall_layer,teb_nwall_layer,path)
   CASE DEFAULT
     CALL require_count(a(j),1,1,path)
   END SELECT
@@ -438,6 +473,9 @@ ELSE
   teb_tau_hw_width=teb_cbs_hw_width
 END IF
 IF(rc/=0) CALL fail(path,'parameters',0,TRIM(message))
+CALL check_layer_depths(path,'urb_d_rf',urb_d_rf)
+CALL check_layer_depths(path,'urb_d_rd',urb_d_rd)
+CALL check_layer_depths(path,'urb_d_wl',urb_d_wl)
 CALL check_z0_input(path,'urb_z0_rd',urb_z0_rd)
 CALL check_z0_input(path,'urb_z0_rf',urb_z0_rf)
 CALL check_z0_input(path,'urb_z0_snow',urb_z0_snow)
@@ -666,15 +704,18 @@ DO j=1,LEN(text)
   END DO
 END DO
 cfg%parameter_signature=NOT(cfg%parameter_signature)
-CALL allocate_block(c,nvec)
+CALL allocate_block(c,nvec,teb_nroof_layer,teb_nroad_layer,teb_nwall_layer)
 c%dt=dt
 c%iblock=1
 c%ivstart=1
 c%ivend=nvec
 c%sa_uc=1.
-c%teb_nroof_layer=5
-c%teb_nroad_layer=5
-c%teb_nwall_layer=5
+c%teb_nroof_layer=teb_nroof_layer
+c%teb_nroad_layer=teb_nroad_layer
+c%teb_nwall_layer=teb_nwall_layer
+c%urb_d_rf=urb_d_rf
+c%urb_d_rd=urb_d_rd
+c%urb_d_wl=urb_d_wl
 c%teb_nfloor_layer=5
 c%dt=dt
 c%urb_h_bld=urb_h_bld
@@ -777,6 +818,14 @@ IF(c%teb_lgreenroof_ext) THEN
   c%teb_qs_gr=proxy_phu_grf*QSAT(c%teb_ts_gr,c%ps)
 END IF
 END SUBROUTINE READ_OFFLINE_PARAMETERS
+
+SUBROUTINE check_layer_depths(path,key,depths)
+CHARACTER(LEN=*), INTENT(IN) :: path,key
+REAL, INTENT(IN) :: depths(:)
+IF(ANY(.NOT. IEEE_IS_FINITE(depths))) CALL fail(path,key,0,'layer depths must be finite')
+IF(ANY(depths==XUNDEF)) CALL fail(path,key,0,'explicit profile required for this layer count')
+IF(ANY(depths<=0.)) CALL fail(path,key,0,'layer depths must be positive')
+END SUBROUTINE check_layer_depths
 
 SUBROUTINE resolve_emis(label,emis,alb,default_alb,has_emis,has_alb)
 CHARACTER(LEN=*),INTENT(IN)::label

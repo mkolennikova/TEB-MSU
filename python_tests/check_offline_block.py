@@ -728,10 +728,111 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
                         raise AssertionError(f'Unexpected road thermal roughness in {path}: {name}={row[name]}')
         self.record('named_and_numeric_z0h_rules', nvec=2, road_paths=2, road_z0h=0.12 / 80.)
 
+    def layers(self):
+        def profiles(nr, nd, nw):
+            values = {}
+            for suffix, count, option in (('rf', nr, 'roof'), ('rd', nd, 'road'), ('wl', nw, 'wall')):
+                values['teb_n' + option + '_layer'] = str(count)
+                depths = [.01 * (k + 1) for k in range(count)]
+                values['urb_d_' + suffix] = ', '.join(map(repr, depths))
+            return values
+
+        defaults = dict(urb_d_rf='.001,.098,.132,.098,.001',
+                        urb_d_rd='.001,.045296296,.092592593,.27777778,.83333333',
+                        urb_d_wl='.001,.098,.132,.098,.001')
+        default = self.run(nvec=7, profile='BEM')
+        explicit = self.run(nvec=7, profile='BEM', parameters=defaults)
+        self.comparisons += compare_reference(explicit, dict.fromkeys(range(1, 8), default))
+        self.record('default_layer_profiles', layers=[5, 5, 5])
+
+        for counts in ((1, 1, 1), (2, 3, 4), (3, 7, 2), (7, 4, 6)):
+            params = profiles(*counts)
+            scalar = self.run(profile='BEM', parameters=params)
+            block = self.run(nvec=7, profile='BEM', parameters=params)
+            serial = self.run(nvec=7, profile='BEM', layout='SERIAL', parameters=params)
+            self.comparisons += compare_reference(block, dict.fromkeys(range(1, 8), scalar))
+            self.comparisons += compare_reference(serial, dict.fromkeys(range(1, 8), scalar))
+            expected = 200 + 2*counts[0] + 3*counts[1] + 3*counts[2]
+            if len(block.schema) != expected:
+                raise AssertionError('The diagnostic schema truncated material layers')
+            for suffix, count in zip(('rf', 'rd', 'wl'), counts):
+                for k in range(count):
+                    field = block.field(f'urb_d_{suffix}[{k+1}]')
+                    if any(row.data[field] != .01*(k+1) for row in block.after):
+                        raise AssertionError('Shared layer depths differ between cells')
+            self.record('variable_layer_counts', layers=counts, nvec=7)
+
+        # All material inputs retain scalar-or-nvec semantics, independently
+        # of the layer count and the common vertical depth profile.
+        params = profiles(3, 7, 2)
+        material = {name: [base + k*step for k in range(7)]
+                    for name, base, step in (
+                        ('urb_hcap_rf', 1.1e6, 1.e5), ('urb_hcon_rf', .7, .1),
+                        ('urb_hcap_rd', 1.2e6, 1.e5), ('urb_hcon_rd', .8, .1),
+                        ('urb_hcap_wl', 1.3e6, 1.e5), ('urb_hcon_wl', .9, .1))}
+        listed = dict(params, **{name: ', '.join(map(repr, values))
+                                for name, values in material.items()})
+        block = self.run(nvec=7, profile='BEM', parameters=listed)
+        refs = {k+1: self.run(profile='BEM', parameters=dict(
+                    params, **{name: repr(values[k]) for name, values in material.items()}))
+                for k in range(7)}
+        self.comparisons += compare_reference(block, refs)
+        serial = self.run(nvec=7, profile='BEM', layout='SERIAL', parameters=listed)
+        self.comparisons += compare_reference(serial, refs)
+        for controls in (dict(mask_stride=3), dict(permute_step=6)):
+            result = self.run(nvec=7, profile='BEM', parameters=listed, **controls)
+            self.comparisons += compare_reference(result, refs)
+            self.comparisons += inactive_preserved(result)
+        self.record('layer_material_lists', layers=[3, 7, 2], nvec=7,
+                    separate_processes=True, masks=True, permutation=True)
+
+        for profile in ('DEF', 'SNOW'):
+            scalar = self.run(profile=profile, parameters=params)
+            block = self.run(nvec=7, profile=profile, parameters=params)
+            self.comparisons += compare_reference(block, dict.fromkeys(range(1, 8), scalar))
+            self.record('layer_physics_mode', profile=profile, layers=[3, 7, 2])
+
+        base = self.run(profile='BEM')
+        for suffix, field in (('rf', 'teb_troof[1]'), ('rd', 'teb_troad[1]'), ('wl', 'teb_twalla[1]')):
+            changed = dict(defaults)
+            changed['urb_d_' + suffix] = '.004,.15,.25,.15,.004'
+            result = self.run(profile='BEM', parameters=changed)
+            effect = max(abs(a.data[result.field(field)]-b.data[base.field(field)])
+                         for a, b in zip(result.after, base.after))
+            if effect <= 1.e-6:
+                raise AssertionError('Layer depths have no material effect: ' + suffix)
+            self.record('layer_depth_sensitivity', surface=suffix, field=field, max_abs=effect)
+
+        cfg = dict(nvec=7, nblocks=2, profile='COMBINED_EXT', parameters=params,
+                   permute_step=6, mask_stride=3)
+        full = self.run(**cfg)
+        checkpoint = self.work / 'checks' / 'layer_checkpoint.bin'
+        first = self.run(**cfg, stop_after=24, checkpoint_file=str(checkpoint))
+        resumed = self.run(**cfg, restart_file=str(checkpoint))
+        for part in (first, resumed):
+            self.comparisons += compare_reference(part, dict.fromkeys(range(1, 8), full))
+            self.comparisons += inactive_preserved(part)
+        self.record('layer_restart', layers=[3, 7, 2], nvec=7, nblocks=2)
+
     def strict_namelists(self):
         root = self.work / 'runs' / 'invalid_namelists'
         forcing = self.work / 'runs' / 'file_inputs' / 'forcing.nml'
         cases = {
+            'negative_layers': ("&tebopts teb_nroof_layer=-1 / &tebparams /", 'teb_nroof_layer'),
+            'zero_layers': ("&tebopts teb_nroad_layer=0 / &tebparams /", 'teb_nroad_layer'),
+            'fractional_layers': ("&tebopts teb_nwall_layer=2.5 / &tebparams /", 'teb_nwall_layer'),
+            'layer_count_list': ("&tebopts nvec=3,teb_nroof_layer=3,3,3 / &tebparams /", 'teb_nroof_layer'),
+            'missing_depths': ("&tebopts teb_nroof_layer=3 / &tebparams /", 'urb_d_rf'),
+            'depth_short': ("&tebopts / &tebparams urb_d_rf=.2 /", 'urb_d_rf'),
+            'depth_per_cell': ("&tebopts nvec=3 / &tebparams urb_d_rf="+','.join(['.1']*15)+" /", 'urb_d_rf'),
+            'depth_negative': ("&tebopts / &tebparams urb_d_wl=.001,.1,-.1,.1,.001 /", 'urb_d_wl'),
+            'depth_zero': ("&tebopts / &tebparams urb_d_rd=.001,.1,0.,.1,.001 /", 'urb_d_rd'),
+            'depth_nan': ("&tebopts / &tebparams urb_d_rf=.001,.1,NaN,.1,.001 /", 'urb_d_rf'),
+            'depth_inf': ("&tebopts / &tebparams urb_d_rf=.001,.1,Infinity,.1,.001 /", 'urb_d_rf'),
+            'depth_repeat': ("&tebopts / &tebparams urb_d_rf=5*.1 /", 'urb_d_rf'),
+            'depth_null': ("&tebopts / &tebparams urb_d_rf=.1,.1,,.1,.1 /", 'urb_d_rf'),
+            'depth_wrong_group': ("&tebopts urb_d_rf=.001,.1,.1,.1,.001 / &tebparams /", 'urb_d_rf'),
+            'count_wrong_group': ("&tebopts / &tebparams teb_nroof_layer=5 /", 'teb_nroof_layer'),
             'short_list': ("&tebopts nvec=3 / &tebparams urb_h_bld=10.,20. /", 'urb_h_bld'),
             'long_list': ("&tebopts nvec=3 / &tebparams urb_h_bld=10.,20.,30.,40. /", 'urb_h_bld'),
             'repeat': ("&tebopts nvec=3 / &tebparams urb_h_bld=3*10. /", 'urb_h_bld'),
@@ -888,6 +989,7 @@ def main():
     (work / 'checks' / 'metadata.json').write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')
     suite = Suite(work, exe, ordinary, env, options.quick)
     try:
+        suite.layers()
         suite.uniform()
         suite.sensitivity()
         suite.memory()

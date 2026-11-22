@@ -7,6 +7,8 @@
 !!        output between ordinary and diagnostic block offline executables.
 !!        Pass the run's snow-filter option on each API call and release
 !!        library resources through the public finalization procedure.
+!!      11/2026 -- OpenAI Codex
+!!        Size serial workspaces and diagnostic records from layer options.
 !-------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_DRIVER
 USE sfc_teb, ONLY: teb_real_kind, teb_finalize, XUNDEF => teb_undef
@@ -135,7 +137,8 @@ DO b=1,cfg%nblocks
   END DO
   IF(cfg%reverse) CALL permute(blocks(b),ids(:,b))
 END DO
-IF(cfg%layout=='SERIAL') CALL allocate_block(single,1)
+IF(cfg%layout=='SERIAL') CALL allocate_block(single,1, &
+  base%teb_nroof_layer,base%teb_nroad_layer,base%teb_nwall_layer)
 first_step=0
 IF(LEN_TRIM(cfg%restart_file)>0) CALL load_checkpoint(cfg%restart_file,cfg,first_step,blocks,ids,base)
 last_step=cfg%nsteps-1
@@ -174,10 +177,10 @@ CALL TEB_LOG_INIT(prefix//'TEB_output',cadence,rc)
 IF(rc/=0) ERROR STOP 'Cannot initialize model CSV output'
 CALL TEB_LOG_SET_VERBOSE(cfg%verbose)
 IF(cfg%test_dump) THEN
-  CALL write_schema(prefix//'fields.csv')
+  CALL write_schema(prefix//'fields.csv',base)
   OPEN(NEWUNIT=unit,FILE=prefix//'records.bin',ACCESS='STREAM',FORM='UNFORMATTED',STATUS='REPLACE',IOSTAT=rc)
   IF(rc/=0) ERROR STOP 'Cannot create block dump'
-  WRITE(unit) INT([1413825073,1,NFIELDS,8],INT32)
+  WRITE(unit) INT([1413825073,1,field_count(base),8],INT32)
 END IF
 WRITE(*,*) 'TEB offline: nvec=',cfg%nvec,' blocks=',cfg%nblocks,' model steps=',cfg%nsteps
 WRITE(*,*) 'Parameter namelist: ',TRIM(cfg%param_nml)
@@ -229,9 +232,9 @@ CALL CLOSE_OFFLINE_OUTPUT(files)
 CALL teb_finalize
 OPEN(NEWUNIT=meta_unit,FILE=prefix//'completed.txt',STATUS='REPLACE',ACTION='WRITE',IOSTAT=rc)
 IF(rc/=0) ERROR STOP 'Cannot create completion marker'
-WRITE(meta_unit,*) 'BLOCK_COMPLETED',first_step,last_step,cfg%nvec,cfg%nblocks,NFIELDS
+WRITE(meta_unit,*) 'BLOCK_COMPLETED',first_step,last_step,cfg%nvec,cfg%nblocks,field_count(base)
 CLOSE(meta_unit)
-WRITE(*,*) 'BLOCK_COMPLETED',first_step,last_step,cfg%nvec,cfg%nblocks,NFIELDS
+WRITE(*,*) 'BLOCK_COMPLETED',first_step,last_step,cfg%nvec,cfg%nblocks,field_count(base)
 WRITE(*,'(A,I4.4,A,I2.2,A,I2.2,A,F12.3,A)') 'End: ',blocks(1)%teb_year,'-', &
   blocks(1)%teb_month,'-',blocks(1)%teb_day,' +',blocks(1)%teb_hour_seconds(1),' seconds UTC'
 WRITE(*,*) 'TEB PROGRAM ENDS CORRECTLY'

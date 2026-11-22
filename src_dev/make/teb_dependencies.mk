@@ -1042,6 +1042,7 @@ $(OFFLINE_OBJDIR)/teb_offline_host.o: src_offline/teb_offline_host.F90 \
 $(OFFLINE_OBJDIR)/teb_offline_namelists.o: src_offline/teb_offline_namelists.F90 \
     $(OBJDIR)/modd_snow_par.o \
     $(OBJDIR)/modd_teb_optionn.o \
+    $(OBJDIR)/teb_host.o \
     $(OFFLINE_OBJDIR)/teb_offline_host.o
 $(OFFLINE_OBJDIR)/teb_offline_surfaces.o: src_offline/teb_offline_surfaces.F90 \
     $(OFFLINE_OBJDIR)/teb_offline_host.o

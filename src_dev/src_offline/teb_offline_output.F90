@@ -6,6 +6,8 @@
 !!        Write external-emulator and interval-mean runoff diagnostics.
 !!      11/2026 -- Mikhail Varentsov (MV)
 !!        Share per-cell CSV and metadata, retaining interval state on restart.
+!!      11/2026 -- OpenAI Codex
+!!        Include configured layer counts and depths in parameter metadata.
 !-------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_OUTPUT
 USE TEB_OFFLINE_HOST, ONLY: TEB_BLOCK, BLOCK_CONFIG, active
@@ -203,6 +205,18 @@ WRITE(unit,'(A)') 'block;cell;parameter;value'
 DO b=1,SIZE(blocks)
   DO j=1,blocks(b)%nvec
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';dt;',blocks(b)%dt
+    WRITE(unit,'(I0,A,I0,A,I0)') b,';',ids(j,b),';teb_nroof_layer;',blocks(b)%teb_nroof_layer
+    WRITE(unit,'(I0,A,I0,A,I0)') b,';',ids(j,b),';teb_nroad_layer;',blocks(b)%teb_nroad_layer
+    WRITE(unit,'(I0,A,I0,A,I0)') b,';',ids(j,b),';teb_nwall_layer;',blocks(b)%teb_nwall_layer
+    DO k=1,blocks(b)%teb_nroof_layer
+      WRITE(unit,'(I0,A,I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_d_rf[',k,'];',blocks(b)%urb_d_rf(k)
+    END DO
+    DO k=1,blocks(b)%teb_nroad_layer
+      WRITE(unit,'(I0,A,I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_d_rd[',k,'];',blocks(b)%urb_d_rd(k)
+    END DO
+    DO k=1,blocks(b)%teb_nwall_layer
+      WRITE(unit,'(I0,A,I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_d_wl[',k,'];',blocks(b)%urb_d_wl(k)
+    END DO
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_h_bld;',blocks(b)%urb_h_bld(j)
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';urb_fr_bld;',blocks(b)%urb_fr_bld(j)
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';fr_garden;',blocks(b)%fr_garden(j)

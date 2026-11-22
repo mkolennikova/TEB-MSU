@@ -34,6 +34,8 @@
 !!        Bind the resolved exchange algorithms with the column options.
 !!      11/2026 -- OpenAI Codex
 !!        Bind thermal roughness rules and per-column vegetation ratios.
+!!        Configure layer depths and homogeneous material profiles, resizing
+!!        the workspace and cold-start profiles to the host's layer counts.
 !!------------------------------------------------------------------------------
 !*       0.   DECLARATIONS
 !             ------------
@@ -61,6 +63,7 @@ USE MODD_CSTS,            ONLY : XRD, XRV, XCPD, XP00, XG, XPI
 USE MODD_SURF_PAR,        ONLY : XUNDEF
 USE MODE_THERMOS,         ONLY : QSAT
 USE MODD_TEB_EXT_SURF_n,  ONLY : TEB_EXT_SURF_t, ALLOC_TEB_EXT_SURF, DEALLOC_TEB_EXT_SURF
+USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_FINITE
 IMPLICIT NONE
 !
 !
@@ -83,6 +86,12 @@ TYPE(TEB_EXT_SURF_t), SAVE :: EXT      ! external garden / greenroof surface (ho
 LOGICAL,              SAVE :: LTEB_HOST_ALLOC = .FALSE.
 !$OMP THREADPRIVATE(TOPTS,TPARAMS,TSTATE,BOPTS,BPARAMS,BSTATE,FORC,EXT,TPN,TIR,DMT,LTEB_HOST_ALLOC)
 
+! One depth profile is shared by every column in a host call.
+REAL, PARAMETER :: TEB_DEFAULT_D_RF(5) = [0.001, 0.098, 0.132, 0.098, 0.001]
+REAL, PARAMETER :: TEB_DEFAULT_D_WL(5) = TEB_DEFAULT_D_RF
+REAL, PARAMETER :: TEB_DEFAULT_D_RD(5) = &
+  [0.001, 0.045296296, 0.092592593, 0.27777778, 0.83333333]
+
 ! The offline driver binds its ratios only while the block is being evaluated.
 TYPE TEB_Z0H_BINDING_t
   TYPE(TEB_Z0H_t) :: RULES
@@ -93,6 +102,26 @@ TYPE(TEB_Z0H_BINDING_t), SAVE, PRIVATE :: TZ0H_BINDING
 !$OMP THREADPRIVATE(TZ0H_BINDING)
 !
 CONTAINS
+
+SUBROUTINE TEB_CHECK_LAYER_DEPTHS(HNAME, KLAYERS, PDEPTH)
+CHARACTER(LEN=*), INTENT(IN) :: HNAME
+INTEGER, INTENT(IN) :: KLAYERS
+REAL, OPTIONAL, INTENT(IN) :: PDEPTH(:)
+
+IF (KLAYERS < 1) ERROR STOP 'TEB: layer counts must be positive'
+IF (PRESENT(PDEPTH)) THEN
+  IF (SIZE(PDEPTH) /= KLAYERS) THEN
+    WRITE(*,'(A)') TRIM(HNAME)
+    ERROR STOP 'TEB: expected exactly one depth per layer'
+  END IF
+  IF (ANY(.NOT. IEEE_IS_FINITE(PDEPTH))) &
+    ERROR STOP 'TEB: layer depths must be finite'
+  IF (ANY(PDEPTH <= 0.)) ERROR STOP 'TEB: layer depths must be positive'
+ELSE IF (KLAYERS /= 5) THEN
+  WRITE(*,'(A)') TRIM(HNAME)
+  ERROR STOP 'TEB: explicit depths are required for nondefault layer counts'
+END IF
+END SUBROUTINE TEB_CHECK_LAYER_DEPTHS
 
 !
 !------------------------------------------------------------------------------
@@ -227,7 +256,7 @@ SUBROUTINE TEB_FILL_DERIVED (KSTART, KEND, &
                              urb_z0_town, urb_zd_town, &
                              urb_hcap_rd, urb_hcap_rf, urb_hcap_wl, &
                              urb_hcon_rd, urb_hcon_rf, urb_hcon_wl, &
-                             ahf_traffic, fai)
+                             ahf_traffic, fai, urb_d_rf, urb_d_rd, urb_d_wl)
 !
 !* The derived static parameters: the layer profiles of the roof/road/wall/floor,
 !* the geometry fractions, the sky-view factors, z0/zd, the roughness coefficients,
@@ -241,6 +270,7 @@ REAL, DIMENSION(:), INTENT(IN) :: urb_hcap_rd, urb_hcap_rf, urb_hcap_wl
 REAL, DIMENSION(:), INTENT(IN) :: urb_hcon_rd, urb_hcon_rf, urb_hcon_wl
 REAL, DIMENSION(:), INTENT(IN) :: ahf_traffic
 REAL, DIMENSION(:,:), INTENT(IN) :: fai
+REAL, OPTIONAL, INTENT(IN) :: urb_d_rf(:), urb_d_rd(:), urb_d_wl(:)
 !
 INTEGER :: K
 REAL :: ZROAD, ZWALL_O_HOR, ZTOTS_O_HORS, ZROAD_FRAC, ZWALL_FRAC, ZGARDEN_FRAC
@@ -268,56 +298,28 @@ TOPTS%CZ0H         = 'MASC95'
 !
 DO K = KSTART, KEND
 !
-!* Roof layers
-  TPARAMS%XHC_ROOF(K,1) = urb_hcap_rf(K)
-  TPARAMS%XHC_ROOF(K,2) = urb_hcap_rf(K)
-  TPARAMS%XHC_ROOF(K,3) = urb_hcap_rf(K)
-  TPARAMS%XHC_ROOF(K,4) = 1127845.62
-  TPARAMS%XHC_ROOF(K,5) = 52030.
-  TPARAMS%XTC_ROOF(K,1) = urb_hcon_rf(K)
-  TPARAMS%XTC_ROOF(K,2) = urb_hcon_rf(K)
-  TPARAMS%XTC_ROOF(K,3) = urb_hcon_rf(K)
-  TPARAMS%XTC_ROOF(K,4) = 0.095454545
-  TPARAMS%XTC_ROOF(K,5) = 0.03
-  TPARAMS%XD_ROOF(K,1)  = 0.001
-  TPARAMS%XD_ROOF(K,2)  = 0.098
-  TPARAMS%XD_ROOF(K,3)  = 0.132
-  TPARAMS%XD_ROOF(K,4)  = 0.098
-  TPARAMS%XD_ROOF(K,5)  = 0.001
-!
-!* Road layers
-  TPARAMS%XHC_ROAD(K,1) = urb_hcap_rd(K)
-  TPARAMS%XHC_ROAD(K,2) = urb_hcap_rd(K)
-  TPARAMS%XHC_ROAD(K,3) = 1989600.
-  TPARAMS%XHC_ROAD(K,4) = 1640000.
-  TPARAMS%XHC_ROAD(K,5) = 1400000.
-  TPARAMS%XTC_ROAD(K,1) = urb_hcon_rd(K)
-  TPARAMS%XTC_ROAD(K,2) = urb_hcon_rd(K)
-  TPARAMS%XTC_ROAD(K,3) = 1.976584
-  TPARAMS%XTC_ROAD(K,4) = 0.5915493
-  TPARAMS%XTC_ROAD(K,5) = 0.4000
-  TPARAMS%XD_ROAD(K,1)  = 0.001
-  TPARAMS%XD_ROAD(K,2)  = 0.045296296
-  TPARAMS%XD_ROAD(K,3)  = 0.092592593
-  TPARAMS%XD_ROAD(K,4)  = 0.27777778
-  TPARAMS%XD_ROAD(K,5)  = 0.83333333
-!
-!* Wall layers
-  TPARAMS%XHC_WALL(K,1) = urb_hcap_wl(K)
-  TPARAMS%XHC_WALL(K,2) = urb_hcap_wl(K)
-  TPARAMS%XHC_WALL(K,3) = urb_hcap_wl(K)
-  TPARAMS%XHC_WALL(K,4) = 1127845.6
-  TPARAMS%XHC_WALL(K,5) = 52030.
-  TPARAMS%XTC_WALL(K,1) = urb_hcon_wl(K)
-  TPARAMS%XTC_WALL(K,2) = urb_hcon_wl(K)
-  TPARAMS%XTC_WALL(K,3) = urb_hcon_wl(K)
-  TPARAMS%XTC_WALL(K,4) = 0.095454545
-  TPARAMS%XTC_WALL(K,5) = 0.03
-  TPARAMS%XD_WALL(K,1)  = 0.001
-  TPARAMS%XD_WALL(K,2)  = 0.098
-  TPARAMS%XD_WALL(K,3)  = 0.132
-  TPARAMS%XD_WALL(K,4)  = 0.098
-  TPARAMS%XD_WALL(K,5)  = 0.001
+!* Material properties are uniform through each surface's full depth.
+  TPARAMS%XHC_ROOF(K,:) = urb_hcap_rf(K)
+  TPARAMS%XTC_ROOF(K,:) = urb_hcon_rf(K)
+  TPARAMS%XHC_ROAD(K,:) = urb_hcap_rd(K)
+  TPARAMS%XTC_ROAD(K,:) = urb_hcon_rd(K)
+  TPARAMS%XHC_WALL(K,:) = urb_hcap_wl(K)
+  TPARAMS%XTC_WALL(K,:) = urb_hcon_wl(K)
+  IF (PRESENT(urb_d_rf)) THEN
+    TPARAMS%XD_ROOF(K,:) = urb_d_rf
+  ELSE
+    TPARAMS%XD_ROOF(K,:) = TEB_DEFAULT_D_RF
+  END IF
+  IF (PRESENT(urb_d_rd)) THEN
+    TPARAMS%XD_ROAD(K,:) = urb_d_rd
+  ELSE
+    TPARAMS%XD_ROAD(K,:) = TEB_DEFAULT_D_RD
+  END IF
+  IF (PRESENT(urb_d_wl)) THEN
+    TPARAMS%XD_WALL(K,:) = urb_d_wl
+  ELSE
+    TPARAMS%XD_WALL(K,:) = TEB_DEFAULT_D_WL
+  END IF
 !
 !* Floor and internal mass layers
   BPARAMS%XHC_FLOOR(K,1) = 2016000.
@@ -582,16 +584,17 @@ INTEGER, INTENT(IN) :: KWALL   ! number of wall layers
 INTEGER, INTENT(IN) :: KFLOOR  ! number of floor layers
 !------------------------------------------------------------------------------
 !
-! The current physical allocators and material profiles support one column / five layers.
+! The physical workspace has one column; its material layer counts are dynamic.
 IF (KNVEC /= 1) ERROR STOP 'TEB_HOST_ENSURE: workspace must have one column'
-IF (ANY([KROOF, KROAD, KWALL, KFLOOR] /= 5)) &
-  ERROR STOP 'TEB_HOST_ENSURE: roof/road/wall/floor require five layers'
+IF (ANY([KROOF, KROAD, KWALL] < 1)) &
+  ERROR STOP 'TEB_HOST_ENSURE: layer counts must be positive'
+IF (KFLOOR /= 5) ERROR STOP 'TEB_HOST_ENSURE: floor requires five layers'
 IF (LTEB_HOST_ALLOC) THEN
   IF (SIZE(TSTATE%XT_ROOF, 1) /= KNVEC .OR. SIZE(TSTATE%XT_ROOF, 2) /= KROOF .OR. &
       SIZE(TSTATE%XT_ROAD, 2) /= KROAD .OR. SIZE(TSTATE%XT_WALL_A, 2) /= KWALL .OR. &
       SIZE(BSTATE%XT_FLOOR, 2) /= KFLOOR .OR. SIZE(DMT%XUSTAR_TOWN) /= KNVEC .OR. &
       SIZE(FORC%XZREF) /= KNVEC .OR. SIZE(EXT%XZ0_GD) /= KNVEC) &
-    ERROR STOP 'TEB_HOST_ENSURE: incompatible allocated workspace'
+    CALL TEB_HOST_FINAL
 END IF
 IF (.NOT. LTEB_HOST_ALLOC) THEN
   CALL ALLOC_TEB_STRUCT(KROOF, KROAD, KWALL, KFLOOR, TOPTS, TSTATE, BOPTS, BSTATE, TPN, TIR)
@@ -719,8 +722,8 @@ SUBROUTINE TEB_INIT_STATE (KSTART, KEND)
 !!    before the first CALL_DRIVER. The model step is 0-based.
 !!
 INTEGER, INTENT(IN) :: KSTART, KEND
-INTEGER :: J
-REAL    :: ZD_ROOF_LAYERS, ZD_WALL_LAYERS, ZFLOOR_HEIGHT, ZN_FLOOR
+INTEGER :: J, L, M, NROOF, NWALL
+REAL    :: ZD_ROOF_LAYERS, ZD_WALL_LAYERS, ZD_REMAIN, ZFLOOR_HEIGHT, ZN_FLOOR
 !------------------------------------------------------------------------------
 !* Resolve the initial building state first: the cold-start profiles and the
 !* floor/mass temperatures below are anchored to the initial building
@@ -735,23 +738,45 @@ DO J = KSTART, KEND
   DMT%XWIND_CANYON(J)          = 1.
   DMT%XTSTOWN_S(J)             = FORC%XTA(J)
   DMT%XQSTOWN_S(J)             = FORC%XQA(J)
-  ZD_ROOF_LAYERS               = TPARAMS%XD_ROOF(J,4) + TPARAMS%XD_ROOF(J,3) + TPARAMS%XD_ROOF(J,2) + TPARAMS%XD_ROOF(J,1)
-  TSTATE%XT_ROOF(J,1)          = FORC%XTA(J)
-  TSTATE%XT_ROOF(J,2)          = BSTATE%XTI_BLD(J) - ((BSTATE%XTI_BLD(J) - FORC%XTA(J)) * (TPARAMS%XD_ROOF(J,4) + TPARAMS%XD_ROOF(J,3) + TPARAMS%XD_ROOF(J,2)) / ZD_ROOF_LAYERS)
-  TSTATE%XT_ROOF(J,3)          = BSTATE%XTI_BLD(J) - ((BSTATE%XTI_BLD(J) - FORC%XTA(J)) * (TPARAMS%XD_ROOF(J,4) + TPARAMS%XD_ROOF(J,3)) / ZD_ROOF_LAYERS)
-  TSTATE%XT_ROOF(J,4)          = BSTATE%XTI_BLD(J) - ((BSTATE%XTI_BLD(J) - FORC%XTA(J)) * TPARAMS%XD_ROOF(J,4) / ZD_ROOF_LAYERS)
-  TSTATE%XT_ROOF(J,5)          = BSTATE%XTI_BLD(J)
-  TSTATE%XT_ROAD(J,1)          = FORC%XTA(J)
-  TSTATE%XT_ROAD(J,2)          = FORC%XTA(J)
-  TSTATE%XT_ROAD(J,3)          = FORC%XTA(J)
-  TSTATE%XT_ROAD(J,4)          = FORC%XTA(J)
-  TSTATE%XT_ROAD(J,5)          = FORC%XTA(J)
-  ZD_WALL_LAYERS               = TPARAMS%XD_WALL(J,1) + TPARAMS%XD_WALL(J,2) + TPARAMS%XD_WALL(J,3) + TPARAMS%XD_WALL(J,4)
-  TSTATE%XT_WALL_A(J,1)        = FORC%XTA(J)
-  TSTATE%XT_WALL_A(J,2)        = BSTATE%XTI_BLD(J) - ((BSTATE%XTI_BLD(J) - FORC%XTA(J)) * (TPARAMS%XD_WALL(J,4) + TPARAMS%XD_WALL(J,3) + TPARAMS%XD_WALL(J,2)) / ZD_WALL_LAYERS)
-  TSTATE%XT_WALL_A(J,3)        = BSTATE%XTI_BLD(J) - ((BSTATE%XTI_BLD(J) - FORC%XTA(J)) * (TPARAMS%XD_WALL(J,4) + TPARAMS%XD_WALL(J,3)) / ZD_WALL_LAYERS)
-  TSTATE%XT_WALL_A(J,4)        = BSTATE%XTI_BLD(J) - ((BSTATE%XTI_BLD(J) - FORC%XTA(J)) * TPARAMS%XD_WALL(J,4) / ZD_WALL_LAYERS)
-  TSTATE%XT_WALL_A(J,5)        = BSTATE%XTI_BLD(J)
+  NROOF = SIZE(TSTATE%XT_ROOF,2)
+  NWALL = SIZE(TSTATE%XT_WALL_A,2)
+  TSTATE%XT_ROOF(J,:) = FORC%XTA(J)
+  TSTATE%XT_ROAD(J,:) = FORC%XTA(J)
+  TSTATE%XT_WALL_A(J,:) = FORC%XTA(J)
+  ! Preserve the five-layer initialization's summation order and generalize
+  ! its outside-to-inside temperature profile to the configured layer count.
+  IF (NROOF > 1) THEN
+    ZD_ROOF_LAYERS = TPARAMS%XD_ROOF(J,NROOF-1)
+    DO L = NROOF-2, 1, -1
+      ZD_ROOF_LAYERS = ZD_ROOF_LAYERS + TPARAMS%XD_ROOF(J,L)
+    END DO
+    DO L = 2, NROOF-1
+      ZD_REMAIN = TPARAMS%XD_ROOF(J,NROOF-1)
+      DO M = NROOF-2, L, -1
+        ZD_REMAIN = ZD_REMAIN + TPARAMS%XD_ROOF(J,M)
+      END DO
+      TSTATE%XT_ROOF(J,L) = BSTATE%XTI_BLD(J) - &
+        (BSTATE%XTI_BLD(J)-FORC%XTA(J)) * ZD_REMAIN / ZD_ROOF_LAYERS
+    END DO
+    TSTATE%XT_ROOF(J,NROOF) = BSTATE%XTI_BLD(J)
+  END IF
+  IF (NWALL > 1) THEN
+    ZD_WALL_LAYERS = TPARAMS%XD_WALL(J,1)
+    DO L = 2, NWALL-1
+      ZD_WALL_LAYERS = ZD_WALL_LAYERS + TPARAMS%XD_WALL(J,L)
+    END DO
+    DO L = 2, NWALL-1
+      ZD_REMAIN = TPARAMS%XD_WALL(J,NWALL-1)
+      DO M = NWALL-2, L, -1
+        ZD_REMAIN = ZD_REMAIN + TPARAMS%XD_WALL(J,M)
+      END DO
+      TSTATE%XT_WALL_A(J,L) = BSTATE%XTI_BLD(J) - &
+        (BSTATE%XTI_BLD(J)-FORC%XTA(J)) * ZD_REMAIN / ZD_WALL_LAYERS
+    END DO
+    TSTATE%XT_WALL_A(J,NWALL) = BSTATE%XTI_BLD(J)
+  END IF
+  BSTATE%XT_FLOOR(J,:) = BSTATE%XTI_BLD(J)
+  BSTATE%XT_MASS(J,:) = BSTATE%XTI_BLD(J)
   TSTATE%XT_WALL_B(J,:)        = TSTATE%XT_WALL_A(J,:)
   BSTATE%XT_FLOOR(J,1)         = BSTATE%XTI_BLD(J)
   BSTATE%XT_FLOOR(J,2)         = BSTATE%XTI_BLD(J)

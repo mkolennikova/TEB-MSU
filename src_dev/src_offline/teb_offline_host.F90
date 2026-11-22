@@ -16,10 +16,13 @@
 !!        Bind offline road, roof and snow lengths for block and serial calls.
 !!      11/2026 -- OpenAI Codex
 !!        Track vegetation roughness ratios with cell identity across restart.
+!!        Carry variable layer counts/depths through serial/block calls,
+!!        diagnostic packets and versioned checkpoints.
 !!------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_HOST
 USE sfc_teb, ONLY: teb_interface, teb_real_kind, XUNDEF => teb_undef
-USE TEB_HOST, ONLY: TEB_HOST_FINAL, TEB_BIND_Z0, TEB_BIND_Z0H, TEB_Z0H_BINDING_t
+USE TEB_HOST, ONLY: TEB_HOST_FINAL, TEB_BIND_Z0, TEB_BIND_Z0H, TEB_Z0H_BINDING_t, &
+                   TEB_DEFAULT_D_RF, TEB_DEFAULT_D_RD, TEB_DEFAULT_D_WL
 USE MODD_TEB_PARAMS_n, ONLY: TEB_Z0_t
 USE TEB_LOG, ONLY: TEB_LOG_INIT, TEB_LOG_FINAL
 USE MODD_SURF_PAR, ONLY: teb_snow_check
@@ -39,7 +42,7 @@ USE, INTRINSIC :: ISO_FORTRAN_ENV, ONLY: INT32
 USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_FINITE
 IMPLICIT NONE
 PRIVATE
-PUBLIC :: BLOCK_CONFIG, TEB_BLOCK, NFIELDS, READ_BLOCK_CONFIG
+PUBLIC :: BLOCK_CONFIG, TEB_BLOCK, field_count, READ_BLOCK_CONFIG
 PUBLIC :: allocate_block, copy_column, copy_result, api_step, active, validate
 PUBLIC :: pack, write_schema, sanitize_outputs, dump, permute
 PUBLIC :: config_echo, save_checkpoint, load_checkpoint
@@ -124,6 +127,7 @@ TYPE TEB_BLOCK
   INTEGER :: teb_nroad_layer
   INTEGER :: teb_nwall_layer
   INTEGER :: teb_nfloor_layer
+  REAL(teb_real_kind), ALLOCATABLE :: urb_d_rf(:), urb_d_rd(:), urb_d_wl(:)
   REAL(teb_real_kind) ,ALLOCATABLE, DIMENSION(:) :: urb_fr_bld
   REAL(teb_real_kind) ,ALLOCATABLE, DIMENSION(:) :: fr_garden
   REAL(teb_real_kind) ,ALLOCATABLE, DIMENSION(:) :: urb_h2w
@@ -355,7 +359,7 @@ TYPE TEB_BLOCK
   REAL(teb_real_kind), ALLOCATABLE :: runoff_roof_acc(:)
   INTEGER :: output_count=0
 END TYPE
-INTEGER, PARAMETER :: NFIELDS=225
+
 CONTAINS
 SUBROUTINE READ_BLOCK_CONFIG(path,c)
 CHARACTER(LEN=*),INTENT(IN)::path
@@ -514,9 +518,25 @@ c%reverse=reverse
 c%fresh_work=fresh_work
 c%model_log=model_log
 END SUBROUTINE
-SUBROUTINE allocate_block(c,knvec)
+SUBROUTINE allocate_block(c,knvec,kroof,kroad,kwall)
 TYPE(TEB_BLOCK),INTENT(OUT)::c
 INTEGER,INTENT(IN)::knvec
+INTEGER,OPTIONAL,INTENT(IN)::kroof,kroad,kwall
+INTEGER::nr,nd,nw
+nr=5
+nd=5
+nw=5
+IF(PRESENT(kroof)) nr=kroof
+IF(PRESENT(kroad)) nd=kroad
+IF(PRESENT(kwall)) nw=kwall
+IF(MIN(knvec,nr,nd,nw)<1) ERROR STOP 'Invalid offline block or layer dimensions'
+ALLOCATE(c%urb_d_rf(nr),c%urb_d_rd(nd),c%urb_d_wl(nw))
+c%urb_d_rf=XUNDEF
+c%urb_d_rd=XUNDEF
+c%urb_d_wl=XUNDEF
+IF(nr==5) c%urb_d_rf=TEB_DEFAULT_D_RF
+IF(nd==5) c%urb_d_rd=TEB_DEFAULT_D_RD
+IF(nw==5) c%urb_d_wl=TEB_DEFAULT_D_WL
 ALLOCATE(c%sa_uc(knvec))
 ALLOCATE(c%lon_teb(knvec))
 ALLOCATE(c%lat_teb(knvec))
@@ -555,10 +575,10 @@ ALLOCATE(c%urb_alb_wl_th(knvec))
 ALLOCATE(c%ahf_traffic(knvec))
 ALLOCATE(c%ahf_industry(knvec))
 ALLOCATE(c%teb_ti_bld(knvec))
-ALLOCATE(c%teb_troof(knvec,1:5))
-ALLOCATE(c%teb_troad(knvec,1:5))
-ALLOCATE(c%teb_twalla(knvec,1:5))
-ALLOCATE(c%teb_twallb(knvec,1:5))
+ALLOCATE(c%teb_troof(knvec,nr))
+ALLOCATE(c%teb_troad(knvec,nd))
+ALLOCATE(c%teb_twalla(knvec,nw))
+ALLOCATE(c%teb_twallb(knvec,nw))
 ALLOCATE(c%teb_tfloor(knvec,1:5))
 ALLOCATE(c%teb_tmass(knvec,1:5))
 ALLOCATE(c%teb_qi_bld(knvec))
@@ -635,7 +655,7 @@ ALLOCATE(c%kteb_log_block(0))
 ALLOCATE(c%kteb_log_point(0))
 ALLOCATE(c%teb_ustar_town(knvec))
 ALLOCATE(c%teb_cd_greenroof_atm(knvec))
-ALLOCATE(c%teb_troad_before(knvec,5))
+ALLOCATE(c%teb_troad_before(knvec,nd))
 ALLOCATE(c%teb_ucanyon(knvec))
 ALLOCATE(c%teb_vcanyon(knvec))
 ALLOCATE(c%teb_tsroof(knvec))
@@ -710,10 +730,10 @@ c%prg_gsp=0.
 c%lwd_s=0.
 c%swdir_s=0.
 c%swdifd_s=0.
-c%teb_nroof_layer=0
-c%teb_nroad_layer=0
-c%teb_nwall_layer=0
-c%teb_nfloor_layer=0
+c%teb_nroof_layer=nr
+c%teb_nroad_layer=nd
+c%teb_nwall_layer=nw
+c%teb_nfloor_layer=5
 c%urb_fr_bld=0.
 c%fr_garden=0.
 c%urb_h2w=0.
@@ -1032,6 +1052,9 @@ d%teb_nroof_layer=s%teb_nroof_layer
 d%teb_nroad_layer=s%teb_nroad_layer
 d%teb_nwall_layer=s%teb_nwall_layer
 d%teb_nfloor_layer=s%teb_nfloor_layer
+d%urb_d_rf=s%urb_d_rf
+d%urb_d_rd=s%urb_d_rd
+d%urb_d_wl=s%urb_d_wl
 d%urb_fr_bld(k:k)=s%urb_fr_bld(j:j)
 d%fr_garden(k:k)=s%fr_garden(j:j)
 d%urb_h2w(k:k)=s%urb_h2w(j:j)
@@ -1460,243 +1483,261 @@ CALL teb_interface(ntstep=c%ntstep, nvec=c%nvec, iblock=c%iblock, dt=c%dt, teb_y
                    teb_ch_garden_atm=c%teb_ch_garden_atm, ahf_traffic_now=c%ahf_traffic_now, &
                    teb_snow_check=selected_snow_check, &
                    teb_ctype_exch_road=c%teb_ctype_exch_road, teb_ctype_exch_roof=c%teb_ctype_exch_roof, &
-                   teb_ctype_exch_canyon=c%teb_ctype_exch_canyon)
+                   teb_ctype_exch_canyon=c%teb_ctype_exch_canyon, &
+                   urb_d_rf=c%urb_d_rf, urb_d_rd=c%urb_d_rd, urb_d_wl=c%urb_d_wl)
 CALL TEB_BIND_Z0H(previous_z0h)
 CALL TEB_BIND_Z0(previous_z0)
 END SUBROUTINE
+PURE INTEGER FUNCTION field_count(c) RESULT(n)
+TYPE(TEB_BLOCK),INTENT(IN)::c
+! Scalar/fixed-size fields plus temperatures, saved road state and depths.
+n=200+2*c%teb_nroof_layer+3*c%teb_nroad_layer+3*c%teb_nwall_layer
+END FUNCTION field_count
+
 SUBROUTINE pack(c,j,values)
 TYPE(TEB_BLOCK),INTENT(IN)::c
 INTEGER,INTENT(IN)::j
-REAL(teb_real_kind),INTENT(OUT)::values(NFIELDS)
-values(1)=REAL(c%ntstep,teb_real_kind)
-values(2)=REAL(c%nvec,teb_real_kind)
-values(3)=REAL(c%iblock,teb_real_kind)
-values(4)=c%dt
-values(5)=REAL(c%teb_year,teb_real_kind)
-values(6)=REAL(c%teb_month,teb_real_kind)
-values(7)=REAL(c%teb_day,teb_real_kind)
-values(8)=REAL(c%teb_hour,teb_real_kind)
-values(9)=REAL(c%teb_min,teb_real_kind)
-values(10)=REAL(c%teb_sec,teb_real_kind)
-values(11)=c%teb_hour_seconds(1)
-values(12)=c%sa_uc(j)
-values(13)=c%lon_teb(j)
-values(14)=c%lat_teb(j)
-values(15)=c%hlev_teb(j)
-values(16)=REAL(c%ivstart,teb_real_kind)
-values(17)=REAL(c%ivend,teb_real_kind)
-values(18)=c%u(j)
-values(19)=c%v(j)
-values(20)=c%t(j)
-values(21)=c%qv(j)
-values(22)=c%ps(j)
-values(23)=c%rho(j)
-values(24)=c%prr_con(j)
-values(25)=c%prs_con(j)
-values(26)=c%prr_gsp(j)
-values(27)=c%prs_gsp(j)
-values(28)=c%prg_gsp(j)
-values(29)=c%lwd_s(j)
-values(30)=c%swdir_s(j)
-values(31)=c%swdifd_s(j)
-values(32)=REAL(c%teb_nroof_layer,teb_real_kind)
-values(33)=REAL(c%teb_nroad_layer,teb_real_kind)
-values(34)=REAL(c%teb_nwall_layer,teb_real_kind)
-values(35)=REAL(c%teb_nfloor_layer,teb_real_kind)
-values(36)=c%urb_fr_bld(j)
-values(37)=c%fr_garden(j)
-values(38)=c%urb_h2w(j)
-values(39)=c%urb_h_bld(j)
-values(40)=c%urb_hcap_rd(j)
-values(41)=c%urb_hcap_rf(j)
-values(42)=c%urb_hcap_wl(j)
-values(43)=c%urb_hcon_rd(j)
-values(44)=c%urb_hcon_rf(j)
-values(45)=c%urb_hcon_wl(j)
-values(46)=c%urb_alb_rd_so(j)
-values(47)=c%urb_alb_rf_so(j)
-values(48)=c%urb_alb_wl_so(j)
-values(49)=c%urb_alb_rd_th(j)
-values(50)=c%urb_alb_rf_th(j)
-values(51)=c%urb_alb_wl_th(j)
-values(52)=c%ahf_traffic(j)
-values(53)=c%ahf_industry(j)
-values(54)=c%teb_ti_bld(j)
-values(55)=c%teb_troof(j,1)
-values(56)=c%teb_troof(j,2)
-values(57)=c%teb_troof(j,3)
-values(58)=c%teb_troof(j,4)
-values(59)=c%teb_troof(j,5)
-values(60)=c%teb_troad(j,1)
-values(61)=c%teb_troad(j,2)
-values(62)=c%teb_troad(j,3)
-values(63)=c%teb_troad(j,4)
-values(64)=c%teb_troad(j,5)
-values(65)=c%teb_twalla(j,1)
-values(66)=c%teb_twalla(j,2)
-values(67)=c%teb_twalla(j,3)
-values(68)=c%teb_twalla(j,4)
-values(69)=c%teb_twalla(j,5)
-values(70)=c%teb_twallb(j,1)
-values(71)=c%teb_twallb(j,2)
-values(72)=c%teb_twallb(j,3)
-values(73)=c%teb_twallb(j,4)
-values(74)=c%teb_twallb(j,5)
-values(75)=c%teb_tfloor(j,1)
-values(76)=c%teb_tfloor(j,2)
-values(77)=c%teb_tfloor(j,3)
-values(78)=c%teb_tfloor(j,4)
-values(79)=c%teb_tfloor(j,5)
-values(80)=c%teb_tmass(j,1)
-values(81)=c%teb_tmass(j,2)
-values(82)=c%teb_tmass(j,3)
-values(83)=c%teb_tmass(j,4)
-values(84)=c%teb_tmass(j,5)
-values(85)=c%teb_qi_bld(j)
-values(86)=c%teb_tcanyon(j)
-values(87)=c%teb_qcanyon(j)
-values(88)=c%teb_ws_roof(j)
-values(89)=c%teb_ws_road(j)
-values(90)=c%teb_wsnow_roof(j,1)
-values(91)=c%teb_wsnow_road(j,1)
-values(92)=c%teb_tsnow_roof(j,1)
-values(93)=c%teb_tsnow_road(j,1)
-values(94)=c%teb_rsnow_roof(j,1)
-values(95)=c%teb_rsnow_road(j,1)
-values(96)=c%teb_tssnow_roof(j)
-values(97)=c%teb_tssnow_road(j)
-values(98)=c%teb_asnow_roof(j)
-values(99)=c%teb_asnow_road(j)
-values(100)=c%teb_esnow_roof(j)
-values(101)=c%teb_esnow_road(j)
-values(102)=c%teb_twin1(j)
-values(103)=c%teb_twin2(j)
-values(104)=c%teb_albwin(j)
-values(105)=MERGE(1.,0.,c%teb_lbem_ac)
-values(106)=c%teb_frac_gz(j)
-values(107)=c%teb_tcool_target(j)
-values(108)=c%teb_theat_target(j)
-values(109)=c%teb_bem_vent(j)
-values(110)=c%teb_bem_inf(j)
-values(111)=c%teb_bem_cop(j)
-values(112)=c%teb_cap_sys_rat(j)
-values(113)=c%teb_m_sys_rat(j)
-values(114)=MERGE(1.,0.,c%teb_shad_day(j))
-values(115)=MERGE(1.,0.,c%teb_natvent_night(j))
-values(116)=MERGE(1.,0.,c%teb_lgreenroof)
-values(117)=c%teb_frac_gr(j)
-values(118)=c%teb_z0_gr(j)
-values(119)=c%teb_alb_gr(j)
-values(120)=c%teb_emis_gr(j)
-values(121)=c%teb_ts_gr(j)
-values(122)=c%teb_qs_gr(j)
-values(123)=c%teb_shfl_gr(j)
-values(124)=c%teb_lhfl_gr(j)
-values(125)=c%teb_qvfl_gr(j)
-values(126)=c%teb_runoff_gr(j)
-values(127)=MERGE(1.,0.,c%teb_lgarden)
-values(128)=c%teb_z0_gd(j)
-values(129)=c%teb_alb_gd(j)
-values(130)=c%teb_emis_gd(j)
-values(131)=c%teb_ts_gd(j)
-values(132)=c%teb_qs_gd(j)
-values(133)=c%teb_shfl_gd(j)
-values(134)=c%teb_lhfl_gd(j)
-values(135)=c%teb_qvfl_gd(j)
-values(136)=c%teb_tch_gd(j)
-values(137)=c%teb_tcm_gd(j)
-values(138)=c%teb_runoff_gd(j)
-values(139)=REAL(c%teb_itype_wind,teb_real_kind)
-values(140)=c%teb_fai(j,1)
-values(141)=c%teb_fai(j,2)
-values(142)=c%teb_fai(j,3)
-values(143)=c%teb_fai(j,4)
-values(144)=c%teb_fai(j,5)
-values(145)=c%teb_fai(j,6)
-values(146)=c%teb_fai(j,7)
-values(147)=c%teb_fai(j,8)
-values(148)=MERGE(1.,0.,c%teb_lgreenroof_ext)
-values(149)=c%teb_road_dir(j)
-values(150)=c%teb_zresidential(j)
-values(151)=c%teb_dt_res(j)
-values(152)=c%teb_dt_off(j)
-values(153)=c%teb_cap_sys_heat(j)
-values(154)=MERGE(1.,0.,c%teb_lsolar_panel)
-values(155)=c%teb_fr_panel(j)
-values(156)=MERGE(1.,0.,c%teb_lroad_irrig)
-values(157)=c%teb_rd_irrig_start_m(j)
-values(158)=c%teb_rd_irrig_end_m(j)
-values(159)=c%teb_rd_irrig_start_h(j)
-values(160)=c%teb_rd_irrig_end_h(j)
-values(161)=c%teb_rd_irrig_sum(j)
-values(162)=REAL(c%teb_utc_hour,teb_real_kind)
-values(163)=MERGE(1.,0.,c%teb_lshade)
-values(164)=c%urb_z0_o_z0h_gdn(j)
-values(165)=c%urb_z0_o_z0h_grf(j)
-values(166)=MERGE(1.,0.,c%teb_lcbs_scheme)
-values(167)=c%teb_tau_hw_thresh
-values(168)=c%teb_tau_hw_width
-values(169)=c%teb_wind_canyon(j)
-values(170)=c%teb_u_can_ped(j)
-values(171)=c%teb_u_can_10m(j)
-values(172)=c%teb_sobs(j)
-values(173)=c%teb_thbs(j)
-values(174)=c%teb_runoff_road(j)
-values(175)=c%teb_runoff_roof(j)
-values(176)=c%teb_ustar_town(j)
-values(177)=c%teb_cd_greenroof_atm(j)
-values(178)=c%teb_troad_before(j,1)
-values(179)=c%teb_troad_before(j,2)
-values(180)=c%teb_troad_before(j,3)
-values(181)=c%teb_troad_before(j,4)
-values(182)=c%teb_troad_before(j,5)
-values(183)=c%teb_ucanyon(j)
-values(184)=c%teb_vcanyon(j)
-values(185)=c%teb_tsroof(j)
-values(186)=c%teb_tswalla(j)
-values(187)=c%teb_tswallb(j)
-values(188)=c%teb_shfl(j)
-values(189)=c%teb_lhfl(j)
-values(190)=c%teb_qvfl(j)
-values(191)=c%teb_tstown_s(j)
-values(192)=c%teb_qstown_s(j)
-values(193)=c%teb_wstown(j)
-values(194)=c%teb_runoff_town(j)
-values(195)=c%teb_tssnow_town(j)
-values(196)=c%teb_wsnow_town(j)
-values(197)=c%teb_rsnow_town(j)
-values(198)=c%teb_frsnow(j)
-values(199)=c%teb_hsnow_town(j)
-values(200)=c%teb_tch_town(j)
-values(201)=c%teb_shfl_snow(j)
-values(202)=c%teb_lhfl_snow(j)
-values(203)=c%teb_snow_melt(j)
-values(204)=c%teb_alb_so(j)
-values(205)=c%teb_emis_town(j)
-values(206)=c%teb_hwaste(j)
-values(207)=c%teb_hvac_cool(j)
-values(208)=c%teb_hvac_heat(j)
-values(209)=c%teb_dqs_town(j)
-values(210)=c%teb_gflux(j)
-values(211)=c%teb_shfl_rf(j)
-values(212)=c%teb_shfl_rd(j)
-values(213)=c%teb_shfl_wl(j)
-values(214)=c%teb_ac_rf(j)
-values(215)=c%teb_ac_rd(j)
-values(216)=c%teb_ac_wl(j)
-values(217)=c%teb_ac_top(j)
-values(218)=c%teb_tch_rf(j)
-values(219)=c%teb_tch_rd(j)
-values(220)=c%teb_tch_wl(j)
-values(221)=c%teb_tch_top(j)
-values(222)=c%teb_wind_top(j)
-values(223)=c%teb_cd_garden_atm(j)
-values(224)=c%teb_ch_garden_atm(j)
-values(225)=c%ahf_traffic_now(j)
-END SUBROUTINE
-SUBROUTINE write_schema(path)
+REAL(teb_real_kind),INTENT(OUT)::values(:)
+INTEGER::k,l
+IF(SIZE(values)/=field_count(c)) ERROR STOP 'Invalid diagnostic packet size'
+k=0
+CALL add_value(REAL(c%ntstep,teb_real_kind))
+CALL add_value(REAL(c%nvec,teb_real_kind))
+CALL add_value(REAL(c%iblock,teb_real_kind))
+CALL add_value(c%dt)
+CALL add_value(REAL(c%teb_year,teb_real_kind))
+CALL add_value(REAL(c%teb_month,teb_real_kind))
+CALL add_value(REAL(c%teb_day,teb_real_kind))
+CALL add_value(REAL(c%teb_hour,teb_real_kind))
+CALL add_value(REAL(c%teb_min,teb_real_kind))
+CALL add_value(REAL(c%teb_sec,teb_real_kind))
+CALL add_value(c%teb_hour_seconds(1))
+CALL add_value(c%sa_uc(j))
+CALL add_value(c%lon_teb(j))
+CALL add_value(c%lat_teb(j))
+CALL add_value(c%hlev_teb(j))
+CALL add_value(REAL(c%ivstart,teb_real_kind))
+CALL add_value(REAL(c%ivend,teb_real_kind))
+CALL add_value(c%u(j))
+CALL add_value(c%v(j))
+CALL add_value(c%t(j))
+CALL add_value(c%qv(j))
+CALL add_value(c%ps(j))
+CALL add_value(c%rho(j))
+CALL add_value(c%prr_con(j))
+CALL add_value(c%prs_con(j))
+CALL add_value(c%prr_gsp(j))
+CALL add_value(c%prs_gsp(j))
+CALL add_value(c%prg_gsp(j))
+CALL add_value(c%lwd_s(j))
+CALL add_value(c%swdir_s(j))
+CALL add_value(c%swdifd_s(j))
+CALL add_value(REAL(c%teb_nroof_layer,teb_real_kind))
+CALL add_value(REAL(c%teb_nroad_layer,teb_real_kind))
+CALL add_value(REAL(c%teb_nwall_layer,teb_real_kind))
+CALL add_value(REAL(c%teb_nfloor_layer,teb_real_kind))
+CALL add_value(c%urb_fr_bld(j))
+CALL add_value(c%fr_garden(j))
+CALL add_value(c%urb_h2w(j))
+CALL add_value(c%urb_h_bld(j))
+CALL add_value(c%urb_hcap_rd(j))
+CALL add_value(c%urb_hcap_rf(j))
+CALL add_value(c%urb_hcap_wl(j))
+CALL add_value(c%urb_hcon_rd(j))
+CALL add_value(c%urb_hcon_rf(j))
+CALL add_value(c%urb_hcon_wl(j))
+CALL add_value(c%urb_alb_rd_so(j))
+CALL add_value(c%urb_alb_rf_so(j))
+CALL add_value(c%urb_alb_wl_so(j))
+CALL add_value(c%urb_alb_rd_th(j))
+CALL add_value(c%urb_alb_rf_th(j))
+CALL add_value(c%urb_alb_wl_th(j))
+CALL add_value(c%ahf_traffic(j))
+CALL add_value(c%ahf_industry(j))
+CALL add_value(c%teb_ti_bld(j))
+DO l=1,c%teb_nroof_layer
+  CALL add_value(c%teb_troof(j,l))
+END DO
+DO l=1,c%teb_nroad_layer
+  CALL add_value(c%teb_troad(j,l))
+END DO
+DO l=1,c%teb_nwall_layer
+  CALL add_value(c%teb_twalla(j,l))
+END DO
+DO l=1,c%teb_nwall_layer
+  CALL add_value(c%teb_twallb(j,l))
+END DO
+CALL add_value(c%teb_tfloor(j,1))
+CALL add_value(c%teb_tfloor(j,2))
+CALL add_value(c%teb_tfloor(j,3))
+CALL add_value(c%teb_tfloor(j,4))
+CALL add_value(c%teb_tfloor(j,5))
+CALL add_value(c%teb_tmass(j,1))
+CALL add_value(c%teb_tmass(j,2))
+CALL add_value(c%teb_tmass(j,3))
+CALL add_value(c%teb_tmass(j,4))
+CALL add_value(c%teb_tmass(j,5))
+CALL add_value(c%teb_qi_bld(j))
+CALL add_value(c%teb_tcanyon(j))
+CALL add_value(c%teb_qcanyon(j))
+CALL add_value(c%teb_ws_roof(j))
+CALL add_value(c%teb_ws_road(j))
+CALL add_value(c%teb_wsnow_roof(j,1))
+CALL add_value(c%teb_wsnow_road(j,1))
+CALL add_value(c%teb_tsnow_roof(j,1))
+CALL add_value(c%teb_tsnow_road(j,1))
+CALL add_value(c%teb_rsnow_roof(j,1))
+CALL add_value(c%teb_rsnow_road(j,1))
+CALL add_value(c%teb_tssnow_roof(j))
+CALL add_value(c%teb_tssnow_road(j))
+CALL add_value(c%teb_asnow_roof(j))
+CALL add_value(c%teb_asnow_road(j))
+CALL add_value(c%teb_esnow_roof(j))
+CALL add_value(c%teb_esnow_road(j))
+CALL add_value(c%teb_twin1(j))
+CALL add_value(c%teb_twin2(j))
+CALL add_value(c%teb_albwin(j))
+CALL add_value(MERGE(1.,0.,c%teb_lbem_ac))
+CALL add_value(c%teb_frac_gz(j))
+CALL add_value(c%teb_tcool_target(j))
+CALL add_value(c%teb_theat_target(j))
+CALL add_value(c%teb_bem_vent(j))
+CALL add_value(c%teb_bem_inf(j))
+CALL add_value(c%teb_bem_cop(j))
+CALL add_value(c%teb_cap_sys_rat(j))
+CALL add_value(c%teb_m_sys_rat(j))
+CALL add_value(MERGE(1.,0.,c%teb_shad_day(j)))
+CALL add_value(MERGE(1.,0.,c%teb_natvent_night(j)))
+CALL add_value(MERGE(1.,0.,c%teb_lgreenroof))
+CALL add_value(c%teb_frac_gr(j))
+CALL add_value(c%teb_z0_gr(j))
+CALL add_value(c%teb_alb_gr(j))
+CALL add_value(c%teb_emis_gr(j))
+CALL add_value(c%teb_ts_gr(j))
+CALL add_value(c%teb_qs_gr(j))
+CALL add_value(c%teb_shfl_gr(j))
+CALL add_value(c%teb_lhfl_gr(j))
+CALL add_value(c%teb_qvfl_gr(j))
+CALL add_value(c%teb_runoff_gr(j))
+CALL add_value(MERGE(1.,0.,c%teb_lgarden))
+CALL add_value(c%teb_z0_gd(j))
+CALL add_value(c%teb_alb_gd(j))
+CALL add_value(c%teb_emis_gd(j))
+CALL add_value(c%teb_ts_gd(j))
+CALL add_value(c%teb_qs_gd(j))
+CALL add_value(c%teb_shfl_gd(j))
+CALL add_value(c%teb_lhfl_gd(j))
+CALL add_value(c%teb_qvfl_gd(j))
+CALL add_value(c%teb_tch_gd(j))
+CALL add_value(c%teb_tcm_gd(j))
+CALL add_value(c%teb_runoff_gd(j))
+CALL add_value(REAL(c%teb_itype_wind,teb_real_kind))
+CALL add_value(c%teb_fai(j,1))
+CALL add_value(c%teb_fai(j,2))
+CALL add_value(c%teb_fai(j,3))
+CALL add_value(c%teb_fai(j,4))
+CALL add_value(c%teb_fai(j,5))
+CALL add_value(c%teb_fai(j,6))
+CALL add_value(c%teb_fai(j,7))
+CALL add_value(c%teb_fai(j,8))
+CALL add_value(MERGE(1.,0.,c%teb_lgreenroof_ext))
+CALL add_value(c%teb_road_dir(j))
+CALL add_value(c%teb_zresidential(j))
+CALL add_value(c%teb_dt_res(j))
+CALL add_value(c%teb_dt_off(j))
+CALL add_value(c%teb_cap_sys_heat(j))
+CALL add_value(MERGE(1.,0.,c%teb_lsolar_panel))
+CALL add_value(c%teb_fr_panel(j))
+CALL add_value(MERGE(1.,0.,c%teb_lroad_irrig))
+CALL add_value(c%teb_rd_irrig_start_m(j))
+CALL add_value(c%teb_rd_irrig_end_m(j))
+CALL add_value(c%teb_rd_irrig_start_h(j))
+CALL add_value(c%teb_rd_irrig_end_h(j))
+CALL add_value(c%teb_rd_irrig_sum(j))
+CALL add_value(REAL(c%teb_utc_hour,teb_real_kind))
+CALL add_value(MERGE(1.,0.,c%teb_lshade))
+CALL add_value(c%urb_z0_o_z0h_gdn(j))
+CALL add_value(c%urb_z0_o_z0h_grf(j))
+CALL add_value(MERGE(1.,0.,c%teb_lcbs_scheme))
+CALL add_value(c%teb_tau_hw_thresh)
+CALL add_value(c%teb_tau_hw_width)
+CALL add_value(c%teb_wind_canyon(j))
+CALL add_value(c%teb_u_can_ped(j))
+CALL add_value(c%teb_u_can_10m(j))
+CALL add_value(c%teb_sobs(j))
+CALL add_value(c%teb_thbs(j))
+CALL add_value(c%teb_runoff_road(j))
+CALL add_value(c%teb_runoff_roof(j))
+CALL add_value(c%teb_ustar_town(j))
+CALL add_value(c%teb_cd_greenroof_atm(j))
+DO l=1,c%teb_nroad_layer
+  CALL add_value(c%teb_troad_before(j,l))
+END DO
+CALL add_value(c%teb_ucanyon(j))
+CALL add_value(c%teb_vcanyon(j))
+CALL add_value(c%teb_tsroof(j))
+CALL add_value(c%teb_tswalla(j))
+CALL add_value(c%teb_tswallb(j))
+CALL add_value(c%teb_shfl(j))
+CALL add_value(c%teb_lhfl(j))
+CALL add_value(c%teb_qvfl(j))
+CALL add_value(c%teb_tstown_s(j))
+CALL add_value(c%teb_qstown_s(j))
+CALL add_value(c%teb_wstown(j))
+CALL add_value(c%teb_runoff_town(j))
+CALL add_value(c%teb_tssnow_town(j))
+CALL add_value(c%teb_wsnow_town(j))
+CALL add_value(c%teb_rsnow_town(j))
+CALL add_value(c%teb_frsnow(j))
+CALL add_value(c%teb_hsnow_town(j))
+CALL add_value(c%teb_tch_town(j))
+CALL add_value(c%teb_shfl_snow(j))
+CALL add_value(c%teb_lhfl_snow(j))
+CALL add_value(c%teb_snow_melt(j))
+CALL add_value(c%teb_alb_so(j))
+CALL add_value(c%teb_emis_town(j))
+CALL add_value(c%teb_hwaste(j))
+CALL add_value(c%teb_hvac_cool(j))
+CALL add_value(c%teb_hvac_heat(j))
+CALL add_value(c%teb_dqs_town(j))
+CALL add_value(c%teb_gflux(j))
+CALL add_value(c%teb_shfl_rf(j))
+CALL add_value(c%teb_shfl_rd(j))
+CALL add_value(c%teb_shfl_wl(j))
+CALL add_value(c%teb_ac_rf(j))
+CALL add_value(c%teb_ac_rd(j))
+CALL add_value(c%teb_ac_wl(j))
+CALL add_value(c%teb_ac_top(j))
+CALL add_value(c%teb_tch_rf(j))
+CALL add_value(c%teb_tch_rd(j))
+CALL add_value(c%teb_tch_wl(j))
+CALL add_value(c%teb_tch_top(j))
+CALL add_value(c%teb_wind_top(j))
+CALL add_value(c%teb_cd_garden_atm(j))
+CALL add_value(c%teb_ch_garden_atm(j))
+CALL add_value(c%ahf_traffic_now(j))
+DO l=1,c%teb_nroof_layer
+  CALL add_value(c%urb_d_rf(l))
+END DO
+DO l=1,c%teb_nroad_layer
+  CALL add_value(c%urb_d_rd(l))
+END DO
+DO l=1,c%teb_nwall_layer
+  CALL add_value(c%urb_d_wl(l))
+END DO
+IF(k/=SIZE(values)) ERROR STOP 'Incomplete diagnostic packet'
+CONTAINS
+SUBROUTINE add_value(value)
+REAL(teb_real_kind),INTENT(IN)::value
+k=k+1
+values(k)=value
+END SUBROUTINE add_value
+END SUBROUTINE pack
+
+SUBROUTINE write_schema(path,c)
 CHARACTER(LEN=*),INTENT(IN)::path
-INTEGER::unit,rc
+TYPE(TEB_BLOCK),INTENT(IN)::c
+INTEGER::unit,rc,l
 OPEN(NEWUNIT=unit,FILE=TRIM(path),STATUS='REPLACE',ACTION='WRITE',IOSTAT=rc)
 IF(rc/=0) ERROR STOP 'Cannot create fields.csv'
 WRITE(unit,'(A)') 'name;intent;type'
@@ -1754,26 +1795,18 @@ WRITE(unit,'(A)') 'urb_alb_wl_th;IN;REAL'
 WRITE(unit,'(A)') 'ahf_traffic;IN;REAL'
 WRITE(unit,'(A)') 'ahf_industry;IN;REAL'
 WRITE(unit,'(A)') 'teb_ti_bld;INOUT;REAL'
-WRITE(unit,'(A)') 'teb_troof[1];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_troof[2];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_troof[3];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_troof[4];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_troof[5];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_troad[1];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_troad[2];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_troad[3];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_troad[4];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_troad[5];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_twalla[1];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_twalla[2];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_twalla[3];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_twalla[4];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_twalla[5];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_twallb[1];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_twallb[2];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_twallb[3];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_twallb[4];INOUT;REAL'
-WRITE(unit,'(A)') 'teb_twallb[5];INOUT;REAL'
+DO l=1,c%teb_nroof_layer
+  WRITE(unit,'(A,I0,A)') 'teb_troof[',l,'];INOUT;REAL'
+END DO
+DO l=1,c%teb_nroad_layer
+  WRITE(unit,'(A,I0,A)') 'teb_troad[',l,'];INOUT;REAL'
+END DO
+DO l=1,c%teb_nwall_layer
+  WRITE(unit,'(A,I0,A)') 'teb_twalla[',l,'];INOUT;REAL'
+END DO
+DO l=1,c%teb_nwall_layer
+  WRITE(unit,'(A,I0,A)') 'teb_twallb[',l,'];INOUT;REAL'
+END DO
 WRITE(unit,'(A)') 'teb_tfloor[1];INOUT;REAL'
 WRITE(unit,'(A)') 'teb_tfloor[2];INOUT;REAL'
 WRITE(unit,'(A)') 'teb_tfloor[3];INOUT;REAL'
@@ -1877,11 +1910,9 @@ WRITE(unit,'(A)') 'teb_runoff_road;OUT;REAL'
 WRITE(unit,'(A)') 'teb_runoff_roof;OUT;REAL'
 WRITE(unit,'(A)') 'teb_ustar_town;INOUT;REAL'
 WRITE(unit,'(A)') 'teb_cd_greenroof_atm;INOUT;REAL'
-WRITE(unit,'(A)') 'teb_troad_before[1];OUT;REAL'
-WRITE(unit,'(A)') 'teb_troad_before[2];OUT;REAL'
-WRITE(unit,'(A)') 'teb_troad_before[3];OUT;REAL'
-WRITE(unit,'(A)') 'teb_troad_before[4];OUT;REAL'
-WRITE(unit,'(A)') 'teb_troad_before[5];OUT;REAL'
+DO l=1,c%teb_nroad_layer
+  WRITE(unit,'(A,I0,A)') 'teb_troad_before[',l,'];OUT;REAL'
+END DO
 WRITE(unit,'(A)') 'teb_ucanyon;OUT;REAL'
 WRITE(unit,'(A)') 'teb_vcanyon;OUT;REAL'
 WRITE(unit,'(A)') 'teb_tsroof;OUT;REAL'
@@ -1925,6 +1956,15 @@ WRITE(unit,'(A)') 'teb_wind_top;OUT;REAL'
 WRITE(unit,'(A)') 'teb_cd_garden_atm;OUT;REAL'
 WRITE(unit,'(A)') 'teb_ch_garden_atm;OUT;REAL'
 WRITE(unit,'(A)') 'ahf_traffic_now;OUT;REAL'
+DO l=1,c%teb_nroof_layer
+  WRITE(unit,'(A,I0,A)') 'urb_d_rf[',l,'];IN;REAL'
+END DO
+DO l=1,c%teb_nroad_layer
+  WRITE(unit,'(A,I0,A)') 'urb_d_rd[',l,'];IN;REAL'
+END DO
+DO l=1,c%teb_nwall_layer
+  WRITE(unit,'(A,I0,A)') 'urb_d_wl[',l,'];IN;REAL'
+END DO
 CLOSE(unit)
 END SUBROUTINE
 SUBROUTINE sanitize_outputs(c,ids,cfg)
@@ -2027,6 +2067,9 @@ WRITE(unit) c%teb_nroof_layer
 WRITE(unit) c%teb_nroad_layer
 WRITE(unit) c%teb_nwall_layer
 WRITE(unit) c%teb_nfloor_layer
+WRITE(unit) c%urb_d_rf
+WRITE(unit) c%urb_d_rd
+WRITE(unit) c%urb_d_wl
 WRITE(unit) c%urb_fr_bld
 WRITE(unit) c%fr_garden
 WRITE(unit) c%urb_h2w
@@ -2325,6 +2368,15 @@ READ(unit,IOSTAT=rc) c%teb_nwall_layer
 IF(rc/=0) ERROR STOP "Incomplete checkpoint"
 READ(unit,IOSTAT=rc) c%teb_nfloor_layer
 IF(rc/=0) ERROR STOP "Incomplete checkpoint"
+IF(SIZE(c%teb_troof,2)/=c%teb_nroof_layer .OR. &
+   SIZE(c%teb_troad,2)/=c%teb_nroad_layer .OR. &
+   SIZE(c%teb_twalla,2)/=c%teb_nwall_layer) ERROR STOP 'Checkpoint layer mismatch'
+READ(unit,IOSTAT=rc) c%urb_d_rf
+IF(rc/=0) ERROR STOP "Incomplete layer depths"
+READ(unit,IOSTAT=rc) c%urb_d_rd
+IF(rc/=0) ERROR STOP "Incomplete layer depths"
+READ(unit,IOSTAT=rc) c%urb_d_wl
+IF(rc/=0) ERROR STOP "Incomplete layer depths"
 READ(unit,IOSTAT=rc) c%urb_fr_bld
 IF(rc/=0) ERROR STOP "Incomplete checkpoint"
 READ(unit,IOSTAT=rc) c%fr_garden
@@ -3130,11 +3182,11 @@ END SUBROUTINE
 
 SUBROUTINE dump(unit,c,ids,phase)
 ! Stream format v1: four INT32 header words, then six INT32 metadata words and
-! NFIELDS REAL64 values per record. fields.csv describes their order and intent.
+! field_count(c) REAL64 values per record. fields.csv describes their order and intent.
 ! Phase 0 is immediately before the API; phase 1 precedes host emulator updates.
 INTEGER,INTENT(IN)::unit,ids(:),phase
 TYPE(TEB_BLOCK),INTENT(IN)::c
-REAL(teb_real_kind)::values(NFIELDS)
+REAL(teb_real_kind)::values(field_count(c))
 INTEGER::j
 DO j=1,c%nvec
   CALL pack(c,j,values)
@@ -3165,7 +3217,7 @@ TYPE(TEB_BLOCK),INTENT(IN)::blocks(:)
 INTEGER::unit,b,rc
 OPEN(NEWUNIT=unit,FILE=TRIM(path),ACCESS='STREAM',FORM='UNFORMATTED',STATUS='REPLACE',IOSTAT=rc)
 IF(rc/=0) ERROR STOP 'Cannot create checkpoint'
-WRITE(unit) INT([1413825074,2,NFIELDS,STORAGE_SIZE(blocks(1)%t)],INT32)
+WRITE(unit) INT([1413825074,3,field_count(blocks(1)),STORAGE_SIZE(blocks(1)%t)],INT32)
 WRITE(unit) cfg,next_step,ids
 DO b=1,SIZE(blocks)
   CALL write_packet(unit,blocks(b))
@@ -3186,7 +3238,7 @@ OPEN(NEWUNIT=unit,FILE=TRIM(path),ACCESS='STREAM',FORM='UNFORMATTED',STATUS='OLD
 IF(rc/=0) ERROR STOP 'Cannot open checkpoint'
 READ(unit,IOSTAT=rc) header
 IF(rc/=0) ERROR STOP 'Invalid checkpoint header'
-IF(ANY(header/=INT([1413825074,2,NFIELDS,STORAGE_SIZE(blocks(1)%t)],INT32))) ERROR STOP &
+IF(ANY(header/=INT([1413825074,3,field_count(blocks(1)),STORAGE_SIZE(blocks(1)%t)],INT32))) ERROR STOP &
   'Checkpoint format mismatch'
 READ(unit,IOSTAT=rc) saved_cfg,next_step
 IF(rc/=0) ERROR STOP 'Incomplete checkpoint configuration'

@@ -19,6 +19,8 @@
 !!        finalization through the public API.
 !!      11/2026 -- OpenAI Codex
 !!        Expose independent optional road, roof and canyon exchange algorithms.
+!!      11/2026 -- OpenAI Codex
+!!        Accept shared layer-depth profiles and runtime roof/road/wall counts.
 !!------------------------------------------------------------------------------
 MODULE sfc_teb
 
@@ -33,7 +35,11 @@ MODULE sfc_teb
 USE MODI_CALL_DRIVER, ONLY : CALL_DRIVER
 USE MODI_INI_CSTS,   ONLY : INI_CSTS
 USE MODD_DIAG_MISC_TEB_n, ONLY : DIAG_MISC_TEB_t
-USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_FILL_FORCING, TEB_FILL_EXT, TEB_HOST_ENSURE, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, DMT, FORC, EXT, TEB_BIND_STATE, TEB_UNBIND_STATE, TEB_INIT_STATE, TEB_HOST_FINAL
+USE TEB_HOST, ONLY : TEB_FILL_PARAMS, TEB_FILL_DERIVED, TEB_FILL_FORCING, &
+                    TEB_FILL_EXT, TEB_HOST_ENSURE, TOPTS, TPARAMS, BOPTS, &
+                    BPARAMS, TSTATE, BSTATE, TPN, TIR, DMT, FORC, EXT, &
+                    TEB_BIND_STATE, TEB_UNBIND_STATE, TEB_INIT_STATE, &
+                    TEB_HOST_FINAL, TEB_CHECK_LAYER_DEPTHS
 USE TEB_LOG,  ONLY : TEB_LOG_SET_FILTER, TEB_LOG_AT_CADENCE, TEB_LOG_EMIT, TEB_LOG_FINAL
 USE MODD_SURF_PAR, ONLY : teb_undef => XUNDEF, module_snow_check => teb_snow_check
 IMPLICIT NONE
@@ -112,7 +118,9 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
                           teb_tch_rf, teb_tch_rd, teb_tch_wl, &
                           teb_tch_top, teb_wind_top, teb_cd_garden_atm, &
                           teb_ch_garden_atm, ahf_traffic_now, teb_snow_check, &
-                          teb_ctype_exch_road, teb_ctype_exch_roof, teb_ctype_exch_canyon)
+                          teb_ctype_exch_road, teb_ctype_exch_roof, teb_ctype_exch_canyon, &
+                          urb_d_rf, urb_d_rd, urb_d_wl)
+USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_FINITE
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t, TEB_EXCH_METHOD
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
@@ -133,6 +141,8 @@ LOGICAL, OPTIONAL, INTENT(IN), VALUE :: teb_snow_check
 CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_road
 CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_roof
 CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_canyon
+! Layer depths in metres, shared by all columns; omitted profiles use defaults.
+REAL, OPTIONAL, INTENT(IN) :: urb_d_rf(:), urb_d_rd(:), urb_d_wl(:)
 CHARACTER(LEN=6) :: HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON
 REAL, INTENT(IN) :: dt          !IN integration timestep
 	
@@ -171,9 +181,9 @@ REAL ,DIMENSION(nvec), INTENT(IN) :: swdifd_s  !IN diffuse downward comp. of sho
 	
 REAL ,DIMENSION(nvec), INTENT(INOUT) :: teb_ti_bld  !INOUT indoor air temperature (K)
 	
-INTEGER, INTENT(IN) :: teb_nwall_layer   !IN optional end   index                   ! ivend
-INTEGER, INTENT(IN) :: teb_nroof_layer   !IN optional end   index                   ! ivend
-INTEGER, INTENT(IN) :: teb_nroad_layer   !IN optional end   index                   ! ivend
+INTEGER, INTENT(IN) :: teb_nwall_layer   ! Number of material layers
+INTEGER, INTENT(IN) :: teb_nroof_layer   ! Number of material layers
+INTEGER, INTENT(IN) :: teb_nroad_layer   ! Number of material layers
 INTEGER, INTENT(IN) :: teb_nfloor_layer  !IN optional end   index                   ! ivend
 	
 REAL ,DIMENSION(nvec), INTENT(IN) :: urb_fr_bld  !IN Building area fraction with respect to urban tile    (  -  )
@@ -375,8 +385,10 @@ INTEGER, DIMENSION(:), INTENT(IN) :: KTEB_LOG_POINT  ! points to write
 IF (nvec < 1) ERROR STOP 'TEB_INTERFACE: nvec must be positive'
 IF (ivstart < 1 .OR. ivstart > nvec+1 .OR. ivend < 0 .OR. ivend > nvec .OR. &
     ivend < ivstart-1) ERROR STOP 'TEB_INTERFACE: invalid window bounds'
-IF (ANY([teb_nroof_layer, teb_nroad_layer, teb_nwall_layer, teb_nfloor_layer] /= 5)) &
-  ERROR STOP 'TEB_INTERFACE: roof/road/wall/floor require five layers'
+IF (teb_nfloor_layer /= 5) ERROR STOP 'TEB_INTERFACE: floor requires five layers'
+CALL TEB_CHECK_LAYER_DEPTHS('urb_d_rf', teb_nroof_layer, urb_d_rf)
+CALL TEB_CHECK_LAYER_DEPTHS('urb_d_rd', teb_nroad_layer, urb_d_rd)
+CALL TEB_CHECK_LAYER_DEPTHS('urb_d_wl', teb_nwall_layer, urb_d_wl)
 HEXCH_ROAD = TEB_EXCH_METHOD(teb_ctype_exch_road, 'teb_ctype_exch_road')
 HEXCH_ROOF = TEB_EXCH_METHOD(teb_ctype_exch_roof, 'teb_ctype_exch_roof')
 HEXCH_CANYON = TEB_EXCH_METHOD(teb_ctype_exch_canyon, 'teb_ctype_exch_canyon')
@@ -390,6 +402,12 @@ CALL INI_CSTS
 CALL TEB_HOST_ENSURE(1, teb_nroof_layer, teb_nroad_layer, teb_nwall_layer, teb_nfloor_layer)
 DO i = ivstart, ivend
   IF (.NOT. (sa_uc(i) > 0.)) CYCLE
+  IF (ANY(.NOT. IEEE_IS_FINITE([urb_hcap_rf(i), urb_hcap_rd(i), urb_hcap_wl(i), &
+                               urb_hcon_rf(i), urb_hcon_rd(i), urb_hcon_wl(i)]))) &
+    ERROR STOP 'TEB_INTERFACE: material properties must be finite'
+  IF (MIN(urb_hcap_rf(i), urb_hcap_rd(i), urb_hcap_wl(i), &
+          urb_hcon_rf(i), urb_hcon_rd(i), urb_hcon_wl(i)) <= 0.) &
+    ERROR STOP 'TEB_INTERFACE: material properties must be positive'
   CALL TEB_FILL_PARAMS (1, 1, teb_itype_bem_cool, teb_itype_bem_heat, teb_tcool_target(i:i), &
                         teb_theat_target(i:i), teb_frac_gz(i:i), teb_bem_inf(i:i), teb_bem_vent(i:i), teb_cap_sys_heat(i:i), &
                         teb_bem_cop(i:i), teb_itype_natvent, teb_lgarden, teb_hroad_dir, teb_wall_opt, teb_itype_bem, &
@@ -404,7 +422,7 @@ DO i = ivstart, ivend
                         HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON, i)
   CALL TEB_FILL_DERIVED (1, 1, urb_z0_town, urb_zd_town, urb_hcap_rd(i:i), urb_hcap_rf(i:i), &
                          urb_hcap_wl(i:i), urb_hcon_rd(i:i), urb_hcon_rf(i:i), urb_hcon_wl(i:i), ahf_traffic(i:i), &
-                         teb_fai(i:i,:))
+                         teb_fai(i:i,:), urb_d_rf, urb_d_rd, urb_d_wl)
   !* Recompute pressure/Exner, density, wind and solar quantities for this
   !* host column in the single-column workspace.
   CALL TEB_FILL_FORCING (1, 1, teb_year, teb_month, teb_day, teb_hour_seconds(1), lon_teb(i:i), lat_teb(i:i), &
