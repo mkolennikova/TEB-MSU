@@ -91,6 +91,8 @@
 !!        Apply configured road and roof lengths with the road height cap.
 !!      11/2026 -- OpenAI Codex
 !!        Apply separate thermal roughness rules for road, roof and town.
+!!        Use the road-weighted COSMO-TEB buoyancy term without mixed ground
+!!        temperature in the canyon convective-speed iteration.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -307,7 +309,6 @@ REAL, DIMENSION(SIZE(PTA)) :: ZCHTCN_ROOF  ! natural convective heat transfer co
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCS_ROOF  ! forced convective heat transfer coef. for smooth roof [W/(m2.K)]
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCN_WALL  ! natural convective heat transfer coef. for wall [W/(m2.K)]
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCS_WALL  ! forced natural convective heat transfer coef. for smooth wall [W/(m2.K)]
-REAL, DIMENSION(SIZE(PTA)) :: ZTS_GROUND   ! Surface temperature of ground (road + garden)
 REAL, DIMENSION(SIZE(PTA)) :: ZRA_GARDEN_ATM
 REAL, DIMENSION(SIZE(PTA)) :: ZILMO_GARDEN_ATM
 REAL, DIMENSION(SIZE(PTA)) :: ZRA_GREENROOF_ATM
@@ -604,22 +605,6 @@ DO JLOOP=1,3
   !
   ZW_CAN(:)   = ZW_STAR(:)
   !
-  !
-  
-  
-!* Surface temperature of the ground (road + garden) averaged with the road and
-!  garden fractions. This value is used in ZQ0 below (canyon wind), but its
-!  computation was commented out, so ZTS_GROUND was used uninitialised.
-!  The zero-denominator case (no road and no garden) is guarded, as done for
-!  ZRD/ZGD in URBAN_SOLAR_ABS.
-  WHERE (TPARAMS%XROAD(:) + TPARAMS%XGARDEN(:) > 0.)
-    ZTS_GROUND(:) = PTS_ROAD(:)   * TPARAMS%XROAD(:)   / (TPARAMS%XROAD(:) + TPARAMS%XGARDEN(:)) &
-      + PTS_GARDEN(:) * TPARAMS%XGARDEN(:) / (TPARAMS%XROAD(:) + TPARAMS%XGARDEN(:))
-  ELSEWHERE
-    ZTS_GROUND(:) = PTS_ROAD(:)
-  END WHERE
-!
-   
   CALL URBAN_EXCH_COEF(CZ0H_RD, TOPTS%TZ0H%RD%XRATIO, PTS_ROAD, PQ_LOWCAN, PEXNS, PEXNA,  &
                        PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
                        PU_LOWCAN+ZW_CAN, ZZ0_ROAD, PRI_ROAD_CAN, PCD_ROAD_CAN, PCDN_ROAD_CAN,         &
@@ -633,13 +618,11 @@ DO JLOOP=1,3
 
     ZQ0(JJ)     = (PTS_WALL  (JJ) - PT_CANYON(JJ)) * PAC_WALL  (JJ) * TPARAMS%XWALL_O_GRND(JJ)
 
+    ! The ground contribution uses the road temperature and its area fraction.
     IF (TPARAMS%XROAD(JJ) .GT. 0.) THEN
-!      ZQ0(JJ)   = ZQ0(JJ) &
-!            + (PTS_ROAD  (JJ) - PT_LOWCAN(JJ)) * PAC_ROAD_CAN  (JJ) * TPARAMS%XROAD  (JJ)/(TPARAMS%XROAD(JJ)+TPARAMS%XGARDEN(JJ)) 
-
-      ZQ0(JJ)   = ZQ0(JJ) &
-        + (ZTS_GROUND  (JJ) - PT_LOWCAN(JJ)) * PAC_ROAD_CAN  (JJ)
-
+      ZQ0(JJ) = ZQ0(JJ) &
+        + (PTS_ROAD(JJ) - PT_LOWCAN(JJ)) * PAC_ROAD_CAN(JJ) * &
+          TPARAMS%XROAD(JJ) / (TPARAMS%XROAD(JJ) + TPARAMS%XGARDEN(JJ))
     ENDIF
 ! 
     IF (ZQ0(JJ) >= 0.) THEN

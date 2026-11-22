@@ -81,6 +81,8 @@
 !!        Apply configured road and roof lengths with the road height cap.
 !!      11/2026 -- OpenAI Codex
 !!        Apply separate thermal roughness rules for road, roof and town.
+!!        Use the road-weighted COSMO-TEB buoyancy term without mixed ground
+!!        temperature in the canyon convective-speed iteration.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -264,7 +266,6 @@ REAL, DIMENSION(SIZE(PTA)) :: ZCHTCN_ROOF  ! natural convective heat transfer co
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCS_ROOF  ! forced convective heat transfer coef. for smooth roof [W/(m2.K)]
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCN_WALL  ! natural convective heat transfer coef. for wall [W/(m2.K)]
 REAL, DIMENSION(SIZE(PTA)) :: ZCHTCS_WALL  ! forced natural convective heat transfer coef. for smooth wall [W/(m2.K)]
-REAL, DIMENSION(SIZE(PTA)) :: ZTS_GROUND   ! Surface temperature of ground (road + garden)
 REAL, DIMENSION(SIZE(PTA)) :: ZZ0_GROUND   ! Roughness length of ground (road + garden)
 REAL, DIMENSION(SIZE(PTA)) :: ZAC_TERRA
 REAL, DIMENSION(SIZE(PTA)) :: ZRA_TERRA
@@ -527,29 +528,7 @@ ZQ0(:)     = 0.
 DO JLOOP=1,3
   !
   ZW_CAN(:)   = ZW_STAR(:)
-!
-!* temperature of the ground = road + garden, weighted by the road and garden
-!* fractions) is used in ZQ0 below, but its computation was commented out (two
-!* lines below), so the canyon momentum budget read UNINITIALISED memory:
-!* NaN/Inf when the stack garbage was not a number, which stopped the run
-!* (SIGFPE/SIGSEGV) after a few steps, intermittently. Restored as in src_dev,
-!* with the zero-denominator case guarded (the same guard as ZRD/ZGD in
-!* URBAN_SOLAR_ABS).
-  WHERE (T%XROAD(:) + T%XGARDEN(:) > 0.)
-    ZTS_GROUND(:) = PTS_ROAD(:)   * T%XROAD(:)   / (T%XROAD(:) + T%XGARDEN(:)) &
-      + PTS_GARDEN(:) * T%XGARDEN(:) / (T%XROAD(:) + T%XGARDEN(:))
-  ELSEWHERE
-    ZTS_GROUND(:) = PTS_ROAD(:)
-  END WHERE
-!
-
   !
-  !
-  
-  
-!  ZTS_GROUND(:) = PTS_ROAD(:) * T%XROAD  (:)/(T%XROAD(:)+T%XGARDEN(:)) + PTS_GARDEN(:) * T%XGARDEN  (:)/(T%XROAD(:)+T%XGARDEN(:))
-!  ZZ0_GROUND(:) = ZZ0_ROAD(:) * T%XROAD  (:)/(T%XROAD(:)+T%XGARDEN(:)) + ZZ0_GARDEN(:) * T%XGARDEN  (:)/(T%XROAD(:)+T%XGARDEN(:))
-   
   CALL URBAN_EXCH_COEF(CZ0H_RD, TOP%TZ0H%RD%XRATIO, PTS_ROAD, PQ_LOWCAN, PEXNS, PEXNA,  &
                        PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
                        PU_LOWCAN+ZW_CAN, ZZ0_ROAD, ZRI, ZCD_ROAD, ZCDN,         &
@@ -557,22 +536,17 @@ DO JLOOP=1,3
                        HEXCH=TOP%CEXCH_ROAD)
   
   !
-  !CALL URBAN_EXCH_COEF('MASC95', ZZ0_O_Z0H, ZTS_GROUND, PQ_LOWCAN, PEXNS, PEXNA,  &
-  !                     PT_LOWCAN, PQ_LOWCAN, PZ_LOWCAN, PZ_LOWCAN,              &
-  !                     PVMOD, ZZ0_GROUND, ZRI, ZCD_ROAD, ZCDN,         &
-  !                     PAC_ROAD, ZRA_ROAD, PCH_ROAD, ZZ0H_ROAD        )
 					   
   
   DO JJ=1,SIZE(PTA)
 
     ZQ0(JJ)     = (PTS_WALL  (JJ) - PT_CANYON(JJ)) * PAC_WALL  (JJ) * T%XWALL_O_GRND(JJ)
 
+    ! The ground contribution uses the road temperature and its area fraction.
     IF (T%XROAD(JJ) .GT. 0.) THEN
-!* assigned in this routine (its computation is commented out a few lines
-!* above), so the canyon momentum budget read stack garbage. The original term
-!* is restored here: ZTS_GROUND is now computed above the URBAN_EXCH_COEF call.
-      ZQ0(JJ)   = ZQ0(JJ)                                                        &
-        + (ZTS_GROUND  (JJ) - PT_LOWCAN(JJ)) * PAC_ROAD  (JJ)
+      ZQ0(JJ) = ZQ0(JJ) &
+        + (PTS_ROAD(JJ) - PT_LOWCAN(JJ)) * PAC_ROAD(JJ) * &
+          T%XROAD(JJ) / (T%XROAD(JJ) + T%XGARDEN(JJ))
     ENDIF
 ! 
     IF (ZQ0(JJ) >= 0.) THEN
