@@ -66,6 +66,8 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 !      10-11/2026 -- Mikhail Varentsov (MV)
 !        Reorganize the model entry around explicit containers and separate
 !        physics calls from offline forcing and output.
+!      11/2026 -- OpenAI Codex
+!        Select the canyon wind calculation by its scheme name.
 ! ---------------------------------------------------------------
 ! Modules
 ! ---------------------------------------------------------------
@@ -414,7 +416,7 @@ IF (TEB_LOG_VERBOSE_FIRST()) THEN
   PRINT*, '    TIR%XRD_END_HOUR    = ', TIR%XRD_END_HOUR(1)
   PRINT*, '    TIR%XRD_24H_IRRIG   = ', TIR%XRD_24H_IRRIG(1)
   PRINT*, '  Wind:'
-  PRINT*, '    TOPTS%ITYPE_WIND    = ', TOPTS%ITYPE_WIND
+  PRINT*, '    TOPTS%CTYPE_WIND    = ', TOPTS%CTYPE_WIND
   PRINT*, '    TPARAMS%XFAI(icell:icell,:)          = ', TPARAMS%XFAI(icell,:)
   PRINT*, '  Aerodynamics of the urban surface:'
   PRINT*, '    urb_z0_town   = ', ' -> z0   = ', TPARAMS%XZ0_TOWN(icell), ' m'
@@ -544,13 +546,13 @@ TPTIME%TDATE%DAY          = IDAY
 ! profile referenced to the displacement height TPARAMS%XZD_TOWN(icell:icell)
 DMT%XWIND_TOP(1:1) = FORC%XVMOD(1:1) * LOG( (        TPARAMS%XBLD_HEIGHT(icell:icell) - TPARAMS%XZD_TOWN(icell:icell)) / TPARAMS%XZ0_TOWN(icell:icell))   &
   / LOG( (FORC%XZREF(1:1) + TPARAMS%XBLD_HEIGHT(icell:icell) - TPARAMS%XZD_TOWN(icell:icell)) / TPARAMS%XZ0_TOWN(icell:icell))
-IF (TOPTS%ITYPE_WIND == 0) THEN
+IF (TOPTS%CTYPE_WIND == 'DEF') THEN
   ZWAKE                 = 1. + (2./XPI-1.) * 2. * (TPARAMS%XCAN_HW_RATIO(icell:icell)-0.5)
   ZWAKE                 = MAX(MIN(ZWAKE,1.),2./XPI)
   DMT%XWIND_CANYON(1:1) = ZWAKE * EXP(-TPARAMS%XCAN_HW_RATIO(icell:icell)/4.) * DMT%XWIND_TOP(1)
   DMT%XU_CAN_PED(1:1)   = DMT%XWIND_CANYON(1:1)
   DMT%XU_CAN_10M(1:1)   = DMT%XWIND_CANYON(1:1)
-ELSEIF (TOPTS%ITYPE_WIND == 1) THEN
+ELSEIF (TOPTS%CTYPE_WIND == 'WANG') THEN
   CALL WIND_CALCULATION_WANG(icell, iblock, TPARAMS%XBLD_HEIGHT(icell:icell), DMT%XUSTAR_TOWN(1:1), DMT%XWIND_TOP(1:1), FORC%XU(1:1), FORC%XV(1:1), TPARAMS%XFAI(icell:icell,:), ZU_CANYON_WANG, ZU_CAN_PED, ZU_CAN_10M)
   DMT%XWIND_CANYON(1:1) = ZU_CANYON_WANG(5)
   DMT%XU_CAN_PED(1:1)   = ZU_CAN_PED(1:1)

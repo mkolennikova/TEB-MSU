@@ -171,7 +171,7 @@ API принимает положительное число слоёв крыш
 | 96 / `teb_lgreenroof` | L | IN | `data_runcontrol:teb_lgreenroof` | —; безразмерно / переключатель | P: параметры H; одинаковая конфигурация на restart |
 | 97 / `teb_frac_gr` | R(N) | IN | `teb_frac_gr_t         (:)` | доля кровли | P: параметры H; одинаковая конфигурация на restart |
 | 107 / `teb_lgarden` | L | IN | `data_runcontrol:teb_lgarden` | —; безразмерно / переключатель | P: параметры H; одинаковая конфигурация на restart |
-| 119 / `teb_itype_wind` | I | IN | `data_runcontrol:teb_itype_wind` | —; безразмерно / переключатель | P: параметры H; одинаковая конфигурация на restart |
+| 119 / `teb_ctype_wind` | C(*) | IN | `data_runcontrol:teb_ctype_wind` | `DEF` или `WANG` | P: параметры H, одинаковая конфигурация на restart |
 | 120 / `teb_fai` | R(N,8) | IN | `teb_fai_t             (:,:)` | безразмерный FAI; 8 секторов | P: параметры H; одинаковая конфигурация на restart |
 | 121 / `teb_type_garden` | C(9) | IN | `'EXT'` | —; безразмерно / переключатель | P: параметры H; одинаковая конфигурация на restart |
 | 122 / `teb_type_greenroof` | C(9) | IN | `'EXT'` | —; безразмерно / переключатель | P: параметры H; одинаковая конфигурация на restart |

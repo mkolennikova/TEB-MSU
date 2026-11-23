@@ -689,16 +689,25 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
         self.runs += 2
         self.record('same_namelist_both_entry_points', nvec=7)
 
-        for wind, code in (('DEF', 0), ('WANG', 1)):
+        for wind in ('DEF', 'WANG'):
             for dt in (150., 600.):
                 result = self.run(nvec=2, profile='DEF', dt=dt,
                                   parameters={'teb_ctype_wind': nml_value(wind)})
                 for record in result.before:
                     if record.data[result.field('dt')] != dt:
                         raise AssertionError('tebopts dt did not reach the API')
-                    if record.data[result.field('teb_itype_wind')] != code:
-                        raise AssertionError('Named wind selector did not reach the numeric API')
-                self.record('named_wind_and_option_dt', selector=wind, api_code=code, dt=dt)
+                with (result.directory / 'parameters.csv').open(newline='') as metadata:
+                    names = [row['value'] for row in csv.DictReader(metadata, delimiter=';')
+                             if row['parameter'] == 'teb_ctype_wind']
+                if names != [wind] * (result.nvec * result.nblocks):
+                    raise AssertionError('Unexpected named wind selector in parameters.csv')
+                canyon = result.field('teb_wind_canyon')
+                pedestrian = result.field('teb_u_can_ped')
+                uniform_profile = all(record.data[canyon] == record.data[pedestrian]
+                                      for record in result.after)
+                if uniform_profile != (wind == 'DEF'):
+                    raise AssertionError(f'Unexpected canyon and pedestrian wind relation for {wind}')
+                self.record('named_wind_and_option_dt', selector=wind, dt=dt)
 
         cbs = self.run(nvec=3, profile='CBS',
                        parameters={'teb_cbs_hw_thresh': '0.8', 'teb_cbs_hw_width': '0.4'})
@@ -752,7 +761,7 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
             serial = self.run(nvec=7, profile='BEM', layout='SERIAL', parameters=params)
             self.comparisons += compare_reference(block, dict.fromkeys(range(1, 8), scalar))
             self.comparisons += compare_reference(serial, dict.fromkeys(range(1, 8), scalar))
-            expected = 200 + 2*counts[0] + 3*counts[1] + 3*counts[2]
+            expected = 199 + 2*counts[0] + 3*counts[1] + 3*counts[2]
             if len(block.schema) != expected:
                 raise AssertionError('The diagnostic schema truncated material layers')
             for suffix, count in zip(('rf', 'rd', 'wl'), counts):

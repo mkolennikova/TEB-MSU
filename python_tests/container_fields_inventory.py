@@ -84,7 +84,7 @@ CATEGORY = {
             'CTYPE_GARDEN', 'XZ0_O_Z0H_GD', 'CTYPE_GREENROOF', 'XZ0_O_Z0H_GR',
             'LCBS_SCHEME', 'XTAU_HW_THRESH', 'XTAU_HW_WIDTH',
             'NROOF_LAYER', 'NROAD_LAYER', 'NWALL_LAYER',
-            'ITYPE_WIND', 'NUTC_HOUR', 'LGREENROOF_EXT',
+            'CTYPE_WIND', 'NUTC_HOUR', 'LGREENROOF_EXT',
         },
         'work': {'TTIME', 'XTSTEP'},
         'reserved': {'CBLD_ATYPE', 'CTREE', 'LHYDRO'},

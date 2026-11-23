@@ -208,12 +208,11 @@ TYPE(TEB_EXT_SURF_t), SAVE :: EXT       ! external garden / greenroof surface (h
 `teb_offline_namelists.F90`, `teb_offline_driver.F90`, `teb_offline_surfaces.F90`
 и `teb_offline_output.F90` обслуживают обе main-программы. Физические параметры
 читаются из `tebparams`, шаг `dt` и общие опции — из `tebopts`.
-Селекторы `teb_ctype_*` преобразуются в существующие поля API;
-`teb_ctype_wind` принимает `DEF/WANG` и передаёт в API прежние коды `0/1`. Состояние и накопители
+Параметр `teb_ctype_wind` принимает `DEF` или `WANG`. Одноимённый
+аргумент API передаёт строку в `TOPTS%CTYPE_WIND`. Состояние и накопители
 стока принадлежат каждой колонке хоста. CSV привязан к логическим ID колонок;
 при диагностической перестановке логгер получает отображение текущих позиций
 в постоянные ID. Без такого отображения сохраняется обычная индексация API.
-Публичная сигнатура `teb_interface` и размер физических контейнеров не меняются.
 Формат входов и выходов описан в `TEB_MSU_variables_description.md`.
 
 **Cold-start.** `TEB_INIT_STATE(KSTART, KEND)` заполняет состояние окна на первом
@@ -352,16 +351,17 @@ run_teb_offline
 ### 5.2 `TOPTS` — опции TEB (`TEB_OPTIONS_t`, 26 param + 2 work + 3 reserved)
 
 Схемы и флаги: `CGARDEN`/`LGARDEN`, `LGREENROOF(_EXT)`, `CTYPE_GARDEN`/
-`CTYPE_GREENROOF`, `CBEM`, `ITYPE_WIND`, `LSOLAR_PANEL`, `LCBS_SCHEME`,
+`CTYPE_GREENROOF`, `CBEM`, `CTYPE_WIND`, `LSOLAR_PANEL`, `LCBS_SCHEME`,
 `XTAU_HW_THRESH`/`XTAU_HW_WIDTH`, `NUTC_HOUR`, `XZ0_O_Z0H_GD/GR`,
 `CEXCH_ROAD/ROOF/CANYON` и `TZ0H`. Поля `work` (`TTIME`, `XTSTEP`)
 заполняет `CALL_DRIVER` на каждом шаге.
 
 `TZ0H` хранит правила тепловой шероховатости дороги, крыши и города.
 На время вызова offline-хост передаёт общие правила из `&tebopts` и отношения
-`XZ0_O_Z0H_GD/GR` для текущей колонки. При восстановлении checkpoint v2
-отношения для сада и зелёной крыши берутся из неймлиста по сохранённым
-логическим идентификаторам колонок.
+`XZ0_O_Z0H_GD/GR` для текущей колонки. При чтении контрольной точки
+отношения для сада и зелёной кровли берутся из неймлиста по сохранённым
+идентификаторам колонок. Контрольная точка формата 4 хранит ветровой
+селектор строкой и читается той же сборкой офлайн-драйвера.
 
 ### 5.3 `TPARAMS` — параметры TEB (`TEB_PARAMS_t`, 39 param + 4 flux)
 

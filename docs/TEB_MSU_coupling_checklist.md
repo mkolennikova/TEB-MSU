@@ -477,13 +477,14 @@ INOUT для записи окна состояния и возвращает о
 ### 4.2 Явная конфигурация и ожидаемые расхождения
 
 Предлагаемый первый опыт использует актуальную исправленную физику A с CBS off.
-Все настройки адаптера задаются явно на стороне H.
-Файл offline `tebopts/tebparams` не является входом COSMO.
-Разделение `tebopts/tebparams`, перенос `dt` и имена offline-переключателей относятся к offline-формату;
-в публичном API остаются `teb_itype_*` / `teb_type_*`, а ветер передаётся
-числом `0/1`. Эти аргументы и общий шаг H заполняет из своих настроек
-без переноса offline-читателя. Текущий справочник —
-[переменные модели](TEB_MSU_variables_description.md).
+В режиме `itype_urb=2` COSMO читает скалярные настройки TEB из одной
+группы `&TEBCTL` файла `INPUT_TEB`. COSMO рассылает параметры по MPI и
+выводит их в `YUSPECIF`. Имена ключей согласованы с офлайн-неймлистами
+`&tebopts` и `&tebparams`. Значение `teb_ctype_wind` (`DEF` или `WANG`)
+передаётся через одноимённый строковый аргумент API. При `WANG` COSMO
+запрашивает карту `URB_FAI`. COSMO передаёт режим `EXT` саду и зелёной
+кровле. Их включение задают `teb_lgarden` и `teb_lgreenroof`.
+Справочник формата офлайн-входов — [переменные модели](TEB_MSU_variables_description.md).
 В split-неймлисте CBS задаётся как `teb_cbs_hw_thresh/teb_cbs_hw_width`,
 но API сохраняет `teb_tau_hw_thresh/teb_tau_hw_width`. Аналогично offline
 `teb_ctype_exch_rd/rf` соответствуют API `teb_ctype_exch_road/roof`,

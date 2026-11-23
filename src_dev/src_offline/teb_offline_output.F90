@@ -8,6 +8,8 @@
 !!        Share per-cell CSV and metadata, retaining interval state on restart.
 !!      11/2026 -- OpenAI Codex
 !!        Include configured layer counts and depths in parameter metadata.
+!!      11/2026 -- OpenAI Codex
+!!        Report the named wind scheme in the parameter metadata.
 !-------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_OUTPUT
 USE TEB_OFFLINE_HOST, ONLY: TEB_BLOCK, BLOCK_CONFIG, active
@@ -260,7 +262,7 @@ DO b=1,SIZE(blocks)
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';teb_cap_sys_heat;',blocks(b)%teb_cap_sys_heat(j)
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';ahf_traffic;',blocks(b)%ahf_traffic(j)
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';ahf_industry;',blocks(b)%ahf_industry(j)
-    WRITE(unit,'(I0,A,I0,A,I0)') b,';',ids(j,b),';teb_itype_wind;',blocks(b)%teb_itype_wind
+    WRITE(unit,'(I0,A,I0,A,A)') b,';',ids(j,b),';teb_ctype_wind;',TRIM(blocks(b)%teb_ctype_wind)
     DO k=1,8
       WRITE(unit,'(I0,A,I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';teb_fai_',k,';',blocks(b)%teb_fai(j,k)
     END DO

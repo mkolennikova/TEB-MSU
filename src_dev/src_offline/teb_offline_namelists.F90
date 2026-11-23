@@ -20,6 +20,8 @@
 !!        Read thermal roughness rules and per-column vegetation ratios.
 !!        Read the scalar CBS settings under their split namelist names.
 !!        Read layer counts and one positive depth profile per surface.
+!!      11/2026 -- OpenAI Codex
+!!        Read the named canyon wind scheme in both model namelist formats.
 !-------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_NAMELISTS
 USE TEB_OFFLINE_HOST, ONLY: BLOCK_CONFIG, TEB_BLOCK, allocate_block
@@ -108,7 +110,6 @@ REAL, ALLOCATABLE :: teb_m_sys_rat(:)
 REAL, ALLOCATABLE :: teb_cap_sys_heat(:)
 REAL, ALLOCATABLE :: ahf_traffic(:)
 REAL, ALLOCATABLE :: ahf_industry(:)
-INTEGER :: teb_itype_wind
 REAL :: teb_fai(8)
 LOGICAL :: teb_lgarden
 CHARACTER(LEN=9) :: teb_type_garden
@@ -190,7 +191,7 @@ NAMELIST /tebparam/ &
   teb_zresidential, teb_dt_res, teb_dt_off, &
   teb_bem_inf, teb_bem_vent, teb_bem_cop, &
   teb_cap_sys_rat, teb_m_sys_rat, teb_cap_sys_heat, &
-  ahf_traffic, ahf_industry, teb_itype_wind, &
+  ahf_traffic, ahf_industry, teb_ctype_wind, &
   teb_fai, teb_lgarden, teb_type_garden, &
   urb_z0_gdn, urb_z0_o_z0h_gdn, urb_alb_gdn, &
   urb_emis_gdn, teb_lgreenroof, teb_type_greenroof, &
@@ -346,7 +347,7 @@ teb_m_sys_rat=0.0067
 teb_cap_sys_heat=90.
 ahf_traffic=0.0
 ahf_industry=0.0
-teb_itype_wind=0
+teb_ctype_wind='DEF'
 teb_fai=0.5
 teb_lgarden=.TRUE.
 teb_type_garden='PROXY_NEW'
@@ -401,7 +402,6 @@ IF(.NOT.legacy) THEN
   teb_ctype_natvent=teb_itype_natvent
   teb_ctype_bem_cool=teb_itype_bem_cool
   teb_ctype_bem_heat=teb_itype_bem_heat
-  teb_ctype_wind='DEF'
   teb_ctype_garden=teb_type_garden
   teb_ctype_greenroof=teb_type_greenroof
   DO j=1,SIZE(o)
@@ -426,14 +426,6 @@ IF(.NOT.legacy) THEN
   teb_itype_bem_heat=teb_ctype_bem_heat
   teb_type_garden=teb_ctype_garden
   teb_type_greenroof=teb_ctype_greenroof
-  SELECT CASE(TRIM(teb_ctype_wind))
-  CASE('DEF')
-    teb_itype_wind=0
-  CASE('WANG')
-    teb_itype_wind=1
-  CASE DEFAULT
-    CALL fail(path,'teb_ctype_wind',0,'expected DEF or WANG')
-  END SELECT
 END IF
 DO j=1,SIZE(a)
   CALL check_string(a(j),path)
@@ -672,7 +664,8 @@ CASE DEFAULT
   CALL fail(path,selector_name('teb_type_greenroof',legacy),0,'unknown surface scheme')
 END SELECT
 IF(teb_itype_bem/='BEM' .AND. teb_itype_bem/='DEF') CALL fail(path,selector_name('teb_itype_bem',legacy),0,'expected BEM or DEF')
-IF(teb_itype_wind<0 .OR. teb_itype_wind>1) CALL fail(path,selector_name('teb_itype_wind',legacy),0,'expected 0 or 1')
+IF(teb_ctype_wind/='DEF' .AND. teb_ctype_wind/='WANG') &
+  CALL fail(path,'teb_ctype_wind',0,'expected DEF or WANG')
 IF(.NOT.ALL(IEEE_IS_FINITE(teb_fai)) .OR. ANY(teb_fai<0.)) CALL fail(path,'teb_fai',0, &
   'expected finite nonnegative indices')
 IF(.NOT.IEEE_IS_FINITE(teb_tau_hw_thresh) .OR. .NOT.IEEE_IS_FINITE(teb_tau_hw_width)) &
@@ -758,7 +751,7 @@ c%teb_m_sys_rat=teb_m_sys_rat
 c%teb_cap_sys_heat=teb_cap_sys_heat
 c%ahf_traffic=ahf_traffic
 c%ahf_industry=ahf_industry
-c%teb_itype_wind=teb_itype_wind
+c%teb_ctype_wind=teb_ctype_wind
 c%teb_ctype_exch_road=teb_ctype_exch_rd
 c%teb_ctype_exch_roof=teb_ctype_exch_rf
 c%teb_ctype_exch_canyon=teb_ctype_exch_canyon
@@ -866,8 +859,6 @@ CASE('teb_itype_bem_cool')
   key='teb_ctype_bem_cool'
 CASE('teb_itype_bem_heat')
   key='teb_ctype_bem_heat'
-CASE('teb_itype_wind')
-  key='teb_ctype_wind'
 CASE('teb_type_garden')
   key='teb_ctype_garden'
 CASE('teb_type_greenroof')

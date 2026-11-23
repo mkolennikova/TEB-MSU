@@ -42,7 +42,6 @@
  teb_cap_sys_heat=90.,
  ahf_traffic=0.0,
  ahf_industry=0.0,
- teb_itype_wind=0,
  teb_fai=0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5,
  teb_lgarden=.FALSE.,
  fr_garden=0.0,

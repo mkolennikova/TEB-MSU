@@ -39,6 +39,8 @@
 !!        Configure road, roof and canyon exchange independently.
 !!      11/2026 -- OpenAI Codex
 !!        Configure thermal roughness independently of the exchange algorithm.
+!!      11/2026 -- OpenAI Codex
+!!        Store the named canyon wind scheme in the TEB options.
 !             ------------
 !
 USE MODD_TYPE_DATE_SURF
@@ -157,7 +159,7 @@ TYPE TEB_OPTIONS_t
   INTEGER                       :: NROOF_LAYER  ! number of layers in roofs
   INTEGER                       :: NROAD_LAYER  ! number of layers in roads
   INTEGER                       :: NWALL_LAYER  ! number of layers in walls
-  INTEGER                        :: ITYPE_WIND  ! 0: original, 1: Wang (2012)
+  CHARACTER(LEN=4)               :: CTYPE_WIND  ! 'DEF' or 'WANG'
   INTEGER                        :: NUTC_HOUR   ! UTC hour for the traffic daily cycle
 !
 ! Date:
@@ -266,7 +268,7 @@ YTEB_OPTIONS%XTAU_HW_WIDTH=0.25
 YTEB_OPTIONS%NROOF_LAYER=0
 YTEB_OPTIONS%NROAD_LAYER=0
 YTEB_OPTIONS%NWALL_LAYER=0
-YTEB_OPTIONS%ITYPE_WIND=0
+YTEB_OPTIONS%CTYPE_WIND='DEF'
 YTEB_OPTIONS%NUTC_HOUR=0
 YTEB_OPTIONS%XTSTEP=0.
 IF (LHOOK) CALL DR_HOOK("MODD_TEB_N:TEB_OPTIONS_INIT",1,ZHOOK_HANDLE)

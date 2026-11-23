@@ -343,7 +343,9 @@ format, the API and the metadata in `parameters.csv` use the
 [CBS scheme description](TEB_MSU_CBS_scheme_T_CAN_reformulation.md).
 
 `DEF` selects the basic canopy wind scheme. `WANG` selects the Wang (2012)
-profile: `U_CANYON` is evaluated at half building height, and `U_CAN_PED` /
+profile. Use the same text selector `teb_ctype_wind` in single-cell
+`&tebparam` files for `src_dev`. The expanded selector appears in
+`parameters.csv`. The Wang profile evaluates `U_CANYON` at half building height and `U_CAN_PED` /
 `U_CAN_10M` at 1.1 m / 10 m above the road. These height-specific outputs are
 undefined above roof level. `teb_fai` is one set of eight directional indices
 shared by the entire block, including when `nvec=8`.

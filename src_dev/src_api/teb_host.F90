@@ -36,6 +36,8 @@
 !!        Bind thermal roughness rules and per-column vegetation ratios.
 !!        Configure layer depths and homogeneous material profiles, resizing
 !!        the workspace and cold-start profiles to the host's layer counts.
+!!      11/2026 -- OpenAI Codex
+!!        Bind the named wind scheme to the column options.
 !!------------------------------------------------------------------------------
 !*       0.   DECLARATIONS
 !             ------------
@@ -138,7 +140,7 @@ SUBROUTINE TEB_FILL_PARAMS (KSTART, KEND, &
                             teb_frac_gr, urb_fr_bld, urb_h2w, urb_h_bld, urb_alb_rf_so, &
                             urb_alb_rd_so, urb_alb_wl_so, urb_alb_rd_th, urb_alb_rf_th, &
                             urb_alb_wl_th, teb_zresidential, teb_dt_res, teb_dt_off, &
-                            ahf_industry, teb_itype_wind, teb_utc_hour, &
+                            ahf_industry, teb_ctype_wind, teb_utc_hour, &
                             teb_lgreenroof_ext, teb_lbem_ac, &
                             teb_fr_panel, teb_lroad_irrig, teb_rd_irrig_start_m, &
                             teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
@@ -155,7 +157,8 @@ CHARACTER(LEN=*), INTENT(IN) :: teb_itype_bem, teb_hroad_dir, teb_wall_opt
 CHARACTER(LEN=*), INTENT(IN) :: teb_type_garden, teb_type_greenroof
 CHARACTER(LEN=6), INTENT(IN) :: HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON
 LOGICAL, INTENT(IN) :: teb_lgarden, teb_lgreenroof, teb_lsolar_panel, teb_lcbs_scheme
-INTEGER, INTENT(IN) :: teb_itype_wind, teb_utc_hour
+CHARACTER(LEN=*), INTENT(IN) :: teb_ctype_wind
+INTEGER, INTENT(IN) :: teb_utc_hour
 LOGICAL, INTENT(IN) :: teb_lgreenroof_ext, teb_lbem_ac, teb_lroad_irrig
 REAL, INTENT(IN) :: teb_tau_hw_thresh, teb_tau_hw_width
 REAL, INTENT(IN) :: urb_z0_o_z0h_gdn, urb_z0_o_z0h_grf
@@ -201,7 +204,7 @@ DO K = KSTART, KEND
   TOPTS%CTYPE_GARDEN    = teb_type_garden
   TOPTS%CTYPE_GREENROOF = teb_type_greenroof
   TOPTS%LSOLAR_PANEL    = teb_lsolar_panel
-  TOPTS%ITYPE_WIND      = teb_itype_wind
+  TOPTS%CTYPE_WIND      = teb_ctype_wind
   TOPTS%NUTC_HOUR       = teb_utc_hour
   TOPTS%LGREENROOF_EXT  = teb_lgreenroof_ext
   TOPTS%LCBS_SCHEME     = teb_lcbs_scheme

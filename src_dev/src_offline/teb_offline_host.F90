@@ -18,6 +18,8 @@
 !!        Track vegetation roughness ratios with cell identity across restart.
 !!        Carry variable layer counts/depths through serial/block calls,
 !!        diagnostic packets and versioned checkpoints.
+!!      11/2026 -- OpenAI Codex
+!!        Pass and checkpoint the named wind scheme as text.
 !!------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_HOST
 USE sfc_teb, ONLY: teb_interface, teb_real_kind, XUNDEF => teb_undef
@@ -211,7 +213,7 @@ TYPE TEB_BLOCK
   REAL(teb_real_kind) ,ALLOCATABLE, DIMENSION(:) :: teb_tch_gd
   REAL(teb_real_kind) ,ALLOCATABLE, DIMENSION(:) :: teb_tcm_gd
   REAL(teb_real_kind) ,ALLOCATABLE, DIMENSION(:) :: teb_runoff_gd
-  INTEGER :: teb_itype_wind
+  CHARACTER(LEN=4) :: teb_ctype_wind
   ! Run options are reread from the parameter namelist on restart.
   CHARACTER(LEN=6) :: teb_ctype_exch_road=CTEB_EXCH_DEFAULT
   CHARACTER(LEN=6) :: teb_ctype_exch_roof=CTEB_EXCH_DEFAULT
@@ -817,7 +819,7 @@ c%teb_qvfl_gd=0.
 c%teb_tch_gd=XUNDEF
 c%teb_tcm_gd=0.
 c%teb_runoff_gd=0.
-c%teb_itype_wind=0
+c%teb_ctype_wind='DEF'
 c%teb_fai=0.
 c%teb_type_garden=' '
 c%teb_type_greenroof=' '
@@ -1138,7 +1140,7 @@ d%teb_qvfl_gd(k:k)=s%teb_qvfl_gd(j:j)
 d%teb_tch_gd(k:k)=s%teb_tch_gd(j:j)
 d%teb_tcm_gd(k:k)=s%teb_tcm_gd(j:j)
 d%teb_runoff_gd(k:k)=s%teb_runoff_gd(j:j)
-d%teb_itype_wind=s%teb_itype_wind
+d%teb_ctype_wind=s%teb_ctype_wind
 d%teb_ctype_exch_road=s%teb_ctype_exch_road
 d%teb_ctype_exch_roof=s%teb_ctype_exch_roof
 d%teb_ctype_exch_canyon=s%teb_ctype_exch_canyon
@@ -1440,7 +1442,8 @@ CALL teb_interface(ntstep=c%ntstep, nvec=c%nvec, iblock=c%iblock, dt=c%dt, teb_y
                    teb_qs_gd=c%teb_qs_gd, teb_shfl_gd=c%teb_shfl_gd, teb_lhfl_gd=c%teb_lhfl_gd, &
                    teb_qvfl_gd=c%teb_qvfl_gd, &
                    teb_tch_gd=c%teb_tch_gd, teb_tcm_gd=c%teb_tcm_gd, teb_runoff_gd=c%teb_runoff_gd, &
-                   teb_itype_wind=c%teb_itype_wind, teb_fai=c%teb_fai, teb_type_garden=c%teb_type_garden, &
+                   teb_ctype_wind=c%teb_ctype_wind, teb_fai=c%teb_fai, &
+                   teb_type_garden=c%teb_type_garden, &
                    teb_type_greenroof=c%teb_type_greenroof, teb_lgreenroof_ext=c%teb_lgreenroof_ext, &
                    teb_hroad_dir=c%teb_hroad_dir, teb_wall_opt=c%teb_wall_opt, teb_road_dir=c%teb_road_dir, &
                    teb_zresidential=c%teb_zresidential, teb_dt_res=c%teb_dt_res, teb_dt_off=c%teb_dt_off, &
@@ -1491,7 +1494,7 @@ END SUBROUTINE
 PURE INTEGER FUNCTION field_count(c) RESULT(n)
 TYPE(TEB_BLOCK),INTENT(IN)::c
 ! Scalar/fixed-size fields plus temperatures, saved road state and depths.
-n=200+2*c%teb_nroof_layer+3*c%teb_nroad_layer+3*c%teb_nwall_layer
+n=199+2*c%teb_nroof_layer+3*c%teb_nroad_layer+3*c%teb_nwall_layer
 END FUNCTION field_count
 
 SUBROUTINE pack(c,j,values)
@@ -1631,7 +1634,6 @@ CALL add_value(c%teb_qvfl_gd(j))
 CALL add_value(c%teb_tch_gd(j))
 CALL add_value(c%teb_tcm_gd(j))
 CALL add_value(c%teb_runoff_gd(j))
-CALL add_value(REAL(c%teb_itype_wind,teb_real_kind))
 CALL add_value(c%teb_fai(j,1))
 CALL add_value(c%teb_fai(j,2))
 CALL add_value(c%teb_fai(j,3))
@@ -1871,7 +1873,6 @@ WRITE(unit,'(A)') 'teb_qvfl_gd;IN;REAL'
 WRITE(unit,'(A)') 'teb_tch_gd;OUT;REAL'
 WRITE(unit,'(A)') 'teb_tcm_gd;INOUT;REAL'
 WRITE(unit,'(A)') 'teb_runoff_gd;IN;REAL'
-WRITE(unit,'(A)') 'teb_itype_wind;IN;INTEGER'
 WRITE(unit,'(A)') 'teb_fai[1];IN;REAL'
 WRITE(unit,'(A)') 'teb_fai[2];IN;REAL'
 WRITE(unit,'(A)') 'teb_fai[3];IN;REAL'
@@ -2153,7 +2154,7 @@ WRITE(unit) c%teb_qvfl_gd
 WRITE(unit) c%teb_tch_gd
 WRITE(unit) c%teb_tcm_gd
 WRITE(unit) c%teb_runoff_gd
-WRITE(unit) c%teb_itype_wind
+WRITE(unit) c%teb_ctype_wind
 WRITE(unit) c%teb_fai
 WRITE(unit) c%teb_type_garden
 WRITE(unit) c%teb_type_greenroof
@@ -2543,7 +2544,7 @@ READ(unit,IOSTAT=rc) c%teb_tcm_gd
 IF(rc/=0) ERROR STOP "Incomplete checkpoint"
 READ(unit,IOSTAT=rc) c%teb_runoff_gd
 IF(rc/=0) ERROR STOP "Incomplete checkpoint"
-READ(unit,IOSTAT=rc) c%teb_itype_wind
+READ(unit,IOSTAT=rc) c%teb_ctype_wind
 IF(rc/=0) ERROR STOP "Incomplete checkpoint"
 READ(unit,IOSTAT=rc) c%teb_fai
 IF(rc/=0) ERROR STOP "Incomplete checkpoint"
@@ -3217,7 +3218,7 @@ TYPE(TEB_BLOCK),INTENT(IN)::blocks(:)
 INTEGER::unit,b,rc
 OPEN(NEWUNIT=unit,FILE=TRIM(path),ACCESS='STREAM',FORM='UNFORMATTED',STATUS='REPLACE',IOSTAT=rc)
 IF(rc/=0) ERROR STOP 'Cannot create checkpoint'
-WRITE(unit) INT([1413825074,3,field_count(blocks(1)),STORAGE_SIZE(blocks(1)%t)],INT32)
+WRITE(unit) INT([1413825074,4,field_count(blocks(1)),STORAGE_SIZE(blocks(1)%t)],INT32)
 WRITE(unit) cfg,next_step,ids
 DO b=1,SIZE(blocks)
   CALL write_packet(unit,blocks(b))
@@ -3238,7 +3239,7 @@ OPEN(NEWUNIT=unit,FILE=TRIM(path),ACCESS='STREAM',FORM='UNFORMATTED',STATUS='OLD
 IF(rc/=0) ERROR STOP 'Cannot open checkpoint'
 READ(unit,IOSTAT=rc) header
 IF(rc/=0) ERROR STOP 'Invalid checkpoint header'
-IF(ANY(header/=INT([1413825074,3,field_count(blocks(1)),STORAGE_SIZE(blocks(1)%t)],INT32))) ERROR STOP &
+IF(ANY(header/=INT([1413825074,4,field_count(blocks(1)),STORAGE_SIZE(blocks(1)%t)],INT32))) ERROR STOP &
   'Checkpoint format mismatch'
 READ(unit,IOSTAT=rc) saved_cfg,next_step
 IF(rc/=0) ERROR STOP 'Incomplete checkpoint configuration'

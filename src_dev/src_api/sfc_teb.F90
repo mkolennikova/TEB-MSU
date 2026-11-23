@@ -21,6 +21,8 @@
 !!        Expose independent optional road, roof and canyon exchange algorithms.
 !!      11/2026 -- OpenAI Codex
 !!        Accept shared layer-depth profiles and runtime roof/road/wall counts.
+!!      11/2026 -- OpenAI Codex
+!!        Take the named canyon wind scheme through the public interface.
 !!------------------------------------------------------------------------------
 MODULE sfc_teb
 
@@ -92,7 +94,7 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
                           teb_runoff_gr, teb_lgarden, teb_z0_gd, teb_alb_gd, &
                           teb_emis_gd, teb_ts_gd, teb_qs_gd, teb_shfl_gd, teb_lhfl_gd, &
                           teb_qvfl_gd, teb_tch_gd, teb_tcm_gd, teb_runoff_gd, &
-                          teb_itype_wind, teb_fai, teb_type_garden, &
+                          teb_ctype_wind, teb_fai, teb_type_garden, &
                           teb_type_greenroof, teb_lgreenroof_ext, teb_hroad_dir, &
                           teb_wall_opt, teb_road_dir, teb_zresidential, teb_dt_res, &
                           teb_dt_off, teb_cap_sys_heat, teb_lsolar_panel, &
@@ -260,7 +262,7 @@ REAL ,DIMENSION(nvec), INTENT(IN) :: teb_runoff_gd
 	
 LOGICAL, INTENT(IN) :: teb_lshade
 	
-INTEGER, INTENT(IN) :: teb_itype_wind
+CHARACTER(LEN=*), INTENT(IN) :: teb_ctype_wind
 REAL ,DIMENSION(nvec, 1:8), INTENT(IN) :: teb_fai
 	
 LOGICAL, INTENT(IN) :: teb_lsolar_panel
@@ -386,6 +388,8 @@ IF (nvec < 1) ERROR STOP 'TEB_INTERFACE: nvec must be positive'
 IF (ivstart < 1 .OR. ivstart > nvec+1 .OR. ivend < 0 .OR. ivend > nvec .OR. &
     ivend < ivstart-1) ERROR STOP 'TEB_INTERFACE: invalid window bounds'
 IF (teb_nfloor_layer /= 5) ERROR STOP 'TEB_INTERFACE: floor requires five layers'
+IF (teb_ctype_wind /= 'DEF' .AND. teb_ctype_wind /= 'WANG') &
+  ERROR STOP 'TEB_INTERFACE: teb_ctype_wind must be DEF or WANG'
 CALL TEB_CHECK_LAYER_DEPTHS('urb_d_rf', teb_nroof_layer, urb_d_rf)
 CALL TEB_CHECK_LAYER_DEPTHS('urb_d_rd', teb_nroad_layer, urb_d_rd)
 CALL TEB_CHECK_LAYER_DEPTHS('urb_d_wl', teb_nwall_layer, urb_d_wl)
@@ -415,7 +419,7 @@ DO i = ivstart, ivend
                         teb_tau_hw_thresh, teb_tau_hw_width, urb_z0_o_z0h_gdn, urb_z0_o_z0h_grf, teb_road_dir(i:i), &
                         fr_garden(i:i), teb_frac_gr(i:i), urb_fr_bld(i:i), urb_h2w(i:i), urb_h_bld(i:i), urb_alb_rf_so(i:i), &
                         urb_alb_rd_so(i:i), urb_alb_wl_so(i:i), urb_alb_rd_th(i:i), urb_alb_rf_th(i:i), urb_alb_wl_th(i:i), &
-                        teb_zresidential(i:i), teb_dt_res(i:i), teb_dt_off(i:i), ahf_industry(i:i), teb_itype_wind, &
+                        teb_zresidential(i:i), teb_dt_res(i:i), teb_dt_off(i:i), ahf_industry(i:i), teb_ctype_wind, &
                         teb_utc_hour, teb_lgreenroof_ext, teb_lbem_ac, teb_fr_panel(i:i), teb_lroad_irrig, &
                         teb_rd_irrig_start_m(i:i), teb_rd_irrig_end_m(i:i), teb_rd_irrig_start_h(i:i), &
                         teb_rd_irrig_end_h(i:i), teb_rd_irrig_sum(i:i), &
