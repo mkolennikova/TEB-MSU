@@ -10,11 +10,10 @@
     - [1.2.3 Surface Properties](#123-surface-properties)
     - [1.2.4 Building Energy Model (BEM)](#124-building-energy-model-bem)
     - [1.2.5 Anthropogenic Heat Fluxes](#125-anthropogenic-heat-fluxes)
-    - [1.2.6 CBS Exchange Parameters](#126-cbs-exchange-parameters)
-    - [1.2.7 Wind Inside Urban Canopy](#127-wind-inside-urban-canopy)
-    - [1.2.8 Green Infrastructure](#128-green-infrastructure)
-    - [1.2.9 Solar Panels](#129-solar-panels)
-    - [1.2.10 Street Watering](#1210-street-watering)
+    - [1.2.6 Wind Inside Urban Canopy](#126-wind-inside-urban-canopy)
+    - [1.2.7 Green Infrastructure](#127-green-infrastructure)
+    - [1.2.8 Solar Panels](#128-solar-panels)
+    - [1.2.9 Street Watering](#129-street-watering)
   - [1.3 tebforcing](#13-tebforcing)
 - [2. Parameter notes](#2-parameter-notes)
   - [2.1 Input rules](#21-input-rules)
@@ -68,6 +67,8 @@ In both trees, `teb_fai` takes eight directional values when supplied.
 | `teb_lroad_irrig` | Logical | True / False | `.FALSE.` | — | Enable road watering; [schedule](#26-solar-panels-and-road-watering). |
 | `teb_lshade` | Logical | True / False | `.TRUE.` | — | Enable window shading. |
 | `teb_lcbs_scheme` | Logical | True / False | `.FALSE.` | — | Enable CBS exchange in `src_dev`. See [scheme notes](#24-cbs-and-canopy-wind). |
+| `teb_cbs_hw_thresh` | Real | 1 | `0.5` | — | Canyon H/W at CBS canyon-path weight 0.5 in `src_dev`. See [CBS notes](#24-cbs-and-canopy-wind). |
+| `teb_cbs_hw_width` | Real | 1 | `0.25` | — | Width of the CBS transition in H/W in `src_dev`. See [CBS notes](#24-cbs-and-canopy-wind). |
 | `teb_snow_check` | Logical | True / False | `.FALSE.` | — | Filter weak snowfall when forming snow cover; [snow filter](#27-snowfall-filter). |
 | `teb_ctype_bem` | Character | `'BEM'` / `'DEF'` | `'BEM'` | — | Building energy scheme; [BEM notes](#22-initial-conditions-and-bem). |
 | `teb_ctype_natvent` | Character | `'NONE'` / `'MANU'` / `'AUTO'` / `'MECH'` | `'NONE'` | — | Natural ventilation mode. |
@@ -167,20 +168,13 @@ Both trees read the road, roof and snow momentum roughness lengths from
 | `ahf_industry` | Real | W/m² | `0.0` | ✓ | Industrial sensible heat-flux parameter. |
 | `teb_utc_hour` | Integer | h | `3` | — | Time-zone offset for the traffic daily cycle. |
 
-#### 1.2.6 CBS Exchange Parameters
-
-| Variable | Type | Units / values | Default | List | Description |
-| --- | --- | --- | --- | --- | --- |
-| `teb_cbs_hw_thresh` | Real | 1 | `0.5` | — | Canyon H/W at CBS canyon-path weight 0.5 in `src_dev`. See [CBS notes](#24-cbs-and-canopy-wind). |
-| `teb_cbs_hw_width` | Real | 1 | `0.25` | — | Width of the CBS transition in H/W in `src_dev`. See [CBS notes](#24-cbs-and-canopy-wind). |
-
-#### 1.2.7 Wind Inside Urban Canopy
+#### 1.2.6 Wind Inside Urban Canopy
 
 | Variable | Type | Units / values | Default | List | Description |
 | --- | --- | --- | --- | --- | --- |
 | `teb_fai` | Real | 1 | `0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5` | — | Eight directional frontal-area indices; [wind notes](#24-cbs-and-canopy-wind). |
 
-#### 1.2.8 Green Infrastructure
+#### 1.2.7 Green Infrastructure
 
 | Variable | Type | Units / values | Default | List | Description |
 | --- | --- | --- | --- | --- | --- |
@@ -197,13 +191,13 @@ Both trees read the road, roof and snow momentum roughness lengths from
 | `proxy_phu_gdn` | Real | 0 < PHU <= 1 | `0.7` | — | Garden proxy surface relative humidity. |
 | `proxy_phu_grf` | Real | 0 < PHU <= 1 | `0.7` | — | Greenroof proxy surface relative humidity. |
 
-#### 1.2.9 Solar Panels
+#### 1.2.8 Solar Panels
 
 | Variable | Type | Units / values | Default | List | Description |
 | --- | --- | --- | --- | --- | --- |
 | `teb_fr_panel` | Real | 1 | `0` | ✓ | Solar-panel fraction of roofs; [panel notes](#26-solar-panels-and-road-watering). |
 
-#### 1.2.10 Street Watering
+#### 1.2.9 Street Watering
 
 | Variable | Type | Units / values | Default | List | Description |
 | --- | --- | --- | --- | --- | --- |
@@ -334,12 +328,10 @@ still accepts `urb_zd_town`.
 
 ### 2.4 CBS and Canopy Wind
 
-In `src_dev`, enable CBS with `teb_lcbs_scheme` in `&tebopts` and set
-`teb_cbs_hw_thresh` and `teb_cbs_hw_width` in `&tebparams`. Both are finite
-scalars shared by the block. In split files, replace `teb_tau_hw_thresh` and
-`teb_tau_hw_width` with the new keys. The legacy single-cell `&tebparam`
-format, the API and the metadata in `parameters.csv` use the
-`teb_tau_hw_*` names. See the
+In `src_dev`, set `teb_lcbs_scheme`, `teb_cbs_hw_thresh` and
+`teb_cbs_hw_width` in `&tebopts`. The threshold and width are finite
+scalars shared by the block. The single-cell `&tebparam` format, the API
+and the metadata in `parameters.csv` use the `teb_tau_hw_*` names. See the
 [CBS scheme description](TEB_MSU_CBS_scheme_T_CAN_reformulation.md).
 
 `DEF` selects the basic canopy wind scheme. `WANG` selects the Wang (2012)

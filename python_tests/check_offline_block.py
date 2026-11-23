@@ -714,8 +714,8 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
         for name, expected in (('teb_tau_hw_thresh', 0.8), ('teb_tau_hw_width', 0.4)):
             index = cbs.field(name)
             if any(record.data[index] != expected for record in cbs.before):
-                raise AssertionError(f'CBS parameter did not reach all API columns: {name}')
-        self.record('renamed_cbs_parameters', nvec=3, threshold=0.8, width=0.4)
+                raise AssertionError(f'CBS option did not reach all API columns: {name}')
+        self.record('cbs_options', nvec=3, threshold=0.8, width=0.4)
 
         aero = self.run(nvec=2, nsteps=3, profile='CBS', model_log=True, parameters={
             'urb_z0_rd': '0.12',
@@ -880,13 +880,13 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
         }
         cases.update({
             'deprecated_cbs_threshold': (
-                "&tebopts / &tebparams teb_tau_hw_thresh=0.5,teb_cbs_hw_thresh=0.5 /",
-                'teb_tau_hw_thresh is deprecated. Use teb_cbs_hw_thresh in &tebparams.'),
+                "&tebopts teb_cbs_hw_thresh=0.5 / &tebparams teb_tau_hw_thresh=0.5 /",
+                'teb_tau_hw_thresh is deprecated. Use teb_cbs_hw_thresh in &tebopts.'),
             'deprecated_cbs_width': ("&tebopts teb_tau_hw_width=0.25 / &tebparams /",
-                                     'teb_tau_hw_width is deprecated. Use teb_cbs_hw_width in &tebparams.'),
-            'cbs_wrong_group': ("&tebopts teb_cbs_hw_thresh=0.5 / &tebparams /",
-                                'teb_cbs_hw_thresh belongs in &tebparams.'),
-            'cbs_width_list': ("&tebopts nvec=2 / &tebparams teb_cbs_hw_width=0.25,0.30 /",
+                                     'teb_tau_hw_width is deprecated. Use teb_cbs_hw_width in &tebopts.'),
+            'cbs_wrong_group': ("&tebopts / &tebparams teb_cbs_hw_thresh=0.5 /",
+                                'teb_cbs_hw_thresh belongs in &tebopts.'),
+            'cbs_width_list': ("&tebopts nvec=2 teb_cbs_hw_width=0.25,0.30 / &tebparams /",
                                'teb_cbs_hw_width'),
             'dt_in_parameters': ("&tebopts / &tebparams dt=300. /", 'dt'),
             'numeric_wind_zero': ("&tebopts teb_ctype_wind=0 / &tebparams /", 'DEF or WANG'),

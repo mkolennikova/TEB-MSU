@@ -146,8 +146,9 @@ Both entry points accept the same command, run from an external case directory:
 W:/Work_TEB/TEB-Ru/my-build/bin/TEB_offline_dev.exe -param_nml parameters.nml -forcing_nml forcing.nml -output .
 ```
 
-The parameter file contains `&tebopts` (runtime `nvec`, timestep `dt`, common scheme selectors
+The parameter file contains `&tebopts` (runtime `nvec`, timestep `dt`, common scheme settings
 and output switches) and `&tebparams` (physical parameters and initial values).
+In `src_dev`, the CBS switch, H/W threshold and transition width belong in `&tebopts`.
 For a cell-dependent parameter, supply one literal for the whole block or
 exactly `nvec` literals. Repetition notation, null elements, partial indexed
 assignments and duplicate keys are rejected. Omitted parameters retain their
@@ -261,9 +262,12 @@ the historical garden and greenroof proxies; CBS remains disabled.
 | `python_tests/` | Python test benches and comparison/sensitivity experiments verifying the model revisions |
 | `tests/` | Test cases; `tests/CAPITOUL/` is the reference case: `namelist/`, `input/` (ASCII forcing) and `output_ref/` |
 | `build/` | Build output of `make`: `obj_dev/`, `obj_ctrl/`, `logs/` (the `make` logs) and the executables; created automatically and not tracked |
-| `docs/` | Model documentation includes the variable description (`TEB_MSU_variables_description.md`), the canyon bypass scheme (`TEB_MSU_CBS_scheme_T_CAN_reformulation.md`), the diagnostic garden and green-roof scheme (`TEB_MSU_garden_diagnostic_scheme.md`), the pedestrian mean radiant temperature on the road (`TEB_MSU_MRT_pedestrian_scheme.md`), the defects of the original TEB found and fixed in TEB-MSU (`TEB_MSU_source_defects.md`), the diagnostics container (`TEB_MSU_containers.md`), the commit-referenced change history (`TEB_MSU_change_history.md`), the coupling checklist (`TEB_MSU_coupling_checklist.md`), the [trace snowfall filter](docs/TEB_MSU_snow_check.md) and the documentation rules (`TEB_MSU_documentation_rules.md`) |
+| `docs/` | Model documentation includes the variable description (`TEB_MSU_variables_description.md`), the canyon bypass scheme (`TEB_MSU_CBS_scheme_T_CAN_reformulation.md`), the diagnostic garden and green-roof scheme (`TEB_MSU_garden_diagnostic_scheme.md`), the pedestrian mean radiant temperature on the road (`TEB_MSU_MRT_pedestrian_scheme.md`), the defects of the original TEB found and fixed in TEB-MSU (`TEB_MSU_source_defects.md`), the diagnostics container (`TEB_MSU_containers.md`), the commit-referenced change history (`TEB_MSU_change_history.md`), the [trace snowfall filter](docs/TEB_MSU_snow_check.md) and the documentation rules (`TEB_MSU_documentation_rules.md`) |
 | `img/` | Images used by `README.md` and `TEB_sandbox.ipynb`: the project logo `TEB-MSU_logo_v3.png` (the editable design sources are kept outside the repository, see `/logo_design/` in `.gitignore`) |
 | `TEB_sandbox.ipynb` | Step-by-step pipeline notebook: Google Colab and local (Windows) build and run |
+
+The coupling is documented in `docs/TEB_MSU_COSMO_coupling.md` on the working branch
+`codex/teb-ru-coupling` of the [COSMO-TEB repository](https://github.com/mkolennikova/COSMO-TEB).
 
 The executable is started in the directory of the case, because the driver reads `namelist/` and
 the forcing directory and writes `output/` relative to the working directory (for the reference

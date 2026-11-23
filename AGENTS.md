@@ -127,7 +127,8 @@ Consult the relevant model documents rather than duplicating their details here:
 
 - `docs/TEB_MSU_source_defects.md`: inherited defects and consistency switches.
 - `docs/TEB_MSU_containers.md`: container ownership and public API.
-- `docs/TEB_MSU_coupling_checklist.md`: COSMO coupling contract and planned work.
+- For COSMO coupling, consult `docs/TEB_MSU_COSMO_coupling.md` in the
+  adjacent COSMO-TEB repository on the coupling branch.
 
 Do not edit neighboring repositories, including COSMO-TEB, unless the user
 explicitly authorizes that scope. Do not commit or push unless requested.

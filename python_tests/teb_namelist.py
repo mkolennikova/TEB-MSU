@@ -9,6 +9,7 @@ OPTION_NAMES = frozenset((
     "nvec", "dt", "teb_nroof_layer", "teb_nroad_layer", "teb_nwall_layer",
     "teb_lbem_ac", "teb_lshade", "teb_lgarden", "teb_lgreenroof",
     "teb_lsolar_panel", "teb_lroad_irrig", "teb_snow_check", "teb_lcbs_scheme",
+    "teb_cbs_hw_thresh", "teb_cbs_hw_width",
     "teb_ctype_bem", "teb_ctype_natvent", "teb_ctype_bem_cool", "teb_ctype_bem_heat",
     "teb_ctype_wind", "teb_ctype_garden", "teb_ctype_greenroof", "teb_ctype_z0_town",
     "teb_ctype_exch_rd", "teb_ctype_exch_rf", "teb_ctype_exch_canyon",

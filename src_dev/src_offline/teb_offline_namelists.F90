@@ -18,7 +18,7 @@
 !!        Configure the town roughness rule in tebopts.
 !!      11/2026 -- OpenAI Codex
 !!        Read thermal roughness rules and per-column vegetation ratios.
-!!        Read the scalar CBS settings under their split namelist names.
+!!        Keep scalar CBS settings together in tebopts for split namelists.
 !!        Read layer counts and one positive depth profile per surface.
 !!      11/2026 -- OpenAI Codex
 !!        Read the named canyon wind scheme in both model namelist formats.
@@ -144,7 +144,8 @@ NAMELIST /tebopts/ &
   nvec, teb_nroof_layer, teb_nroad_layer, teb_nwall_layer, &
   teb_lbem_ac, teb_lgarden, &
   teb_lgreenroof, teb_lsolar_panel, teb_lroad_irrig, &
-  teb_lshade, teb_lcbs_scheme, teb_snow_check, &
+  teb_lshade, teb_snow_check, &
+  teb_lcbs_scheme, teb_cbs_hw_thresh, teb_cbs_hw_width, &
   teb_ctype_bem, teb_ctype_natvent, teb_ctype_bem_cool, &
   teb_ctype_bem_heat, teb_ctype_wind, teb_ctype_garden, &
   teb_ctype_greenroof, teb_hroad_dir, teb_wall_opt, &
@@ -174,7 +175,6 @@ NAMELIST /tebparams/ &
   proxy_phu_grf, teb_fr_panel, teb_rd_irrig_start_m, &
   teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
   teb_rd_irrig_sum, teb_utc_hour, urb_zd_town, &
-  teb_cbs_hw_thresh, teb_cbs_hw_width, &
   urb_z0_rd, urb_z0_rf, urb_z0_snow
 NAMELIST /tebparam/ &
   dt, urb_h_bld, urb_fr_bld, &
@@ -404,6 +404,8 @@ IF(.NOT.legacy) THEN
   teb_ctype_bem_heat=teb_itype_bem_heat
   teb_ctype_garden=teb_type_garden
   teb_ctype_greenroof=teb_type_greenroof
+  teb_cbs_hw_thresh=teb_tau_hw_thresh
+  teb_cbs_hw_width=teb_tau_hw_width
   DO j=1,SIZE(o)
     CALL require_count(o(j),1,1,path)
     CALL check_string(o(j),path)
@@ -426,6 +428,8 @@ IF(.NOT.legacy) THEN
   teb_itype_bem_heat=teb_ctype_bem_heat
   teb_type_garden=teb_ctype_garden
   teb_type_greenroof=teb_ctype_greenroof
+  teb_tau_hw_thresh=teb_cbs_hw_thresh
+  teb_tau_hw_width=teb_cbs_hw_width
 END IF
 DO j=1,SIZE(a)
   CALL check_string(a(j),path)
@@ -457,12 +461,8 @@ IF(legacy) THEN
   body=build_text('tebparam',a)
   READ(body,NML=tebparam,IOSTAT=rc,IOMSG=message)
 ELSE
-  teb_cbs_hw_thresh=teb_tau_hw_thresh
-  teb_cbs_hw_width=teb_tau_hw_width
   body=build_text('tebparams',a)
   READ(body,NML=tebparams,IOSTAT=rc,IOMSG=message)
-  teb_tau_hw_thresh=teb_cbs_hw_thresh
-  teb_tau_hw_width=teb_cbs_hw_width
 END IF
 IF(rc/=0) CALL fail(path,'parameters',0,TRIM(message))
 CALL check_layer_depths(path,'urb_d_rf',urb_d_rf)
@@ -1070,12 +1070,12 @@ DO
       CALL fail(path,group,line,'teb_ctype_exch_roof is deprecated. Use teb_ctype_exch_rf in &tebopts.')
     CASE('teb_tau_hw_thresh')
       IF(group/='tebparam') &
-        CALL fail(path,group,line,'teb_tau_hw_thresh is deprecated. Use teb_cbs_hw_thresh in &tebparams.')
+        CALL fail(path,group,line,'teb_tau_hw_thresh is deprecated. Use teb_cbs_hw_thresh in &tebopts.')
     CASE('teb_tau_hw_width')
       IF(group/='tebparam') &
-        CALL fail(path,group,line,'teb_tau_hw_width is deprecated. Use teb_cbs_hw_width in &tebparams.')
+        CALL fail(path,group,line,'teb_tau_hw_width is deprecated. Use teb_cbs_hw_width in &tebopts.')
     CASE('teb_cbs_hw_thresh','teb_cbs_hw_width')
-      IF(group/='tebparams') CALL fail(path,group,line,TRIM(entry%name)//' belongs in &tebparams.')
+      IF(group/='tebopts') CALL fail(path,group,line,TRIM(entry%name)//' belongs in &tebopts.')
     END SELECT
     CALL skip_space(text,p,line)
     IF(p>LEN(text)) CALL fail(path,entry%name,line,'missing equals sign')

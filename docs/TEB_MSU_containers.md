@@ -18,8 +18,8 @@
 * `TEB_MSU_source_defects.md` — дефекты исходного TEB;
 * `TEB_MSU_change_history.md` — история изменений (записи 48–81 описывают
   появление контейнеров, последующую дедупликацию и вынос форсинга в `FORC`);
-* `TEB_MSU_coupling_checklist.md` — сопряжение с COSMO-TEB: что контейнеры
-  означают для хоста.
+* Сопряжение с COSMO описано в `docs/TEB_MSU_COSMO_coupling.md`
+  на рабочей ветке [COSMO-TEB](https://github.com/mkolennikova/COSMO-TEB).
 
 ---
 
@@ -165,9 +165,7 @@ TYPE(TEB_EXT_SURF_t), SAVE :: EXT       ! external garden / greenroof surface (h
 после загрузки/cold-start, до физики (`teb_troad_before`). Пропуск этих выходов
 не меняет шаг модели. Экспорт сохраняет единицы и площадную нормировку TEB;
 для DEF мощности HVAC выдаются нулями без чтения неопределённой диагностики.
-Полный контракт, неактивные режимы и отображение в COSMO — §3.4
-`TEB_MSU_coupling_checklist.md`. Внешний хост не получает внутренний `DMT` через
-`sfc_teb`: модуль публично экспортирует `teb_interface`, `teb_finalize`,
+Модуль `sfc_teb` публично экспортирует `teb_interface`, `teb_finalize`,
 `teb_real_kind = KIND(0.0)` и `teb_undef` (точное значение параметра `XUNDEF`
 с тем же REAL-kind); входы, состояния и результаты имеют явные INTENT.
 
@@ -199,10 +197,10 @@ TYPE(TEB_EXT_SURF_t), SAVE :: EXT       ! external garden / greenroof surface (h
 для обработанных точек. Пустое окно задаётся как `ivend=ivstart-1`, при
 `1<=ivstart<=nvec+1`; физика для него не вызывается. Оба offline-executable используют общий драйвер с `nvec>=1`; размер задаёт `tebopts`.
 
-Границы окна и пять слоёв крыши/дороги/стены/пола проверяются до заполнения
-контейнеров. `TEB_HOST_ENSURE` принимает только рабочий размер 1 и проверяет
-размеры при повторном использовании памяти. Политика вызова из COSMO — §2.2
-`TEB_MSU_coupling_checklist.md`. Физические процедуры остаются поколоночными.
+До заполнения контейнеров проверяются границы окна, пять слоёв пола и
+согласованность числа слоёв крыши, дороги и стен с профилями толщины.
+`TEB_HOST_ENSURE` принимает рабочий размер 1 и проверяет размеры при
+повторном использовании памяти. COSMO вызывает API на блоке `nproma`.
 
 **Offline-конфигурация и вывод.** Общие модули `src_offline/teb_offline_host.F90`,
 `teb_offline_namelists.F90`, `teb_offline_driver.F90`, `teb_offline_surfaces.F90`
