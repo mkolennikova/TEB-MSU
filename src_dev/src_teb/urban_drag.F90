@@ -24,7 +24,7 @@
                           PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM,                              &
                           PAC_ROAD_ATM_WAT,                                              &
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM,       &
-                          PCH_GREENROOF_ATM, PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM   , TPARAMS) 
+                          PCH_GREENROOF_ATM, PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, TPARAMS, PZ0_TOWN, PZD_TOWN)
 !   ##########################################################################
 !
 !!****  *URBAN_DRAG*  
@@ -93,6 +93,9 @@
 !!        Apply separate thermal roughness rules for road, roof and town.
 !!        Use the road-weighted COSMO-TEB buoyancy term without mixed ground
 !!        temperature in the canyon convective-speed iteration.
+!!        Share the step's town roughness between bulk drag and canyon-top
+!!        exchange.
+!!        Use the step's town displacement in the bulk drag reference heights.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -122,6 +125,8 @@ USE PARKIND1  ,ONLY : JPRB
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
 TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
+REAL, DIMENSION(:), INTENT(IN) :: PZ0_TOWN ! town momentum roughness for this step (m)
+REAL, DIMENSION(:), INTENT(IN) :: PZD_TOWN ! town displacement height for this step (m)
 
 !
 !*      0.1    declarations of arguments
@@ -300,7 +305,6 @@ REAL, DIMENSION(SIZE(PTA)) :: ZUSTAR_ROAD  ! friction velocity for roads
 REAL, DIMENSION(SIZE(PTA)) :: ZUSTAR_ROOF  ! friction velocity for roofs
 REAL, DIMENSION(SIZE(PTA)) :: ZUSTAR_TOWN  !
 !
-REAL, DIMENSION(SIZE(PTA)) :: ZZ0_TOP      ! roughness length for zac_top calculation
 REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_TOP     ! roughness length for zac_top calculation
 REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_ROOF    ! roughness length for zac_top calculation
 REAL, DIMENSION(SIZE(PTA)) :: ZZ0H_TOWN    ! roughness length for zac_top calculation
@@ -349,7 +353,6 @@ CEXCH_TOWN = MERGE(CTEB_EXCH_DEFAULT, '      ', TOPTS%TZ0H%TOWN%CFORM /= '')
 ZZ0_ROOF(:) = TPARAMS%TZ0%XROOF
 ZZ0_ROAD(:) = MIN(TPARAMS%TZ0%XROAD,0.1*PZ_LOWCAN(:))
 !
-ZZ0_TOP(:) = TPARAMS%XZ0_TOWN(:)
 !
 PCD    (:) = XUNDEF
 PCDN   (:) = XUNDEF
@@ -482,12 +485,12 @@ ENDDO
 IF (.NOT. TOPTS%LCANOPY) THEN
  
 ! The reference heights are taken above the displacement surface:
-!   (roof height - zd) + PZREF = (TPARAMS%XBLD_HEIGHT - TPARAMS%XZD_TOWN) + PZREF
+!   (roof height - zd) + PZREF = (TPARAMS%XBLD_HEIGHT - PZD_TOWN) + PZREF
 ! (the official TEB has a hard-coded '+ TPARAMS%XBLD_HEIGHT/3.' here, which corresponds
 !  to zd = 2/3*H and is not consistent with the wind profile of the driver,
 !  where 2/3*H = H - zd gives zd = H/3)
   CALL URBAN_EXCH_COEF(CZ0H_TOWN, TOPTS%TZ0H%TOWN%XRATIO, ZTS_TOWN, ZQ_TOWN, PEXNS, PEXNA, PTA, PQA,     &
-                       PZREF+ (TPARAMS%XBLD_HEIGHT-TPARAMS%XZD_TOWN), PUREF+(TPARAMS%XBLD_HEIGHT-TPARAMS%XZD_TOWN), PVMOD, TPARAMS%XZ0_TOWN, &
+                       PZREF+(TPARAMS%XBLD_HEIGHT-PZD_TOWN), PUREF+(TPARAMS%XBLD_HEIGHT-PZD_TOWN), PVMOD, PZ0_TOWN, &
                        PRI, PCD, PCDN, ZAC, ZRA, ZCH, ZZ0H_TOWN, ILMO_TOWN, HEXCH=CEXCH_TOWN)
   
 !  OPEN(UNIT=27, FILE = ZZ0H_TOWN1, ACCESS = 'APPEND')
@@ -548,12 +551,12 @@ IF (.NOT. TOPTS%LCANOPY) THEN
 
   CALL URBAN_EXCH_COEF('MASC95', 1., PT_CANYON, PQ_CANYON, PEXNS, PEXNA, PTA, PQA,    &
                        PZREF+TPARAMS%XBLD_HEIGHT-PZ_LOWCAN, PUREF+TPARAMS%XBLD_HEIGHT-PZ_LOWCAN, &
-                       PVMOD, ZZ0_TOP,  ZRI, ZCD, ZCDN, PAC_TOP, ZRA_TOP, PCH_TOP, ZZ0H_TOP, ILMO_TOP, &
+                       PVMOD, PZ0_TOWN, ZRI, ZCD, ZCDN, PAC_TOP, ZRA_TOP, PCH_TOP, ZZ0H_TOP, ILMO_TOP, &
                        HEXCH=TOPTS%CEXCH_CANYON)
 
 !  CALL URBAN_EXCH_COEF(TOPTS%CZ0H, 1., PT_CANYON, PQ_CANYON, PEXNS, PEXNA, PTA, PQA,    &
 !                        PZREF+TPARAMS%XBLD_HEIGHT-PZ_LOWCAN, PUREF+TPARAMS%XBLD_HEIGHT-PZ_LOWCAN, &
-!                        PVMOD, ZZ0_TOP,  ZRI, ZCD, ZCDN, PAC_TOP, ZRA_TOP, PCH_TOP,   &
+!                        PVMOD, PZ0_TOWN, ZRI, ZCD, ZCDN, PAC_TOP, ZRA_TOP, PCH_TOP,   &
 !  						ZZ0H_TOP, ILMO_TOP  )
 
 ENDIF

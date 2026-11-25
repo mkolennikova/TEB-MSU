@@ -38,6 +38,8 @@
 !!      10/2026 -- Mikhail Varentsov (MV)
 !!        Consolidate CAN/ATM branch records and add shared driver and
 !!        pedestrian-radiation diagnostics.
+!!      11/2026 -- OpenAI Codex
+!!        Record town roughness, displacement height and stability by step.
 !             ------------
 !
 !
@@ -83,7 +85,12 @@ TYPE DIAG_MISC_TEB_t
 !
 !* miscellaneous variables
 !
-  REAL, POINTER, DIMENSION(:)   :: XZ0_TOWN   ! town roughness length
+  REAL, POINTER, DIMENSION(:)   :: XZ0_TOWN         ! town roughness supplied to physics (m)
+  REAL, POINTER, DIMENSION(:)   :: XZ0_TOWN_NEUTRAL ! neutral town roughness (m)
+  REAL, POINTER, DIMENSION(:)   :: XZ0_TOWN_S       ! H/L used by both corrections (-)
+  REAL, POINTER, DIMENSION(:)   :: XZ0_TOWN_NEUTRAL_FALLBACK ! unusable history (0 or 1)
+  REAL, POINTER, DIMENSION(:)   :: XZD_TOWN         ! town displacement supplied to physics (m)
+  REAL, POINTER, DIMENSION(:)   :: XZD_TOWN_NEUTRAL ! neutral town displacement (m)
   REAL, POINTER, DIMENSION(:)   :: XQF_BLD    ! domestic heating
   REAL, POINTER, DIMENSION(:)   :: XFLX_BLD   ! heat flux from bld
   REAL, POINTER, DIMENSION(:)   :: XQF_TOWN   ! total anthropogenic heat
@@ -451,6 +458,11 @@ NULLIFY(YDIAG_MISC_TEB%XWSTOWN_NOW)
 NULLIFY(YDIAG_MISC_TEB%XZZ0H_GREENROOF_ATM)
 IF (LHOOK) CALL DR_HOOK("MODD_DIAG_MISC_TEB_N:DIAG_MISC_TEB_INIT",0,ZHOOK_HANDLE)
 NULLIFY(YDIAG_MISC_TEB%XZ0_TOWN)
+NULLIFY(YDIAG_MISC_TEB%XZ0_TOWN_NEUTRAL)
+NULLIFY(YDIAG_MISC_TEB%XZ0_TOWN_S)
+NULLIFY(YDIAG_MISC_TEB%XZ0_TOWN_NEUTRAL_FALLBACK)
+NULLIFY(YDIAG_MISC_TEB%XZD_TOWN)
+NULLIFY(YDIAG_MISC_TEB%XZD_TOWN_NEUTRAL)
 NULLIFY(YDIAG_MISC_TEB%XQF_BLD)
 NULLIFY(YDIAG_MISC_TEB%XFLX_BLD)
 NULLIFY(YDIAG_MISC_TEB%XQF_TOWN)

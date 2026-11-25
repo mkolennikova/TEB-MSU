@@ -41,6 +41,9 @@
 !!        Configure thermal roughness independently of the exchange algorithm.
 !!      11/2026 -- OpenAI Codex
 !!        Store the named canyon wind scheme in the TEB options.
+!!      11/2026 -- OpenAI Codex
+!!        Set independent stratification corrections to town roughness and
+!!        displacement height.
 !             ------------
 !
 USE MODD_TYPE_DATE_SURF
@@ -54,6 +57,7 @@ USE PARKIND1  ,ONLY : JPRB
 IMPLICIT NONE
 
 CHARACTER(LEN=6), PARAMETER :: CTEB_EXCH_DEFAULT = 'MASC95'
+CHARACTER(LEN=7), PARAMETER :: CTEB_TOWN_DYNCORR_DEFAULT = 'OFF'
 
 TYPE TEB_Z0H_RULE_t
   CHARACTER(LEN=6) :: CFORM = ''  ! Empty selects the caller's legacy CZ0H.
@@ -68,7 +72,8 @@ TYPE TEB_OPTIONS_t
 !* CONTRACT (checked by python_tests/container_fields_inventory.py):
 !*   param    - switches, types and parameters of the namelist, set once by the
 !*              driver (LCANOPY ... NWALL_LAYER, XZ0_O_Z0H_*, LCBS_SCHEME,
-!*              CEXCH_ROAD, CEXCH_ROOF, CEXCH_CANYON)
+!*              CEXCH_ROAD, CEXCH_ROOF, CEXCH_CANYON, CTYPE_Z0_TOWN_DYNCORR,
+!*              CTYPE_ZD_TOWN_DYNCORR)
 !*   work     - updated on every step by the driver (TTIME, XTSTEP)
 !*   reserved - SURFEX interface kept for future features, unused in TEB-MSU
 !*              (CBLD_ATYPE, CTREE, LHYDRO)
@@ -98,6 +103,8 @@ TYPE TEB_OPTIONS_t
   CHARACTER(LEN=6)               :: CEXCH_ROAD = ''
   CHARACTER(LEN=6)               :: CEXCH_ROOF = ''
   CHARACTER(LEN=6)               :: CEXCH_CANYON = ''
+  CHARACTER(LEN=7)               :: CTYPE_Z0_TOWN_DYNCORR = CTEB_TOWN_DYNCORR_DEFAULT
+  CHARACTER(LEN=7)               :: CTYPE_ZD_TOWN_DYNCORR = CTEB_TOWN_DYNCORR_DEFAULT
   TYPE(TEB_Z0H_t)                :: TZ0H
   CHARACTER(LEN=5)               :: CCH_BEM     ! BEM option for roof/wall outside convective coefficient
                                                 ! 'DOE-2' : DOE-2 model from
@@ -237,6 +244,28 @@ IF (PRESENT(HEXCH)) THEN
 END IF
 END FUNCTION TEB_EXCH_METHOD
 
+PURE SUBROUTINE TEB_PARSE_TOWN_DYNCORR(HSPEC, HMODE, OVALID)
+CHARACTER(LEN=*), INTENT(IN), OPTIONAL :: HSPEC
+CHARACTER(LEN=7), INTENT(OUT) :: HMODE
+LOGICAL, INTENT(OUT) :: OVALID
+CHARACTER(LEN=7) :: CSPEC
+INTEGER :: J, ICODE
+
+HMODE = CTEB_TOWN_DYNCORR_DEFAULT
+OVALID = .TRUE.
+IF (.NOT. PRESENT(HSPEC)) RETURN
+OVALID = .FALSE.
+IF (LEN_TRIM(ADJUSTL(HSPEC)) > LEN(CSPEC)) RETURN
+CSPEC = ADJUSTL(HSPEC)
+DO J = 1, LEN_TRIM(CSPEC)
+  ICODE = IACHAR(CSPEC(J:J))
+  IF (ICODE >= IACHAR('a') .AND. ICODE <= IACHAR('z')) &
+    CSPEC(J:J) = ACHAR(ICODE - IACHAR('a') + IACHAR('A'))
+END DO
+OVALID = CSPEC == CTEB_TOWN_DYNCORR_DEFAULT .OR. CSPEC == 'ZIL2008'
+IF (OVALID) HMODE = CSPEC
+END SUBROUTINE TEB_PARSE_TOWN_DYNCORR
+
 SUBROUTINE TEB_OPTIONS_INIT(YTEB_OPTIONS)
 TYPE(TEB_OPTIONS_t), INTENT(INOUT) :: YTEB_OPTIONS
 REAL(KIND=JPRB) :: ZHOOK_HANDLE
@@ -250,6 +279,8 @@ YTEB_OPTIONS%CZ0H=' '
 YTEB_OPTIONS%CEXCH_ROAD=''
 YTEB_OPTIONS%CEXCH_ROOF=''
 YTEB_OPTIONS%CEXCH_CANYON=''
+YTEB_OPTIONS%CTYPE_Z0_TOWN_DYNCORR=CTEB_TOWN_DYNCORR_DEFAULT
+YTEB_OPTIONS%CTYPE_ZD_TOWN_DYNCORR=CTEB_TOWN_DYNCORR_DEFAULT
 YTEB_OPTIONS%TZ0H=TEB_Z0H_t()
 YTEB_OPTIONS%CCH_BEM=' '
 YTEB_OPTIONS%CBEM=' '

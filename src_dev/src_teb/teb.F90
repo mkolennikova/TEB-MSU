@@ -203,6 +203,8 @@
 !!        coupling to surface energy budgets.
 !!        Add opt-in upstream-consistency comparison paths for validation of
 !!        inherited formulas.
+!!      11/2026 -- OpenAI Codex
+!!        Pass the step's town roughness and displacement height to urban drag.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -497,6 +499,8 @@ REAL, DIMENSION(SIZE(PTA)) :: ZTS_WL_B  ! wall B surface temperature
 REAL, DIMENSION(SIZE(PTA)) :: ZTS_WL  ! averaged wall surface temperature 
 !                                            ! at previous time-step
 REAL, DIMENSION(SIZE(PTA)) :: ZTS_RF  ! roof surface temperature 
+REAL, POINTER :: ZZ0_TOWN(:) ! town momentum roughness for this step
+REAL, POINTER :: ZZD_TOWN(:) ! town displacement height for this step
 !                                            ! at previous time-step
 REAL, DIMENSION(SIZE(PTA),SIZE(TSTATE%XT_WALL_A,2)) :: ZT_WL  ! averaged wall surface temperature 
 !
@@ -643,6 +647,10 @@ ZWS_RD_MAX(:) = ZWS_RD_MAX(:) * PDF_RD(:)
 !*      3.     Surface drag
 !              ------------
 !
+ZZ0_TOWN => TPARAMS%XZ0_TOWN
+IF (TOPTS%CTYPE_Z0_TOWN_DYNCORR == 'ZIL2008') ZZ0_TOWN => DMT%XZ0_TOWN
+ZZD_TOWN => TPARAMS%XZD_TOWN
+IF (TOPTS%CTYPE_ZD_TOWN_DYNCORR == 'ZIL2008') ZZD_TOWN => DMT%XZD_TOWN
 CALL URBAN_DRAG(icell, iblock, TOPTS, TSTATE, BSTATE, HIMPLICIT_WIND, PTSTEP, PTIME, PT_CANYON, PQ_CANYON, &
                 PU_CANYON, PT_LOWCAN, PQ_LOWCAN, PU_LOWCAN, PZ_LOWCAN, &
                 ZTS_RF, ZTS_RD, ZTS_WL, PTS_GARDEN, PQS_GARDEN, PDN_RF, PDN_RD, PTAU,    &
@@ -663,7 +671,7 @@ CALL URBAN_DRAG(icell, iblock, TOPTS, TSTATE, BSTATE, HIMPLICIT_WIND, PTSTEP, PT
                 ZZ0H_GARDEN_ATM,                                                       &
                 ZAC_RD_ATM_WAT,                                                        &
                 PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM, PCH_GREENROOF_ATM, &
-                PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM , TPARAMS)
+                PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, TPARAMS, ZZ0_TOWN, ZZD_TOWN)
 !* road -> forcing level water-limited conductance (diagnostic; also used by the
 !* tau aggregation and by the reference humidity ZQ_REF of the road budget)
 PAC_ROAD_ATM_WAT(:) = ZAC_RD_ATM_WAT(:)

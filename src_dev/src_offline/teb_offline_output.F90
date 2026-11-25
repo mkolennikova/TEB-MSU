@@ -10,6 +10,7 @@
 !!        Include configured layer counts and depths in parameter metadata.
 !!      11/2026 -- OpenAI Codex
 !!        Report the named wind scheme in the parameter metadata.
+!!        Include the dynamic roughness and displacement settings.
 !-------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_OUTPUT
 USE TEB_OFFLINE_HOST, ONLY: TEB_BLOCK, BLOCK_CONFIG, active
@@ -294,7 +295,11 @@ DO b=1,SIZE(blocks)
     WRITE(unit,'(I0,A,I0,A,I0)') b,';',ids(j,b),';teb_utc_hour;',blocks(b)%teb_utc_hour
     WRITE(unit,'(I0,A,I0,A,L1)') b,';',ids(j,b),';teb_lshade;',blocks(b)%teb_lshade
     WRITE(unit,'(I0,A,I0,A,A)') b,';',ids(j,b),';urb_z0_town;',blocks(b)%urb_z0_town
+    WRITE(unit,'(I0,A,I0,A,A)') b,';',ids(j,b),';teb_ctype_z0_town_dyncorr;', &
+      TRIM(blocks(b)%teb_ctype_z0_town_dyncorr)
     WRITE(unit,'(I0,A,I0,A,A)') b,';',ids(j,b),';urb_zd_town;',blocks(b)%urb_zd_town
+    WRITE(unit,'(I0,A,I0,A,A)') b,';',ids(j,b),';teb_ctype_zd_town_dyncorr;', &
+      TRIM(blocks(b)%teb_ctype_zd_town_dyncorr)
     WRITE(unit,'(I0,A,I0,A,L1)') b,';',ids(j,b),';teb_lcbs_scheme;',blocks(b)%teb_lcbs_scheme
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';teb_tau_hw_thresh;',blocks(b)%teb_tau_hw_thresh
     WRITE(unit,'(I0,A,I0,A,ES26.17E3)') b,';',ids(j,b),';teb_tau_hw_width;',blocks(b)%teb_tau_hw_width

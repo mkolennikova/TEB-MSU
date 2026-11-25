@@ -79,7 +79,8 @@ CATEGORY = {
     'TEB_OPTIONS_t': {
         'param': {
             'LCANOPY', 'LGARDEN', 'CROAD_DIR', 'CWALL_OPT', 'CBLD_ATYPE', 'CZ0H',
-            'CEXCH_ROAD', 'CEXCH_ROOF', 'CEXCH_CANYON', 'TZ0H',
+            'CEXCH_ROAD', 'CEXCH_ROOF', 'CEXCH_CANYON', 'CTYPE_Z0_TOWN_DYNCORR',
+            'CTYPE_ZD_TOWN_DYNCORR', 'TZ0H',
             'CCH_BEM', 'CBEM', 'CTREE', 'LGREENROOF', 'LHYDRO', 'LSOLAR_PANEL',
             'CTYPE_GARDEN', 'XZ0_O_Z0H_GD', 'CTYPE_GREENROOF', 'XZ0_O_Z0H_GR',
             'LCBS_SCHEME', 'XTAU_HW_THRESH', 'XTAU_HW_WIDTH',

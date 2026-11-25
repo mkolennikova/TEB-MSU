@@ -11,6 +11,8 @@ and, on top of them, a short list of individual variables. The contract is:
         per-cell indices/coordinates;
       * ``host-export`` - the garden conductances that TEB writes and the host
         reads (the opposite of the external-surface inputs, which live in EXT);
+      * ``host-state``  - the inverse Obukhov length carried by the host between
+        completed substeps;
       * ``deferred``   - the duplicates that are knowingly still passed (each
         group has a phase that removes it, recorded in the history).
 
@@ -21,7 +23,7 @@ Usage
 -----
     python python_tests/call_signature_inventory.py
     python python_tests/call_signature_inventory.py --strict
-    python python_tests/call_signature_inventory.py --expect 27
+    python python_tests/call_signature_inventory.py --expect 28
 
 A markdown report is written into ``<out-root>/call_signature.md`` (ignored by
 git). ``--expect N`` additionally fails if the signature length differs from N.
@@ -54,6 +56,7 @@ TRANSIENT = [
 #: the garden conductances TEB writes and the host reads back (TEB -> host);
 #: the external-surface inputs moved into the EXT container
 HOST_EXPORT = ['ZCH_GD', 'ZCD_GD']
+HOST_STATE = ['PINV_L_TOWN_PREV']
 
 #: debt: still passed, with the phase that removes each group (see the history)
 DEFERRED = {
@@ -62,6 +65,7 @@ DEFERRED = {
 CONTAINER_SET = set(CONTAINERS)
 TRANSIENT_SET = set(TRANSIENT)
 HOST_EXPORT_SET = set(HOST_EXPORT)
+HOST_STATE_SET = set(HOST_STATE)
 DEFERRED_MAP = {n: g for g, names in DEFERRED.items() for n in names}
 
 
@@ -113,6 +117,8 @@ def classify(name: str) -> str:
         return 'transient'
     if name in HOST_EXPORT_SET:
         return 'host-export'
+    if name in HOST_STATE_SET:
+        return 'host-state'
     if name in DEFERRED_MAP:
         return 'deferred'
     return 'violation'
@@ -121,7 +127,7 @@ def classify(name: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--strict', action='store_true',
-                    help='fail if any dummy is not container/transient/host-export/deferred')
+                    help='fail if any dummy is outside the inventory categories')
     ap.add_argument('--expect', type=int, default=None,
                     help='fail if the signature length differs from N')
     ap.add_argument('--json', action='store_true', help='print the report as JSON')
@@ -133,7 +139,7 @@ def main() -> int:
     actuals = extract_args(read_lines(CALL_FILE), 'CALL CALL_DRIVER (')
 
     rows = []
-    counts = {'container': 0, 'transient': 0, 'host-export': 0,
+    counts = {'container': 0, 'transient': 0, 'host-export': 0, 'host-state': 0,
               'deferred': 0, 'violation': 0}
     for name in dummies:
         cat = classify(name)
@@ -152,6 +158,7 @@ def main() -> int:
           '| `container` | %d | the model containers (DMT/TOPTS/TPARAMS/BOPTS/BPARAMS/TSTATE/BSTATE/TPN/TIR/FORC/EXT) |' % counts['container'],
           '| `transient` | %d | clock and per-cell indices (not stored) |' % counts['transient'],
           '| `host-export` | %d | garden conductances TEB writes and the host reads |' % counts['host-export'],
+          '| `host-state` | %d | inverse Obukhov length carried between substeps |' % counts['host-state'],
           '| `deferred` | %d | duplicates knowingly kept (see below) |' % counts['deferred'],
           '| `violation` | %d | duplicates of container fields, to remove |' % counts['violation'],
           '']
@@ -177,6 +184,7 @@ def main() -> int:
     print('CALL_DRIVER signature inventory  [src_dev]')
     print(f'  dummies: {len(dummies)}  (transient {counts["transient"]},'
           f' container {counts["container"]}, host-export {counts["host-export"]},'
+          f' host-state {counts["host-state"]},'
           f' deferred {counts["deferred"]}, violation {counts["violation"]})')
     if not matched:
         print(f'  signature/call lengths: {len(dummies)}/{len(actuals)} (should match)')

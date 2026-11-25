@@ -23,6 +23,9 @@
 !!        Accept shared layer-depth profiles and runtime roof/road/wall counts.
 !!      11/2026 -- OpenAI Codex
 !!        Take the named canyon wind scheme through the public interface.
+!!      11/2026 -- OpenAI Codex
+!!        Expose dynamic town roughness and displacement height, sharing the
+!!        per-column stability history.
 !!------------------------------------------------------------------------------
 MODULE sfc_teb
 
@@ -121,9 +124,10 @@ SUBROUTINE teb_interface (ntstep, nvec, iblock, dt, teb_year, teb_month, teb_day
                           teb_tch_top, teb_wind_top, teb_cd_garden_atm, &
                           teb_ch_garden_atm, ahf_traffic_now, teb_snow_check, &
                           teb_ctype_exch_road, teb_ctype_exch_roof, teb_ctype_exch_canyon, &
-                          urb_d_rf, urb_d_rd, urb_d_wl)
+                          urb_d_rf, urb_d_rd, urb_d_wl, &
+                          teb_ctype_z0_town_dyncorr, teb_inv_l_town_prev, teb_ctype_zd_town_dyncorr)
 USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_FINITE
-USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t, TEB_EXCH_METHOD
+USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t, TEB_EXCH_METHOD, TEB_PARSE_TOWN_DYNCORR
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t
@@ -145,7 +149,12 @@ CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_roof
 CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_exch_canyon
 ! Layer depths in metres, shared by all columns; omitted profiles use defaults.
 REAL, OPTIONAL, INTENT(IN) :: urb_d_rf(:), urb_d_rd(:), urb_d_wl(:)
+CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_z0_town_dyncorr
+CHARACTER(LEN=*), OPTIONAL, INTENT(IN) :: teb_ctype_zd_town_dyncorr
 CHARACTER(LEN=6) :: HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON
+CHARACTER(LEN=7) :: CZ0_TOWN_DYNCORR, CZD_TOWN_DYNCORR
+LOGICAL :: LTOWN_DYNCORR_VALID, LTOWN_DYNCORR
+REAL :: ZINV_L_TOWN_PREV(1)
 REAL, INTENT(IN) :: dt          !IN integration timestep
 	
 INTEGER, INTENT(IN) :: &
@@ -328,6 +337,10 @@ REAL, DIMENSION(nvec), INTENT(OUT) :: teb_runoff_roof  ! roof runoff of this sub
 !* Later calls, including restart, restore both values from the host.
 REAL, DIMENSION(nvec), INTENT(INOUT) :: teb_ustar_town        ! town friction velocity (m/s)
 REAL, DIMENSION(nvec), INTENT(INOUT) :: teb_cd_greenroof_atm  ! external greenroof momentum coefficient (-)
+!* Either ZIL2008 correction requires an inverse Obukhov length (1/m) per
+!* column in the convention of Zilitinkevich et al. (2008). The host carries
+!* the returned values between steps and across restarts. Cold starts use zero.
+REAL, OPTIONAL, INTENT(INOUT) :: teb_inv_l_town_prev(:)
 !* Only ivstart:ivend is valid. The host owns history and unit conversions.
 !* teb_troad_before is sampled after cold-start, before CALL_DRIVER.
 !* HVAC power is zero with DEF; unavailable diagnostics retain XUNDEF.
@@ -396,6 +409,19 @@ CALL TEB_CHECK_LAYER_DEPTHS('urb_d_wl', teb_nwall_layer, urb_d_wl)
 HEXCH_ROAD = TEB_EXCH_METHOD(teb_ctype_exch_road, 'teb_ctype_exch_road')
 HEXCH_ROOF = TEB_EXCH_METHOD(teb_ctype_exch_roof, 'teb_ctype_exch_roof')
 HEXCH_CANYON = TEB_EXCH_METHOD(teb_ctype_exch_canyon, 'teb_ctype_exch_canyon')
+CALL TEB_PARSE_TOWN_DYNCORR(teb_ctype_z0_town_dyncorr, CZ0_TOWN_DYNCORR, LTOWN_DYNCORR_VALID)
+IF (.NOT. LTOWN_DYNCORR_VALID) &
+  ERROR STOP 'TEB_INTERFACE: teb_ctype_z0_town_dyncorr must be OFF or ZIL2008'
+CALL TEB_PARSE_TOWN_DYNCORR(teb_ctype_zd_town_dyncorr, CZD_TOWN_DYNCORR, LTOWN_DYNCORR_VALID)
+IF (.NOT. LTOWN_DYNCORR_VALID) &
+  ERROR STOP 'TEB_INTERFACE: teb_ctype_zd_town_dyncorr must be OFF or ZIL2008'
+LTOWN_DYNCORR = CZ0_TOWN_DYNCORR == 'ZIL2008' .OR. CZD_TOWN_DYNCORR == 'ZIL2008'
+IF (LTOWN_DYNCORR) THEN
+  IF (.NOT. PRESENT(teb_inv_l_town_prev)) &
+    ERROR STOP 'TEB_INTERFACE: ZIL2008 requires teb_inv_l_town_prev'
+  IF (SIZE(teb_inv_l_town_prev) /= nvec) &
+    ERROR STOP 'TEB_INTERFACE: teb_inv_l_town_prev must have nvec elements'
+END IF
 IF (PRESENT(teb_snow_check)) module_snow_check = teb_snow_check
 CALL TEB_LOG_SET_FILTER(KTEB_LOG_BLOCK, KTEB_LOG_POINT)
 ! All blocks of the same model step share the output decision.
@@ -423,7 +449,7 @@ DO i = ivstart, ivend
                         teb_utc_hour, teb_lgreenroof_ext, teb_lbem_ac, teb_fr_panel(i:i), teb_lroad_irrig, &
                         teb_rd_irrig_start_m(i:i), teb_rd_irrig_end_m(i:i), teb_rd_irrig_start_h(i:i), &
                         teb_rd_irrig_end_h(i:i), teb_rd_irrig_sum(i:i), &
-                        HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON, i)
+                        HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON, i, CZ0_TOWN_DYNCORR, CZD_TOWN_DYNCORR)
   CALL TEB_FILL_DERIVED (1, 1, urb_z0_town, urb_zd_town, urb_hcap_rd(i:i), urb_hcap_rf(i:i), &
                          urb_hcap_wl(i:i), urb_hcon_rd(i:i), urb_hcon_rf(i:i), urb_hcon_wl(i:i), ahf_traffic(i:i), &
                          teb_fai(i:i,:), urb_d_rf, urb_d_rd, urb_d_wl)
@@ -453,10 +479,14 @@ DO i = ivstart, ivend
   END IF
   IF (PRESENT(teb_troad_before)) &
     teb_troad_before(i:i,:) = TSTATE%XT_ROAD(1:1,:)
+  ZINV_L_TOWN_PREV = 0.
+  IF (LTOWN_DYNCORR .AND. ntstep /= 0) ZINV_L_TOWN_PREV(1) = teb_inv_l_town_prev(i)
   CALL CALL_DRIVER (ntstep, 1, iblock, dt, teb_year, teb_month, teb_day, teb_hour, teb_min, &
                     teb_sec, teb_hour_seconds(1), sa_uc(i), lon_teb(i), lat_teb(i), FORC, EXT, &
                     teb_tch_gd(i), teb_tcm_gd(i), &
-                    DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR)
+                    DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, BSTATE, TPN, TIR, &
+                    PINV_L_TOWN_PREV=ZINV_L_TOWN_PREV)
+  IF (LTOWN_DYNCORR) teb_inv_l_town_prev(i) = ZINV_L_TOWN_PREV(1)
   teb_ustar_town(i:i) = DMT%XUSTAR_TOWN(1:1)
   teb_cd_greenroof_atm(i:i) = DMT%XPCD_GREENROOF_ATM(1:1)
   IF (ntstep == 0) DMT%XTSTOWN_S_NOW(1:1) = DMT%XTSTOWN_S(1:1)

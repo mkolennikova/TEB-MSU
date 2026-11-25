@@ -22,6 +22,8 @@
 !!        Read layer counts and one positive depth profile per surface.
 !!      11/2026 -- OpenAI Codex
 !!        Read the named canyon wind scheme in both model namelist formats.
+!!      11/2026 -- OpenAI Codex
+!!        Read the dynamic town roughness and displacement rules in tebopts.
 !-------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_NAMELISTS
 USE TEB_OFFLINE_HOST, ONLY: BLOCK_CONFIG, TEB_BLOCK, allocate_block
@@ -29,7 +31,8 @@ USE TEB_HOST, ONLY: TEB_DEFAULT_D_RF, TEB_DEFAULT_D_RD, TEB_DEFAULT_D_WL
 USE MODD_SURF_PAR, ONLY: XUNDEF, teb_snow_check
 USE MODD_SNOW_PAR, ONLY: XZ0SN
 USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT, TEB_EXCH_VALID, TEB_Z0H_t, &
-                             TEB_Z0H_RULE_t, TEB_PARSE_Z0H, TEB_Z0_RATIO_VALID
+                             TEB_Z0H_RULE_t, TEB_PARSE_Z0H, TEB_Z0_RATIO_VALID, &
+                             CTEB_TOWN_DYNCORR_DEFAULT, TEB_PARSE_TOWN_DYNCORR
 USE MODD_PROXI_SVAT_PAR, ONLY: XZ0_GD, XZ0_GR, XZ0_O_Z0H_GD, XZ0_O_Z0H_GR, proxy_phu_gdn, proxy_phu_grf
 USE MODE_THERMOS, ONLY: QSAT
 USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY: IEEE_IS_FINITE
@@ -55,6 +58,7 @@ INTEGER :: nvec,rc,j,k,unit
 INTEGER :: teb_nroof_layer, teb_nroad_layer, teb_nwall_layer
 REAL, ALLOCATABLE :: urb_d_rf(:), urb_d_rd(:), urb_d_wl(:)
 LOGICAL :: legacy,found,teb_lwrite_output,teb_lwrite_emu,teb_lwrite_runoff,teb_lwrite_test_dump
+LOGICAL :: valid_town_dyncorr
 REAL :: dt
 CHARACTER(LEN=3) :: teb_ctype_bem
 CHARACTER(LEN=4) :: teb_ctype_natvent
@@ -65,6 +69,8 @@ CHARACTER(LEN=6) :: teb_ctype_exch_rd, teb_ctype_exch_rf, teb_ctype_exch_canyon
 CHARACTER(LEN=9) :: teb_ctype_garden
 CHARACTER(LEN=9) :: teb_ctype_greenroof
 CHARACTER(LEN=16) :: teb_ctype_z0_town
+CHARACTER(LEN=16) :: teb_ctype_z0_town_dyncorr, teb_ctype_zd_town_dyncorr
+CHARACTER(LEN=LEN(CTEB_TOWN_DYNCORR_DEFAULT)) :: z0_town_dyncorr, zd_town_dyncorr
 CHARACTER(LEN=16) :: teb_ctype_z0_o_z0h_rd, teb_ctype_z0_o_z0h_rf, teb_ctype_z0_o_z0h_town
 TYPE(TEB_Z0H_t) :: z0h
 REAL, ALLOCATABLE :: urb_h_bld(:)
@@ -150,7 +156,7 @@ NAMELIST /tebopts/ &
   teb_ctype_bem_heat, teb_ctype_wind, teb_ctype_garden, &
   teb_ctype_greenroof, teb_hroad_dir, teb_wall_opt, &
   teb_ctype_exch_rd, teb_ctype_exch_rf, teb_ctype_exch_canyon, &
-  teb_ctype_z0_town, &
+  teb_ctype_z0_town, teb_ctype_z0_town_dyncorr, teb_ctype_zd_town_dyncorr, &
   teb_ctype_z0_o_z0h_rd, teb_ctype_z0_o_z0h_rf, teb_ctype_z0_o_z0h_town, &
   teb_lwrite_output, teb_lwrite_emu, teb_lwrite_runoff, &
   teb_lwrite_test_dump
@@ -375,6 +381,8 @@ teb_rd_irrig_sum=1.
 teb_utc_hour=3
 teb_lshade=.TRUE.
 teb_ctype_z0_town='0.1H'
+teb_ctype_z0_town_dyncorr=CTEB_TOWN_DYNCORR_DEFAULT
+teb_ctype_zd_town_dyncorr=CTEB_TOWN_DYNCORR_DEFAULT
 urb_z0_rd=c%tz0%XROAD
 urb_z0_rf=c%tz0%XROOF
 urb_z0_snow=XZ0SN
@@ -431,6 +439,12 @@ IF(.NOT.legacy) THEN
   teb_tau_hw_thresh=teb_cbs_hw_thresh
   teb_tau_hw_width=teb_cbs_hw_width
 END IF
+CALL TEB_PARSE_TOWN_DYNCORR(teb_ctype_z0_town_dyncorr,z0_town_dyncorr,valid_town_dyncorr)
+IF (.NOT. valid_town_dyncorr) &
+  CALL fail(path,'teb_ctype_z0_town_dyncorr',0,'expected OFF or ZIL2008')
+CALL TEB_PARSE_TOWN_DYNCORR(teb_ctype_zd_town_dyncorr,zd_town_dyncorr,valid_town_dyncorr)
+IF (.NOT. valid_town_dyncorr) &
+  CALL fail(path,'teb_ctype_zd_town_dyncorr',0,'expected OFF or ZIL2008')
 DO j=1,SIZE(a)
   CALL check_string(a(j),path)
   SELECT CASE(a(j)%name)
@@ -755,6 +769,8 @@ c%teb_ctype_wind=teb_ctype_wind
 c%teb_ctype_exch_road=teb_ctype_exch_rd
 c%teb_ctype_exch_roof=teb_ctype_exch_rf
 c%teb_ctype_exch_canyon=teb_ctype_exch_canyon
+c%teb_ctype_z0_town_dyncorr=z0_town_dyncorr
+c%teb_ctype_zd_town_dyncorr=zd_town_dyncorr
 c%teb_lgarden=teb_lgarden
 c%teb_type_garden=teb_type_garden
 c%teb_z0_gd=urb_z0_gdn
@@ -882,7 +898,7 @@ CASE('teb_ctype_exch_rd','teb_ctype_exch_rf','teb_ctype_exch_canyon')
   limit=6
 CASE('teb_type_garden','teb_type_greenroof','teb_ctype_garden','teb_ctype_greenroof')
   limit=9
-CASE('teb_ctype_z0_town','urb_zd_town', &
+CASE('teb_ctype_z0_town','teb_ctype_z0_town_dyncorr','teb_ctype_zd_town_dyncorr','urb_zd_town', &
      'teb_ctype_z0_o_z0h_rd','teb_ctype_z0_o_z0h_rf','teb_ctype_z0_o_z0h_town')
   limit=16
 CASE DEFAULT
@@ -1074,7 +1090,7 @@ DO
     CASE('teb_tau_hw_width')
       IF(group/='tebparam') &
         CALL fail(path,group,line,'teb_tau_hw_width is deprecated. Use teb_cbs_hw_width in &tebopts.')
-    CASE('teb_cbs_hw_thresh','teb_cbs_hw_width')
+    CASE('teb_cbs_hw_thresh','teb_cbs_hw_width','teb_ctype_z0_town_dyncorr','teb_ctype_zd_town_dyncorr')
       IF(group/='tebopts') CALL fail(path,group,line,TRIM(entry%name)//' belongs in &tebopts.')
     END SELECT
     CALL skip_space(text,p,line)

@@ -8,6 +8,8 @@
 !!      09-10/2026 -- Mikhail Varentsov (MV)
 !!        Update the explicit URBAN_DRAG interface for diagnostic/CBS surface
 !!        coupling and the parameter/state reorganization.
+!!      11/2026 -- OpenAI Codex
+!!        Pass the town roughness and displacement height for the current step.
 !!------------------------------------------------------------------------------
 MODULE MODI_URBAN_DRAG
 INTERFACE
@@ -32,13 +34,15 @@ INTERFACE
                           PRI_GARDEN_ATM, ZZ0H_GARDEN_ATM,                  &
                           PAC_ROAD_ATM_WAT,                                              &
                           PAC_GREENROOF_ATM, PCD_GREENROOF_ATM, PCDN_GREENROOF_ATM,       &
-                          PCH_GREENROOF_ATM, PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM   , TPARAMS) 
+                          PCH_GREENROOF_ATM, PRI_GREENROOF_ATM, ZZ0H_GREENROOF_ATM, TPARAMS, PZ0_TOWN, PZD_TOWN)
 USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t
 USE MODD_TEB_n, ONLY : TEB_t
 USE MODD_BEM_n, ONLY : BEM_t
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t
 IMPLICIT NONE
 TYPE(TEB_PARAMS_t), INTENT(IN) :: TPARAMS
+REAL, DIMENSION(:), INTENT(IN) :: PZ0_TOWN ! town momentum roughness for this step (m)
+REAL, DIMENSION(:), INTENT(IN) :: PZD_TOWN ! town displacement height for this step (m)
 
 INTEGER                           :: icell
 INTEGER                           :: iblock 

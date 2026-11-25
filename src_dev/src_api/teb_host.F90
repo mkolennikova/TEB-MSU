@@ -38,12 +38,14 @@
 !!        the workspace and cold-start profiles to the host's layer counts.
 !!      11/2026 -- OpenAI Codex
 !!        Bind the named wind scheme to the column options.
+!!      11/2026 -- OpenAI Codex
+!!        Bind the dynamic town roughness and displacement height schemes.
 !!------------------------------------------------------------------------------
 !*       0.   DECLARATIONS
 !             ------------
 !
 !
-USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t, TEB_Z0H_t
+USE MODD_TEB_OPTION_n, ONLY : TEB_OPTIONS_t, TEB_Z0H_t, CTEB_TOWN_DYNCORR_DEFAULT
 USE MODD_TEB_PARAMS_n, ONLY : TEB_PARAMS_t, TEB_Z0_t, ALLOC_TEB_PARAMS, DEALLOC_TEB_PARAMS
 USE MODD_BEM_OPTION_n, ONLY : BEM_OPTIONS_t
 USE MODD_BEM_PARAMS_n, ONLY : BEM_PARAMS_t, ALLOC_BEM_PARAMS, DEALLOC_BEM_PARAMS
@@ -144,7 +146,8 @@ SUBROUTINE TEB_FILL_PARAMS (KSTART, KEND, &
                             teb_lgreenroof_ext, teb_lbem_ac, &
                             teb_fr_panel, teb_lroad_irrig, teb_rd_irrig_start_m, &
                             teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
-                            teb_rd_irrig_sum, HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON, KHOST_CELL)
+                            teb_rd_irrig_sum, HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON, KHOST_CELL, &
+                            HZ0_TOWN_DYNCORR, HZD_TOWN_DYNCORR)
 !
 !*       0.1  containers
 !             ----------
@@ -156,6 +159,8 @@ CHARACTER(LEN=*), INTENT(IN) :: teb_itype_bem_cool, teb_itype_bem_heat, teb_ityp
 CHARACTER(LEN=*), INTENT(IN) :: teb_itype_bem, teb_hroad_dir, teb_wall_opt
 CHARACTER(LEN=*), INTENT(IN) :: teb_type_garden, teb_type_greenroof
 CHARACTER(LEN=6), INTENT(IN) :: HEXCH_ROAD, HEXCH_ROOF, HEXCH_CANYON
+CHARACTER(LEN=7), INTENT(IN) :: HZ0_TOWN_DYNCORR
+CHARACTER(LEN=7), INTENT(IN), OPTIONAL :: HZD_TOWN_DYNCORR
 LOGICAL, INTENT(IN) :: teb_lgarden, teb_lgreenroof, teb_lsolar_panel, teb_lcbs_scheme
 CHARACTER(LEN=*), INTENT(IN) :: teb_ctype_wind
 INTEGER, INTENT(IN) :: teb_utc_hour
@@ -199,6 +204,9 @@ DO K = KSTART, KEND
   TOPTS%CEXCH_ROAD     = HEXCH_ROAD
   TOPTS%CEXCH_ROOF     = HEXCH_ROOF
   TOPTS%CEXCH_CANYON   = HEXCH_CANYON
+  TOPTS%CTYPE_Z0_TOWN_DYNCORR = HZ0_TOWN_DYNCORR
+  TOPTS%CTYPE_ZD_TOWN_DYNCORR = CTEB_TOWN_DYNCORR_DEFAULT
+  IF (PRESENT(HZD_TOWN_DYNCORR)) TOPTS%CTYPE_ZD_TOWN_DYNCORR = HZD_TOWN_DYNCORR
   TOPTS%CBEM            = teb_itype_bem
   TOPTS%LGREENROOF      = teb_lgreenroof
   TOPTS%CTYPE_GARDEN    = teb_type_garden

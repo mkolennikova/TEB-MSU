@@ -93,7 +93,7 @@ class Dump:
         with (directory / 'fields.csv').open(encoding='utf-8', newline='') as stream:
             self.schema = list(csv.DictReader(stream, delimiter=';'))
         self.names = [s['name'] for s in self.schema]
-        for role, expected in (('INOUT', 33), ('OUT', 53)):
+        for role, expected in (('INOUT', 34), ('OUT', 53)):
             names = {s['name'].split('[')[0] for s in self.schema if s['intent'] == role}
             if len(names) != expected:
                 raise AssertionError(f'API contract changed: {role}={len(names)}, expected {expected}')
@@ -761,7 +761,7 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
             serial = self.run(nvec=7, profile='BEM', layout='SERIAL', parameters=params)
             self.comparisons += compare_reference(block, dict.fromkeys(range(1, 8), scalar))
             self.comparisons += compare_reference(serial, dict.fromkeys(range(1, 8), scalar))
-            expected = 199 + 2*counts[0] + 3*counts[1] + 3*counts[2]
+            expected = 200 + 2*counts[0] + 3*counts[1] + 3*counts[2]
             if len(block.schema) != expected:
                 raise AssertionError('The diagnostic schema truncated material layers')
             for suffix, count in zip(('rf', 'rd', 'wl'), counts):

@@ -20,6 +20,8 @@
 !!        diagnostic packets and versioned checkpoints.
 !!      11/2026 -- OpenAI Codex
 !!        Pass and checkpoint the named wind scheme as text.
+!!      11/2026 -- OpenAI Codex
+!!        Carry dynamic town roughness/displacement and per-cell stability.
 !!------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_HOST
 USE sfc_teb, ONLY: teb_interface, teb_real_kind, XUNDEF => teb_undef
@@ -28,7 +30,7 @@ USE TEB_HOST, ONLY: TEB_HOST_FINAL, TEB_BIND_Z0, TEB_BIND_Z0H, TEB_Z0H_BINDING_t
 USE MODD_TEB_PARAMS_n, ONLY: TEB_Z0_t
 USE TEB_LOG, ONLY: TEB_LOG_INIT, TEB_LOG_FINAL
 USE MODD_SURF_PAR, ONLY: teb_snow_check
-USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT, TEB_Z0H_t
+USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT, TEB_Z0H_t, CTEB_TOWN_DYNCORR_DEFAULT
 USE MODD_CSTS, ONLY: XRD,XRV,XG,XSTEFAN
 USE MODI_INI_CSTS, ONLY: INI_CSTS
 USE MODE_THERMOS, ONLY: QSAT
@@ -218,6 +220,8 @@ TYPE TEB_BLOCK
   CHARACTER(LEN=6) :: teb_ctype_exch_road=CTEB_EXCH_DEFAULT
   CHARACTER(LEN=6) :: teb_ctype_exch_roof=CTEB_EXCH_DEFAULT
   CHARACTER(LEN=6) :: teb_ctype_exch_canyon=CTEB_EXCH_DEFAULT
+  CHARACTER(LEN=LEN(CTEB_TOWN_DYNCORR_DEFAULT)) :: teb_ctype_z0_town_dyncorr=CTEB_TOWN_DYNCORR_DEFAULT
+  CHARACTER(LEN=LEN(CTEB_TOWN_DYNCORR_DEFAULT)) :: teb_ctype_zd_town_dyncorr=CTEB_TOWN_DYNCORR_DEFAULT
   REAL(teb_real_kind) ,ALLOCATABLE, DIMENSION(:,:) :: teb_fai
   CHARACTER(LEN=9) :: teb_type_garden
   CHARACTER(LEN=9) :: teb_type_greenroof
@@ -258,6 +262,7 @@ TYPE TEB_BLOCK
   INTEGER, ALLOCATABLE, DIMENSION(:) :: kteb_log_block
   INTEGER, ALLOCATABLE, DIMENSION(:) :: kteb_log_point
   REAL(teb_real_kind), ALLOCATABLE, DIMENSION(:) :: teb_ustar_town
+  REAL(teb_real_kind), ALLOCATABLE, DIMENSION(:) :: teb_inv_l_town_prev
   REAL(teb_real_kind), ALLOCATABLE, DIMENSION(:) :: teb_cd_greenroof_atm
   REAL(teb_real_kind), ALLOCATABLE, DIMENSION(:,:) :: teb_troad_before
   REAL(teb_real_kind), ALLOCATABLE, DIMENSION(:) :: teb_ucanyon
@@ -656,6 +661,7 @@ ALLOCATE(c%teb_runoff_roof(knvec))
 ALLOCATE(c%kteb_log_block(0))
 ALLOCATE(c%kteb_log_point(0))
 ALLOCATE(c%teb_ustar_town(knvec))
+ALLOCATE(c%teb_inv_l_town_prev(knvec))
 ALLOCATE(c%teb_cd_greenroof_atm(knvec))
 ALLOCATE(c%teb_troad_before(knvec,nd))
 ALLOCATE(c%teb_ucanyon(knvec))
@@ -858,6 +864,7 @@ c%teb_runoff_roof=XUNDEF
 c%kteb_log_block=0
 c%kteb_log_point=0
 c%teb_ustar_town=0.
+c%teb_inv_l_town_prev=0.
 c%teb_cd_greenroof_atm=0.
 c%teb_troad_before=XUNDEF
 c%teb_ucanyon=XUNDEF
@@ -1144,6 +1151,8 @@ d%teb_ctype_wind=s%teb_ctype_wind
 d%teb_ctype_exch_road=s%teb_ctype_exch_road
 d%teb_ctype_exch_roof=s%teb_ctype_exch_roof
 d%teb_ctype_exch_canyon=s%teb_ctype_exch_canyon
+d%teb_ctype_z0_town_dyncorr=s%teb_ctype_z0_town_dyncorr
+d%teb_ctype_zd_town_dyncorr=s%teb_ctype_zd_town_dyncorr
 d%teb_fai(k:k,:)=s%teb_fai(j:j,:)
 d%teb_type_garden=s%teb_type_garden
 d%teb_type_greenroof=s%teb_type_greenroof
@@ -1182,6 +1191,7 @@ d%teb_thbs(k:k)=s%teb_thbs(j:j)
 d%teb_runoff_road(k:k)=s%teb_runoff_road(j:j)
 d%teb_runoff_roof(k:k)=s%teb_runoff_roof(j:j)
 d%teb_ustar_town(k:k)=s%teb_ustar_town(j:j)
+d%teb_inv_l_town_prev(k:k)=s%teb_inv_l_town_prev(j:j)
 d%teb_cd_greenroof_atm(k:k)=s%teb_cd_greenroof_atm(j:j)
 d%teb_troad_before(k:k,:)=s%teb_troad_before(j:j,:)
 d%teb_ucanyon(k:k)=s%teb_ucanyon(j:j)
@@ -1329,6 +1339,7 @@ d%teb_thbs(k:k)=s%teb_thbs(j:j)
 d%teb_runoff_road(k:k)=s%teb_runoff_road(j:j)
 d%teb_runoff_roof(k:k)=s%teb_runoff_roof(j:j)
 d%teb_ustar_town(k:k)=s%teb_ustar_town(j:j)
+d%teb_inv_l_town_prev(k:k)=s%teb_inv_l_town_prev(j:j)
 d%teb_cd_greenroof_atm(k:k)=s%teb_cd_greenroof_atm(j:j)
 d%teb_troad_before(k:k,:)=s%teb_troad_before(j:j,:)
 d%teb_ucanyon(k:k)=s%teb_ucanyon(j:j)
@@ -1487,14 +1498,16 @@ CALL teb_interface(ntstep=c%ntstep, nvec=c%nvec, iblock=c%iblock, dt=c%dt, teb_y
                    teb_snow_check=selected_snow_check, &
                    teb_ctype_exch_road=c%teb_ctype_exch_road, teb_ctype_exch_roof=c%teb_ctype_exch_roof, &
                    teb_ctype_exch_canyon=c%teb_ctype_exch_canyon, &
-                   urb_d_rf=c%urb_d_rf, urb_d_rd=c%urb_d_rd, urb_d_wl=c%urb_d_wl)
+                   urb_d_rf=c%urb_d_rf, urb_d_rd=c%urb_d_rd, urb_d_wl=c%urb_d_wl, &
+                   teb_ctype_z0_town_dyncorr=c%teb_ctype_z0_town_dyncorr, teb_inv_l_town_prev=c%teb_inv_l_town_prev, &
+                   teb_ctype_zd_town_dyncorr=c%teb_ctype_zd_town_dyncorr)
 CALL TEB_BIND_Z0H(previous_z0h)
 CALL TEB_BIND_Z0(previous_z0)
 END SUBROUTINE
 PURE INTEGER FUNCTION field_count(c) RESULT(n)
 TYPE(TEB_BLOCK),INTENT(IN)::c
 ! Scalar/fixed-size fields plus temperatures, saved road state and depths.
-n=199+2*c%teb_nroof_layer+3*c%teb_nroad_layer+3*c%teb_nwall_layer
+n=200+2*c%teb_nroof_layer+3*c%teb_nroad_layer+3*c%teb_nwall_layer
 END FUNCTION field_count
 
 SUBROUTINE pack(c,j,values)
@@ -1727,6 +1740,7 @@ END DO
 DO l=1,c%teb_nwall_layer
   CALL add_value(c%urb_d_wl(l))
 END DO
+CALL add_value(c%teb_inv_l_town_prev(j))
 IF(k/=SIZE(values)) ERROR STOP 'Incomplete diagnostic packet'
 CONTAINS
 SUBROUTINE add_value(value)
@@ -1966,6 +1980,7 @@ END DO
 DO l=1,c%teb_nwall_layer
   WRITE(unit,'(A,I0,A)') 'urb_d_wl[',l,'];IN;REAL'
 END DO
+WRITE(unit,'(A)') 'teb_inv_l_town_prev;INOUT;REAL'
 CLOSE(unit)
 END SUBROUTINE
 SUBROUTINE sanitize_outputs(c,ids,cfg)
@@ -2294,10 +2309,12 @@ WRITE(unit) c%emu_gr_irrig
 WRITE(unit) c%runoff_road_acc
 WRITE(unit) c%runoff_roof_acc
 WRITE(unit) c%output_count
+WRITE(unit) c%teb_inv_l_town_prev
 END SUBROUTINE
-SUBROUTINE read_packet(unit,c)
+SUBROUTINE read_packet(unit,c,has_town_stability)
 INTEGER,INTENT(IN)::unit
 TYPE(TEB_BLOCK),INTENT(INOUT)::c
+LOGICAL,INTENT(IN)::has_town_stability
 INTEGER::rc
 READ(unit,IOSTAT=rc) c%ntstep
 IF(rc/=0) ERROR STOP "Incomplete checkpoint"
@@ -2822,6 +2839,12 @@ READ(unit,IOSTAT=rc) c%runoff_roof_acc
 IF(rc/=0) ERROR STOP 'Truncated output state'
 READ(unit,IOSTAT=rc) c%output_count
 IF(rc/=0) ERROR STOP 'Truncated output count'
+IF (has_town_stability) THEN
+  READ(unit,IOSTAT=rc) c%teb_inv_l_town_prev
+  IF (rc/=0) ERROR STOP 'Truncated town stability history'
+ELSE
+  c%teb_inv_l_town_prev=0.
+END IF
 END SUBROUTINE
 LOGICAL FUNCTION same_config(a,b)
 TYPE(BLOCK_CONFIG),INTENT(IN)::a,b
@@ -3218,7 +3241,7 @@ TYPE(TEB_BLOCK),INTENT(IN)::blocks(:)
 INTEGER::unit,b,rc
 OPEN(NEWUNIT=unit,FILE=TRIM(path),ACCESS='STREAM',FORM='UNFORMATTED',STATUS='REPLACE',IOSTAT=rc)
 IF(rc/=0) ERROR STOP 'Cannot create checkpoint'
-WRITE(unit) INT([1413825074,4,field_count(blocks(1)),STORAGE_SIZE(blocks(1)%t)],INT32)
+WRITE(unit) INT([1413825074,5,field_count(blocks(1)),STORAGE_SIZE(blocks(1)%t)],INT32)
 WRITE(unit) cfg,next_step,ids
 DO b=1,SIZE(blocks)
   CALL write_packet(unit,blocks(b))
@@ -3234,13 +3257,28 @@ INTEGER,INTENT(OUT)::next_step,ids(:,:)
 TYPE(TEB_BLOCK),INTENT(INOUT)::blocks(:)
 TYPE(BLOCK_CONFIG)::saved_cfg
 INTEGER(INT32)::header(4)
-INTEGER::unit,b,rc,columns(SIZE(ids,1))
+INTEGER::unit,b,rc,columns(SIZE(ids,1)),saved_field_count
+LOGICAL::has_town_stability
 OPEN(NEWUNIT=unit,FILE=TRIM(path),ACCESS='STREAM',FORM='UNFORMATTED',STATUS='OLD',IOSTAT=rc)
 IF(rc/=0) ERROR STOP 'Cannot open checkpoint'
 READ(unit,IOSTAT=rc) header
 IF(rc/=0) ERROR STOP 'Invalid checkpoint header'
-IF(ANY(header/=INT([1413825074,4,field_count(blocks(1)),STORAGE_SIZE(blocks(1)%t)],INT32))) ERROR STOP &
-  'Checkpoint format mismatch'
+! Version 4 predates the stability history and can continue with both modes off.
+SELECT CASE (header(2))
+CASE (4)
+  IF (base%teb_ctype_z0_town_dyncorr/=CTEB_TOWN_DYNCORR_DEFAULT .OR. &
+      base%teb_ctype_zd_town_dyncorr/=CTEB_TOWN_DYNCORR_DEFAULT) &
+    ERROR STOP 'Checkpoint lacks town stability history for ZIL2008'
+  has_town_stability=.FALSE.
+  saved_field_count=field_count(blocks(1))-1
+CASE (5)
+  has_town_stability=.TRUE.
+  saved_field_count=field_count(blocks(1))
+CASE DEFAULT
+  ERROR STOP 'Checkpoint format mismatch'
+END SELECT
+IF (ANY(header([1,3,4])/=INT([1413825074,saved_field_count,STORAGE_SIZE(blocks(1)%t)],INT32))) &
+  ERROR STOP 'Checkpoint format mismatch'
 READ(unit,IOSTAT=rc) saved_cfg,next_step
 IF(rc/=0) ERROR STOP 'Incomplete checkpoint configuration'
 IF(.NOT.same_config(cfg,saved_cfg)) ERROR STOP 'Checkpoint configuration mismatch'
@@ -3248,7 +3286,7 @@ IF(next_step<1 .OR. next_step>=cfg%nsteps) ERROR STOP 'Invalid checkpoint time'
 READ(unit,IOSTAT=rc) ids
 IF(rc/=0) ERROR STOP 'Incomplete checkpoint indices'
 DO b=1,SIZE(blocks)
-  CALL read_packet(unit,blocks(b))
+  CALL read_packet(unit,blocks(b),has_town_stability)
   columns=ids(:,b)
   ! A scalar sample has its original diagnostic ID and one namelist slot.
   IF (cfg%sample_column>0) columns=1

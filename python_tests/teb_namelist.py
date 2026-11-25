@@ -12,6 +12,7 @@ OPTION_NAMES = frozenset((
     "teb_cbs_hw_thresh", "teb_cbs_hw_width",
     "teb_ctype_bem", "teb_ctype_natvent", "teb_ctype_bem_cool", "teb_ctype_bem_heat",
     "teb_ctype_wind", "teb_ctype_garden", "teb_ctype_greenroof", "teb_ctype_z0_town",
+    "teb_ctype_z0_town_dyncorr", "teb_ctype_zd_town_dyncorr",
     "teb_ctype_exch_rd", "teb_ctype_exch_rf", "teb_ctype_exch_canyon",
     "teb_ctype_z0_o_z0h_rd", "teb_ctype_z0_o_z0h_rf", "teb_ctype_z0_o_z0h_town",
     "teb_hroad_dir", "teb_wall_opt",

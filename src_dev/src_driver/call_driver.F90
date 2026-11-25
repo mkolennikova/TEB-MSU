@@ -21,7 +21,7 @@ CONTAINS
 SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, IMIN, ISEC, &
                         ZTIME, FR_URB, ZLON, ZLAT, FORC, EXT, ZCH_GD, ZCD_GD, &
                         DMT, TOPTS, TPARAMS, BOPTS, BPARAMS, TSTATE, &
-                        BSTATE, TPN, TIR)
+                        BSTATE, TPN, TIR, PINV_L_TOWN_PREV)
 							
 ! ======================================================================
 ! 
@@ -68,11 +68,15 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 !        physics calls from offline forcing and output.
 !      11/2026 -- OpenAI Codex
 !        Select the canyon wind calculation by its scheme name.
+!        Diagnose stability-dependent town roughness from the previous step
+!        and pass it to the wind profile and both town exchange calculations.
+!        Diagnose town displacement from the same stability history.
 ! ---------------------------------------------------------------
 ! Modules
 ! ---------------------------------------------------------------
 !
-USE MODD_CSTS,     ONLY : XCPD, XSTEFAN, XPI, XDAY, XKARMAN,   &
+USE, INTRINSIC :: IEEE_ARITHMETIC, ONLY : IEEE_IS_FINITE
+USE MODD_CSTS,     ONLY : XCPD, XSTEFAN, XPI, XDAY,   &
                           XLVTT, XLSTT, XLMTT, XRV, XRD, XG, XP00
 USE MODD_SURF_ATM, ONLY: XCISMIN, XVMODMIN, LALDTHRES, XRIMAX
 USE MODD_SURF_PAR, ONLY: XUNDEF
@@ -154,7 +158,6 @@ REAL,DIMENSION(1), INTENT(INOUT) :: ZCD_GD  !INOUT previous/new garden momentum 
 REAL,DIMENSION(1)                 :: ZTS_TOWN_S      !OUT town surface temperature from flux calculation  
 REAL,DIMENSION(1)                 :: ZABS_SW_GRND    !OUT Shortwave radiation absorbed by ground
 REAL,DIMENSION(1)                 :: ZABS_LW_GRND    !OUT Longwave radiation absorbed by ground
-REAL,DIMENSION(1)                 :: ZILMO_TOP_FLUX  ! 1/length of Monin-Obukov (from fluxes)
 REAL,DIMENSION(1)                 :: ZLMO_TOP        !OUT 1/length of Monin-Obukov 
  
 ! ---------------------------------------------------------------
@@ -172,6 +175,11 @@ TYPE(TEB_t),         INTENT(INOUT) :: TSTATE
 TYPE(BEM_t),         INTENT(INOUT) :: BSTATE
 TYPE(TEB_PANEL_t),   INTENT(INOUT) :: TPN
 TYPE(TEB_IRRIG_t),   INTENT(INOUT) :: TIR
+REAL, DIMENSION(1), OPTIONAL, INTENT(INOUT) :: PINV_L_TOWN_PREV ! 1/L in Zilitinkevich et al. (2008), m-1
+REAL, PARAMETER :: ZUSTAR_MIN_DYNCORR = 0.1 ! m/s
+REAL :: ZBLD_H, ZROOF_DIST, ZLOG_HEIGHT, ZZ0_MIN, ZZ0_MAX, ZZ0_RAW, ZS
+REAL :: ZZD_RAW, ZZD_MAX, ZZ0_RESERVE, ZCONVECTIVE
+LOGICAL :: LZ0_DYNCORR, LZD_DYNCORR, LTOWN_DYNCORR
 
 ! Canyon geometry                                                                     
 
@@ -542,10 +550,67 @@ TPTIME%TDATE%MONTH        = IMONTH
 TPTIME%TDATE%DAY          = IDAY
 ! Calculation of Wind Speed inside the canyon
 ! -----------------------------------------------------------
+DMT%XZ0_TOWN_NEUTRAL(1) = TPARAMS%XZ0_TOWN(icell)
+DMT%XZ0_TOWN(1) = DMT%XZ0_TOWN_NEUTRAL(1)
+DMT%XZD_TOWN_NEUTRAL(1) = TPARAMS%XZD_TOWN(icell)
+DMT%XZD_TOWN(1) = DMT%XZD_TOWN_NEUTRAL(1)
+DMT%XZ0_TOWN_S(1) = 0.
+DMT%XZ0_TOWN_NEUTRAL_FALLBACK(1) = 0.
+LZ0_DYNCORR = (TOPTS%CTYPE_Z0_TOWN_DYNCORR == 'ZIL2008')
+LZD_DYNCORR = (TOPTS%CTYPE_ZD_TOWN_DYNCORR == 'ZIL2008')
+LTOWN_DYNCORR = LZ0_DYNCORR .OR. LZD_DYNCORR
+IF (LTOWN_DYNCORR) THEN
+  IF (.NOT. PRESENT(PINV_L_TOWN_PREV)) ERROR STOP 'CALL_DRIVER: missing town stability history'
+  IF (ntstep == 0) PINV_L_TOWN_PREV(1) = 0.
+
+  ZBLD_H = TPARAMS%XBLD_HEIGHT(icell)
+  IF (IEEE_IS_FINITE(PINV_L_TOWN_PREV(1))) THEN
+    IF (ABS(PINV_L_TOWN_PREV(1)) < XUNDEF) THEN
+      DMT%XZ0_TOWN_S(1) = ZBLD_H * PINV_L_TOWN_PREV(1)
+    ELSE
+      DMT%XZ0_TOWN_NEUTRAL_FALLBACK(1) = 1.
+    ENDIF
+  ELSE
+    DMT%XZ0_TOWN_NEUTRAL_FALLBACK(1) = 1.
+  ENDIF
+  ZS = DMT%XZ0_TOWN_S(1)
+
+  IF (ZS /= 0.) THEN
+    ! Zilitinkevich et al. (2008), equations (12), (15), (16) and (17).
+    ZZ0_RAW = DMT%XZ0_TOWN_NEUTRAL(1)
+    ZZD_RAW = DMT%XZD_TOWN_NEUTRAL(1)
+    IF (ZS > 0.) THEN
+      IF (LZ0_DYNCORR) ZZ0_RAW = ZZ0_RAW / (1. + 8.13 * ZS)
+      IF (LZD_DYNCORR) ZZD_RAW = ZZD_RAW + (ZBLD_H - ZZD_RAW) * (ZS / (1.05 + ZS))
+    ELSE
+      ZCONVECTIVE = (-ZS)**(1./3.)
+      IF (LZ0_DYNCORR) ZZ0_RAW = ZZ0_RAW * (1. + 1.15 * ZCONVECTIVE)
+      IF (LZD_DYNCORR) ZZD_RAW = ZZD_RAW / (1. + 0.56 * ZCONVECTIVE)
+    ENDIF
+    ZZ0_MIN = EPSILON(1.) * DMT%XZ0_TOWN_NEUTRAL(1)
+    IF (LZD_DYNCORR) THEN
+      ! In stable air use the reduced roughness to constrain displacement.
+      ! In unstable air displacement decreases, so reserve the neutral z0
+      ! here and constrain its growth below using the corrected displacement.
+      ZZ0_RESERVE = MIN(DMT%XZ0_TOWN_NEUTRAL(1), MAX(ZZ0_RAW, ZZ0_MIN))
+      ZZD_MAX = MAX(DMT%XZD_TOWN_NEUTRAL(1), &
+                    ZBLD_H - ZZ0_RESERVE - MAX(0.001 * ZZ0_RESERVE, 2. * SPACING(ZBLD_H)))
+      DMT%XZD_TOWN(1) = MIN(ZZD_RAW, ZZD_MAX)
+    ENDIF
+    IF (LZ0_DYNCORR) THEN
+      ! The roof profile and Delage canyon neutral drag use logarithms.
+      ZROOF_DIST = ZBLD_H - DMT%XZD_TOWN(1)
+      ZLOG_HEIGHT = MIN(ZROOF_DIST, FORC%XUREF(1) + 0.5 * ZBLD_H)
+      ZZ0_MAX = MAX(DMT%XZ0_TOWN_NEUTRAL(1), ZLOG_HEIGHT - MAX(0.001 * ZLOG_HEIGHT, SPACING(ZBLD_H)))
+      DMT%XZ0_TOWN(1) = MIN(MAX(ZZ0_RAW, ZZ0_MIN), ZZ0_MAX)
+    ENDIF
+  ENDIF
+ENDIF
+
 ! Wind speed at the top of the canyon (roof level), from the logarithmic
-! profile referenced to the displacement height TPARAMS%XZD_TOWN(icell:icell)
-DMT%XWIND_TOP(1:1) = FORC%XVMOD(1:1) * LOG( (        TPARAMS%XBLD_HEIGHT(icell:icell) - TPARAMS%XZD_TOWN(icell:icell)) / TPARAMS%XZ0_TOWN(icell:icell))   &
-  / LOG( (FORC%XZREF(1:1) + TPARAMS%XBLD_HEIGHT(icell:icell) - TPARAMS%XZD_TOWN(icell:icell)) / TPARAMS%XZ0_TOWN(icell:icell))
+! profile referenced to the displacement height used in this step.
+DMT%XWIND_TOP(1:1) = FORC%XVMOD(1:1) * LOG( (        TPARAMS%XBLD_HEIGHT(icell:icell) - DMT%XZD_TOWN(1:1)) / DMT%XZ0_TOWN(1:1))   &
+  / LOG( (FORC%XZREF(1:1) + TPARAMS%XBLD_HEIGHT(icell:icell) - DMT%XZD_TOWN(1:1)) / DMT%XZ0_TOWN(1:1))
 IF (TOPTS%CTYPE_WIND == 'DEF') THEN
   ZWAKE                 = 1. + (2./XPI-1.) * 2. * (TPARAMS%XCAN_HW_RATIO(icell:icell)-0.5)
   ZWAKE                 = MAX(MIN(ZWAKE,1.),2./XPI)
@@ -600,7 +665,6 @@ TOPTS%NWALL_LAYER = SIZE(TSTATE%XT_WALL_A,2)
 TOPTS%TTIME = TPTIME
 TOPTS%XTSTEP = XTSTEP_SURF
 
-DMT%XZ0_TOWN = TPARAMS%XZ0_TOWN(icell:icell)   ! town roughness length
 CALL TEB_GARDEN (icell, iblock, TOPTS, TSTATE, BOPTS, BSTATE, TPN, TIR, DMT, &
                  TOPTS%LGREENROOF_EXT, HIMPLICIT_WIND, BOPTS%LBEM_AC, FORC, EXT, HSNOW_ROOF, &
                  HSNOW_ROAD, ZPEW_A_COEF, ZPEW_B_COEF, ZPEW_A_COEF_LOWCAN, ZPEW_B_COEF_LOWCAN, &
@@ -727,14 +791,19 @@ DELTA_TWALL = DMT%XTS_WALL_A(1) - TSTATE%XT_CANYON(icell:icell)
 ZABS_SW_GRND = TPARAMS%XROAD(icell:icell) /(TPARAMS%XROAD(icell:icell) + TPARAMS%XGARDEN(icell:icell)) * DMT%XABS_SW_ROAD(1) + TPARAMS%XGARDEN(icell:icell) /(TPARAMS%XROAD(icell:icell) + TPARAMS%XGARDEN(icell:icell)) * DMT%XABS_SW_GARDEN(1)
 ZABS_LW_GRND = TPARAMS%XROAD(icell:icell) /(TPARAMS%XROAD(icell:icell) + TPARAMS%XGARDEN(icell:icell)) * DMT%XABS_LW_ROAD(1) + TPARAMS%XGARDEN(icell:icell) /(TPARAMS%XROAD(icell:icell) + TPARAMS%XGARDEN(icell:icell)) * DMT%XABS_LW_GARDEN(1)
 
-!* 1/L of the town computed from the fluxes (not exported; distinct from ZILMO_TOP_EXCH
-!* which receives the 1/L from TEB, empty under MASC95)
-ZILMO_TOP_FLUX = -(DMT%XUSTAR_TOWN(1)**3 * FORC%XTA(1:1)) / (XKARMAN * XG * DMT%XH_TOWN(1) / (XCPD * FORC%XRHOA(1:1)))
-
-IF (ZILMO_TOP_FLUX(1) < 0.) THEN
-  ZILMO_TOP_FLUX = MIN(-TPARAMS%XBLD_HEIGHT(icell:icell) / 150., ZILMO_TOP_FLUX)
-ELSE
-  ZILMO_TOP_FLUX = MAX(TPARAMS%XBLD_HEIGHT(icell:icell) / 150., ZILMO_TOP_FLUX)
+IF (LTOWN_DYNCORR) THEN
+  ! Dry buoyancy flux and final city-tile friction velocity for the next
+  ! step. Equation (4) uses L = -u*^3/Fb, with no von Karman factor.
+  PINV_L_TOWN_PREV(1) = XUNDEF
+  IF (IEEE_IS_FINITE(DMT%XH_TOWN(1)) .AND. IEEE_IS_FINITE(DMT%XUSTAR_TOWN(1)) .AND. &
+      IEEE_IS_FINITE(FORC%XTA(1)) .AND. IEEE_IS_FINITE(FORC%XRHOA(1))) THEN
+    IF (ABS(DMT%XH_TOWN(1)) < XUNDEF .AND. DMT%XUSTAR_TOWN(1) >= ZUSTAR_MIN_DYNCORR .AND. &
+        DMT%XUSTAR_TOWN(1) < XUNDEF .AND. FORC%XTA(1) > 0. .AND. FORC%XTA(1) < XUNDEF .AND. &
+        FORC%XRHOA(1) > 0. .AND. FORC%XRHOA(1) < XUNDEF) THEN
+      PINV_L_TOWN_PREV(1) = -(XG / FORC%XTA(1)) * (DMT%XH_TOWN(1) / (FORC%XRHOA(1) * XCPD)) &
+                           / DMT%XUSTAR_TOWN(1)**3
+    ENDIF
+  ENDIF
 ENDIF
 
 ! --------------------------------------------------------------------------------------
