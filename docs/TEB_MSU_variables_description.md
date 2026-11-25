@@ -174,7 +174,7 @@ Both trees read the road, roof and snow momentum roughness lengths from
 
 | Variable | Type | Units / values | Default | List | Description |
 | --- | --- | --- | --- | --- | --- |
-| `teb_fai` | Real | 1 | `0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5` | — | Eight directional frontal-area indices; [wind notes](#24-cbs-and-canopy-wind). |
+| `teb_fai` | Real | 1 | [From cell geometry](#24-cbs-and-canopy-wind) | — | Eight directional frontal-area indices. |
 
 #### 1.2.7 Green Infrastructure
 
@@ -348,8 +348,14 @@ profile. Use the same text selector `teb_ctype_wind` in single-cell
 `&tebparam` files for `src_dev`. The expanded selector appears in
 `parameters.csv`. The Wang profile evaluates `U_CANYON` at half building height and `U_CAN_PED` /
 `U_CAN_10M` at 1.1 m / 10 m above the road. These height-specific outputs are
-undefined above roof level. `teb_fai` is one set of eight directional indices
-shared by the entire block, including when `nvec=8`.
+undefined above roof level. A supplied `teb_fai` is one set of eight
+directional indices shared by the entire block, including when `nvec=8`.
+When omitted in `src_dev`, each cell uses `XWALL_O_HOR / pi` in all eight
+directions. The wall area index `XWALL_O_HOR` is
+`2 * urb_h2w * (1 - urb_fr_bld)` per horizontal area of the urban tile. This
+default assumes uniform canyon orientations. The same FAI contributes to
+the static town roughness when a Macdonald scheme is selected. In
+`src_ctrl`, omission gives `0.5` in every direction.
 
 ### 2.5 Garden and Greenroof Schemes
 

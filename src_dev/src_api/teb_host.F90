@@ -40,6 +40,8 @@
 !!        Bind the named wind scheme to the column options.
 !!      11/2026 -- OpenAI Codex
 !!        Bind the dynamic town roughness and displacement height schemes.
+!!      11/2026 -- OpenAI Codex
+!!        Share the canyon wall area index with offline FAI initialization.
 !!------------------------------------------------------------------------------
 !*       0.   DECLARATIONS
 !             ------------
@@ -260,6 +262,13 @@ END DO
 !
 END SUBROUTINE TEB_FILL_PARAMS
 !
+PURE REAL FUNCTION TEB_WALL_AREA_INDEX(PHW_RATIO, PBLD_FRAC) RESULT(PWAI)
+! Area of both canyon walls per horizontal area of the urban tile.
+REAL, INTENT(IN) :: PHW_RATIO, PBLD_FRAC
+
+PWAI = 2. * PHW_RATIO * (1. - PBLD_FRAC)
+END FUNCTION TEB_WALL_AREA_INDEX
+!
 !------------------------------------------------------------------------------
 !*      1b.  DERIVED STATIC PARAMETERS OF THE URBAN SURFACE
 !------------------------------------------------------------------------------
@@ -359,7 +368,7 @@ DO K = KSTART, KEND
 !
 !* geometry fractions and sky-view factors
   ZROAD                     = 1. - TPARAMS%XBLD(K) - TPARAMS%XGARDEN(K)
-  ZWALL_O_HOR               = 2. * TPARAMS%XCAN_HW_RATIO(K) * (1. - TPARAMS%XBLD(K))
+  ZWALL_O_HOR               = TEB_WALL_AREA_INDEX(TPARAMS%XCAN_HW_RATIO(K), TPARAMS%XBLD(K))
   TPARAMS%XSVF_ROAD(K)      = SQRT(TPARAMS%XCAN_HW_RATIO(K)**2 + 1.) - TPARAMS%XCAN_HW_RATIO(K)
   TPARAMS%XSVF_GARDEN(K)    = TPARAMS%XSVF_ROAD(K)
   TPARAMS%XSVF_WALL(K)      = 0.5 * (TPARAMS%XCAN_HW_RATIO(K) + 1. - SQRT(TPARAMS%XCAN_HW_RATIO(K)**2 + 1.)) / TPARAMS%XCAN_HW_RATIO(K)

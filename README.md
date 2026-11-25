@@ -152,8 +152,10 @@ In `src_dev`, the CBS switch, H/W threshold and transition width belong in `&teb
 For a cell-dependent parameter, supply one literal for the whole block or
 exactly `nvec` literals. Repetition notation, null elements, partial indexed
 assignments and duplicate keys are rejected. Omitted parameters retain their
-defaults. `teb_fai` is a common eight-direction profile, broadcast to every cell
-and block. The forcing file retains the common `&tebforcing` series.
+defaults. A supplied `teb_fai` profile has eight directional values shared by
+every cell and block. When omitted, `src_dev` derives an isotropic FAI for each
+cell from its wall area index. The forcing file retains the common
+`&tebforcing` series.
 
 ```fortran
 &tebopts

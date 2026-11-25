@@ -24,10 +24,13 @@
 !!        Read the named canyon wind scheme in both model namelist formats.
 !!      11/2026 -- OpenAI Codex
 !!        Read the dynamic town roughness and displacement rules in tebopts.
+!!      11/2026 -- OpenAI Codex
+!!        Derive omitted frontal area indices from each cell's wall area.
 !-------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_NAMELISTS
 USE TEB_OFFLINE_HOST, ONLY: BLOCK_CONFIG, TEB_BLOCK, allocate_block
-USE TEB_HOST, ONLY: TEB_DEFAULT_D_RF, TEB_DEFAULT_D_RD, TEB_DEFAULT_D_WL
+USE TEB_HOST, ONLY: TEB_DEFAULT_D_RF, TEB_DEFAULT_D_RD, TEB_DEFAULT_D_WL, TEB_WALL_AREA_INDEX
+USE MODD_CSTS, ONLY: XPI
 USE MODD_SURF_PAR, ONLY: XUNDEF, teb_snow_check
 USE MODD_SNOW_PAR, ONLY: XZ0SN
 USE MODD_TEB_OPTION_n, ONLY: CTEB_EXCH_DEFAULT, TEB_EXCH_VALID, TEB_Z0H_t, &
@@ -58,7 +61,7 @@ INTEGER :: nvec,rc,j,k,unit
 INTEGER :: teb_nroof_layer, teb_nroad_layer, teb_nwall_layer
 REAL, ALLOCATABLE :: urb_d_rf(:), urb_d_rd(:), urb_d_wl(:)
 LOGICAL :: legacy,found,teb_lwrite_output,teb_lwrite_emu,teb_lwrite_runoff,teb_lwrite_test_dump
-LOGICAL :: valid_town_dyncorr
+LOGICAL :: valid_town_dyncorr, has_fai
 REAL :: dt
 CHARACTER(LEN=3) :: teb_ctype_bem
 CHARACTER(LEN=4) :: teb_ctype_natvent
@@ -354,7 +357,6 @@ teb_cap_sys_heat=90.
 ahf_traffic=0.0
 ahf_industry=0.0
 teb_ctype_wind='DEF'
-teb_fai=0.5
 teb_lgarden=.TRUE.
 teb_type_garden='PROXY_NEW'
 urb_z0_gdn=XZ0_GD
@@ -680,8 +682,11 @@ END SELECT
 IF(teb_itype_bem/='BEM' .AND. teb_itype_bem/='DEF') CALL fail(path,selector_name('teb_itype_bem',legacy),0,'expected BEM or DEF')
 IF(teb_ctype_wind/='DEF' .AND. teb_ctype_wind/='WANG') &
   CALL fail(path,'teb_ctype_wind',0,'expected DEF or WANG')
-IF(.NOT.ALL(IEEE_IS_FINITE(teb_fai)) .OR. ANY(teb_fai<0.)) CALL fail(path,'teb_fai',0, &
-  'expected finite nonnegative indices')
+has_fai=supplied(a,'teb_fai')
+IF(has_fai) THEN
+  IF(.NOT.ALL(IEEE_IS_FINITE(teb_fai)) .OR. ANY(teb_fai<0.)) CALL fail(path,'teb_fai',0, &
+    'expected finite nonnegative indices')
+END IF
 IF(.NOT.IEEE_IS_FINITE(teb_tau_hw_thresh) .OR. .NOT.IEEE_IS_FINITE(teb_tau_hw_width)) &
   CALL fail(path,'CBS thresholds',0,'expected finite values')
 SELECT CASE(TRIM(teb_itype_natvent))
@@ -803,9 +808,16 @@ c%urb_zd_town=urb_zd_town
 c%teb_lcbs_scheme=teb_lcbs_scheme
 c%teb_tau_hw_thresh=teb_tau_hw_thresh
 c%teb_tau_hw_width=teb_tau_hw_width
-DO k=1,8
-  c%teb_fai(:,k)=teb_fai(k)
-END DO
+IF(has_fai) THEN
+  DO k=1,8
+    c%teb_fai(:,k)=teb_fai(k)
+  END DO
+ELSE
+  ! Uniform canyon orientations give a mean windward projection of WAI/pi.
+  DO k=1,nvec
+    c%teb_fai(k,:)=TEB_WALL_AREA_INDEX(urb_h2w(k),urb_fr_bld(k))/XPI
+  END DO
+END IF
 c%teb_lgreenroof_ext=teb_type_greenroof=='EXT' .OR. teb_type_greenroof=='EXT_NEU'
 c%teb_tch_gd=XUNDEF
 c%teb_tcm_gd=XUNDEF
