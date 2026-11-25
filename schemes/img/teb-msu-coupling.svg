@@ -1,0 +1,529 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1588" height="752"
+     viewBox="0 0 1588 752" xml:lang="en" role="img" aria-labelledby="title description"
+     font-family="Arial, DejaVu Sans, sans-serif">
+  <title id="title">TEB-MSU urban canopy thermal network and coupling interfaces</title>
+  <desc id="description">
+    Each arrow between an external model and an interface is labelled with the groups of data exchanged in that direction.
+    The atmosphere supplies air state, wind, radiation and precipitation and receives urban surface fluxes, properties and exchange coefficients.
+    The external garden receives canyon air and radiative forcing and exchange coefficients. Garden and Green Roof return surface states and properties, heat and moisture fluxes and runoff.
+    A dashed arrow marks the potential return path for atmospheric forcing and exchange coefficients for the green roof.
+    The atmospheric coupling interface connects to the dashed horizontal forcing line on the right. A green brace groups the urban surfaces and one arrow carries their aggregate heat and moisture fluxes to this line.
+    Purple BEM links connect indoor air in the left building to canyon air via a window and an outdoor air-conditioning unit.
+    The canyon-side segments meet the centres of the window and the unit. At the matching heights, the branches run horizontally from the cut edge before turning toward the indoor air node.
+    The BEM label identifies windows, HVAC and internal heat gains. Two more windows sit below the openings.
+    An orange arrow with right-angle bends marks sensible heat entering the canyon air from the car on the left side of the road. The car rests at the same schematic road level as the road surface, standing water and snow nodes.
+    Road and roof puddles are drawn as rounded bands separated from the front and back edges and from the adjacent snow bands.
+    The road snow band matches the width and the visible front and back margins of the road puddle.
+    Aligned labels identify the garden, road, puddle and snow links to canyon air.
+    The road temperature node connects to four subsurface layer nodes. Road snow and liquid water exchange with canyon air.
+    In each building, indoor air, three roof layer nodes and the conventional roof surface line up vertically beneath the atmospheric forcing level. Separate thermal links pass through the wall layer nodes.
+    The snow and water bands sit in that order from the canyon side of the right roof. On the left roof, the green roof sits to the left of the conventional surface node, and the solar panel sits to the right.
+    Nodes on both roof surfaces share one drawing height.
+    All four features have matching visible margins at the front and back roof edges.
+    The roof snow, liquid water and solar panel exchange with the atmosphere. Red dots mark model nodes. Solid lines show physical interactions, with a short zigzag for turbulent exchange with a computed coefficient.
+    Garden and Green Roof can each use an external layered land surface model or the built-in diagnostic proxy. Green dashed links connect each interface through the model choice to its red surface node.
+  </desc>
+
+  <g id="teb-msu-layout" transform="translate(-188,0)"
+     font-family="Arial, DejaVu Sans, sans-serif">
+  <g fill="#3f454b" font-size="17.5" font-weight="700">
+    <text x="206" y="211">External land</text>
+    <text x="206" y="231">surface models</text>
+  </g>
+  <g id="teb-msu-domain">
+    <rect x="579" y="139" width="973" height="598" rx="4" ry="4"
+          fill="#fcfaf6" stroke="#aa9786" stroke-width="1.8"/>
+    <text x="605" y="188" fill="#924820" font-size="27" font-weight="700">TEB-MSU</text>
+  </g>
+  <g id="network-key" transform="translate(605,0)"
+     fill="#514a42" font-size="14.5">
+    <circle cx="4.15" cy="205" r="4.15" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+    <text x="56" y="210">Model node</text>
+    <path class="physical-interaction" d="M 0,224 L 44,224" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="56" y="229">Physical interaction</text>
+    <path class="physical-interaction air-resistance" d="M 0,243 L 15.00,243.00 L 16.75,245.80 L 20.25,240.20 L 23.75,245.80 L 27.25,240.20 L 29.00,243.00 L 44,243" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="56" y="248">Turbulent exchange</text>
+  </g>
+  <g id="atmospheric-coupling">
+    <rect x="1499.5" y="20" width="185" height="56" rx="3" ry="3"
+          fill="#f2f3f3" stroke="#858a8f" stroke-width="1.6"/>
+    <text x="1592" y="54" text-anchor="middle" fill="#3f454b"
+          font-size="16.5" font-weight="700">Atmospheric model</text>
+    <g id="atmosphere-to-teb">
+      <path d="M 1581,76 L 1581.00,178.76" fill="none" stroke="#276649" stroke-width="2.3"/><path d="M 1581,185 L 1577.08,177.00 1584.92,177.00 Z" fill="#276649" stroke="none"/>
+      <g text-anchor="end" fill="#3f454b" font-size="13.5"><text x="1569" y="98">Air state and wind</text> <text x="1569" y="115">Downward radiation</text> <text x="1569" y="132">Precipitation</text></g>
+    </g>
+    <g id="teb-to-atmosphere">
+      <path d="M 1603,185 L 1603.00,82.24" fill="none" stroke="#276649" stroke-width="2.3"/><path d="M 1603,76 L 1606.92,84.00 1599.08,84.00 Z" fill="#276649" stroke="none"/>
+      <g text-anchor="start" fill="#3f454b" font-size="13.5"><text x="1615" y="98">Urban surface fluxes</text> <text x="1615" y="115">Surface state</text> <text x="1615" y="132">Radiative properties</text> <text x="1615" y="149">Exchange coefficients</text></g>
+    </g>
+    <g id="atmospheric-forcing-interface">
+      <path id="atmospheric-level-line"
+            d="M 925.00,222.00 L 931.00,222.00 M 935.00,222.00 L 941.00,222.00 M 945.00,222.00 L 951.00,222.00 M 955.00,222.00 L 961.00,222.00 M 965.00,222.00 L 971.00,222.00 M 975.00,222.00 L 981.00,222.00 M 985.00,222.00 L 991.00,222.00 M 995.00,222.00 L 1001.00,222.00 M 1005.00,222.00 L 1011.00,222.00 M 1015.00,222.00 L 1021.00,222.00 M 1025.00,222.00 L 1031.00,222.00 M 1035.00,222.00 L 1041.00,222.00 M 1045.00,222.00 L 1051.00,222.00 M 1055.00,222.00 L 1061.00,222.00 M 1065.00,222.00 L 1071.00,222.00 M 1075.00,222.00 L 1081.00,222.00 M 1085.00,222.00 L 1091.00,222.00 M 1095.00,222.00 L 1101.00,222.00 M 1105.00,222.00 L 1111.00,222.00 M 1115.00,222.00 L 1121.00,222.00 M 1125.00,222.00 L 1131.00,222.00 M 1135.00,222.00 L 1141.00,222.00 M 1145.00,222.00 L 1151.00,222.00 M 1155.00,222.00 L 1161.00,222.00 M 1165.00,222.00 L 1171.00,222.00 M 1175.00,222.00 L 1181.00,222.00 M 1185.00,222.00 L 1191.00,222.00 M 1195.00,222.00 L 1201.00,222.00 M 1205.00,222.00 L 1211.00,222.00 M 1215.00,222.00 L 1221.00,222.00 M 1225.00,222.00 L 1231.00,222.00 M 1235.00,222.00 L 1241.00,222.00 M 1245.00,222.00 L 1251.00,222.00 M 1255.00,222.00 L 1261.00,222.00 M 1265.00,222.00 L 1271.00,222.00 M 1275.00,222.00 L 1281.00,222.00 M 1285.00,222.00 L 1291.00,222.00 M 1295.00,222.00 L 1301.00,222.00 M 1305.00,222.00 L 1311.00,222.00 M 1315.00,222.00 L 1321.00,222.00 M 1325.00,222.00 L 1331.00,222.00 M 1335.00,222.00 L 1341.00,222.00 M 1345.00,222.00 L 1351.00,222.00 M 1355.00,222.00 L 1361.00,222.00 M 1365.00,222.00 L 1371.00,222.00 M 1375.00,222.00 L 1381.00,222.00 M 1385.00,222.00 L 1391.00,222.00 M 1395.00,222.00 L 1401.00,222.00 M 1405.00,222.00 L 1411.00,222.00 M 1415.00,222.00 L 1421.00,222.00 M 1425.00,222.00 L 1431.00,222.00 M 1435.00,222.00 L 1441.00,222.00 M 1445.00,222.00 L 1451.00,222.00 M 1455.00,222.00 L 1461.00,222.00 M 1465.00,222.00 L 1471.00,222.00 M 1475.00,222.00 L 1481.00,222.00 M 1485.00,222.00 L 1491.00,222.00 M 1495.00,222.00 L 1501.00,222.00 M 1505.00,222.00 L 1511.00,222.00 M 1515.00,222.00 L 1518.00,222.00"
+            fill="none" stroke="#555555" stroke-width="1.55" stroke-linecap="round"/>
+      <text x="1504" y="209" text-anchor="end"
+            fill="#514a42" font-size="15.5">Atmospheric forcing level</text>
+      <rect x="1518" y="185" width="148" height="74" rx="3" ry="3"
+          fill="#e4eef7" stroke="#4d6885" stroke-width="1.8"/>
+    <text x="1592" y="217" text-anchor="middle" fill="#223c56" font-size="19" font-weight="700">Atmosphere</text>
+    <text x="1592" y="238" text-anchor="middle" fill="#46596b" font-size="14.5">Coupling interface</text>
+    </g>
+  </g>
+
+  <g id="surface-network-layout">
+  <g id="canyon-geometry" stroke="#555555" stroke-width="2" stroke-linejoin="round">
+    <g id="road-layers" stroke="#555555" stroke-width="1.2">
+      <rect x="1150" y="614" width="261" height="15" fill="#8b8b85"/>
+<rect x="1150" y="629" width="261" height="15" fill="#c2b3a2"/>
+<rect x="1150" y="644" width="261" height="15" fill="#ab947d"/>
+<rect x="1150" y="659" width="261" height="15" fill="#8d725b"/>
+    </g>
+    <path id="garden-surface" d="M 1037,614 H 1150 L 1162,575 H 1070 Z" fill="#93c653"/>
+    <path id="road-surface" d="M 1150,614 H 1411
+                              L 1378,575 H 1162 Z" fill="#dfddd8"/>
+    <path d="M 1167.02,611 L 1174.56,579 M 1183.12,611 L 1188.35,579 M 1199.21,611 L 1202.13,579 M 1215.31,611 L 1215.92,579 M 1231.40,611 L 1229.71,579 M 1247.50,611 L 1243.50,579 M 1263.60,611 L 1257.29,579 M 1279.69,611 L 1271.08,579 M 1295.79,611 L 1284.87,579 M 1311.88,611 L 1298.65,579 M 1327.98,611 L 1312.44,579 M 1344.08,611 L 1326.23,579 M 1360.17,611 L 1340.02,579 M 1376.27,611 L 1353.81,579 M 1392.37,611 L 1367.60,579"
+          fill="none" stroke="#aeaaa1" stroke-width="1.2" stroke-linecap="round"/>
+    <g id="road-surface-hydrology" stroke-width="1.4">
+      <path id="road-surface-water" d="M 1321.25,609.51 L 1340.95,609.51 Q 1352.20,609.51 1347.07,600.93 L 1339.37,588.07 Q 1334.24,579.49 1324.51,579.49 L 1307.48,579.49 Q 1297.75,579.49 1301.25,588.07 L 1306.49,600.93 Q 1309.99,609.51 1321.25,609.51 Z"
+            fill="#78b6dc" stroke="#3d759e"/>
+      <path d="M 1307.17,587.87 Q 1312.53,585.53 1320.43,586.70
+               M 1328.07,604.25 Q 1333.86,601.52 1342.64,603.08"
+            fill="none" stroke="#e9f7ff" stroke-width="1" stroke-linecap="round"/>
+      <g id="road-snow-cover-pack" stroke="#6f8da7" stroke-width="1.15">
+        <polygon id="road-snow-cover-side"
+                 points="1342.28,579.49 1358.60,605.51 1400.81,605.51 1400.81,609.51 1358.60,609.51 1342.28,583.49"
+                 fill="#c6dce8"/>
+        <polygon id="road-snow-cover"
+                 points="1358.60,605.51 1400.81,605.51 1379.53,579.49 1342.28,579.49"
+                 fill="#f9fdff"/>
+      </g>
+    </g>
+
+    <g id="traffic-vehicle" transform="translate(1190,594.296) scale(1.12)"
+       stroke="#694836" stroke-width="1.15" stroke-linejoin="round">
+      <title>Side view of the car on the left side of the road</title>
+      <path d="M -22,0 V -6 Q -22,-8 -17,-10 L -14,-11 L -9,-20
+               H 5 Q 10,-20 14,-11 L 19,-9 Q 22,-8 22,-4 V 0 Z"
+            fill="#cb8055"/>
+      <path d="M -11,-11 L -7,-17 H 5 Q 8,-17 11,-11 Z" fill="#f1efe1" stroke-width=".85"/>
+      <path d="M 1,-17 V -11 M -16,-3 H 16" fill="none" stroke-width=".85"/>
+      <path d="M 19,-6 H 22" fill="none" stroke="#fff2d4" stroke-width="1.7"/>
+      <g fill="#38342e" stroke="none">
+        <circle cx="-13" cy="0" r="4.2"/>
+        <circle cx="13" cy="0" r="4.2"/>
+      </g>
+      <g fill="#d8d1c3" stroke="none">
+        <circle cx="-13" cy="0" r="1.4"/>
+        <circle cx="13" cy="0" r="1.4"/>
+      </g>
+    </g>
+    <path d="M 1055,608 l 3,-4 m 16,4 l 3,-4 m 16,4 l 3,-4 m 16,4 l 3,-4 m 16,4 l 3,-4
+             M 1068,595 l 3,-4 m 16,4 l 3,-4 m 16,4 l 3,-4 m 16,4 l 3,-4 m 16,4 l 3,-4
+             M 1082,584 l 3,-4 m 16,4 l 3,-4 m 16,4 l 3,-4 m 16,4 l 3,-4"
+          fill="none" stroke="#4e7935" stroke-width="1.25" stroke-linecap="round"/>
+    <g id="left-building">
+      <path d="M 921,423 L 954,384 H 1070 L 1037,423 Z" fill="#ffe0a1"/>
+      <path d="M 1037,423 L 1070,384 V 575 L 1037,614 Z" fill="#efa523"/>
+      <rect x="921" y="423" width="116" height="191" fill="#fbd17e"/>
+      <g fill="#fff19a" stroke="#555555" stroke-width="1.2">
+<rect x="921" y="423" width="116" height="12"/>
+<rect x="921" y="435" width="116" height="12"/>
+<rect x="921" y="447" width="116" height="12"/>
+<rect x="1025" y="459" width="12" height="155"/>
+<rect x="1013" y="459" width="12" height="155"/>
+<rect x="1001" y="459" width="12" height="155"/>
+</g>
+      <g id="left-bem-openings" transform="matrix(1,-1.181818,0,1,1037,482)"
+         stroke="#4f6f7f">
+        <g id="left-bem-window">
+          <title>Window on the canyon-facing wall</title>
+          <rect x="4" y="-18" width="10" height="36"
+                    fill="#c4dce4" stroke-width="1.3"/>
+          <path d="M 9,-18 V 18
+                   M 4,0 H 14" fill="none" stroke-width=".95"/>
+        </g>
+
+        <g id="left-bem-outdoor-unit" stroke-width="1.2">
+          <title>Outdoor air-conditioning unit on the canyon-facing wall</title>
+          <path d="M 19.5,-18 H 29.5 l 8,9.4545 H 27.5 Z" fill="#f8faf9"/>
+          <path d="M 19.5,-18 l 8,9.4545 V 27.4545 l -8,-9.4545 Z" fill="#c9d3d7"/>
+          <g id="left-bem-outdoor-unit-face" transform="translate(8,9.4545)">
+            <rect x="19.5" y="-18" width="10" height="36" fill="#edf0f1"/>
+            <path d="M 21.5,8 H 27.5 M 21.5,11 H 27.5 M 21.5,14 H 27.5"
+                  fill="none" stroke-width=".9" stroke-linecap="round"/>
+            <g id="left-bem-outdoor-unit-fan" transform="translate(24.5,-9) scale(1,1.9)" stroke="none">
+              <title>Condenser fan</title>
+              <circle r="4" fill="#43606d"/>
+              <g fill="#f5f8f7">
+                <path d="M 0,-.6 C -1.7,-.85 -2.4,-2.4 -1.05,-2.95 C .38,-3.52 1.55,-1.57 .57,-.83 Z"/>
+                <path d="M 0,-.6 C -1.7,-.85 -2.4,-2.4 -1.05,-2.95 C .38,-3.52 1.55,-1.57 .57,-.83 Z" transform="rotate(120)"/>
+                <path d="M 0,-.6 C -1.7,-.85 -2.4,-2.4 -1.05,-2.95 C .38,-3.52 1.55,-1.57 .57,-.83 Z" transform="rotate(240)"/>
+                <circle r=".65"/>
+              </g>
+            </g>
+          </g>
+        </g>
+        <g id="left-bem-lower-windows" transform="translate(0,75)">
+          <title>Two lower windows on the canyon-facing wall</title>
+          <rect x="4" y="-18" width="10" height="36"
+                    fill="#c4dce4" stroke-width="1.3"/>
+          <path d="M 9,-18 V 18
+                   M 4,0 H 14" fill="none" stroke-width=".95"/>
+          <rect x="19.5" y="-18" width="10" height="36"
+                    fill="#c4dce4" stroke-width="1.3"/>
+          <path d="M 24.5,-18 V 18
+                   M 19.5,0 H 29.5" fill="none" stroke-width=".95"/>
+        </g>
+      </g>
+      <g id="green-roof-strip">
+        <polygon points="927.12,418.51 956.69,418.51 982.11,388.49 952.53,388.49"
+                 fill="#93c653" stroke="#555555" stroke-width="1.6"/>
+        <path d="M 950.49,398.43 l 3,-4 M 961.51,398.43 l 3,-4 M 943.89,406.23 l 3,-4 M 954.91,406.23 l 3,-4 M 936.63,414.81 l 3,-4 M 947.65,414.81 l 3,-4"
+              fill="none" stroke="#4e7935" stroke-width="1.25" stroke-linecap="round"/>
+      </g>
+      <g id="solar-panel-strip">
+        <polygon points="993.24,418.51 1031.52,418.51 1056.92,388.49 1018.65,388.49"
+                 fill="#527eaa" stroke="#555555" stroke-width="1.6"/>
+        <path d="M 1037.78,388.49
+                 L 1012.37,418.51
+                 M 1014.19,393.75 L 1052.47,393.75 M 1005.94,403.50 L 1044.22,403.50 M 997.69,413.25 L 1035.97,413.25"
+              fill="none" stroke="#b5d5ef" stroke-width="1" stroke-linecap="round"/>
+      </g>
+    </g>
+    <g id="right-building">
+      <path d="M 1411,423 L 1378,384 H 1494 L 1527,423 Z" fill="#ffe0a1"/>
+      <path d="M 1411,423 L 1378,384 V 575 L 1411,614 Z" fill="#efa523"/>
+      <rect x="1411" y="423" width="116" height="191" fill="#fbd17e"/>
+      <g fill="#fff19a" stroke="#555555" stroke-width="1.2">
+<rect x="1411" y="423" width="116" height="12"/>
+<rect x="1411" y="435" width="116" height="12"/>
+<rect x="1411" y="447" width="116" height="12"/>
+<rect x="1411" y="459" width="12" height="155"/>
+<rect x="1423" y="459" width="12" height="155"/>
+<rect x="1435" y="459" width="12" height="155"/>
+</g>
+      <g id="conventional-roof-surface-hydrology" stroke-width="1.4">
+        <path id="roof-surface-water" d="M 1445.66,418.51 L 1455.52,418.51 Q 1461.14,418.51 1453.88,409.94 L 1443.00,397.06 Q 1435.74,388.49 1430.11,388.49 L 1420.25,388.49 Q 1414.62,388.49 1421.88,397.06 L 1432.77,409.94 Q 1440.03,418.51 1445.66,418.51 Z"
+              fill="#78b6dc" stroke="#3d759e"/>
+        <path d="M 1424.97,396.87 Q 1426.58,394.53 1431.52,395.70
+                 M 1444.51,413.25 Q 1446.26,410.52 1452.80,412.08"
+              fill="none" stroke="#e9f7ff" stroke-width="1" stroke-linecap="round"/>
+        <g id="roof-snow-cover-pack" stroke="#6f8da7" stroke-width="1.15">
+          <polygon id="roof-snow-cover-side"
+                   points="1388.97,388.49 1411.85,415.51 1435.04,415.51 1435.04,418.51 1411.85,418.51 1388.97,391.49"
+                   fill="#c6dce8"/>
+          <polygon id="roof-snow-cover"
+                   points="1411.85,415.51 1435.04,415.51 1412.17,388.49 1388.97,388.49"
+                   fill="#f9fdff"/>
+        </g>
+      </g>
+    </g>
+  </g>
+
+
+  <g id="green-roof-surface-options">
+    <title>Green Roof: external layered land surface model or built-in diagnostic proxy</title>
+    <g id="green-roof-external-model">
+      <rect x="206" y="258" width="185" height="84" rx="3" ry="3"
+            fill="#f2f3f3" stroke="#858a8f" stroke-width="1.6"/>
+      <g stroke="#565b60" stroke-width="1.1" stroke-linejoin="round">
+<path d="M 252,285 l 10,-6 v 9 l -10,6 Z" fill="#bfc2c5"/><rect x="218" y="285" width="34" height="9" fill="#dedfe1"/>
+<path d="M 252,294 l 10,-6 v 9 l -10,6 Z" fill="#a8adb1"/><rect x="218" y="294" width="34" height="9" fill="#c7c9cc"/>
+<path d="M 252,303 l 10,-6 v 9 l -10,6 Z" fill="#90969b"/><rect x="218" y="303" width="34" height="9" fill="#aeb2b6"/>
+<path d="M 252,312 l 10,-6 v 9 l -10,6 Z" fill="#7d8389"/><rect x="218" y="312" width="34" height="9" fill="#979ca1"/>
+<path d="M 218,285 l 10,-6 h 34 l -10,6 Z" fill="#f1f2f3"/></g>
+      <g fill="#3f454b">
+        <text x="270" y="286" font-size="16.5" font-weight="700">External land</text>
+        <text x="270" y="305" font-size="16.5" font-weight="700">surface model</text>
+        <text x="270" y="324" font-size="13">Layered column</text>
+      </g>
+    </g>
+    <g id="green-roof-external-exchanges">
+      <path d="M 391,289 L 514.76,289.00" fill="none" stroke="#276649" stroke-width="2.3"/><path d="M 521,289 L 513.00,292.92 513.00,285.08 Z" fill="#276649" stroke="none"/>
+      <g text-anchor="middle" fill="#3f454b" font-size="13.5"><text x="456" y="229">Surface state</text> <text x="456" y="246">and properties</text> <text x="456" y="263">Heat and moisture</text> <text x="456" y="280">fluxes and runoff</text></g>
+      <path d="M 521.00,311.00 L 515.00,311.00 M 511.00,311.00 L 505.00,311.00 M 501.00,311.00 L 495.00,311.00 M 491.00,311.00 L 485.00,311.00 M 481.00,311.00 L 475.00,311.00 M 471.00,311.00 L 465.00,311.00 M 461.00,311.00 L 455.00,311.00 M 451.00,311.00 L 445.00,311.00 M 441.00,311.00 L 435.00,311.00 M 431.00,311.00 L 425.00,311.00 M 421.00,311.00 L 415.00,311.00 M 411.00,311.00 L 405.00,311.00 M 401.00,311.00 L 397.24,311.00" fill="none" stroke="#276649" stroke-width="2.3"/><path d="M 391,311 L 399.00,307.08 399.00,314.92 Z" fill="#276649" stroke="none"/>
+      <g text-anchor="middle" fill="#3f454b" font-size="13.5"><text x="456" y="332">Atmospheric forcing</text> <text x="456" y="349">Exchange</text> <text x="456" y="366">coefficients</text></g>
+    </g>
+    <g id="green-roof-interface-links" fill="none" stroke="#276649" stroke-width="1.65" stroke-linecap="round">
+      <path d="M 637.00,300.00 L 643.00,300.00 M 647.00,300.00 L 653.00,300.00 M 657.00,300.00 L 663.00,300.00 M 667.00,300.00 L 673.00,300.00 M 677.00,300.00 L 683.00,300.00 M 687.00,300.00 L 693.00,300.00 M 697.00,300.00 L 703.00,300.00 M 707.00,300.00 L 713.00,300.00 M 717.00,300.00 L 723.00,300.00 M 727.00,300.00 L 733.00,300.00 M 737.00,300.00 L 743.00,300.00 M 747.00,300.00 L 753.00,300.00 M 757.00,300.00 L 763.00,300.00 M 767.00,300.00 L 773.00,300.00 M 777.00,300.00 L 783.00,300.00 M 787.00,300.00 L 793.00,300.00 M 797.00,300.00 L 803.00,300.00 M 807.00,300.00 L 813.00,300.00"/>
+      <path d="M 813.00,377.00 L 819.00,377.00 M 823.00,377.00 L 829.00,377.00
+               M 831.00,318.00 L 831.00,324.00 M 831.00,328.00 L 831.00,334.00 M 831.00,338.00 L 831.00,344.00 M 831.00,348.00 L 831.00,354.00 M 831.00,358.00 L 831.00,364.00 M 831.00,368.00 L 831.00,374.00"/>
+      <path d="M 849.00,300.00 L 851.00,300.00 M 851.00,300.00 L 855.41,304.07 M 858.35,306.78 L 862.76,310.85 M 865.70,313.57 L 870.10,317.64 M 873.04,320.35 L 877.45,324.42 M 880.39,327.13 L 884.80,331.20 M 887.74,333.91 L 892.15,337.98 M 895.09,340.70 L 899.50,344.77 M 902.44,347.48 L 906.85,351.55 M 909.78,354.26 L 914.19,358.33 M 917.13,361.05 L 921.54,365.11 M 924.48,367.83 L 928.89,371.90 M 931.83,374.61 L 936.24,378.68 M 939.18,381.39 L 943.59,385.46 M 946.52,388.18 L 950.93,392.25 M 953.87,394.96 L 958.28,399.03 M 961.22,401.74 L 961.50,402.00"/>
+    </g>
+
+    <rect x="521" y="263" width="116" height="74" rx="3" ry="3"
+          fill="#e9f1e1" stroke="#658052" stroke-width="1.8"/>
+    <text x="579" y="295" text-anchor="middle" fill="#304a29" font-size="19" font-weight="700">Green Roof</text>
+    <text x="579" y="316" text-anchor="middle" fill="#395333" font-size="14.5">LSM interface</text>
+
+    <rect x="645" y="348" width="168" height="59" rx="3" ry="3"
+          fill="#eef5e7" stroke="#658052" stroke-width="1.6"/>
+    <path d="M 655,382 l 8,-9 h 24 l -8,9 Z" fill="#93c653" stroke="#466d36" stroke-width="1.3"/>
+    <path d="M 662,380 l 2,-3 m 5,3 l 2,-3 m 5,3 l 2,-3"
+          fill="none" stroke="#4e7935" stroke-width="1.15" stroke-linecap="round"/>
+    <text x="692" y="374" fill="#304a29"
+          font-size="16.5" font-weight="700">Built-in proxy</text>
+    <text x="692" y="394" fill="#395333"
+          font-size="13">Diagnostic surface</text>
+
+    <circle cx="831" cy="300" r="18" fill="#fff" stroke="#666054" stroke-width="1.6"/>
+    <text x="831" y="305" text-anchor="middle" fill="#413a31"
+          font-size="13.5" font-weight="700">OR</text>
+  </g>
+
+  <g id="garden-surface-options">
+    <title>Garden: external layered land surface model or built-in diagnostic proxy</title>
+    <g id="garden-external-model">
+      <rect x="206" y="481" width="185" height="84" rx="3" ry="3"
+            fill="#f2f3f3" stroke="#858a8f" stroke-width="1.6"/>
+      <g stroke="#565b60" stroke-width="1.1" stroke-linejoin="round">
+<path d="M 252,508 l 10,-6 v 9 l -10,6 Z" fill="#bfc2c5"/><rect x="218" y="508" width="34" height="9" fill="#dedfe1"/>
+<path d="M 252,517 l 10,-6 v 9 l -10,6 Z" fill="#a8adb1"/><rect x="218" y="517" width="34" height="9" fill="#c7c9cc"/>
+<path d="M 252,526 l 10,-6 v 9 l -10,6 Z" fill="#90969b"/><rect x="218" y="526" width="34" height="9" fill="#aeb2b6"/>
+<path d="M 252,535 l 10,-6 v 9 l -10,6 Z" fill="#7d8389"/><rect x="218" y="535" width="34" height="9" fill="#979ca1"/>
+<path d="M 218,508 l 10,-6 h 34 l -10,6 Z" fill="#f1f2f3"/></g>
+      <g fill="#3f454b">
+        <text x="270" y="509" font-size="16.5" font-weight="700">External land</text>
+        <text x="270" y="528" font-size="16.5" font-weight="700">surface model</text>
+        <text x="270" y="547" font-size="13">Layered column</text>
+      </g>
+    </g>
+    <g id="garden-external-exchanges">
+      <path d="M 391,512 L 514.76,512.00" fill="none" stroke="#276649" stroke-width="2.3"/><path d="M 521,512 L 513.00,515.92 513.00,508.08 Z" fill="#276649" stroke="none"/>
+      <g text-anchor="middle" fill="#3f454b" font-size="13.5"><text x="456" y="452">Surface state</text> <text x="456" y="469">and properties</text> <text x="456" y="486">Heat and moisture</text> <text x="456" y="503">fluxes and runoff</text></g>
+      <path d="M 521,534 L 397.24,534.00" fill="none" stroke="#276649" stroke-width="2.3"/><path d="M 391,534 L 399.00,530.08 399.00,537.92 Z" fill="#276649" stroke="none"/>
+      <g text-anchor="middle" fill="#3f454b" font-size="13.5"><text x="456" y="555">Canyon air and</text> <text x="456" y="572">radiative forcing</text> <text x="456" y="589">Exchange</text> <text x="456" y="606">coefficients</text></g>
+    </g>
+    <g id="garden-interface-links" fill="none" stroke="#276649" stroke-width="1.65" stroke-linecap="round">
+      <path d="M 637.00,523.00 L 643.00,523.00 M 647.00,523.00 L 653.00,523.00 M 657.00,523.00 L 663.00,523.00 M 667.00,523.00 L 673.00,523.00 M 677.00,523.00 L 683.00,523.00 M 687.00,523.00 L 693.00,523.00 M 697.00,523.00 L 703.00,523.00 M 707.00,523.00 L 713.00,523.00 M 717.00,523.00 L 723.00,523.00 M 727.00,523.00 L 733.00,523.00 M 737.00,523.00 L 743.00,523.00 M 747.00,523.00 L 753.00,523.00 M 757.00,523.00 L 763.00,523.00 M 767.00,523.00 L 773.00,523.00 M 777.00,523.00 L 783.00,523.00 M 787.00,523.00 L 793.00,523.00 M 797.00,523.00 L 803.00,523.00 M 807.00,523.00 L 813.00,523.00"/>
+      <path d="M 813.00,600.00 L 819.00,600.00 M 823.00,600.00 L 829.00,600.00
+               M 831.00,541.00 L 831.00,547.00 M 831.00,551.00 L 831.00,557.00 M 831.00,561.00 L 831.00,567.00 M 831.00,571.00 L 831.00,577.00 M 831.00,581.00 L 831.00,587.00 M 831.00,591.00 L 831.00,597.00"/>
+      <path d="M 849.00,523.00 L 855.00,523.00 M 859.00,523.00 L 865.00,523.00 M 869.00,523.00 L 872.00,523.00 M 872.00,523.00 L 872.00,529.00 M 872.00,533.00 L 872.00,539.00 M 872.00,543.00 L 872.00,549.00 M 872.00,553.00 L 872.00,559.00 M 872.00,563.00 L 872.00,569.00 M 872.00,573.00 L 872.00,579.00 M 872.00,583.00 L 872.00,589.00 M 872.00,593.00 L 872.00,599.00 M 872.00,603.00 L 872.00,609.00 M 872.00,613.00 L 872.00,619.00 M 872.00,623.00 L 872.00,629.00 M 872.00,633.00 L 872.00,639.00 M 872.00,643.00 L 872.00,649.00 M 872.00,650.00 L 878.00,650.00 M 882.00,650.00 L 888.00,650.00 M 892.00,650.00 L 898.00,650.00 M 902.00,650.00 L 908.00,650.00 M 912.00,650.00 L 918.00,650.00 M 922.00,650.00 L 928.00,650.00 M 932.00,650.00 L 938.00,650.00 M 942.00,650.00 L 948.00,650.00 M 952.00,650.00 L 958.00,650.00 M 962.00,650.00 L 968.00,650.00 M 972.00,650.00 L 978.00,650.00 M 982.00,650.00 L 988.00,650.00 M 992.00,650.00 L 998.00,650.00 M 1002.00,650.00 L 1008.00,650.00 M 1012.00,650.00 L 1018.00,650.00 M 1022.00,650.00 L 1028.00,650.00 M 1032.00,650.00 L 1038.00,650.00 M 1042.00,650.00 L 1048.00,650.00 M 1052.00,650.00 L 1058.00,650.00 M 1062.00,650.00 L 1068.00,650.00 M 1072.00,650.00 L 1078.00,650.00 M 1082.00,650.00 L 1088.00,650.00 M 1092.00,650.00 L 1098.00,650.00 M 1102.00,650.00 L 1108.00,650.00 M 1112.00,650.00 L 1118.00,650.00 M 1122.00,650.00 L 1128.00,650.00 M 1132.00,650.00 L 1135.00,650.00 M 1135.00,650.00 L 1135.00,644.00 M 1135.00,640.00 L 1135.00,634.00 M 1135.00,630.00 L 1135.00,624.00 M 1135.00,620.00 L 1135.00,614.00 M 1135.00,610.00 L 1135.00,604.00 M 1135.00,600.00 L 1135.00,594.00"/>
+    </g>
+
+    <rect x="521" y="486" width="116" height="74" rx="3" ry="3"
+          fill="#e9f1e1" stroke="#658052" stroke-width="1.8"/>
+    <text x="579" y="518" text-anchor="middle" fill="#304a29" font-size="19" font-weight="700">Garden</text>
+    <text x="579" y="539" text-anchor="middle" fill="#395333" font-size="14.5">LSM interface</text>
+
+    <rect x="645" y="571" width="168" height="59" rx="3" ry="3"
+          fill="#eef5e7" stroke="#658052" stroke-width="1.6"/>
+    <path d="M 655,605 l 8,-9 h 24 l -8,9 Z" fill="#93c653" stroke="#466d36" stroke-width="1.3"/>
+    <path d="M 662,603 l 2,-3 m 5,3 l 2,-3 m 5,3 l 2,-3"
+          fill="none" stroke="#4e7935" stroke-width="1.15" stroke-linecap="round"/>
+    <text x="692" y="597" fill="#304a29"
+          font-size="16.5" font-weight="700">Built-in proxy</text>
+    <text x="692" y="617" fill="#395333"
+          font-size="13">Diagnostic surface</text>
+
+    <circle cx="831" cy="523" r="18" fill="#fff" stroke="#666054" stroke-width="1.6"/>
+    <text x="831" y="528" text-anchor="middle" fill="#413a31"
+          font-size="13.5" font-weight="700">OR</text>
+  </g>
+
+  <g id="physical-node-interactions">
+    <g id="green-roof-to-atmosphere">
+      <path class="physical-interaction air-resistance" d="M 961.5,222 L 961.50,305.00 L 958.70,306.75 L 964.30,310.25 L 958.70,313.75 L 964.30,317.25 L 961.50,319.00 L 961.5,402" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="949.5" y="314" text-anchor="end"
+            fill="#413a31" font-size="15.5">Green roof</text>
+    </g>
+    <g id="left-roof-to-atmosphere">
+      <path class="physical-interaction air-resistance" d="M 979,222 L 979.00,305.00 L 976.20,306.75 L 981.80,310.25 L 976.20,313.75 L 981.80,317.25 L 979.00,319.00 L 979,402" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="right-conventional-roof-atmosphere-branch">
+      <path class="physical-interaction" d="M 1469,222 V 337 H 1410"
+            fill="none" stroke="#000000"
+            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <g id="roof-to-atmosphere">
+        <path class="physical-interaction air-resistance" d="M 1469,337 L 1469.00,362.50 L 1466.20,364.25 L 1471.80,367.75 L 1466.20,371.25 L 1471.80,374.75 L 1469.00,376.50 L 1469,402" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <text x="1455" y="314" text-anchor="end" fill="#413a31"
+              font-size="15.5">Conventional roof</text>
+      </g>
+      <g id="roof-water-to-atmosphere">
+        <title>Right roof liquid water storage and moisture exchange with the atmosphere</title>
+        <path class="physical-interaction air-resistance" d="M 1436,337 L 1436.00,362.50 L 1433.20,364.25 L 1438.80,367.75 L 1433.20,371.25 L 1438.80,374.75 L 1436.00,376.50 L 1436,402" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="1436" cy="402" r="4.15" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+      </g>
+      <g id="roof-snow-to-atmosphere">
+        <title>Right roof snow temperature and heat exchange with the atmosphere</title>
+        <path class="physical-interaction air-resistance" d="M 1410,337 L 1410.00,362.50 L 1407.20,364.25 L 1412.80,367.75 L 1407.20,371.25 L 1412.80,374.75 L 1410.00,376.50 L 1410,402" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="1410" cy="402" r="4.15" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+      </g>
+    </g>
+    <g id="solar-panel-to-atmosphere">
+      <path class="physical-interaction" d="M 1026,222 L 1026,402" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <g fill="#413a31" font-size="15.5">
+        <text x="1040" y="314">Solar</text>
+        <text x="1040" y="332">panel</text>
+      </g>
+    </g>
+    <g id="canyon-to-atmosphere">
+      <path class="physical-interaction air-resistance" d="M 1224,222 L 1224.00,354.00 L 1221.20,355.75 L 1226.80,359.25 L 1221.20,362.75 L 1226.80,366.25 L 1224.00,368.00 L 1224,500" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="left-wall-to-canyon">
+      <path class="physical-interaction air-resistance" d="M 1055,500 L 1132.50,500.00 L 1134.25,502.80 L 1137.75,497.20 L 1141.25,502.80 L 1144.75,497.20 L 1146.50,500.00 L 1224,500" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="1094" y="490" text-anchor="middle" fill="#413a31" font-size="15.5">Wall</text>
+    </g>
+    <g id="right-wall-to-canyon">
+      <path class="physical-interaction air-resistance" d="M 1224,500 L 1301.50,500.00 L 1303.25,502.80 L 1306.75,497.20 L 1310.25,502.80 L 1313.75,497.20 L 1315.50,500.00 L 1393,500" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="1354" y="490" text-anchor="middle" fill="#413a31" font-size="15.5">Wall</text>
+    </g>
+    <g id="left-bem-air-link">
+      <title>Building energy exchange between indoor air and canyon air via the window and outdoor unit</title>
+      <g class="physical-interaction" fill="none" stroke="#713d8a" stroke-width="1.8"
+         stroke-linecap="round" stroke-linejoin="round">
+        <g id="bem-indoor-links">
+          <path d="M 979,500 L 989,483"/>
+          <path id="bem-indoor-window-branch"
+                d="M 1037,471.36 H 1025 L 989,483"/>
+          <path id="bem-indoor-ac-branch"
+                d="M 1037,453.05 H 1025 L 989,483"/>
+        </g>
+        <path id="bem-window-branch" class="air-resistance"
+              d="M 1046,471.36 H 1051
+                 L 1060.0,487
+                 L 1079.21,473.96 L 1082.23,475.29 L 1081.98,468.69 L 1088.02,471.36 L 1087.77,464.76 L 1090.79,466.09 L 1110,453.05"/>
+        <path id="bem-ac-branch" d="M 1069.5,453.05 H 1110"/>
+        <path d="M 1110,453.05 H 1199 L 1224,500"/>
+      </g>
+      <circle cx="989" cy="483" r="2" fill="#713d8a"/>
+      <circle cx="1110" cy="453.05" r="2" fill="#713d8a"/>
+      <g id="bem-label" text-anchor="middle" fill="#713d8a">
+        <text x="1146" y="401" font-size="16.5" font-weight="700">BEM</text>
+        <text x="1146" y="420" font-size="13.5">Windows and HVAC</text>
+        <text x="1146" y="437" font-size="13.5">Internal heat gains</text>
+      </g>
+    </g>
+    <path id="ground-to-canyon-bus" class="physical-interaction"
+          d="M 1135,540 H 1189 L 1224,500 L 1253,540 H 1372"
+          fill="none" stroke="#000000"
+          stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    <g id="garden-to-canyon">
+      <path class="physical-interaction air-resistance" d="M 1135,540 L 1135.00,559.00 L 1132.20,560.75 L 1137.80,564.25 L 1132.20,567.75 L 1137.80,571.25 L 1135.00,573.00 L 1135,592" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="road-to-canyon">
+      <path class="physical-interaction air-resistance" d="M 1256,540 L 1256.00,562.50 L 1253.20,564.25 L 1258.80,567.75 L 1253.20,571.25 L 1258.80,574.75 L 1256.00,576.50 L 1256,599" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="road-layer-interactions">
+      <title>Explicit heat conduction from the road surface through the subsurface layers</title>
+      <path class="physical-interaction" d="M 1256,599 L 1256,621.5" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction" d="M 1256,621.5 L 1256,636.5" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction" d="M 1256,636.5 L 1256,651.5" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction" d="M 1256,651.5 L 1256,666.5" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1256" cy="621.5" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1256" cy="636.5" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1256" cy="651.5" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1256" cy="666.5" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+    </g>
+    <g id="road-snow-to-canyon">
+      <title>Road snow temperature and heat exchange with canyon air</title>
+      <path class="physical-interaction air-resistance" d="M 1372,540 L 1372.00,562.50 L 1369.20,564.25 L 1374.80,567.75 L 1369.20,571.25 L 1374.80,574.75 L 1372.00,576.50 L 1372,599" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="1372" cy="599" r="4.15" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+    </g>
+    <g id="road-water-to-canyon">
+      <title>Road liquid water storage and moisture exchange with canyon air</title>
+      <path class="physical-interaction air-resistance" d="M 1322,540 L 1322.00,562.50 L 1319.20,564.25 L 1324.80,567.75 L 1319.20,571.25 L 1324.80,574.75 L 1322.00,576.50 L 1322,599" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="1322" cy="599" r="4.15" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+    </g>
+    <g id="traffic-heat-to-canyon">
+      <title>Anthropogenic sensible heat from traffic entering the canyon air balance</title>
+      <path id="traffic-heat-arrow" class="physical-interaction"
+            d="M 1190,571.896 V 546 H 1224 V 511"
+            fill="none" stroke="#9f5729" stroke-width="1.8" stroke-linejoin="miter"/>
+      <path d="M 1224,505 L 1220.57,512 H 1227.43 Z" fill="#9f5729"/>
+      <g id="traffic-heat-label" text-anchor="end" fill="#9f5729" font-size="13.5" font-weight="700">
+        <text x="1184" y="554">Traffic</text>
+        <text x="1184" y="568">heat</text>
+      </g>
+    </g>
+    <g id="left-building-thermal-nodes">
+      <path class="physical-interaction" d="M 979,402 L 979,429" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="979" cy="402" r="4.15" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<path class="physical-interaction" d="M 979,429 L 979,441" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction" d="M 979,441 L 979,453" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction" d="M 1007,500 L 1019,500" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction" d="M 1019,500 L 1031,500" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction" d="M 1031,500 L 1055,500" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction air-resistance" d="M 979,453 L 979.00,469.50 L 976.20,471.25 L 981.80,474.75 L 976.20,478.25 L 981.80,481.75 L 979.00,483.50 L 979,500" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction air-resistance" d="M 979,500 L 986.00,500.00 L 987.75,502.80 L 991.25,497.20 L 994.75,502.80 L 998.25,497.20 L 1000.00,500.00 L 1007,500" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="979" cy="429" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="979" cy="441" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="979" cy="453" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1007" cy="500" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1019" cy="500" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1031" cy="500" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1055" cy="500" r="4.15" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="979" cy="500" r="5" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<text x="961" y="523" text-anchor="middle" fill="#413a31" font-size="15.5">Indoor air</text>
+<text x="961" y="543" text-anchor="middle" fill="#413a31" font-size="17" font-style="italic">Tᵢ, qᵢ</text>
+    </g>
+    <g id="right-building-thermal-nodes">
+      <path class="physical-interaction" d="M 1469,402 L 1469,429" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1469" cy="402" r="4.15" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<path class="physical-interaction" d="M 1469,429 L 1469,441" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction" d="M 1469,441 L 1469,453" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction" d="M 1441,500 L 1429,500" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction" d="M 1429,500 L 1417,500" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction" d="M 1417,500 L 1393,500" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction air-resistance" d="M 1469,453 L 1469.00,469.50 L 1466.20,471.25 L 1471.80,474.75 L 1466.20,478.25 L 1471.80,481.75 L 1469.00,483.50 L 1469,500" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<path class="physical-interaction air-resistance" d="M 1469,500 L 1462.00,500.00 L 1460.25,497.20 L 1456.75,502.80 L 1453.25,497.20 L 1449.75,502.80 L 1448.00,500.00 L 1441,500" fill="none" stroke="#000000" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="1469" cy="429" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1469" cy="441" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1469" cy="453" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1441" cy="500" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1429" cy="500" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1417" cy="500" r="3" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1393" cy="500" r="4.15" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<circle cx="1469" cy="500" r="5" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+<text x="1487" y="523" text-anchor="middle" fill="#413a31" font-size="15.5">Indoor air</text>
+<text x="1487" y="543" text-anchor="middle" fill="#413a31" font-size="17" font-style="italic">Tᵢ, qᵢ</text>
+    </g>
+    <circle cx="1224" cy="222" r="5" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+    <circle cx="961.5" cy="402" r="4.15" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+    <circle cx="1026" cy="402" r="4.15" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+    <circle cx="1224" cy="500" r="5" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+    <circle cx="1135" cy="592" r="4.15" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+    <circle cx="1256" cy="599" r="4.15" fill="#c42d31" stroke="#76272a" stroke-width="1"/>
+    <text x="1236" y="488" fill="#413a31"
+          font-size="16.5" font-weight="700">Canyon air</text>
+  </g>
+
+  <g id="urban-flux-aggregation" fill="#276649">
+    <title>Aggregation of fluxes from all urban surfaces</title>
+    <!-- The small gaps in the brace leave the thermal wires visually separate. -->
+    <path id="urban-surfaces-brace"
+          d="M 921,297 C 921,287 931,283 945,283 H 957.0
+             M 966.0,283 H 974.5
+             M 983.5,283 H 1021.5
+             M 1030.5,283 H 1219.5
+             M 1228.5,283 C 1243,283 1249,270 1254,251
+             C 1259,270 1267,283 1282,283 H 1464.5
+             M 1473.5,283 H 1503 C 1517,283 1527,287 1527,297"
+          fill="none" stroke="#276649" stroke-width="2.35" stroke-linecap="round" stroke-linejoin="round"/>
+    <path id="urban-flux-output" d="M 1254,251 V 232" fill="none" stroke="#276649" stroke-width="2.7"/>
+    <path d="M 1249,234 H 1259 L 1254,222 Z"/>
+    <g id="aggregation-label" font-size="15.5" font-weight="700">
+      <text x="1270" y="239">Aggregation over</text>
+      <text x="1270" y="255">different surfaces</text>
+    </g>
+    <text id="aggregated-fluxes" x="1270" y="273" font-size="13">Urban heat and moisture fluxes</text>
+  </g>
+
+  <g id="structural-layer-labels" fill="#413a31" font-size="14.5">
+    <path d="M 1019,604 V 622 M 912,404 H 916 V 441 H 930 M 1280.5,674 V 682"
+          fill="none" stroke="#555555" stroke-width="1.25"/>
+    <text x="1019" y="637" text-anchor="middle">Wall layers</text>
+    <text x="906" y="408" text-anchor="end">Roof layers</text>
+    <text x="1280.5" y="697" text-anchor="middle">Road layers</text>
+  </g>
+  </g>
+
+  <g id="surface-interaction-labels" fill="#413a31" font-size="13.5" font-weight="400" text-anchor="end">
+    <text x="1128" y="569">Garden</text>
+    <text x="1249" y="569">Road</text>
+    <text x="1316" y="569">Puddles</text>
+    <text x="1366" y="569">Snow</text>
+  </g>
+  </g>
+</svg>

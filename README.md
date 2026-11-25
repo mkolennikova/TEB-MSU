@@ -11,6 +11,8 @@
 
 TEB-MSU is a single-layer urban canopy model developed at Lomonosov Moscow State University based on the popular French open-source model TEB (Town Energy Balance) [[Masson, 2000]](#references). This model provides simplified but computationally effective parameterization of turbulent and radiant energy exchange within the urban canopy described as an idealized street canyon, considering building energy use, including heating and air conditioning, simulated by building energy model (BEM) [[Bueno et al., 2012]](#references). It also allows representing urban vegetation inside the street canyon [[Lemonsu et al., 2012]](#references) and on buildings' roofs [[De Munck et al., 2013]](#references), as well as solar panels on the roofs.
 
+![TEB-MSU urban canopy and coupling interfaces](schemes/img/teb-msu-coupling.svg)
+
 ## Key Features
 
 - **Single-layer urban canopy scheme** with idealized street canyon geometry
@@ -265,6 +267,7 @@ the historical garden and greenroof proxies; CBS remains disabled.
 | `tests/` | Test cases; `tests/CAPITOUL/` is the reference case: `namelist/`, `input/` (ASCII forcing) and `output_ref/` |
 | `build/` | Build output of `make`: `obj_dev/`, `obj_ctrl/`, `logs/` (the `make` logs) and the executables; created automatically and not tracked |
 | `docs/` | Model documentation includes the variable description (`TEB_MSU_variables_description.md`), the [dynamic town aerodynamics scheme](docs/TEB_MSU_dynamic_town_aerodynamics.md), the canyon bypass scheme (`TEB_MSU_CBS_scheme_T_CAN_reformulation.md`), the diagnostic garden and green-roof scheme (`TEB_MSU_garden_diagnostic_scheme.md`), the pedestrian mean radiant temperature on the road (`TEB_MSU_MRT_pedestrian_scheme.md`), the defects of the original TEB found and fixed in TEB-MSU (`TEB_MSU_source_defects.md`), the diagnostics container (`TEB_MSU_containers.md`), the commit-referenced change history (`TEB_MSU_change_history.md`), the [trace snowfall filter](docs/TEB_MSU_snow_check.md) and the documentation rules (`TEB_MSU_documentation_rules.md`) |
+| `schemes/` | Model diagrams in `img/` and drawing scripts in `draw/` |
 | `img/` | Images used by `README.md` and `TEB_sandbox.ipynb`: the project logo `TEB-MSU_logo_v3.png` (the editable design sources are kept outside the repository, see `/logo_design/` in `.gitignore`) |
 | `TEB_sandbox.ipynb` | Step-by-step pipeline notebook: Google Colab and local (Windows) build and run |
 
