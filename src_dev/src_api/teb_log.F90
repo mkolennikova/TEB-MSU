@@ -11,6 +11,8 @@
 !!        Reset log configuration when the public API releases its resources.
 !!      11/2026 -- OpenAI Codex
 !!        Log the town roughness, displacement height and stability correction.
+!!        Export pedestrian shade MRT and sunlit width at 1.1 m.
+!!        Export canyon UTCI in degC and the equivalent 10 m wind.
 !!------------------------------------------------------------------------------
 !     ###################
       MODULE TEB_LOG
@@ -285,11 +287,15 @@ CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_CANYON', TSTATE%XT_CANYON(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_ROAD1', DMT%XTS_ROAD(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_WALLA1', DMT%XTS_WALL_A(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'T_WALLB1', DMT%XTS_WALL_B(KICELL))
-!* MRT_ROAD and MRT_ROAD_SUN are the physical outputs; the MRT_* components
-!* (view factors, absorbed shortwave and longwave terms) are written for the
-!* debugging of the scheme and for python_tests/check_mrt.py
+!* Width-mean pedestrian MRT, its conditional classes and radiative components.
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'MRT_ROAD',      DMT%XMRT(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'MRT_ROAD_SUN',  DMT%XMRT_SUN(KICELL))
+CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'MRT_ROAD_SHADE', DMT%XMRT_SHADE(KICELL))
+CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SUN_FRAC_PED',   DMT%XSUN_FRAC_PED(KICELL))
+CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'UTCI_ROAD',       DMT%XUTCI_ROAD(KICELL))
+CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'UTCI_ROAD_SUN',   DMT%XUTCI_ROAD_SUN(KICELL))
+CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'UTCI_ROAD_SHADE', DMT%XUTCI_ROAD_SHADE(KICELL))
+CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'UTCI_WIND_10M',   DMT%XUTCI_WIND_10M(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SW_DIR_ROAD',   DMT%XSW_DIR_ROAD(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SW_SKY_ROAD',   DMT%XSW_SKY_ROAD(KICELL))
 CALL CSV_ADD(CHDR, COUT, KNCOL, CNAME, 'SW_WALL_ROAD',  DMT%XSW_WALL_ROAD(KICELL))

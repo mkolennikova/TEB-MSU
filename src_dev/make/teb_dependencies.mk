@@ -64,6 +64,7 @@ $(OBJDIR)/abor1_sfx.o: src_driver/abor1_sfx.F90 \
 $(OBJDIR)/ahf_traffic_now.o: src_driver/ahf_traffic_now.F90
 
 $(OBJDIR)/call_driver.o: src_driver/call_driver.F90 \
+    $(OBJDIR)/mode_urban_utci.o \
     $(OBJDIR)/teb_log.o \
     $(OBJDIR)/urb_aero_params.o \
     $(OBJDIR)/ahf_traffic_now.o \
@@ -643,6 +644,7 @@ $(OBJDIR)/teb.o: src_teb/teb.F90 \
     $(OBJDIR)/modi_wind_threshold.o
 
 $(OBJDIR)/teb_garden.o: src_teb/teb_garden.F90 \
+    $(OBJDIR)/urban_mrt.o \
     $(OBJDIR)/garden.o \
     $(OBJDIR)/modi_garden.o \
     $(OBJDIR)/modi_greenroof.o \
@@ -725,6 +727,11 @@ $(OBJDIR)/urban_lw_coef.o: src_teb/urban_lw_coef.F90 \
     $(OBJDIR)/hook.o \
     $(OBJDIR)/modd_csts.o \
     $(OBJDIR)/modd_surf_par.o
+
+$(OBJDIR)/mode_urban_utci.o: src_teb/mode_urban_utci.F90 \
+    $(OBJDIR)/modd_csts.o \
+    $(OBJDIR)/modd_surf_par.o \
+    $(OBJDIR)/urban_mrt.o
 
 $(OBJDIR)/urban_mrt.o: src_teb/urban_mrt.F90 \
     $(OBJDIR)/modd_diag_misc_tebn.o \
@@ -878,6 +885,8 @@ TEB_MODULES_mode_conv_DOE := mode_conv_doe
 TEB_MODULES_mode_psychro := mode_psychro
 TEB_MODULES_mode_surf_snow_frac := mode_surf_snow_frac
 TEB_MODULES_mode_thermos := mode_thermos
+TEB_MODULES_urban_mrt := mode_urban_mrt
+TEB_MODULES_mode_urban_utci := mode_urban_utci
 TEB_MODULES_modi_avg_urban_fluxes := modi_avg_urban_fluxes
 TEB_MODULES_modi_bem := modi_bem
 TEB_MODULES_modi_bem_morpho := modi_bem_morpho
@@ -957,6 +966,8 @@ COMMON_MODULES := \
     mode_psychro \
     mode_surf_snow_frac \
     mode_thermos \
+    mode_urban_mrt \
+    mode_urban_utci \
     modi_alloc_teb_struct \
     modi_avg_urban_fluxes \
     modi_bem \

@@ -30,7 +30,7 @@
   - [3.2 Main Model Diagnostics](#32-main-model-diagnostics)
   - [3.3 Surface Exchange Diagnostics](#33-surface-exchange-diagnostics)
   - [3.4 Garden and Greenroof Outputs](#34-garden-and-greenroof-outputs)
-  - [3.5 Mean Radiant Temperature](#35-mean-radiant-temperature)
+  - [3.5 Mean Radiant Temperature](#35-mean-radiant-temperature) and [canyon UTCI](#351-canyon-utci)
   - [3.6 Solar Position](#36-solar-position)
   - [3.7 Atmospheric Forcing](#37-atmospheric-forcing)
   - [3.8 External Surface Emulators](#38-external-surface-emulators)
@@ -588,21 +588,38 @@ same garden-area normalization.
 
 ### 3.5 Mean Radiant Temperature
 
-MRT describes a standing pedestrian at 1.1 m above the road. The roof
-diagnostic uses an unobstructed roof surface. These diagnostics do not
-feed back on the model budgets; see the [MRT scheme](TEB_MSU_MRT_pedestrian_scheme.md).
+MRT describes a standing pedestrian at 1.1 m above the canyon floor or on an open roof.
+The sun and shade classes share the same diffuse and longwave environment.
+An absent class or roof location is written as `XUNDEF` (`1.E+20`). [MRT scheme](TEB_MSU_MRT_pedestrian_scheme.md)
 
 | Column | Units | Meaning |
 | --- | --- | --- |
-| `MRT_ROAD` | K | Road-area-averaged pedestrian MRT, including the sunlit fraction. |
-| `MRT_ROAD_SUN` | K | Pedestrian MRT with the full available direct beam. |
+| `MRT_ROAD` | K | MRT from absorbed radiation averaged across the street width, including the garden. |
+| `MRT_ROAD_SUN` | K | MRT in the sunlit class at body height, with the full available direct beam. |
+| `MRT_ROAD_SHADE` | K | MRT in the shaded class at body height, with zero direct beam. |
+| `SUN_FRAC_PED` | 0–1 | Geometric sunlit fraction of the width at 1.1 m, zero at and below the solar horizon. |
 | `SW_DIR_ROAD`, `SW_SKY_ROAD`, `SW_WALL_ROAD`, `SW_TOT_ROAD` | W/m² | Direct, sky-diffuse, wall-reflected and total shortwave incident on the snow-free road. |
-| `SUN_FRAC_ROAD` | 0–1 | Sunlit road fraction. |
-| `MRT_F_SKY`, `MRT_F_WALL`, `MRT_F_ROAD` | 1 | Pedestrian view factors, summing to one. |
+| `SUN_FRAC_ROAD` | 0–1 | Ground-level fraction inferred from the direct irradiance ratio, zero when the above-roof direct flux is zero. |
+| `MRT_F_SKY`, `MRT_F_WALL`, `MRT_F_ROAD` | 1 | Width-mean spherical view factors for the sky, both facades and the entire canyon floor. They sum to one. |
 | `MRT_SW_DIR`, `MRT_SW_SKY`, `MRT_SW_WALL`, `MRT_SW_ROAD` | W/m² | Shortwave absorbed by the pedestrian. |
 | `MRT_LW_SKY`, `MRT_LW_WALL`, `MRT_LW_ROAD` | W/m² | Longwave absorbed by the pedestrian. |
-| `MRT_ROOF` | K | Pedestrian MRT over the roof. |
-| `SW_DIR_ROOF`, `SW_SKY_ROOF`, `SW_TOT_ROOF` | W/m² | Direct, sky-diffuse and total shortwave incident on the snow-free roof. |
+| `MRT_ROOF` | K | MRT on an open roof with conventional, snow-covered and green surfaces. Undefined if there is no building or panels cover the entire roof. |
+| `SW_DIR_ROOF`, `SW_SKY_ROOF`, `SW_TOT_ROOF` | W/m² | Direct, sky-diffuse and total shortwave reaching the roof substrate per unit total roof area, including attenuation by panel cover. |
+
+#### 3.5.1 Canyon UTCI
+
+In `src_dev`, the Universal Thermal Climate Index (UTCI) uses the last substep's
+canyon air temperature, specific humidity, surface pressure and pedestrian wind.
+All three exposures share these inputs. An unavailable MRT or a radiant
+temperature difference outside the fitted range gives `XUNDEF` for that exposure.
+Invalid common air or wind inputs give `XUNDEF` for all three indices. [UTCI scheme and limits](TEB_MSU_MRT_pedestrian_scheme.md#8-индекс-теплового-комфорта-utci-в-каньоне)
+
+| Column | Units | Meaning |
+| --- | --- | --- |
+| `UTCI_ROAD` | °C | UTCI evaluated at the MRT derived from the width-mean absorbed flux (`MRT_ROAD`). |
+| `UTCI_ROAD_SUN` | °C | UTCI at the conditional sunlit MRT (`MRT_ROAD_SUN`). |
+| `UTCI_ROAD_SHADE` | °C | UTCI at the conditional shaded MRT (`MRT_ROAD_SHADE`). |
+| `UTCI_WIND_10M` | m/s | Equivalent UTCI wind at 10 m derived from `U_CAN_PED` at 1.1 m. Calm and light winds give 0.5 m/s. Unavailable or negative pedestrian wind, or an equivalent speed above 17 m/s, gives `XUNDEF`. |
 
 ### 3.6 Solar Position
 

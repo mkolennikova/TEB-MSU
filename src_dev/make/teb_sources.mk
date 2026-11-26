@@ -140,6 +140,7 @@ COMMON_SRC := \
     src_teb/urban_hydro.F90 \
     src_teb/urban_lw_coef.F90 \
     src_teb/urban_mrt.F90 \
+    src_teb/mode_urban_utci.F90 \
     src_teb/urban_snow_evol.F90 \
     src_teb/urban_solar_abs.F90 \
     src_teb/vslog.f \

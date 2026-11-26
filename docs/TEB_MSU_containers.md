@@ -60,7 +60,7 @@
 
 | имя | тип | файл | состав (полей) | роль |
 | --- | --- | --- | --- | --- |
-| `DMT` | `DIAG_MISC_TEB_t` | `src_struct/modd_diag_misc_tebn.F90` | 236 | диагностика: потоки, поглощения, агрегаты города, снег, сад/кровля, MRT пешехода на дороге и на крыше; два межшаговых входа (§3) |
+| `DMT` | `DIAG_MISC_TEB_t` | `src_struct/modd_diag_misc_tebn.F90` | 246 | потоки, поглощения, агрегаты города, снег, сад и кровля, MRT дороги и крыши, UTCI в каньоне и два межшаговых входа (§3) |
 | `TOPTS` | `TEB_OPTIONS_t` | `src_struct/modd_teb_optionn.F90` | 28 param + 2 work + 3 reserved | опции TEB (схемы, флаги, тип сада/кровли) |
 | `TPARAMS` | `TEB_PARAMS_t` | `src_struct/modd_teb_paramsn.F90` | 39 param + 4 flux | статические параметры TEB (геометрия, материалы, антропогенные потоки) |
 | `TSTATE` | `TEB_t` | `src_struct/modd_tebn.F90` | 10 state + 1 reserved | прогностическое состояние TEB (крыша, дорога, стены, каньон, снег) |
@@ -72,7 +72,7 @@
 | `FORC` | `TEB_FORCING_t` | `src_struct/modd_teb_forcingn.F90` | 22 work | форсинг подшага: 14 сырых величин хоста + 8 производных (давление и функции Экнера, плотность, скорость ветра, солнечное время и положение солнца, прямая/рассеянная SW) |
 | `EXT` | `TEB_EXT_SURF_t` | `src_struct/modd_teb_ext_surfn.F90` | 18 work | внешние поверхности: состояние и потоки внешнего сада и зелёной крыши, рассчитанные хостом (шероховатость, альбедо, эмиссивность, температура, влажность, потоки, испарение, сток) |
 
-Итого **451 поля** в одиннадцати контейнерах (236 `DMT` + 215 в десяти типах стенда
+Итого **461 поле** в одиннадцати контейнерах (246 `DMT` + 215 в десяти типах стенда
 `container_fields_inventory.py`). Категории (`param`/`flux`/`state`/
 `work`/`reserved`) — контракт из `python_tests/container_fields_inventory.py`;
 `DMT` отслеживается отдельным стендом `python_tests/check_diag_container.py`.
@@ -301,7 +301,7 @@ run_teb_offline
 
 ## 5. Контейнеры в деталях
 
-### 5.1 `DMT` — диагностика (`DIAG_MISC_TEB_t`, 236 полей)
+### 5.1 `DMT` — диагностика (`DIAG_MISC_TEB_t`, 246 полей)
 
 Контейнер заполняет **физика**, читают **хост и вывод**; два межшаговых поля
 восстанавливаются из аргументов хоста перед физикой (§3).
@@ -311,7 +311,7 @@ run_teb_offline
 запись диагностик ветвей CBS-схемы, использованная дважды (см. ниже).
 
 * аллокация — `DIAG_MISC_TEB_ALLOC(DMT, KNVEC)` (в `TEB_HOST_ENSURE`);
-* `NULLIFY`/`ALLOCATE`/`DEALLOCATE` — три зеркальных списка (236/236/236),
+* `NULLIFY`/`ALLOCATE`/`DEALLOCATE` — три зеркальных списка (246/246/246),
   проверяются стендом `check_diag_container.py`;
 * у каждого поля есть **производитель** — прямое присваивание либо dummy
   `INTENT(OUT/INOUT)` (в легаси-объявлениях — маркер `!OUT`); это проверяет
@@ -324,13 +324,16 @@ run_teb_offline
 * `CALL_DRIVER` записывает в `DMT` нейтральные и использованные значения
   городской шероховатости и высоты вытеснения, общий для поправок
   аргумент устойчивости, признаки ограничения и нейтрального возврата;
-* поля MRT пешехода: падающие компоненты коротковолновой радиации на дорогу
-  (`XSW_DIR_ROAD`, `XSW_SKY_ROAD`, `XSW_WALL_ROAD`, `XSW_TOT_ROAD`,
-  `XSUN_FRAC_ROAD`) и на кровлю (`XSW_DIR_ROOF`, `XSW_SKY_ROOF`,
-  `XSW_TOT_ROOF`) пишет `URBAN_SOLAR_ABS`, температуры и их компоненты
-  (`XMRT`, `XMRT_SUN`, `XMRT_F_*`, `XMRT_SW_*`, `XMRT_LW_*`, `XMRT_ROOF`) —
-  `URBAN_MRT` и `URBAN_MRT_ROOF`, вызываемые из `CALL_DRIVER`; схема —
-  `TEB_MSU_MRT_pedestrian_scheme.md`.
+* `URBAN_SOLAR_ABS` записывает облучение дороги и кровли (`XSW_*_ROAD`,
+  `XSW_*_ROOF`) и долю освещённой поверхности дороги (`XSUN_FRAC_ROAD`).
+  `TEB_GARDEN` передаёт геометрическую долю на уровне тела (`XSUN_FRAC_PED`)
+  и четыре исходящих потока пола каньона и доступной кровли (`XMRT_K_FLOOR`,
+  `XMRT_L_FLOOR`, `XMRT_K_OPEN`, `XMRT_L_OPEN`). `URBAN_MRT` и
+  `URBAN_MRT_ROOF` рассчитывают `XMRT`, `XMRT_SUN`, `XMRT_SHADE`, `XMRT_ROOF`
+  и компоненты `XMRT_F_*`, `XMRT_SW_*`, `XMRT_LW_*`. [Схема MRT](TEB_MSU_MRT_pedestrian_scheme.md)
+* `CALL_DRIVER` передаёт в `CANYON_UTCI` три наземных MRT, температуру, влажность,
+  давление и скорость ветра на высоте пешехода. Четыре результата записываются
+  в `XUTCI_ROAD`, `XUTCI_ROAD_SUN`, `XUTCI_ROAD_SHADE` и `XUTCI_WIND_10M`.
 
 **Ветви CBS-схемы (`TEB_CBS_BRANCH_t`).** Схема обменивает дорогу, сад и снег на
 дороге с двумя резервуарами воздуха — воздухом каньона (`CAN`) и уровнем
@@ -530,7 +533,7 @@ HVAC-уставки (`XTCOOL_TARGET`, `XTHEAT_TARGET`, `XCAP_SYS_HEAT`, `XCOP_RA
 
 | стенд | что проверяет |
 | --- | --- |
-| `python_tests/check_diag_container.py` | списки полей `DMT` (тип, `NULLIFY`, `ALLOCATE`, `DEALLOCATE`): по 236 полей, включая компоненты записи `TEB_CBS_BRANCH_t` для обоих экземпляров (`CAN`, `ATM`); расхождение — ошибка |
+| `python_tests/check_diag_container.py` | проверяет совпадение четырёх списков (`DMT`, `NULLIFY`, `ALLOCATE`, `DEALLOCATE`) по 246 полей, включая компоненты `TEB_CBS_BRANCH_t` для обоих экземпляров (`CAN`, `ATM`) |
 | `python_tests/check_diag_producers.py` | производитель каждого поля `DMT` (плоского и двухуровневого `CAN%…`/`ATM%…`): прямое присваивание или `INTENT(OUT/INOUT)` (легаси `!OUT`) dummy; `= XUNDEF` производителем не считается; `XIRRIG_GARDEN` — `reserved` |
 | `python_tests/container_fields_inventory.py` | категории полей десяти типов (`param`/`flux`/`state`/`work`/`reserved`/`dead`), включая `FORC` (22 `work`) и `EXT` (18 `work`), и сверка контракта в обе стороны: необъявленное поле — `UNCLASSIFIED`, объявленное, но не упомянутое нигде — `dead`, исчезнувшее из кода — `STALE TABLE`; `--strict` — `dead` как ошибка, `--enforce-param` — `param`/`flux` пишет только драйвер или слой `TEB_HOST`. Число полей по типам — 33/11/43/5/19/40/5/19/22/18 |
 | `python_tests/call_signature_inventory.py` | подпись `CALL_DRIVER`: классы `transient`/`container`/`host-export`/`host-state`/`deferred`/`violation` (`--strict --expect 28`) |

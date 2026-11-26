@@ -1,341 +1,180 @@
 #!/usr/bin/env python
-"""Checks of the pedestrian MRT scheme on the road (MV202610).
-
-The scheme (``docs/TEB_MSU_MRT_pedestrian_scheme.md``, ``src_teb/urban_mrt.F90``)
-computes the mean radiant temperature of a person standing on the road at the
-canyon axis (``z = 1.1 m``, body = sphere) from the radiative fluxes of the
-current sub-step. The diagnostic writes the two physical outputs ``MRT_ROAD``
-(beam weighted by the sunlit area fraction of the road) and ``MRT_ROAD_SUN``
-(full beam) plus its components, so the whole budget can be recomputed here
-from the CSV alone: the incident shortwave components of the road
-(``SW_DIR_ROAD``, ``SW_WALL_ROAD``, ``SW_TOT_ROAD``), the surface temperatures,
-the sky longwave and the solar position.
-
-Checks
-------
-M1  view factors: ``MRT_F_SKY``/``MRT_F_WALL``/``MRT_F_ROAD`` equal the analytic
-    2D-canyon values of the scheme document and sum to one;
-M2  shortwave identity at road level:
-    ``SW_DIR_ROAD + SW_SKY_ROAD + SW_WALL_ROAD = SW_TOT_ROAD``
-    (the three incident components of the road sum to its total incident
-    shortwave, the quantity the pedestrian road-reflection term is built on);
-M3  ``MRT_ROAD`` and ``MRT_ROAD_SUN`` recomputed from the output columns agree
-    with the model (snow-free rows only: the snow albedo and emissivity are not
-    written, see the document);
-M4  no sun on the road: ``MRT_ROAD = MRT_ROAD_SUN`` exactly;
-M5  ``MRT_ROAD_SUN >= MRT_ROAD`` (the sunlit variant adds beam energy);
-M6  night bounds: the MRT lies between the coldest and the warmest emitter the
-    pedestrian sees (the view-factor mean of the emitted irradiances
-    ``eps*sigma*T^4`` of the sky, the walls and the road);
-M7  the scheme is not inert: there are rows with ``MRT_ROAD_SUN - MRT_ROAD``
-    materially positive;
-M8  physical range: ``150 K < MRT < 400 K``;
-M10 roof companion (same body and formula, only the sky and the roof surface):
-    ``SW_DIR_ROOF + SW_SKY_ROOF = SW_TOT_ROOF``;
-M11 ``MRT_ROOF`` recomputed from the output columns agrees with the model;
-M12 roof night bounds (the emitted irradiances of the sky and of the roof);
-M13 the roof value is materially different from the road one (``MRT_ROOF`` is
-    not a copy of ``MRT_ROAD``), with the mean difference in daylight.
-
-Body model
-----------
-The projection factor of the direct beam follows ``src_teb/urban_mrt.F90``: the
-model hardcodes the STANDING PERSON variant (``'PERSON'``,
-``0.308*cos(elev*(1 - elev^2/48402))``, elev in degrees - Fanger, 1970, after
-Underwood & Ward, 1966; the form of RayMan and of PyBiometeo ``calcsolarfv``),
-so this is the default here; ``--body sphere`` checks a run built with the
-globe-like default of ``URBAN_MRT`` (factor 0.25).
-
-Usage
------
-    python python_tests/check_mrt.py build/out/TEB_output_b1_c1.csv \
-        --param-nml tests/CAPITOUL/namelist/namelist.nml
-
-Exit code: 0 when every check passes, 1 otherwise.
-"""
+"""Verify width-averaged pedestrian MRT against a single-cell TEB offline CSV."""
 from __future__ import annotations
 
 import argparse
 import re
-import sys
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-XUNDEF = 1e19
-SEP = ';'
-
-#: constants of the scheme, mirrored from src_teb/urban_mrt.F90
-Z_PED = 1.1        # height of the centre of the pedestrian (m)
-ABS_BODY = 0.70    # shortwave absorption of the body (-)
-EMIS_BODY = 0.97   # longwave emissivity of the body (-)
-F_DIR_SPHERE = 0.25   # projected area factor of a sphere for the beam (-)
-F_PERSON_A = 0.308    # projection factor of a standing person at the horizon (-)
-F_PERSON_C = 48402.   # fitted constant of the projection factor (deg^2)
-COSZ_MIN = 0.02    # lower bound of cos(zenith)
-SIGMA = 5.6697e-8  # MODD_CSTS:XSTEFAN (set in INI_CSTS), not the CODATA value
-
-RE_ITEM = r'^\s*%s\s*=\s*([^,\n/!]+)'
+SIGMA = 5.6697e-8
+EPS = 0.97
+ABS = 0.70
+HEIGHT = 1.1
+XUNDEF = 1.e19
 
 
-def read_output(path: Path) -> pd.DataFrame:
-    """CSV of a TEB-MSU offline run: numeric columns, XUNDEF masked to NaN."""
-    d = pd.read_csv(path, sep=SEP)
-    num = d.select_dtypes(include='number').columns
-    d[num] = d[num].mask(d[num] >= XUNDEF)
-    return d
+def item(text, name, default=None):
+    match = re.search(r'^\s*' + name + r'\s*=\s*([^,!/\n]+)', text, re.M | re.I)
+    if match:
+        return match[1].strip().strip("'\x22")
+    if default is None:
+        raise ValueError(f'Missing namelist item {name}')
+    return default
 
 
-def namelist_item(text: str, name: str, cast=float):
-    """Value of one item of the /tebparam/ namelist."""
-    m = re.search(RE_ITEM % name, text, re.M | re.I)
-    if m is None:
-        sys.exit(f'ERROR: item {name!r} not found in the parameter namelist')
-    return cast(m.group(1).strip().strip("'\""))
+def strip_view(distance_ratio):
+    """Numerically integrate the local solid angle of a strip over positions."""
+    nodes, weights = np.polynomial.legendre.leggauss(96)
+    t = (nodes + 1.) / 2.
+    # Symmetry gives integral_0^1 atan(x/r)/pi dx. Resolve the near-wall region.
+    return np.dot(weights / 2., 4.*t**3 * np.arctan2(t**4, distance_ratio)) / np.pi
 
 
-def required(d: pd.DataFrame, names) -> None:
-    missing = [n for n in names if n not in d.columns]
-    if missing:
-        sys.exit('ERROR: the output has no column(s): ' + ', '.join(missing))
-
-
-def view_factors(h_bld: float, h2w: float):
-    """Analytic view factors of the pedestrian (sphere) of the scheme."""
-    if h_bld > 0. and h2w > 0.:
-        a_eff = h2w * max(0., 1. - Z_PED / h_bld)
-        psi = np.sqrt(a_eff ** 2 + 1.) - a_eff
-        f_sky = 0.5 * psi
-        zb = 2. * Z_PED * h2w / h_bld
-        f_road = 0.5 * (1. - zb / np.sqrt(1. + zb ** 2))
-        f_wall = max(0., 1. - f_sky - f_road)
+def sunlit_width(zenith, azimuth, height, ratio, direction, mode):
+    daylight = zenith < np.pi / 2.
+    frac = daylight.astype(float)
+    if height <= HEIGHT or ratio == 0.:
+        return frac
+    shadow = (1. - HEIGHT/height) * ratio * np.tan(zenith[daylight])
+    if mode.upper() == 'UNIF':
+        # Integrate the illuminated width of individual oriented streets.
+        limit = np.full_like(shadow, np.pi/2.)
+        clipped = shadow > 1.
+        limit[clipped] = np.arcsin(1./shadow[clipped])
+        nodes, weights = np.polynomial.legendre.leggauss(16)
+        angles = (nodes + 1.) * limit[:, None] / 2.
+        frac[daylight] = limit/np.pi * ((1. - shadow[:, None]*np.sin(angles)) @ weights)
     else:
-        psi, f_sky, f_road, f_wall = 1., 0.5, 0.5, 0.
-    return psi, f_sky, f_wall, f_road
+        cross = np.abs(np.sin(azimuth[daylight] - np.radians(direction)))
+        frac[daylight] = np.maximum(0., 1. - shadow * np.where(cross < 1.e-14, 0., cross))
+    return frac
 
 
-def report(name: str, ok: bool, detail: str) -> bool:
-    print(f'{"PASS" if ok else "FAIL"}  {name:<58s} {detail}')
-    return ok
+def atmospheric_solar(zenith, direct, diffuse):
+    """Reconstruct horizontal forcing after TEB_FILL_FORCING and CIRCUMSOLAR_RAD."""
+    elevation = np.pi/2. - zenith
+    low_sun = np.clip((elevation - 0.05)/0.05, 0., 1.)
+    sky = diffuse + direct*(1.-low_sun)
+    beam = direct*low_sun
+    clearness = np.full_like(sky, -1.)
+    active = sky > 0.
+    k = 1.041*elevation[active]**3
+    clearness[active] = (1. + beam[active]/sky[active] + k)/(1. + k)
+    bounds = [0., 1.065, 1.230, 1.500, 1.950, 2.800, 4.500, 6.200]
+    f11 = np.array([0., -.0083117, .1299457, .3296958, .5682053, .8730280,
+                    1.1326077, 1.0601591, .6777470])
+    f13 = np.array([0., -.0620636, -.1513752, -.2210958, -.2951290, -.3616149,
+                    -.4118494, -.3589221, -.2504286])
+    i = np.searchsorted(bounds, clearness, side='right')
+    circum = np.clip((f11[i]+f13[i]*elevation)/np.maximum(.087, np.cos(elevation)), 0., 1.)
+    return np.maximum(0., beam+sky*circum), np.maximum(0., sky*(1.-circum))
 
 
-def projection_factor(solar_zenith_deg, body='PERSON'):
-    """Projected area factor of the direct beam, as in ``src_teb/urban_mrt.F90``.
+def run_checks(d, nml, body):
+    if d.empty:
+        raise ValueError('Empty model output')
+    def values(name):
+        return d[name].to_numpy(dtype=float)
+    def enabled(name):
+        return item(nml, name, '.FALSE.').strip('.').upper() in ('TRUE', 'T')
+    def number(name, default=None):
+        return float(str(item(nml, name, default)).lower().replace('d', 'e'))
+    passed = []
+    def check(name, actual, expected, mask=None, tol=2.e-8):
+        a, b = np.broadcast_arrays(actual, expected)
+        if mask is not None:
+            a, b = a[mask], b[mask]
+        if not a.size:
+            print(f'SKIP  {name} (no matching rows)')
+            return
+        residual = np.max(np.abs(a-b))
+        passed.append(np.isfinite(residual) and residual <= tol)
+        print(f'{"PASS" if passed[-1] else "FAIL"}  {name}: {len(a)} rows, max error {residual:.3g}')
 
-    'PERSON' (default) - standing person: ``0.308*cos(elev*(1 - elev^2/48402))``
-    with the solar elevation ``elev = 90 - zenith`` in degrees (Fanger, 1970,
-    after Underwood & Ward, 1966; the form used by RayMan and by the MRT chain of
-    PyBiometeo), so 0.308 at the horizon and 0.08 at the zenith;
-    'SPHERE' - 0.25, the globe-like body of the scheme, independent of the sun.
-    """
-    zenith = np.asarray(solar_zenith_deg, dtype=float)
-    if str(body).strip().lower().startswith('p'):
-        elev = np.clip(90.0 - zenith, 0.0, 90.0)
-        return F_PERSON_A * np.cos(np.radians(elev * (1.0 - elev ** 2 / F_PERSON_C)))
-    return np.full(zenith.shape, F_DIR_SPHERE, dtype=float)
+    zen = np.radians(values('SOLAR_ZENITH'))
+    azi = np.radians(values('SOLAR_AZIM'))
+    height, bld = number('urb_h_bld'), number('urb_fr_bld')
+    ratio = number('urb_h2w') if bld > 0. and height > 0. else 0.
+    rel = min(1., HEIGHT/height) if height > 0. else 1.
+    sky, floor = strip_view(ratio*(1.-rel)), strip_view(ratio*rel)
+    wall = 1. - sky - floor
+    for source, factor in [('SKY', sky), ('ROAD', floor), ('WALL', wall)]:
+        check('solid angle ' + source, values('MRT_F_' + source), factor, tol=2.e-12)
+    frac = sunlit_width(zen, azi, height, ratio, number('teb_road_dir', 0.), item(nml, 'teb_hroad_dir', 'UNIF'))
+    check('sunlit width at 1.1 m', values('SUN_FRAC_PED'), frac, tol=5.e-13)
+    direct, diffuse = atmospheric_solar(zen, values('Forc_DIR_SW'), values('Forc_SCA_SW'))
+    panel = number('teb_fr_panel', 0.) if enabled('teb_lsolar_panel') else 0.
+    check('horizontal direct over the roof substrate', values('SW_DIR_ROOF'), direct*(1.-panel))
+    check('horizontal diffuse over the roof substrate', values('SW_SKY_ROOF'), np.maximum(diffuse, 1.e-6)*(1.-panel))
+    # The native solar solver floors incident sky SW at 1e-6 W/m2 and also
+    # clips wall reflection at zero when reporting these substrate components.
+    check('incident SW on road', values('SW_TOT_ROAD'),
+          values('SW_DIR_ROAD')+values('SW_SKY_ROAD')+values('SW_WALL_ROAD'), tol=1.e-6)
+    e = 90. - values('SOLAR_ZENITH')
+    projection = .25 if body == 'sphere' else .308*np.cos(np.radians(e*(1.-e**2/48402.)))
+    beam = np.divide(ABS*projection*direct, np.cos(zen), out=np.zeros_like(zen), where=zen < np.pi/2.)
+    check('direct SW absorbed by body', values('MRT_SW_DIR'), frac*beam)
+    check('diffuse sky SW', values('MRT_SW_SKY'), ABS*sky*diffuse)
+    lw = values('Forc_LW')
+    check('sky LW', values('MRT_LW_SKY'), EPS*sky*lw)
 
-
-def run_checks(d: pd.DataFrame, alb_rd: float, emis_rd: float, emis_wl: float,
-               alb_rf: float, emis_rf: float, h_bld: float, h2w: float,
-               body: str = 'PERSON') -> bool:
-    """All checks of the scheme; returns True when every one of them passes."""
-    psi, f_sky, f_wall, f_road = view_factors(h_bld, h2w)
-    ok = True
-
-    # ---- M1: view factors ---------------------------------------------------
-    fsum = d['MRT_F_SKY'] + d['MRT_F_WALL'] + d['MRT_F_ROAD']
-    err = max(abs(d['MRT_F_SKY'] - f_sky).max(),
-              abs(d['MRT_F_WALL'] - f_wall).max(),
-              abs(d['MRT_F_ROAD'] - f_road).max(),
-              abs(fsum - 1.).max())
-    ok &= report('M1 view factors (analytic 2D canyon, sum = 1)', err <= 1e-12,
-                 f'max|dF| = {err:.2e}  (F_sky = {f_sky:.6f}, F_wall = {f_wall:.6f}, '
-                 f'F_road = {f_road:.6f})')
-
-    # ---- M2: shortwave identity at road level -------------------------------
-    ident = (d['SW_DIR_ROAD'] + d['SW_SKY_ROAD'] + d['SW_WALL_ROAD']
-             - d['SW_TOT_ROAD'])
-    scale = max(1., float(d['SW_TOT_ROAD'].abs().max()))
-    err = float(ident.abs().max())
-    ok &= report('M2 SW_DIR + SW_SKY + SW_WALL = SW_TOT_ROAD', err <= 1e-9 * scale,
-                 f'max|residual| = {err:.2e} W/m2')
-
-    # ---- M3: MRT recomputed from the output columns -------------------------
-    snow_free = d['PDN_RD'].fillna(1.).eq(0.) & d['TSNOW_RD'].isna()
-    n_skip = int((~snow_free).sum())
-    x = d.loc[snow_free]
-    cosz = np.cos(np.radians(x['SOLAR_ZENITH'].to_numpy()))
-    cosz_eff = np.maximum(cosz, COSZ_MIN)
-    sw_dir = x['SW_DIR_ROAD'].to_numpy()
-    sun_frac = np.clip(x['SUN_FRAC_ROAD'].to_numpy(), 0., 1.)
-    sun_on = (sw_dir > 0.) & (cosz > 0.)
-    # the area-averaged beam of the "smeared" pedestrian, and the sunlit variant
-    q_dir = np.where(sun_on, ABS_BODY * projection_factor(x['SOLAR_ZENITH'], body)
-                     * sw_dir / cosz_eff, 0.)
-    q_dir_sun = np.where(sun_on & (sun_frac > 0.), q_dir / np.maximum(sun_frac, 1e-12), 0.)
-    q_sky = ABS_BODY * 0.5 * x['SW_SKY_ROAD'].to_numpy()
-    q_wall = ABS_BODY * f_wall * x['SW_WALL_ROAD'].to_numpy() / max(1. - psi, 0.05)
-    q_road = ABS_BODY * f_road * alb_rd * x['SW_TOT_ROAD'].to_numpy()
-    q_lw = (EMIS_BODY * f_sky * x['Forc_LW'].to_numpy()
-            + EMIS_BODY * f_wall * emis_wl * SIGMA
-            * 0.5 * (x['T_WALLA1'].to_numpy() ** 4 + x['T_WALLB1'].to_numpy() ** 4)
-            + EMIS_BODY * f_road * emis_rd * SIGMA * x['T_ROAD1'].to_numpy() ** 4)
-    base = q_sky + q_wall + q_road + q_lw
-    t_mrt = ((base + q_dir) / (EMIS_BODY * SIGMA)) ** 0.25
-    t_sun = ((base + q_dir_sun) / (EMIS_BODY * SIGMA)) ** 0.25
-    err = max(float(np.abs(t_mrt - x['MRT_ROAD'].to_numpy()).max()),
-              float(np.abs(t_sun - x['MRT_ROAD_SUN'].to_numpy()).max()))
-    ok &= report('M3 MRT recomputed from the output columns', err <= 1e-6,
-                 f'max|dT| = {err:.2e} K  ({len(x)} snow-free rows, {n_skip} skipped: snow)')
-
-    # ---- M4: no sun on the road -> the two variants coincide ----------------
-    dark = d['SW_DIR_ROAD'].fillna(0.).eq(0.)
-    err = float((d.loc[dark, 'MRT_ROAD_SUN'] - d.loc[dark, 'MRT_ROAD']).abs().max()) \
-        if dark.any() else 0.
-    ok &= report('M4 no beam on the road: MRT_ROAD = MRT_ROAD_SUN', err == 0.,
-                 f'max|dT| = {err:.2e} K  ({int(dark.sum())} rows)')
-
-    # ---- M5: the sunlit variant is never colder -----------------------------
-    dmrt = (d['MRT_ROAD_SUN'] - d['MRT_ROAD']).to_numpy()
-    ok &= report('M5 MRT_ROAD_SUN >= MRT_ROAD', float(np.nanmin(dmrt)) >= -1e-9,
-                 f'min(dT) = {float(np.nanmin(dmrt)):.2e} K')
-
-    # ---- M6: night bounds ---------------------------------------------------
-    # with grey surfaces the MRT is a view-factor mean of the EMITTED irradiances
-    # (eps*sigma*T^4), not of the temperatures: the bounds are taken on those
-    night = d['SW_TOT_ROAD'].fillna(0.).eq(0.) & d['PDN_RD'].fillna(1.).eq(0.) \
-        & d['TSNOW_RD'].isna()
-    if night.any():
-        n = d.loc[night]
-        l_sky = n['Forc_LW'].to_numpy()
-        l_wall = emis_wl * SIGMA * 0.5 * (n['T_WALLA1'].to_numpy() ** 4
-                                          + n['T_WALLB1'].to_numpy() ** 4)
-        l_road = emis_rd * SIGMA * n['T_ROAD1'].to_numpy() ** 4
-        lo = (np.minimum(np.minimum(l_sky, l_wall), l_road) / SIGMA) ** 0.25
-        hi = (np.maximum(np.maximum(l_sky, l_wall), l_road) / SIGMA) ** 0.25
-        bad_lo = float((n['MRT_ROAD'].to_numpy() - lo).min())
-        bad_hi = float((hi - n['MRT_ROAD'].to_numpy()).min())
-        ok &= report('M6 night: MRT between the coldest and warmest emitter',
-                     bad_lo >= -1e-9 and bad_hi >= -1e-9,
-                     f'min(MRT - lo) = {bad_lo:.2e}, min(hi - MRT) = {bad_hi:.2e} K '
-                     f'({int(night.sum())} rows)')
-    else:
-        print('SKIP  M6 night bounds: the run has no night rows')
-
-    # ---- M7: the scheme is not inert ---------------------------------------
-    n_sun = int((dmrt > 1e-3).sum())
-    ok &= report('M7 material effect of the sunlit variant', n_sun > 0,
-                 f'{n_sun} rows with MRT_ROAD_SUN - MRT_ROAD > 1e-3 K '
-                 f'(max {float(np.nanmax(dmrt)):.2f} K)')
-
-    # ---- M8: physical range -------------------------------------------------
-    lo = float(d['MRT_ROAD'].min())
-    hi = float(d['MRT_ROAD'].max())
-    ok &= report('M8 physical range of MRT_ROAD', 150. < lo and hi < 400.,
-                 f'{lo:.2f} ... {hi:.2f} K')
-
-    # ---- M10: incident shortwave identity on the roof -----------------------
-    ident = d['SW_DIR_ROOF'] + d['SW_SKY_ROOF'] - d['SW_TOT_ROOF']
-    scale = max(1., float(d['SW_TOT_ROOF'].abs().max()))
-    err = float(ident.abs().max())
-    ok &= report('M10 SW_DIR_ROOF + SW_SKY_ROOF = SW_TOT_ROOF', err <= 1e-9 * scale,
-                 f'max|residual| = {err:.2e} W/m2')
-
-    # ---- M11: MRT_ROOF recomputed from the output columns -------------------
-    # (snow-free roof rows only: the snow temperature on the roof is not written,
-    #  the road counterpart MRT check uses TSNOW_RD that does exist)
-    snow_free = d['PDN_RF'].fillna(1.).eq(0.)
-    n_skip = int((~snow_free).sum())
-    x = d.loc[snow_free]
-    cosz = np.cos(np.radians(x['SOLAR_ZENITH'].to_numpy()))
-    cosz_eff = np.maximum(cosz, COSZ_MIN)
-    sw_dir = x['SW_DIR_ROOF'].to_numpy()
-    q_dir = np.where((sw_dir > 0.) & (cosz > 0.),
-                     ABS_BODY * projection_factor(x['SOLAR_ZENITH'], body)
-                     * sw_dir / cosz_eff, 0.)
-    q_sky = ABS_BODY * 0.5 * x['SW_SKY_ROOF'].to_numpy()
-    q_roof = ABS_BODY * 0.5 * alb_rf * x['SW_TOT_ROOF'].to_numpy()
-    q_lw = EMIS_BODY * (0.5 * x['Forc_LW'].to_numpy()
-                        + 0.5 * emis_rf * SIGMA * x['T_ROOF1'].to_numpy() ** 4)
-    t_mrt = ((q_dir + q_sky + q_roof + q_lw) / (EMIS_BODY * SIGMA)) ** 0.25
-    err = float(np.abs(t_mrt - x['MRT_ROOF'].to_numpy()).max())
-    ok &= report('M11 MRT_ROOF recomputed from the output columns', err <= 1e-6,
-                 f'max|dT| = {err:.2e} K  ({len(x)} snow-free rows, {n_skip} skipped: snow)')
-
-    # ---- M12: roof longwave bound ------------------------------------------
-    # rows where the shortwave of the body is negligible: then the MRT is the
-    # view-factor mean of the emitted irradiances of the sky and of the roof
-    q_sw = q_dir + q_sky + q_roof
-    calm = q_sw < 0.01
-    if calm.any():
-        l_sky = x['Forc_LW'].to_numpy()[calm]
-        l_roof = emis_rf * SIGMA * x['T_ROOF1'].to_numpy()[calm] ** 4
-        mrt = x['MRT_ROOF'].to_numpy()[calm]
-        lo = (np.minimum(l_sky, l_roof) / SIGMA) ** 0.25
-        hi = (np.maximum(l_sky, l_roof) / SIGMA) ** 0.25
-        bad_lo = float((mrt - lo).min())
-        bad_hi = float((hi - mrt).min())
-        ok &= report('M12 roof: MRT_ROOF between sky and roof emitters',
-                     bad_lo >= -1e-9 and bad_hi >= -1e-9,
-                     f'min(MRT - lo) = {bad_lo:.2e}, min(hi - MRT) = {bad_hi:.2e} K '
-                     f'({int(calm.sum())} rows without shortwave)')
-    else:
-        print('SKIP  M12 roof bound: no row without a shortwave contribution')
-
-    # ---- M13: the roof and the road are not the same object -----------------
-    droof = (d['MRT_ROOF'] - d['MRT_ROAD']).to_numpy()
-    day = d['SW_TOT_ROOF'].fillna(0.).to_numpy() > 0.
-    n_diff = int((np.abs(droof) > 0.5).sum())
-    mean_day = float(np.nanmean(droof[day])) if day.any() else float('nan')
-    ok &= report('M13 roof vs road: materially different values', n_diff > 0,
-                 f'{n_diff} rows with |MRT_ROOF - MRT_ROAD| > 0.5 K; '
-                 f'mean difference in daylight = {mean_day:+.2f} K '
-                 f'(range {float(np.nanmin(droof)):+.1f} ... {float(np.nanmax(droof)):+.1f} K)')
-    return ok
+    # A last melting sub-step can still see snow when PDN_RD is already zero.
+    snow_free = (values('PDN_RD') == 0.) & (values('PDN_RF') == 0.) & (values('Forc_SNOW') == 0.)
+    snow_free &= d.WSNOW_RD.shift(1).fillna(1.).eq(0.).to_numpy()
+    g = number('fr_garden', 0.)/(1.-bld) if enabled('teb_lgarden') else 0.
+    albedo = (1.-g)*number('urb_alb_rd_so')+g*number('urb_alb_gdn', .15)
+    check('floor SW for known snow-free optics', values('MRT_SW_ROAD'),
+          ABS*floor*albedo*np.where(direct+diffuse > 0., values('SW_TOT_ROAD'), 0.), snow_free)
+    base = sum(values(k) for k in ('MRT_SW_SKY', 'MRT_SW_ROAD', 'MRT_SW_WALL',
+                                    'MRT_LW_SKY', 'MRT_LW_ROAD', 'MRT_LW_WALL'))
+    def temp(q):
+        return (q/(SIGMA*EPS))**.25
+    mean = values('MRT_ROAD')
+    sun, shade = values('MRT_ROAD_SUN'), values('MRT_ROAD_SHADE')
+    # For azimuths near alignment, classify using the stored exact end points
+    # after the independent geometry comparison above.
+    lit = values('SUN_FRAC_PED')
+    check('sun class presence', np.isfinite(sun).astype(int), (lit > 0.).astype(int))
+    check('shade class presence', np.isfinite(shade).astype(int), (lit < 1.).astype(int))
+    check('MRT from width-mean energy [K]', mean, temp(base + frac*beam))
+    check('sun MRT [K]', sun, temp(base + beam), lit > 0.)
+    check('shade MRT [K]', shade, temp(base), lit < 1.)
+    mixed = (lit > 0.) & (lit < 1.)
+    check('fourth-power mixture [K]', mean, (lit*sun**4 + (1.-lit)*shade**4)**.25, mixed)
+    roof = values('MRT_ROOF')
+    accessible = bld > 0. and panel < 1.
+    check('open roof presence', np.isfinite(roof).astype(int), int(accessible))
+    if accessible:
+        v = number('teb_frac_gr', 0.) if enabled('teb_lgreenroof') else 0.
+        alb = (1.-v)*number('urb_alb_rf_so') + v*number('urb_alb_grf', .15)
+        emis = number('urb_emis_rf', 1.-number('urb_alb_rf_th', .03))
+        up = (1.-v)*(emis*SIGMA*values('T_ROOF1')**4+(1.-emis)*lw) if v < 1. else 0.
+        if v > 0.:
+            eg = number('urb_emis_grf', .98)
+            up += v*(eg*SIGMA*values('TS_GREENROOF')**4 + (1.-eg)*lw)
+        check('open roof MRT from tile properties [K]', roof,
+              temp(beam + .5*ABS*(diffuse + alb*(direct + diffuse)) + .5*EPS*(lw+up)), values('PDN_RF') == 0.)
+    return all(passed)
 
 
-def main(argv=None) -> int:
-    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument('path', help='TEB_output_b<block>_c<cell>.csv of a dev run')
-    ap.add_argument('--param-nml', default='namelist/namelist.nml',
-                    help='parameter namelist of the run (geometry, albedo, emissivity)')
-    ap.add_argument('--body', default='person', choices=('person', 'sphere'),
-                    help="body model of the beam projection factor used by the run: "
-                         "'person' (standing person, the variant hardcoded in CALL_DRIVER) "
-                         "or 'sphere' (globe-like, the default of URBAN_MRT)")
-    args = ap.parse_args(argv)
-
-    d = read_output(Path(args.path))
-    required(d, ['time', 'MRT_ROAD', 'MRT_ROAD_SUN', 'MRT_F_SKY', 'MRT_F_WALL',
-                 'MRT_F_ROAD', 'SW_DIR_ROAD', 'SW_SKY_ROAD', 'SW_WALL_ROAD',
-                 'SW_TOT_ROAD', 'SUN_FRAC_ROAD', 'MRT_SW_DIR', 'MRT_LW_SKY',
-                 'PDN_RD', 'TSNOW_RD', 'T_ROAD1', 'T_WALLA1', 'T_WALLB1',
-                 'Forc_LW', 'SOLAR_ZENITH',
-                 'MRT_ROOF', 'SW_DIR_ROOF', 'SW_SKY_ROOF', 'SW_TOT_ROOF',
-                 'PDN_RF', 'T_ROOF1'])
-
-    txt = Path(args.param_nml).read_text(encoding='utf-8', errors='ignore')
-    h_bld = namelist_item(txt, 'urb_h_bld')
-    h2w = namelist_item(txt, 'urb_h2w')
-    alb_rd = namelist_item(txt, 'urb_alb_rd_so')
-    # urb_alb_*_th are the THERMAL albedos: emissivity = 1 - albedo
-    emis_rd = 1. - namelist_item(txt, 'urb_alb_rd_th')
-    emis_wl = 1. - namelist_item(txt, 'urb_alb_wl_th')
-    alb_rf = namelist_item(txt, 'urb_alb_rf_so')
-    emis_rf = 1. - namelist_item(txt, 'urb_alb_rf_th')
-
-    print(f'MRT of a pedestrian: road and roof  [{args.path}]')
-    print(f'  geometry: H = {h_bld} m, H/W = {h2w}, z_ped = {Z_PED} m; '
-          f'road alb/emis = {alb_rd}/{emis_rd}, wall emis = {emis_wl}, '
-          f'roof alb/emis = {alb_rf}/{emis_rf}')
-    print(f'  body model: {args.body} (projection factor of the direct beam)')
-    print(f'  rows: {len(d)}')
-    ok = run_checks(d, alb_rd, emis_rd, emis_wl, alb_rf, emis_rf, h_bld, h2w,
-                    body=args.body)
-    print(f'  RESULT: {"OK" if ok else "FAIL"}')
-    return 0 if ok else 1
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('path', type=Path)
+    parser.add_argument('--param-nml', type=Path, default=Path('namelist/namelist.nml'))
+    parser.add_argument('--body', choices=('person', 'sphere'), default='person')
+    args = parser.parse_args()
+    d = pd.read_csv(args.path, sep=';')
+    for name in ('MRT_ROAD_SUN', 'MRT_ROAD_SHADE', 'MRT_ROOF'):
+        raw = d[name].to_numpy()
+        if not np.all(np.isfinite(raw) & ((raw < XUNDEF) | (raw == 1.e20))):
+            raise ValueError(f'Invalid missing-value encoding in {name}')
+    cols = d.select_dtypes('number').columns
+    d[cols] = d[cols].mask(d[cols] >= XUNDEF)
+    return 0 if run_checks(d, args.param_nml.read_text(encoding='utf-8-sig'), args.body) else 1
 
 
 if __name__ == '__main__':
-    sys.exit(main())
+    raise SystemExit(main())

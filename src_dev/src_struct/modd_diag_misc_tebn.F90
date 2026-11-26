@@ -40,6 +40,8 @@
 !!        pedestrian-radiation diagnostics.
 !!      11/2026 -- OpenAI Codex
 !!        Record town roughness, displacement height and stability by step.
+!!        Store pedestrian sun/shade classes and area-weighted surface fluxes.
+!!        Carry outdoor UTCI and its effective reference-height wind.
 !             ------------
 !
 !
@@ -302,12 +304,7 @@ TYPE DIAG_MISC_TEB_t
   REAL, POINTER, DIMENSION(:)   :: XWSTOWN_NOW          ! teb_wstown_now - OUT town water content (m H2O) at previous time-step
   REAL, POINTER, DIMENSION(:)   :: XZZ0H_GREENROOF_ATM  ! teb_zz0h_greenroof_atm (CSV ZZ0H_GREENROOF_ATM) - OUT greenroof roughness length for heat (atm.)
 
-!* URBAN_SOLAR_ABS exposes the two incident shortwave components that the
-!* pedestrian budget needs (the absorbed XABS_SW_ROAD alone cannot be split into
-!* the beam and the wall reflection), URBAN_MRT assembles the MRT of a person
-!* standing on the road at the canyon axis (z = 1.1 m). The MRT_* components are
-!* debug outputs: MRT_ROAD, MRT_ROAD_SUN and the two SW_*_ROAD fields are the
-!* quantities the invariants and python_tests/check_mrt.py are built on.
+!* Width-averaged pedestrian radiation at 1.1 m and its sun and shade classes.
   REAL, POINTER, DIMENSION(:)   :: XSW_DIR_ROAD    ! SW_DIR_ROAD (CSV SW_DIR_ROAD) - direct shortwave reaching the snow-free road (W/m2 road)
   REAL, POINTER, DIMENSION(:)   :: XSW_SKY_ROAD    ! SW_SKY_ROAD (CSV SW_SKY_ROAD) - diffuse sky shortwave reaching the snow-free road (W/m2 road)
   REAL, POINTER, DIMENSION(:)   :: XSW_WALL_ROAD   ! SW_WALL_ROAD (CSV SW_WALL_ROAD) - shortwave reflected by the walls onto the road (W/m2 road)
@@ -315,6 +312,12 @@ TYPE DIAG_MISC_TEB_t
   REAL, POINTER, DIMENSION(:)   :: XSUN_FRAC_ROAD  ! SUN_FRAC_ROAD (CSV SUN_FRAC_ROAD) - sunlit area fraction of the road (-)
   REAL, POINTER, DIMENSION(:)   :: XMRT            ! MRT_ROAD (CSV MRT_ROAD) - mean radiant temperature of a pedestrian on the road, sunlit fraction weighted (K)
   REAL, POINTER, DIMENSION(:)   :: XMRT_SUN        ! MRT_ROAD_SUN (CSV MRT_ROAD_SUN) - the same for a pedestrian standing in the sunlit part (K)
+  REAL, POINTER, DIMENSION(:)   :: XSUN_FRAC_PED   ! SUN_FRAC_PED (CSV SUN_FRAC_PED) - sunlit width at pedestrian height (-)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_SHADE      ! MRT_ROAD_SHADE (CSV MRT_ROAD_SHADE) - shade class temperature (K)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_K_FLOOR    ! upward shortwave from the canyon floor (W/m2 floor)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_L_FLOOR    ! upward longwave from the canyon floor (W/m2 floor)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_K_OPEN     ! upward shortwave from accessible roof (W/m2 open roof)
+  REAL, POINTER, DIMENSION(:)   :: XMRT_L_OPEN     ! upward longwave from accessible roof (W/m2 open roof)
   REAL, POINTER, DIMENSION(:)   :: XMRT_F_SKY      ! MRT_F_SKY (CSV MRT_F_SKY) - sky view factor of the pedestrian (-)
   REAL, POINTER, DIMENSION(:)   :: XMRT_F_WALL     ! MRT_F_WALL (CSV MRT_F_WALL) - walls view factor of the pedestrian (-)
   REAL, POINTER, DIMENSION(:)   :: XMRT_F_ROAD     ! MRT_F_ROAD (CSV MRT_F_ROAD) - road view factor of the pedestrian (-)
@@ -325,10 +328,12 @@ TYPE DIAG_MISC_TEB_t
   REAL, POINTER, DIMENSION(:)   :: XMRT_LW_SKY     ! MRT_LW_SKY (CSV MRT_LW_SKY) - sky longwave absorbed by the body (W/m2 body)
   REAL, POINTER, DIMENSION(:)   :: XMRT_LW_WALL    ! MRT_LW_WALL (CSV MRT_LW_WALL) - wall longwave absorbed by the body (W/m2 body)
   REAL, POINTER, DIMENSION(:)   :: XMRT_LW_ROAD    ! MRT_LW_ROAD (CSV MRT_LW_ROAD) - road longwave absorbed by the body (W/m2 body)
-!* the same budget for a person standing on the roof: the roof is a flat
-!* infinite surface, so there are no walls (F_sky = F_roof = 0.5) and the roof is
-!* never shadowed by the canyon; the three incident shortwave components are
-!* exported by URBAN_SOLAR_ABS like the road ones
+!* Canyon thermal comfort at width-mean, sun and shade MRT.
+  REAL, POINTER, DIMENSION(:)   :: XUTCI_ROAD        ! UTCI_ROAD (CSV UTCI_ROAD) - UTCI at width-mean MRT (degC)
+  REAL, POINTER, DIMENSION(:)   :: XUTCI_ROAD_SUN    ! UTCI_ROAD_SUN (CSV UTCI_ROAD_SUN) - sun class UTCI (degC)
+  REAL, POINTER, DIMENSION(:)   :: XUTCI_ROAD_SHADE  ! UTCI_ROAD_SHADE (CSV UTCI_ROAD_SHADE) - shade class UTCI (degC)
+  REAL, POINTER, DIMENSION(:)   :: XUTCI_WIND_10M    ! UTCI_WIND_10M (CSV UTCI_WIND_10M) - effective 10 m wind for UTCI (m/s)
+!* Substrate irradiance from URBAN_SOLAR_ABS and MRT above an open roof.
   REAL, POINTER, DIMENSION(:)   :: XSW_DIR_ROOF  ! SW_DIR_ROOF (CSV SW_DIR_ROOF) - direct shortwave reaching the roof (W/m2 roof)
   REAL, POINTER, DIMENSION(:)   :: XSW_SKY_ROOF  ! SW_SKY_ROOF (CSV SW_SKY_ROOF) - diffuse sky shortwave reaching the roof (W/m2 roof)
   REAL, POINTER, DIMENSION(:)   :: XSW_TOT_ROOF  ! SW_TOT_ROOF (CSV SW_TOT_ROOF) - total shortwave incident on the snow-free roof (W/m2 roof)
@@ -541,6 +546,16 @@ NULLIFY(YDIAG_MISC_TEB%XSW_TOT_ROAD)
 NULLIFY(YDIAG_MISC_TEB%XSUN_FRAC_ROAD)
 NULLIFY(YDIAG_MISC_TEB%XMRT)
 NULLIFY(YDIAG_MISC_TEB%XMRT_SUN)
+NULLIFY(YDIAG_MISC_TEB%XSUN_FRAC_PED)
+NULLIFY(YDIAG_MISC_TEB%XMRT_SHADE)
+NULLIFY(YDIAG_MISC_TEB%XUTCI_ROAD)
+NULLIFY(YDIAG_MISC_TEB%XUTCI_ROAD_SUN)
+NULLIFY(YDIAG_MISC_TEB%XUTCI_ROAD_SHADE)
+NULLIFY(YDIAG_MISC_TEB%XUTCI_WIND_10M)
+NULLIFY(YDIAG_MISC_TEB%XMRT_K_FLOOR)
+NULLIFY(YDIAG_MISC_TEB%XMRT_L_FLOOR)
+NULLIFY(YDIAG_MISC_TEB%XMRT_K_OPEN)
+NULLIFY(YDIAG_MISC_TEB%XMRT_L_OPEN)
 NULLIFY(YDIAG_MISC_TEB%XMRT_F_SKY)
 NULLIFY(YDIAG_MISC_TEB%XMRT_F_WALL)
 NULLIFY(YDIAG_MISC_TEB%XMRT_F_ROAD)

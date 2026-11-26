@@ -71,6 +71,7 @@ SUBROUTINE CALL_DRIVER (ntstep, icell, iblock, dt, IYEAR, IMONTH, IDAY, IHOUR, I
 !        Diagnose stability-dependent town roughness from the previous step
 !        and pass it to the wind profile and both town exchange calculations.
 !        Diagnose town displacement from the same stability history.
+!        Couple canyon UTCI to pedestrian radiation, wind and humidity.
 ! ---------------------------------------------------------------
 ! Modules
 ! ---------------------------------------------------------------
@@ -91,6 +92,7 @@ USE MODI_INIT_SURFCONSPHY
 USE MODI_SUNPOS
 USE MODI_TEB_GARDEN
 USE MODI_URBAN_MRT
+USE MODE_URBAN_UTCI, ONLY : CANYON_UTCI
 USE MODI_WINDOW_DATA_STRUCT
 USE MODI_BEM_MORPHO_STRUCT
 USE MODI_CIRCUMSOLAR_RAD
@@ -202,6 +204,7 @@ REAL               :: XPII
 REAL,DIMENSION(1:9):: ZU_CANYON_WANG  ! hor. wind in canyon due to Wang
 REAL,DIMENSION(1)  :: ZU_CAN_PED      ! hor. wind at pedestrian height (1.1 m) due to Wang
 REAL,DIMENSION(1)  :: ZU_CAN_10M      ! hor. wind at 10 m height due to Wang
+REAL,DIMENSION(3)  :: ZUTCI           ! street width, sun, shade (degC)
 
 REAL,DIMENSION(1)  :: ZVMOD_TS  ! Wind speed at forcing level limited with wind_threshold (m/s)
 ! Urban variables    
@@ -755,14 +758,15 @@ DMT%XTS_ROAD(1:1) = TSTATE%XT_ROAD(icell,1)
 DMT%XTS_WALL_A(1:1) = TSTATE%XT_WALL_A(icell,1)
 DMT%XTS_WALL_B(1:1) = TSTATE%XT_WALL_B(icell,1)
 
-!* pure diagnostic: it needs the surface temperatures of this sub-step (set just
-!* above), the incident shortwave components of URBAN_SOLAR_ABS (DMT%XSW_*) and
-!* the canyon geometry of TPARAMS; no feedback on the physics. The projection
-!* factor of a STANDING person is used here ('PERSON': the beam factor depends on
-!* the solar elevation); 'SPHERE' - the default of URBAN_MRT, the globe-like
-!* definition - remains available as an alternative
+!* Pedestrian radiation uses the tile fluxes of this sub-step and the
+!* standing-person projection for the direct beam.
 CALL URBAN_MRT(icell, iblock, FORC, TPARAMS, TSTATE, DMT, EXT, 'PERSON')
 CALL URBAN_MRT_ROOF(icell, iblock, FORC, TPARAMS, TSTATE, DMT, EXT, 'PERSON')
+CALL CANYON_UTCI(TSTATE%XT_CANYON(icell), TSTATE%XQ_CANYON(icell), FORC%XPS(icell), DMT%XU_CAN_PED(icell), &
+                 [DMT%XMRT(icell), DMT%XMRT_SUN(icell), DMT%XMRT_SHADE(icell)], ZUTCI, DMT%XUTCI_WIND_10M(icell))
+DMT%XUTCI_ROAD(icell) = ZUTCI(1)
+DMT%XUTCI_ROAD_SUN(icell) = ZUTCI(2)
+DMT%XUTCI_ROAD_SHADE(icell) = ZUTCI(3)
 
 DMT%XH_ROOF_FR(1:1) = DMT%XH_ROOF(1)*TPARAMS%XBLD(icell:icell)
 !* road fluxes (per m2 of road) as computed by the road energy budget, i.e. the

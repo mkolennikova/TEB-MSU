@@ -690,10 +690,8 @@ DO JJ=1,SIZE(TPARAMS%XROAD)
 !
   DMT%XABS_SW_ROAD     (JJ) = ZABS_DIR_SW_RD     (JJ) + ZABS_SCA_SW_RD     (JJ)
 !
-!* incident (NOT absorbed) shortwave components at road level: the pedestrian
-!* budget needs the beam (with its own projection factor) and the wall reflection
-!* separately, while XABS_SW_ROAD alone only gives their sum times (1-albedo).
-!* Both are per m2 of snow-free road; the wall part follows from
+!* Incident shortwave components per m2 of snow-free road. The wall part
+!* follows from
 !*   XSW_DIR_ROAD + XSCA_SW_RD + XSW_WALL_ROAD = XABS_SW_ROAD/(1-XALB_ROAD)
 !* (XSCA_SW_RD is the diffuse sky part of the road, XSVF_ROAD*XSCA_SW)
 !
@@ -735,8 +733,7 @@ DO JJ=1,SIZE(TPARAMS%XROAD)
 !              -------------------------------------------------------
 !
   PREC_SW_RD      (JJ) = DMT%XABS_SW_ROAD      (JJ)/(1.-TPARAMS%XALB_ROAD   (JJ))
-!* incident shortwave of the snow-free road (direct + diffuse sky + walls), the
-!* quantity the pedestrian road-reflection term and python_tests/check_mrt.py use
+!* Incident shortwave of the snow-free road (direct + diffuse sky + walls).
   DMT%XSW_TOT_ROAD(JJ) = PREC_SW_RD      (JJ)
 !
   IF (PDN_RD(JJ) > 0.) PREC_SW_SN_RD(JJ) = DMT%XABS_SW_SNOW_ROAD(JJ)/(1.-TSTATE%TSNOW_ROAD%ALB(JJ))

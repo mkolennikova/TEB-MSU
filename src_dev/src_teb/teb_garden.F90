@@ -57,6 +57,8 @@
 !!      11/2026 -- Mikhail Varentsov (MV)
 !!        Integrate the inherited Maria Tarasova trace-snowfall filter with
 !!        configurable controls and inactive-surface radiation guards.
+!!      11/2026 -- OpenAI Codex
+!!        Assemble pedestrian radiation from the active road and roof tiles.
 !-------------------------------------------------------------------------------
 !
 !*       0.     DECLARATIONS
@@ -79,6 +81,7 @@ USE MODD_SNOW_PAR,          ONLY: XEMISSN, XANSMAX
 !
 USE MODE_THERMOS
 USE MODE_SURF_SNOW_FRAC
+USE MODE_URBAN_MRT, ONLY : MRT_SUN_FRACTION
 !
 USE MODI_SOLAR_PANEL
 USE MODI_TEB_VEG_PROPERTIES
@@ -229,6 +232,8 @@ REAL, DIMENSION(SIZE(FORC%XTA)) :: ZTSSN_RF  ! roof snow temp at previous time-s
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ZTSSN_RD  ! road snow temp at previous time-step
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ZESN_RF   ! snow emissivity at previous time-step
 REAL, DIMENSION(SIZE(FORC%XTA)) :: ZESN_RD   ! snow emissivity at previous time-step
+REAL, DIMENSION(SIZE(FORC%XTA)) :: ZRAD_SNOW_RD, ZRAD_SNOW_RF ! fractional cover for this step
+REAL, DIMENSION(SIZE(FORC%XTA)) :: ZRAD_ALB_SN_RD, ZRAD_ALB_SN_RF ! albedo used by the solar solver
 !
 ! incoming shortwave radiation
 !
@@ -511,6 +516,11 @@ ZESN_RF  (:) = TSTATE%TSNOW_ROOF%EMIS(:)
 ZESN_RD  (:) = TSTATE%TSNOW_ROAD%EMIS(:)
 ZTSSN_RF (:) = TSTATE%TSNOW_ROOF%TS  (:)
 ZTSSN_RD (:) = TSTATE%TSNOW_ROAD%TS  (:)
+! The snow budget can clear these properties and the road fraction on meltout.
+ZRAD_SNOW_RD(:) = DMT%XPDN_RD(:)
+ZRAD_SNOW_RF(:) = DMT%XPDN_RF(:)
+ZRAD_ALB_SN_RD(:) = TSTATE%TSNOW_ROAD%ALB(:)
+ZRAD_ALB_SN_RF(:) = TSTATE%TSNOW_ROOF%ALB(:)
 !
 !-------------------------------------------------------------------------------
 !
@@ -787,6 +797,7 @@ DMT%ATM%LE_GARDEN(:) = ZPLE_GD_ATM(:)
 !* greenroof model selected with teb_type_greenroof); they are diagnostics only.
 !
 DMT%XTS_GREENROOF(:) = ZTSRAD_GR(:)
+CALL MRT_SURFACE_FLUXES
 DMT%XRN_GREENROOF(:) = ZRN_GR(:)
 DMT%XH_GREENROOF(:) = ZH_GR(:)
 DMT%XLE_GREENROOF(:) = ZLE_GR(:)
@@ -815,6 +826,72 @@ PDUWDU_GRND (:)  = 0.
 IF (LHOOK) CALL DR_HOOK('TEB_GARDEN',1,ZHOOK_HANDLE)
 !-------------------------------------------------------------------------------
 CONTAINS
+!-------------------------------------------------------------------------------
+!
+SUBROUTINE MRT_SURFACE_FLUXES
+! Upward radiosities per unit horizontal area. Use the same surface mixture
+! in every part of the canyon and on the accessible fraction of the roof.
+INTEGER :: J
+REAL :: ZGARDEN, ZGREEN, ZWEIGHT, ZSW, ZLW, ZSW_OPEN, ZLW_SKY, ZHW
+DO J=1,SIZE(FORC%XTA)
+  ZHW = TPARAMS%XCAN_HW_RATIO(J)
+  IF (TPARAMS%XBLD(J) <= 0.) ZHW = 0.
+  DMT%XSUN_FRAC_PED(J) = MRT_SUN_FRACTION(FORC%XZENITH(J), FORC%XAZIM(J), TPARAMS%XBLD_HEIGHT(J), &
+                                          ZHW, TPARAMS%XROAD_DIR(J), TOPTS%CROAD_DIR)
+  ZGARDEN = 0.
+  IF (TOPTS%LGARDEN) ZGARDEN = TPARAMS%XGARDEN_O_GRND(J)
+  ZSW = 0.
+  ZLW = 0.
+  ZWEIGHT = (1.-ZGARDEN)*(1.-ZRAD_SNOW_RD(J))
+  IF (ZWEIGHT > 0.) THEN
+    ZSW = ZWEIGHT*TPARAMS%XALB_ROAD(J)*ZREC_SW_RD(J)
+    ZLW = ZWEIGHT*ZEMIT_LW_RD(J)
+  END IF
+  ZWEIGHT = (1.-ZGARDEN)*ZRAD_SNOW_RD(J)
+  IF (ZWEIGHT > 0.) THEN
+    ZSW = ZSW + ZWEIGHT*ZRAD_ALB_SN_RD(J)*ZREC_SW_SN_RD(J)
+    ! Road snow's net LW uses its beginning-of-step radiative temperature.
+    ZLW = ZLW + ZWEIGHT*(XSTEFAN*ZTSSN_RD(J)**4 &
+              + (1.-ZESN_RD(J))/ZESN_RD(J)*DMT%XABS_LW_SNOW_ROAD(J))
+  END IF
+  IF (ZGARDEN > 0.) THEN
+    ZSW = ZSW + ZGARDEN*ZALB_GD(J)*ZREC_SW_GD(J)
+    ZLW = ZLW + ZGARDEN*ZEMIT_LW_GD(J)
+  END IF
+  DMT%XMRT_K_FLOOR(J) = ZSW
+  DMT%XMRT_L_FLOOR(J) = ZLW
+
+  DMT%XMRT_K_OPEN(J) = XUNDEF
+  DMT%XMRT_L_OPEN(J) = XUNDEF
+  IF (TPARAMS%XBLD(J) <= 0.) CYCLE
+  IF (TOPTS%LSOLAR_PANEL .AND. TPN%XFRAC_PANEL(J) >= 1.) CYCLE
+  ZGREEN = 0.
+  IF (TOPTS%LGREENROOF) ZGREEN = TPARAMS%XGREENROOF(J)
+  ZSW_OPEN = MAX(0.,ZDIR_SW(J)) + MAX(0.,ZSCA_SW(J))
+  ZLW_SKY = FORC%XLW(J)
+  ZSW = 0.
+  ZLW = 0.
+  ZWEIGHT = (1.-ZGREEN)*(1.-ZRAD_SNOW_RF(J))
+  IF (ZWEIGHT > 0.) THEN
+    ZSW = ZWEIGHT*TPARAMS%XALB_ROOF(J)*ZSW_OPEN
+    ZLW = ZWEIGHT*(TPARAMS%XEMIS_ROOF(J)*XSTEFAN*TSTATE%XT_ROOF(J,1)**4 &
+                + (1.-TPARAMS%XEMIS_ROOF(J))*ZLW_SKY)
+  END IF
+  ZWEIGHT = (1.-ZGREEN)*ZRAD_SNOW_RF(J)
+  IF (ZWEIGHT > 0.) THEN
+    ZSW = ZSW + ZWEIGHT*ZRAD_ALB_SN_RF(J)*ZSW_OPEN
+    ! The roof snow solver uses atmospheric LW. Net absorption includes
+    ! the radiative temperature used during this step, even on meltout.
+    ZLW = ZLW + ZWEIGHT*(ZLW_SKY-DMT%XABS_LW_SNOW_ROOF(J))
+  END IF
+  IF (ZGREEN > 0.) THEN
+    ZSW = ZSW + ZGREEN*ZALB_GR(J)*ZSW_OPEN
+    ZLW = ZLW + ZGREEN*(ZEMIS_GR(J)*XSTEFAN*ZTSRAD_GR(J)**4 + (1.-ZEMIS_GR(J))*ZLW_SKY)
+  END IF
+  DMT%XMRT_K_OPEN(J) = ZSW
+  DMT%XMRT_L_OPEN(J) = ZLW
+END DO
+END SUBROUTINE MRT_SURFACE_FLUXES
 !-------------------------------------------------------------------------------
 !
 !!****  *CBS_TAU*

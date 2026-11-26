@@ -4672,3 +4672,9 @@ git show 41f0271:src_teb/avg_urban_fluxes.F90                  # код до р�
 * [TEB_MSU_snow_check.md](TEB_MSU_snow_check.md) — фильтр следового снегопада,
   защита от `XUNDEF` и проверки.
 * `TEB_MSU_variables_description.md` — ключи намлиста и колонки вывода.
+
+## 10. Commit records
+
+| Commit | Date | Author | Files changed | Brief description |
+| --- | --- | --- | ---: | --- |
+| Uncommitted (MRT/UTCI) | 2026-11-26 | mvarentsov | N/A | Average pedestrian MRT across street width with sun/shade classes and open-roof exposure. Add canyon UTCI with equivalent 10 m wind and guarded validity ranges. |

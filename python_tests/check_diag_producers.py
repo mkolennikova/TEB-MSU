@@ -60,7 +60,7 @@ BRANCH_INSTANCES = ('CAN', 'ATM')
 RE_BRANCH_TYPE = re.compile(r'^\s*TYPE\s+' + BRANCH_TYPE + r'\b', re.I)
 RE_END_TYPE = re.compile(r'^\s*END\s*TYPE\b', re.I)
 RE_BRANCH_COMPONENT = re.compile(r'^\s*REAL[^!\n]*?::\s*(\w+)', re.I)
-RE_SUB = re.compile(r'\s*(?:SUBROUTINE|FUNCTION)\s+(\w+)\s*(?:\((.*)\))?\s*$', re.I)
+RE_SUB = re.compile(r'\s*(?:PURE\s+)?(?:SUBROUTINE|FUNCTION)\s+(\w+)\s*(?:\((.*)\))?\s*$', re.I)
 RE_END_SUB = re.compile(r'\s*END\s+(?:SUBROUTINE|FUNCTION)\b', re.I)
 RE_INTENT = re.compile(r'INTENT\s*\(\s*(OUT|INOUT)\s*\)', re.I)
 RE_CALL = re.compile(r'\s*CALL\s+(\w+)\s*\((.*)\)\s*$', re.I)
@@ -111,12 +111,12 @@ def statements(path: Path):
 
 
 def split_args(text: str) -> list:
-    """Split an actual/dummy argument list at top-level commas."""
+    """Split on commas outside parentheses and Fortran array constructors."""
     out, depth, cur = [], 0, ''
     for ch in text:
-        if ch == '(':
+        if ch in '([':
             depth += 1
-        elif ch == ')':
+        elif ch in ')]':
             depth -= 1
         if ch == ',' and depth == 0:
             out.append(cur.strip())
