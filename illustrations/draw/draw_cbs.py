@@ -1,6 +1,6 @@
-"""Generate schemes/img/cbs_scheme.svg using only the Python standard library.
+"""Generate illustrations/img/cbs_scheme.svg using only the Python standard library.
 
-Run from the repository root: python schemes/draw/draw_cbs.py
+Run from the repository root: python illustrations/draw/draw_cbs.py
 """
 from pathlib import Path
 

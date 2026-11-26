@@ -119,17 +119,63 @@ expected physical differences from interface or regression errors.
 
 ## 6. Documentation and scope
 
-Follow `docs/TEB_MSU_documentation_rules.md` when changing documentation. Keep
-current scheme descriptions separate from history and measurement protocols.
-Use UTF-8 without BOM and CRLF for documentation, including this file.
+Keep documentation synchronized with the implementation. A change to a scheme,
+mode, parameter or public interface is incomplete until its documentation is
+updated. For namelist keys and output fields, update the variable reference,
+including names, units, valid values and defaults. State which source tree and
+modes the description applies to, preserving the dev/control distinction.
 
-Consult the relevant model documents rather than duplicating their details here:
+Keep each explanation in one primary document and link to it from other files:
 
-- `docs/TEB_MSU_source_defects.md`: inherited defects and consistency switches.
-- `docs/TEB_MSU_containers.md`: container ownership and public API.
-- For COSMO coupling, consult `docs/TEB_MSU_COSMO_coupling.md` in the
-  adjacent COSMO-TEB repository on the coupling branch.
+| Document | Purpose |
+| --- | --- |
+| `README.md` | Model overview, build/run instructions and documentation navigation. |
+| `docs/TEB_MSU_variables_description.md` | Namelist keys and output fields; interface details rather than physics derivations. |
+| [docs/schemes/](docs/schemes/README.md) | Physical-scheme descriptions: current equations, assumptions, applicability, limitations and invariants. |
+| `docs/TEB_MSU_containers.md` | Data ownership, lifecycle and public API. |
+| `docs/TEB_MSU_source_defects.md` | Confirmed inherited defects of the original model and consistency switches. |
+| `docs/TEB_MSU_change_history.md` | Concise commit table maintained under section 8. |
 
+Place new physical-scheme descriptions in `docs/schemes/` and add them to its
+README index. Keep the variable reference, API documentation, source-defect
+registry and commit history directly under `docs/`.
+Store diagram images in `illustrations/img/` and drawing scripts in
+`illustrations/draw/`.
+
+Scheme documents describe the current implementation. Keep chronology, rejected
+variants and per-run result tables out of them. Retain verification methods,
+invariants and tolerances with their conditions of applicability and reproduction
+commands. Store measured effects, detailed run protocols and reports in external
+task results; summarize changes in the commit table. Keep any code-state statement
+accurate and distinguish uncommitted work from a committed implementation.
+
+Do not classify bugs introduced by our driver, interfaces or development changes
+as inherited model defects. Describe current limitations in the relevant scheme
+or API document, fixes in the commit history, and detailed analysis/reproduction
+in commit messages and external reports. Preserve existing defect and check IDs
+without renumbering them or maintaining a duplicate label registry here.
+
+- Use UTF-8 without BOM and CRLF for documentation, including this file.
+- Preserve the document's established language unless the task requests a change.
+  Keep README, the variable reference, commit history and AGENTS.md in English.
+- Keep one first-level heading per file and preserve its established structure.
+  Where sections are numbered, keep their numbering contiguous and update section
+  references. Use language tags for code/command blocks when appropriate.
+- Keep code identifiers, spelling/case and units consistent with the source.
+- Use ordinary Markdown links and tables; do not put HTML anchors in table cells.
+
+When adding, renaming or removing a document, update README navigation and related
+document links. Check incoming references across the repository after file or
+section changes. Point historical references to the relevant Git revision rather
+than a removed current section; record the reason for removal in the history.
+
+Before finishing documentation work, compare the task's own changes with the
+initial working state. Check heading/section structure, balanced code fences,
+missing files or link targets, leftover template markers, encoding and line
+endings. Check the rendered layout of changed tables. Preserve unrelated edits.
+
+For COSMO coupling, consult `docs/TEB_MSU_COSMO_coupling.md` on the coupling branch
+of the adjacent [COSMO-TEB repository](https://github.com/mkolennikova/COSMO-TEB).
 Do not edit neighboring repositories, including COSMO-TEB, unless the user
 explicitly authorizes that scope. Do not commit or push unless requested.
 In the final response, state what changed, what was verified, any remaining
@@ -145,8 +191,9 @@ development work. Add a section when needed, using the file's comment syntax.
 - Record major parameterizations, diagnostic methods, coupling interfaces and
   code reorganizations. Consolidate related edits into milestones; omit routine
   formatting and minor local changes. Do not add placeholder entries to files
-  without major project changes. Detailed chronology and measurements belong in
-  `docs/TEB_MSU_change_history.md`.
+  without major project changes. Commit chronology belongs in
+  `docs/TEB_MSU_change_history.md`; detailed measurements remain in external
+  task results.
 - Write concise English entries with a verified developer and date or period,
   following the existing `MM/YYYY -- <developer>` layout. Use `Pre-repository`
   when an imported contribution has no reliable development date. An import or
@@ -168,5 +215,54 @@ development work. Add a section when needed, using the file's comment syntax.
   directives, executable indentation, fixed-form columns and build recipes are
   unchanged; run relevant static checks when they depend on source comments.
 
-For source modification history, this section supersedes the older in-body
-tagging requirements in section 5 of `docs/TEB_MSU_documentation_rules.md`.
+## 8. Maintaining the commit history table
+
+Every repository commit you create after explicit user authorization must have
+one row in `docs/TEB_MSU_change_history.md`. This includes code, documentation,
+tests, build/configuration changes, bookkeeping and merge commits. Historical
+omissions do not exempt new commits. This rule does not authorize committing,
+amending or pushing on its own.
+
+Use commit subjects in the form `type(scope): subject`, with a type such as
+`feat`, `fix`, `refactor`, `test`, `chore` or `docs` and a scope matching the
+changed component. In the body, describe the main changes, how they were verified
+and which documentation was updated. Keep detailed logs in external task results.
+
+Keep the existing English Markdown table and this exact column order:
+
+| Commit | Date | Author | Files changed | Brief description |
+| --- | --- | --- | ---: | --- |
+
+- **Commit:** display the short SHA as an ordinary Markdown link to the full SHA
+  at `https://github.com/mkolennikova/TEB-MSU/commit/<full-sha>`. Mark unpublished
+  commits `(local)`. Do not use HTML anchors or other HTML in table cells.
+- **Date:** use the Git author date as `YYYY-MM-DD`. Order rows from oldest to
+  newest; ties follow Git ancestry order. Preserve actual dates even when they
+  differ from the dates of earlier work sessions.
+- **Author:** use the verified account username, not a full name. Normalize
+  Mikhail Varensov, Mikhail Varentsov and the historical root identity associated
+  with the same email to `mvarentsov`; retain `mkolennikova` for that account.
+  Verify other identities from account/email metadata rather than guessing.
+  A tool credit such as `codex` is not the Git author of a human-authored commit.
+- **Files changed:** count added, modified, deleted and renamed files against
+  the first parent, or the empty tree for an initial commit. Enable Git rename
+  detection and count each rename once. Include documentation and the history
+  file itself when changed; count the committed diff, not all working files.
+- **Brief description:** write one or two concise English sentences describing
+  the main changes. Expand enough to cover multiple components of a large
+  commit. Keep detailed test logs, measurements and protocols outside the table.
+
+Before each authorized commit, include a pending `Uncommitted` row for that
+commit and finalize pending rows for earlier commits. A commit cannot contain
+its own final SHA: obtain its SHA, author date, username and file count after
+creation, then carry that row's finalization into the next authorized commit.
+Until finalized, use the recorded work date, verified work credits and N/A for
+an unavailable file count. Replace or consolidate existing pending rows to match
+the actual commit boundaries; do not retain duplicate session entries for one
+commit. Do not create an extra bookkeeping commit or amend history solely to
+fill in a SHA without user authorization.
+
+Before finishing a commit task, verify the row against Git, check the five
+columns, chronology, links and absence of duplicate commits, and keep the
+coverage header current. Preserve UTF-8 without BOM and CRLF. The scope and
+commit workflow in this section take precedence over older history conventions.

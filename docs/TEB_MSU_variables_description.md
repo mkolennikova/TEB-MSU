@@ -286,7 +286,7 @@ In `src_dev`, `teb_ctype_z0_town_dyncorr` and `teb_ctype_zd_town_dyncorr`
 in `&tebopts` independently select dynamic corrections for town roughness and
 displacement height. Both default to `'OFF'`. With `'ZIL2008'`, the enabled
 corrections use the stability diagnosed on the previous completed TEB substep.
-See [the dynamic town aerodynamics scheme](TEB_MSU_dynamic_town_aerodynamics.md)
+See [the dynamic town aerodynamics scheme](schemes/TEB_MSU_dynamic_town_aerodynamics.md)
 for the formulas, numerical bounds and use in wind and exchange calculations.
 
 The road, roof and town thermal roughness keys in `&tebopts` each take one
@@ -341,7 +341,7 @@ In `src_dev`, set `teb_lcbs_scheme`, `teb_cbs_hw_thresh` and
 `teb_cbs_hw_width` in `&tebopts`. The threshold and width are finite
 scalars shared by the block. The single-cell `&tebparam` format, the API
 and the metadata in `parameters.csv` use the `teb_tau_hw_*` names. See the
-[CBS scheme description](TEB_MSU_CBS_scheme_T_CAN_reformulation.md).
+[CBS scheme description](schemes/TEB_MSU_CBS_scheme_T_CAN_reformulation.md).
 
 `DEF` selects the basic canopy wind scheme. `WANG` selects the Wang (2012)
 profile. Use the same text selector `teb_ctype_wind` in single-cell
@@ -419,7 +419,7 @@ external-garden exchange and friction uses `0.10` m.
 The `proxy_phu_*` inputs prescribe surface humidity for the internal proxies
 and their offline external-surface emulators.
 
-See the [garden and greenroof scheme description](TEB_MSU_garden_diagnostic_scheme.md)
+See the [garden and greenroof scheme description](schemes/TEB_MSU_garden_diagnostic_scheme.md)
 for exchange paths and surface budgets.
 
 ### 2.6 Solar Panels and Road Watering
@@ -590,7 +590,7 @@ same garden-area normalization.
 
 MRT describes a standing pedestrian at 1.1 m above the canyon floor or on an open roof.
 The sun and shade classes share the same diffuse and longwave environment.
-An absent class or roof location is written as `XUNDEF` (`1.E+20`). [MRT scheme](TEB_MSU_MRT_pedestrian_scheme.md)
+An absent class or roof location is written as `XUNDEF` (`1.E+20`). [MRT scheme](schemes/TEB_MSU_MRT_pedestrian_scheme.md)
 
 | Column | Units | Meaning |
 | --- | --- | --- |
@@ -612,7 +612,7 @@ In `src_dev`, the Universal Thermal Climate Index (UTCI) uses the last substep's
 canyon air temperature, specific humidity, surface pressure and pedestrian wind.
 All three exposures share these inputs. An unavailable MRT or a radiant
 temperature difference outside the fitted range gives `XUNDEF` for that exposure.
-Invalid common air or wind inputs give `XUNDEF` for all three indices. [UTCI scheme and limits](TEB_MSU_MRT_pedestrian_scheme.md#8-индекс-теплового-комфорта-utci-в-каньоне)
+Invalid common air or wind inputs give `XUNDEF` for all three indices. [UTCI scheme and limits](schemes/TEB_MSU_MRT_pedestrian_scheme.md#8-canyon-utci-thermal-comfort-index)
 
 | Column | Units | Meaning |
 | --- | --- | --- |

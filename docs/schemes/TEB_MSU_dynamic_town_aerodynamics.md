@@ -4,10 +4,10 @@ TEB-MSU applies the Zilitinkevich et al. (2008) corrections to town momentum
 roughness and displacement height in `src_dev`. This document describes the
 implemented equations, time stepping and use in wind and exchange calculations.
 
-Related documentation includes the [namelist and output reference](TEB_MSU_variables_description.md#23-urban-aerodynamics),
-the [host and container interface](TEB_MSU_containers.md), and the
+Related documentation includes the [namelist and output reference](../TEB_MSU_variables_description.md#23-urban-aerodynamics),
+the [host and container interface](../TEB_MSU_containers.md), and the
 [CBS canyon air formulation](TEB_MSU_CBS_scheme_T_CAN_reformulation.md).
-See [record №95 in the development history](TEB_MSU_change_history.md).
+See [commit `15f5f55` in the development history](https://github.com/mkolennikova/TEB-MSU/commit/15f5f55cbead3092151df07f7d0bf0a35f2cbca7).
 
 ## 1. Configuration and notation
 
@@ -57,14 +57,14 @@ $$
 Positive s denotes stable stratification and negative s denotes unstable
 stratification. Zero heat flux and cold start give zero s. An unavailable
 estimate, including one from a previous substep with u∗ below 0.1 m/s, triggers
-a neutral fallback on the current substep. [Driver](../src_dev/src_driver/call_driver.F90).
+a neutral fallback on the current substep. [Driver](../../src_dev/src_driver/call_driver.F90).
 
 When either correction is enabled, the host passes the stability history to
 `teb_interface` through the `teb_inv_l_town_prev` array with `nvec` entries and
 `INTENT(INOUT)`. The routine updates the active cells. The offline driver
 stores the array in checkpoints and restores it on restart.
-[Public interface](../src_dev/src_api/sfc_teb.F90) ·
-[Offline checkpoint handling](../src_dev/src_offline/teb_offline_host.F90).
+[Public interface](../../src_dev/src_api/sfc_teb.F90) ·
+[Offline checkpoint handling](../../src_dev/src_offline/teb_offline_host.F90).
 
 ## 3. Correction equations
 
@@ -94,7 +94,7 @@ Thus stable conditions reduce roughness and increase displacement, while
 unstable conditions increase roughness and reduce displacement. The driver
 takes the neutral value as the raw value for each correction set to `'OFF'`.
 [Zilitinkevich et al. (2008)](#7-reference) ·
-[Driver](../src_dev/src_driver/call_driver.F90).
+[Driver](../../src_dev/src_driver/call_driver.F90).
 
 ## 4. Geometry and numerical bounds
 
@@ -149,8 +149,8 @@ $$
 The bounds retain valid neutral geometry and keep the gap H − d − z₀
 positive. In a debugger, compare `ZZD_RAW` and `ZZ0_RAW` with `DMT%XZD_TOWN`
 and `DMT%XZ0_TOWN`, respectively, inside the correction block.
-[Driver](../src_dev/src_driver/call_driver.F90) ·
-[Neutral geometry validation](../src_dev/src_api/teb_host.F90).
+[Driver](../../src_dev/src_driver/call_driver.F90) ·
+[Neutral geometry validation](../../src_dev/src_api/teb_host.F90).
 
 ## 5. Coupling to wind and exchange
 
@@ -178,9 +178,9 @@ z_t=z_{t,f}+H-d,
 z_u=z_{u,f}+H-d.
 $$
 
-[Wind driver](../src_dev/src_driver/call_driver.F90) ·
-[Bulk and canyon exchange](../src_dev/src_teb/urban_drag.F90) ·
-[Town friction velocity](../src_dev/src_teb/urban_fluxes.F90).
+[Wind driver](../../src_dev/src_driver/call_driver.F90) ·
+[Bulk and canyon exchange](../../src_dev/src_teb/urban_drag.F90) ·
+[Town friction velocity](../../src_dev/src_teb/urban_fluxes.F90).
 
 ## 6. Output
 
@@ -189,7 +189,7 @@ substep, after applying the bounds. `Z0_TOWN_NEUTRAL` and `ZD_TOWN_NEUTRAL`
 report the corresponding neutral values. `Z0_TOWN_S` reports the shared
 argument used for both corrections. `Z0_TOWN_NEUTRAL_FALLBACK` is `1` when
 an unusable previous estimate triggers neutral values. See
-[§3.2 of the output reference](TEB_MSU_variables_description.md#32-main-model-diagnostics).
+[§3.2 of the output reference](../TEB_MSU_variables_description.md#32-main-model-diagnostics).
 
 ## 7. Reference
 

@@ -253,7 +253,7 @@ def _mrt_subplot(df):
 
     The `src_dev` tree writes the mean radiant temperature of a pedestrian on the
     road and on the roof (`MRT_ROAD`, `MRT_ROAD_SUN`, `MRT_ROOF`, see
-    `docs/TEB_MSU_MRT_pedestrian_scheme.md`); the control tree and older outputs do
+    `docs/schemes/TEB_MSU_MRT_pedestrian_scheme.md`); the control tree and older outputs do
     not. The panel shows the canyon air temperature next to the two radiant
     temperatures, so that the air/radiant contrast of the two locations is visible.
     """

@@ -11,7 +11,7 @@
 
 TEB-MSU is a single-layer urban canopy model developed at Lomonosov Moscow State University based on the popular French open-source model TEB (Town Energy Balance) [[Masson, 2000]](#references). This model provides simplified but computationally effective parameterization of turbulent and radiant energy exchange within the urban canopy described as an idealized street canyon, considering building energy use, including heating and air conditioning, simulated by building energy model (BEM) [[Bueno et al., 2012]](#references). It also allows representing urban vegetation inside the street canyon [[Lemonsu et al., 2012]](#references) and on buildings' roofs [[De Munck et al., 2013]](#references), as well as solar panels on the roofs.
 
-![TEB-MSU urban canopy and coupling interfaces](schemes/img/teb-msu-coupling.svg)
+![TEB-MSU urban canopy and coupling interfaces](illustrations/img/teb-msu-coupling.svg)
 
 ## Key Features
 
@@ -39,9 +39,9 @@ Compared to the original TEB model, TEB-MSU includes:
 The development line (`src_dev`, see [Two source trees](#two-source-trees-src_dev-and-src_ctrl)) additionally contains:
 
 - **Fixes of defects of the original TEB** found during this work: the weighting of the snow fluxes in the canyon nodes, the latent heat of the phase change (`XLVTT`/`XLSTT`), the melt-water path, and the uninitialised radiation diagnostics of the green surfaces and canyon ground temperature — [`docs/TEB_MSU_source_defects.md`](docs/TEB_MSU_source_defects.md)
-- **canyon bypass (CBS) scheme of the surface–canyon exchange**: a weight τ ∈ [0, 1] blends the "through the canyon" and the "directly to the forcing level" paths (τ = 1 reproduces the original TEB, τ → 0 makes the surface flat); the air seen by the surfaces is a τ-relaxation of the classical canyon node (`T_CAN0`) and of the surface layer (`T_CAN1`) — [`docs/TEB_MSU_CBS_scheme_T_CAN_reformulation.md`](docs/TEB_MSU_CBS_scheme_T_CAN_reformulation.md)
-- **Diagnostic garden and green-roof scheme**: the surface energy balance `Rn = H + LE` with a surface relative humidity, solved by Newton iterations, coupled to the canyon air, with external modes (`EXT`, `EXT_NEU`) — [`docs/TEB_MSU_garden_diagnostic_scheme.md`](docs/TEB_MSU_garden_diagnostic_scheme.md)
-- **Pedestrian mean radiant temperature and thermal comfort.** TEB-MSU reports MRT from the width-mean absorbed radiation at 1.1 m, conditional MRT in sun and shade, the sunlit fraction at body height and MRT on an open roof. Canyon UTCI combines each of the three street MRTs with canyon air temperature, humidity and pedestrian wind. [MRT and UTCI scheme](docs/TEB_MSU_MRT_pedestrian_scheme.md)
+- **canyon bypass (CBS) scheme of the surface–canyon exchange**: a weight τ ∈ [0, 1] blends the "through the canyon" and the "directly to the forcing level" paths (τ = 1 reproduces the original TEB, τ → 0 makes the surface flat); the air seen by the surfaces is a τ-relaxation of the classical canyon node (`T_CAN0`) and of the surface layer (`T_CAN1`) — [`docs/schemes/TEB_MSU_CBS_scheme_T_CAN_reformulation.md`](docs/schemes/TEB_MSU_CBS_scheme_T_CAN_reformulation.md)
+- **Diagnostic garden and green-roof scheme**: the surface energy balance `Rn = H + LE` with a surface relative humidity, solved by Newton iterations, coupled to the canyon air, with external modes (`EXT`, `EXT_NEU`) — [`docs/schemes/TEB_MSU_garden_diagnostic_scheme.md`](docs/schemes/TEB_MSU_garden_diagnostic_scheme.md)
+- **Pedestrian mean radiant temperature and thermal comfort.** TEB-MSU reports MRT from the width-mean absorbed radiation at 1.1 m, conditional MRT in sun and shade, the sunlit fraction at body height and MRT on an open roof. Canyon UTCI combines each of the three street MRTs with canyon air temperature, humidity and pedestrian wind. [MRT and UTCI scheme](docs/schemes/TEB_MSU_MRT_pedestrian_scheme.md)
 - **Urban roughness and displacement height from the namelist or from the Macdonald et al. (1998) morphometric scheme** [[Macdonald et al., 1998]](#references) instead of the hard-coded `zd = H/3` correction — [`docs/TEB_MSU_source_defects.md`](docs/TEB_MSU_source_defects.md) (D7)
 
 ### Quick Start
@@ -259,15 +259,16 @@ the historical garden and greenroof proxies; CBS remains disabled.
 
 | Path | Content |
 | --- | --- |
-| [`AGENTS.md`](AGENTS.md) | Shared instructions for coding agents: source-tree roles, approval for control-physics changes, and external build/test workspaces |
+| [`AGENTS.md`](AGENTS.md) | Shared instructions for coding agents: source-tree roles, approval for control-physics changes, external build/test workspaces, documentation conventions and commit-history maintenance |
 | `src_dev/` | Development sources: public `src_api/`, shared `src_driver/` and physics directories, offline-only `src_offline/`; explicit library/offline manifests in `make/`, external build products |
 | `src_ctrl/` | Control Fortran sources (same layout, physics of the first commit); builds `build/TEB_offline_ctrl.exe` |
 | `python/` | Python libraries shared by the notebook and the test benches: output handling (`output_utils.py`), forcing preparation (`forcing_ERA5.py`, `forcing_utils.py`) and the notebook helpers (`run_utils.py`, `install_utils.py`) |
 | `python_tests/` | Python test benches and comparison/sensitivity experiments verifying the model revisions |
 | `tests/` | Test cases; `tests/CAPITOUL/` is the reference case: `namelist/`, `input/` (ASCII forcing) and `output_ref/` |
 | `build/` | Build output of `make`: `obj_dev/`, `obj_ctrl/`, `logs/` (the `make` logs) and the executables; created automatically and not tracked |
-| `docs/` | Model documentation includes the variable description (`TEB_MSU_variables_description.md`), the [dynamic town aerodynamics scheme](docs/TEB_MSU_dynamic_town_aerodynamics.md), the canyon bypass scheme (`TEB_MSU_CBS_scheme_T_CAN_reformulation.md`), the diagnostic garden and green-roof scheme (`TEB_MSU_garden_diagnostic_scheme.md`), the pedestrian mean radiant temperature on the road (`TEB_MSU_MRT_pedestrian_scheme.md`), the defects of the original TEB found and fixed in TEB-MSU (`TEB_MSU_source_defects.md`), the diagnostics container (`TEB_MSU_containers.md`), the commit-referenced change history (`TEB_MSU_change_history.md`), the [trace snowfall filter](docs/TEB_MSU_snow_check.md) and the documentation rules (`TEB_MSU_documentation_rules.md`) |
-| `schemes/` | Model diagrams in `img/` and drawing scripts in `draw/` |
+| `docs/` | [Variables and output](docs/TEB_MSU_variables_description.md), [containers and API](docs/TEB_MSU_containers.md), [inherited source defects](docs/TEB_MSU_source_defects.md), and [change history](docs/TEB_MSU_change_history.md) |
+| [docs/schemes/](docs/schemes/README.md) | Physical schemes: CBS surface exchange, diagnostic garden and greenroof, pedestrian MRT/UTCI, dynamic town aerodynamics, and trace snowfall filtering |
+| `illustrations/` | Model diagrams in `img/` and drawing scripts in `draw/` |
 | `img/` | Images used by `README.md` and `TEB_sandbox.ipynb`: the project logo `TEB-MSU_logo_v3.png` (the editable design sources are kept outside the repository, see `/logo_design/` in `.gitignore`) |
 | `TEB_sandbox.ipynb` | Step-by-step pipeline notebook: Google Colab and local (Windows) build and run |
 
