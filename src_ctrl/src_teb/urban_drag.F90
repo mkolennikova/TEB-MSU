@@ -100,7 +100,7 @@ USE MODI_WIND_THRESHOLD
 !USE MODE_SBLS
 USE MODE_THERMOS
 USE MODI_URBAN_EXCH_COEF
-!* CALL_DRIVER resolves XZD_TOWN from urb_zd_town in /tebparam/.
+!* CALL_DRIVER resolves XZD_TOWN from the town displacement height rule.
 !* The reference displacement-height default is urb_h_bld/3.
 USE MODD_PROXI_SVAT_PAR, ONLY : XZD_TOWN, urb_z0_rd, urb_z0_rf, urb_z0_o_z0h_gdn
 

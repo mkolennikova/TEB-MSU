@@ -14,7 +14,7 @@ See [commit `15f5f55` in the development history](https://github.com/mkolennikov
 | Namelist group | Variable | Meaning |
 | --- | --- | --- |
 | `&tebopts` | `teb_ctype_z0_town` | Neutral town momentum roughness z₀ₙ in m |
-| `&tebparams` | `urb_zd_town` | Neutral displacement height dₙ above road level in m |
+| `&tebopts` | `teb_ctype_zd_town` | Neutral displacement height dₙ above road level in m |
 | `&tebopts` | `teb_ctype_z0_town_dyncorr` | Town roughness correction, `'OFF'` or `'ZIL2008'` |
 | `&tebopts` | `teb_ctype_zd_town_dyncorr` | Town displacement height correction, `'OFF'` or `'ZIL2008'` |
 

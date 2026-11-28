@@ -897,6 +897,12 @@ IF(ntstep==6 .AND. i==4) WRITE(*,*) 'MEMORY_PROBE_OK'
             'zero_dt': ("&tebopts dt=0. / &tebparams /", 'dt'),
             'deprecated_z0_town': ("&tebparams urb_z0_town='0.1H' /", 'urb_z0_town is deprecated'),
             'z0_town_list': ("&tebopts teb_ctype_z0_town='0.1H','0.5' / &tebparams /", 'expected 1 or 1'),
+            'deprecated_zd_town': ("&tebopts teb_ctype_zd_town='H/3' / &tebparams urb_zd_town='H/3' /",
+                                   'urb_zd_town is deprecated. Use teb_ctype_zd_town in &tebopts.'),
+            'zd_town_wrong_group': ("&tebparams teb_ctype_zd_town='H/3' /",
+                                    'teb_ctype_zd_town belongs in &tebopts.'),
+            'zd_town_list': ("&tebopts nvec=2 teb_ctype_zd_town='H/3','0.4H' / &tebparams /",
+                             'expected 1 or 1'),
         })
         for key in ('teb_itype_bem', 'teb_itype_natvent', 'teb_itype_bem_cool',
                     'teb_itype_bem_heat', 'teb_itype_wind', 'teb_type_garden', 'teb_type_greenroof'):

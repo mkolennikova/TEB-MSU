@@ -275,7 +275,7 @@ REAL, DIMENSION(1)  :: ZN_FLOOR  ! Number of floors
 !============================================================
 !ZZ0         = TPARAMS%XBLD_HEIGHT(icell:icell) * 0.075   ! Roughness length (m)
 ! TEB_FILL_DERIVED resolves the town roughness and displacement height.
-! The offline namelist supplies teb_ctype_z0_town and urb_zd_town.
+! The offline namelist supplies teb_ctype_z0_town and teb_ctype_zd_town.
 
 !
 !============================================================

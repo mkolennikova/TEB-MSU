@@ -95,7 +95,7 @@ comparison criteria and exclusions are preserved.
 | `greenroof` | Greenroof on, `teb_frac_gr=0.3`, `PROXY_OLD` |
 | `garden_greenroof` | Garden and greenroof enabled together |
 | `irrigation` | Road irrigation enabled with the base dictionary's summer schedule |
-| `wang_zd` | `teb_ctype_wind = 'WANG'`, `urb_zd_town='0.4H'` |
+| `wang_zd` | `teb_ctype_wind = 'WANG'`, `teb_ctype_zd_town='0.4H'` |
 | `no_bem` | `teb_ctype_bem='DEF'`, `teb_frac_gz=0.0` |
 | `shade` | `teb_lshade=.TRUE.` with BEM enabled |
 

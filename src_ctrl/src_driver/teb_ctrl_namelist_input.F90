@@ -85,7 +85,7 @@ CASE('teb_ctype_exch_rd','teb_ctype_exch_rf','teb_ctype_exch_canyon')
   limit=6
 CASE('teb_type_garden','teb_type_greenroof','teb_ctype_garden','teb_ctype_greenroof')
   limit=9
-CASE('teb_ctype_z0_town','urb_zd_town', &
+CASE('teb_ctype_z0_town','teb_ctype_zd_town','urb_zd_town', &
      'teb_ctype_z0_o_z0h_rd','teb_ctype_z0_o_z0h_rf','teb_ctype_z0_o_z0h_town')
   limit=16
 CASE DEFAULT
@@ -266,6 +266,10 @@ DO
     IF(LEN_TRIM(entry%name)==0) CALL fail(path,group,line,'expected parameter name')
     IF(entry%name=='urb_z0_town') &
       CALL fail(path,group,line,'urb_z0_town is deprecated. Use teb_ctype_z0_town in &tebopts.')
+    IF(entry%name=='urb_zd_town' .AND. group/='tebparam') &
+      CALL fail(path,group,line,'urb_zd_town is deprecated. Use teb_ctype_zd_town in &tebopts.')
+    IF(entry%name=='teb_ctype_zd_town' .AND. group/='tebopts') &
+      CALL fail(path,group,line,'teb_ctype_zd_town belongs in &tebopts.')
     IF(entry%name=='teb_ctype_exch_road') &
       CALL fail(path,group,line,'teb_ctype_exch_road is deprecated. Use teb_ctype_exch_rd in &tebopts.')
     IF(entry%name=='teb_ctype_exch_roof') &

@@ -248,10 +248,10 @@ aerodynamic formulas. Its wind profile uses height above displacement `H − zd`
 to `zd = 2/3·H`. Two locations in one model therefore use different displacement
 heights.
 
-In `src_dev`, the driver wind profile and TEB aerodynamics share `urb_zd_town`
+In `src_dev`, the driver wind profile and TEB aerodynamics share `teb_ctype_zd_town`
 and `teb_ctype_z0_town`. Both parameters can be computed from building densities
 with Macdonald et al. (1998). Defaults `teb_ctype_z0_town = '0.1H'` and
-`urb_zd_town = 'H/3'` reproduce the previous driver profile. With these values,
+`teb_ctype_zd_town = 'H/3'` reproduce the previous driver profile. With these values,
 TEB adds `H−zd = 2H/3` to forcing height instead of the original `H/3`.
 
 ```
@@ -265,9 +265,9 @@ coefficients can affect canyon wind. In ordinary `src_ctrl`, both formulas use
 shared height above displacement `H−XZD_TOWN`: in the logarithmic wind profile
 and `URBAN_EXCH_COEF` reference heights. `TEB_UPSTREAM_CONS` restores the tree's
 previous formulas: hard-coded `2H/3` wind profile and `+XZD_TOWN` aerodynamic
-correction (`+H/3` by default). Original TEB had no `urb_zd_town` parameter, so
-the exact original scenario requires default `H/3`. Named Macdonald schemes are
-not supported in `src_ctrl`.
+correction (`+H/3` by default). Original TEB hard-coded its displacement
+height, so the exact original scenario requires the default rule `'H/3'`.
+Named Macdonald schemes are available in `src_dev`.
 
 #### Joint validation of `z0` and `zd`
 
@@ -285,8 +285,8 @@ report `H`, `zd`, `z0` and the `H−z0` limit for `zd`; startup exits with code 
 In 12 checks, both builds accepted defaults and `(H−zd)/z0 = 1.5`. Both rejected
 equality, an exceeded limit and a positive difference within rounding tolerance.
 In `src_dev`, a test pair computed entirely with Macdonald passed. In that same
-configuration, `urb_z0_town = '0.2H'` with `urb_zd_town = 'MACDONALD1998'` was
-rejected. External results: `D:\TEB_work\D7_joint_check\D7_summary.json`.
+configuration, the combination of `'0.2H'` for z0 and `'MACDONALD1998'` for
+zd was rejected. See the external results in `D:\TEB_work\D7_joint_check\D7_summary.json`.
 
 ### D8. Uninitialized albedo/emissivity/radiative temperature of green surfaces
 

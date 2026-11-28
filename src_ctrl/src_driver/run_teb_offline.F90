@@ -423,7 +423,7 @@ CHARACTER(LEN=4) :: teb_ctype_wind
 CHARACTER(LEN=6) :: teb_ctype_exch_rd, teb_ctype_exch_rf, teb_ctype_exch_canyon
 CHARACTER(LEN=9) :: teb_ctype_garden
 CHARACTER(LEN=9) :: teb_ctype_greenroof
-CHARACTER(LEN=16) :: teb_ctype_z0_town
+CHARACTER(LEN=16) :: teb_ctype_z0_town, teb_ctype_zd_town
 CHARACTER(LEN=16) :: teb_ctype_z0_o_z0h_rd, teb_ctype_z0_o_z0h_rf, teb_ctype_z0_o_z0h_town
 LOGICAL :: teb_lcbs_scheme=.FALSE.
 LOGICAL :: teb_lwrite_output=.TRUE.,teb_lwrite_emu=.TRUE.,teb_lwrite_runoff=.TRUE.
@@ -456,7 +456,7 @@ NAMELIST /tebopts/ &
   teb_ctype_bem_cool, teb_ctype_bem_heat, teb_ctype_wind, &
   teb_ctype_garden, teb_ctype_greenroof, teb_hroad_dir, &
   teb_ctype_exch_rd, teb_ctype_exch_rf, teb_ctype_exch_canyon, &
-  teb_ctype_z0_town, &
+  teb_ctype_z0_town, teb_ctype_zd_town, &
   teb_ctype_z0_o_z0h_rd, teb_ctype_z0_o_z0h_rf, teb_ctype_z0_o_z0h_town, &
   teb_wall_opt, teb_lcbs_scheme, teb_lwrite_output, &
   teb_lwrite_emu, teb_lwrite_runoff, teb_lwrite_test_dump
@@ -476,7 +476,7 @@ NAMELIST /tebparams/ &
   ahf_industry, teb_fai, teb_frac_gr, &
   teb_fr_panel, teb_rd_irrig_start_m, teb_rd_irrig_end_m, &
   teb_rd_irrig_start_h, teb_rd_irrig_end_h, teb_rd_irrig_sum, &
-  teb_utc_hour, urb_zd_town, &
+  teb_utc_hour, &
   urb_z0_rd, urb_z0_rf, urb_z0_snow, &
   urb_z0_gdn, urb_z0_o_z0h_gdn, urb_alb_gdn, urb_emis_gdn, &
   urb_z0_grf, urb_alb_grf, urb_emis_grf
@@ -811,6 +811,7 @@ ELSE
   teb_ctype_garden=teb_type_garden
   teb_ctype_greenroof=teb_type_greenroof
   teb_ctype_z0_town=urb_z0_town
+  teb_ctype_zd_town=urb_zd_town
   READ(nml_options_text,NML=tebopts,IOSTAT=rc,IOMSG=nml_message)
   IF(rc/=0) THEN
     WRITE(*,*) 'ERROR: tebopts in ',TRIM(namelist_path_local),': ',TRIM(nml_message)
@@ -832,6 +833,7 @@ ELSE
   teb_type_garden=teb_ctype_garden
   teb_type_greenroof=teb_ctype_greenroof
   urb_z0_town=teb_ctype_z0_town
+  urb_zd_town=teb_ctype_zd_town
   SELECT CASE(TRIM(teb_ctype_wind))
   CASE('DEF')
     teb_itype_wind=0

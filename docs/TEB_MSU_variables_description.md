@@ -78,6 +78,7 @@ In both trees, `teb_fai` takes eight directional values when supplied.
 | `teb_ctype_exch_rf` | Character | `'MASC95'` / `'DELAGE'` | `'MASC95'` | — | Conventional roof/atmosphere exchange through `URBAN_EXCH_COEF`. |
 | `teb_ctype_exch_canyon` | Character | `'MASC95'` / `'DELAGE'` | `'MASC95'` | — | Canyon/atmosphere exchange (`PAC_TOP`, `PCH_TOP`). |
 | `teb_ctype_z0_town` | Character | Metres, height expression or scheme name | `'0.1H'` | — | Neutral town momentum roughness rule for the block in both trees. See [accepted forms](#23-urban-aerodynamics). |
+| `teb_ctype_zd_town` | Character | Metres, height expression or scheme name | `'H/3'` | — | Neutral town displacement height rule for the block in both trees. See [accepted forms](#23-urban-aerodynamics). |
 | `teb_ctype_z0_town_dyncorr` | Character | `'OFF'` / `'ZIL2008'` | `'OFF'` | — | Dynamic correction to town momentum roughness in `src_dev`. See [urban aerodynamics](#23-urban-aerodynamics). |
 | `teb_ctype_zd_town_dyncorr` | Character | `'OFF'` / `'ZIL2008'` | `'OFF'` | — | Dynamic correction to town displacement height in `src_dev`. See [urban aerodynamics](#23-urban-aerodynamics). |
 | `teb_ctype_z0_o_z0h_rd` | Character | Ratio >= 1 or `'KANDA07'` / `'BRUT82'` | `'200'` | — | Road thermal roughness for canyon exchange and direct atmosphere exchange in `src_dev`. |
@@ -114,7 +115,6 @@ In both trees, each `teb_ctype_exch_*` key selects the `SURFACE_*` routines
 
 | Variable | Type | Units / values | Default | List | Description |
 | --- | --- | --- | --- | --- | --- |
-| `urb_zd_town` | Character | m, height expression or scheme name | `'H/3'` | — | Neutral town displacement height. See [accepted forms](#23-urban-aerodynamics). |
 | `urb_z0_rd` | Real | m, finite and positive | `0.05` | — | Nominal momentum roughness of the snow-free road. The model caps it at `0.1 * PZ_LOWCAN` for road/canyon exchange and for direct road/atmosphere exchange in `src_dev`. |
 | `urb_z0_rf` | Real | m, finite and positive | `0.15` | — | Momentum roughness of the snow-free conventional roof. |
 | `urb_z0_snow` | Real | m, finite and positive | `0.001` | — | Momentum roughness shared by snow on the road and roof. |
@@ -277,9 +277,11 @@ update these state variables.
 
 ### 2.3 Urban Aerodynamics
 
-`teb_ctype_z0_town` in `&tebopts` sets the neutral town momentum roughness rule.
-`urb_zd_town` in `&tebparams` sets the neutral displacement height.
-Both accept the case-insensitive forms below, using `H=urb_h_bld` of each cell.
+`teb_ctype_z0_town` and `teb_ctype_zd_town` in `&tebopts` set the neutral
+town momentum roughness and displacement height rules. Each takes one
+character value for the whole block. The displacement height rule defaults
+to `'H/3'` in both trees. The forms below are case-insensitive and use the
+building height `H=urb_h_bld` of each cell.
 
 | Form | Example | Meaning |
 | --- | --- | --- |
@@ -314,12 +316,14 @@ town thermal roughness with `'MASC95'`. Canyon/atmosphere exchange uses the
 resolved town momentum roughness and `z0h=z0` with either exchange algorithm.
 Snow uses `z0h=0.0001` m for any `urb_z0_snow`.
 
-The example uses the default momentum roughness and different thermal
-roughness rules for the road, roof and town. It works in both trees.
+The example uses the default town momentum roughness and displacement
+height with different thermal roughness rules for the road, roof and town.
+It works in both trees.
 
 ```fortran
 &tebopts
   teb_ctype_z0_town = '0.1H',
+  teb_ctype_zd_town = 'H/3',
   teb_ctype_exch_rd = 'DELAGE',
   teb_ctype_exch_rf = 'MASC95',
   teb_ctype_z0_o_z0h_rd = '100',
@@ -327,25 +331,29 @@ roughness rules for the road, roof and town. It works in both trees.
   teb_ctype_z0_o_z0h_town = 'BRUT82',
 /
 &tebparams
-  urb_zd_town = 'H/3',
   urb_z0_rd = 0.05,
   urb_z0_rf = 0.15,
   urb_z0_snow = 0.001,
 /
 ```
 
-The reader stops with a replacement hint when it encounters a deprecated key,
-including when the replacement already appears in the file.
+For the split format, the reader stops with a replacement hint when it
+encounters a deprecated key, including when its replacement is present.
 
 | Deprecated key | Replacement in `&tebopts` |
 | --- | --- |
 | `urb_z0_town` | `teb_ctype_z0_town` |
+| `urb_zd_town` | `teb_ctype_zd_town` |
 | `teb_ctype_exch_road` | `teb_ctype_exch_rd` |
 | `teb_ctype_exch_roof` | `teb_ctype_exch_rf` |
 
 The legacy `&tebparam` format uses `'0.1H'` for town momentum roughness,
 `'MASC95'` for exchange and `'200'` for the road, roof and town ratios. It
 still accepts `urb_zd_town`.
+
+Checkpoint validation in the block driver compares the parameter file
+checksum. To resume a checkpoint created with `urb_zd_town` in
+`&tebparams`, use the original executable and parameter file.
 
 ### 2.4 CBS and Canopy Wind
 
@@ -537,7 +545,7 @@ Undefined values are marked `XUNDEF`; coefficients of disabled paths can be zero
 | `Z0_TOWN_S` | 1 | Shared stability argument `H/L` for the enabled town corrections, with the Obukhov length defined by Eq. (4) of Zilitinkevich et al. (2008) (`src_dev`). |
 | `Z0_TOWN_NEUTRAL_FALLBACK` | 0 or 1 | `1` when enabled town corrections use neutral values because the previous stability estimate is invalid (`src_dev`). |
 | `ZD_TOWN` | m | Town displacement height supplied to the wind and bulk drag calculations for the reported substep (`src_dev`). |
-| `ZD_TOWN_NEUTRAL` | m | Neutral town displacement height resolved from `urb_zd_town` (`src_dev`). |
+| `ZD_TOWN_NEUTRAL` | m | Neutral town displacement height resolved from `teb_ctype_zd_town` (`src_dev`). |
 | `HVAC_COOL`, `HVAC_HEAT` | W/m²(building) | BEM cooling/heating energy consumption; written with `BEM`. |
 | `SOLAR_PROD` | W/m²(building) | Solar-panel energy production; written when panels are enabled. |
 | `AHF_TRAFFIC` | W/m² | Traffic sensible heat flux after its daily modulation. |

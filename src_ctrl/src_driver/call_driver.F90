@@ -683,7 +683,7 @@ HZ0H = 'MASC95'
 !============================================================
 !ZZ0         = ZBLD_HEIGHT * 0.075   ! Roughness length (m)
 !* z0 of the urban surface and the displacement height are resolved from the
-!* settings teb_ctype_z0_town and urb_zd_town in the offline namelist.
+!* settings teb_ctype_z0_town and teb_ctype_zd_town in the offline namelist.
 !* The base-model formulas of the first commit are kept: z0 = 0.1*urb_h_bld and
 !* zd = urb_h_bld/3 - which are exactly the values of the default entries
 !* ('0.1H' and 'H/3' of the shared namelist file), so the default run of the
@@ -696,7 +696,8 @@ IF (ZZ0(1) <= 0. .OR. ZZ0(1) > 0.5*ZBLD_HEIGHT(1)) THEN
   STOP 1
 ENDIF
 IF (XZD_TOWN(1) < 0. .OR. XZD_TOWN(1) >= ZBLD_HEIGHT(1)) THEN
-  WRITE(*,*) 'ERROR in CALL_DRIVER: urb_zd_town = ', TRIM(urb_zd_town), ' -> zd = ', XZD_TOWN(1), ' m'
+  WRITE(*,*) 'ERROR in CALL_DRIVER: teb_ctype_zd_town (legacy urb_zd_town) = ', &
+    TRIM(urb_zd_town), ' -> zd = ', XZD_TOWN(1), ' m'
   WRITE(*,*) '   zd must be in [0, urb_h_bld), urb_h_bld = ', ZBLD_HEIGHT(1), ' m'
   STOP 1
 ENDIF
@@ -1532,7 +1533,7 @@ CONTAINS
 SUBROUTINE URB_AERO_PARAMS(CZ0, CZD, PBLD_HEIGHT, PZ0, PZD)
 ! Aerodynamic parameters of the urban surface: z0 of the town and the
 ! displacement height zd. The offline namelist supplies teb_ctype_z0_town
-! and urb_zd_town via MODD_PROXI_SVAT_PAR. The two settings are
+! and teb_ctype_zd_town via MODD_PROXI_SVAT_PAR. The two settings are
 ! resolved independently and accept (case insensitive):
 !   <value>    - value in metres        ('0.5')
 !   <value>m   - value in metres        ('0.5m')
@@ -1559,7 +1560,7 @@ IF (LSCHEME) CALL URB_AERO_STOP('teb_ctype_z0_town', CZ0, CZD)
 
 ! displacement height: explicit value or (unsupported) scheme name
 CALL URB_AERO_ONE(CZD, PBLD_HEIGHT, PZD, LSCHEME, CSCHEME)
-IF (LSCHEME) CALL URB_AERO_STOP('urb_zd_town', CZ0, CZD)
+IF (LSCHEME) CALL URB_AERO_STOP('teb_ctype_zd_town', CZ0, CZD)
 END SUBROUTINE URB_AERO_PARAMS
 
 SUBROUTINE URB_AERO_STOP(CNAME, CZ0, CZD)
@@ -1569,7 +1570,7 @@ CHARACTER(LEN=*), INTENT(IN) :: CZ0, CZD  ! both namelist entries
 
 WRITE(*,*) 'ERROR in CALL_DRIVER: cannot interpret the namelist entry '//TRIM(CNAME)
 WRITE(*,*) '   teb_ctype_z0_town = ', TRIM(CZ0)
-WRITE(*,*) '   urb_zd_town = ', TRIM(CZD)
+WRITE(*,*) '   teb_ctype_zd_town (legacy urb_zd_town) = ', TRIM(CZD)
 WRITE(*,*) '   accepted forms: <value> (m), <value>m, <value>H, H/<n>'
 WRITE(*,*) '   note: the named parameterizations of src_dev (MACDONALD1998,'
 WRITE(*,*) '         MACDONALD1998SQ) are not implemented in src_ctrl'

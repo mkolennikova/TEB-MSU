@@ -10,7 +10,7 @@
 !!    -------
 !!    Resolves the specifications for the roughness length z0 and the
 !!    displacement height zd. The offline namelist supplies them as
-!!    teb_ctype_z0_town and urb_zd_town.
+!!    teb_ctype_z0_town and teb_ctype_zd_town.
 !!
 !!    Moved out of MODI_CALL_DRIVER (P-C1b) so that the container layer TEB_HOST
 !!    can derive the aerodynamic parameters in TEB_FILL_DERIVED.
@@ -31,7 +31,7 @@ CONTAINS
 SUBROUTINE URB_AERO_PARAMS(CZ0, CZD, PBLD_HEIGHT, PBLD_FRAC, PFAI, PZ0, PZD)
 ! Aerodynamic parameters of the urban surface: z0 of the town and the
 ! displacement height zd. Both are defined by the namelist entries
-! (teb_ctype_z0_town, urb_zd_town), each accepting (case insensitive):
+! (teb_ctype_z0_town, teb_ctype_zd_town), each accepting (case insensitive):
 !   0.5 | 0.5m  - value in metres
 !   0.1H        - fraction of the building height
 !   H/3         - building height divided by n
@@ -61,7 +61,7 @@ ENDIF
 CALL URB_AERO_ONE(CZD, PBLD_HEIGHT, PZD, LSCHEME_ZD, CSCHEME_ZD)
 IF (LSCHEME_ZD) THEN
   CALL URB_AERO_SCHEME_ZD(CSCHEME_ZD, PBLD_HEIGHT, PBLD_FRAC, PZD, KERR)
-  IF (KERR /= 0) CALL URB_AERO_STOP('urb_zd_town', CZ0, CZD)
+  IF (KERR /= 0) CALL URB_AERO_STOP('teb_ctype_zd_town', CZ0, CZD)
 ENDIF
 END SUBROUTINE URB_AERO_PARAMS
 
@@ -72,7 +72,7 @@ CHARACTER(LEN=*), INTENT(IN) :: CZ0, CZD  ! both namelist entries
 
 WRITE(*,*) 'ERROR in CALL_DRIVER: cannot interpret the namelist entry '//TRIM(CNAME)
 WRITE(*,*) '   teb_ctype_z0_town = ', TRIM(CZ0)
-WRITE(*,*) '   urb_zd_town = ', TRIM(CZD)
+WRITE(*,*) '   teb_ctype_zd_town (legacy urb_zd_town) = ', TRIM(CZD)
 WRITE(*,*) '   accepted forms: <value> (m), <value>m, <value>H, H/<n>'
 WRITE(*,*) '   named parameterizations: MACDONALD1998, MACDONALD1998SQ'
 STOP

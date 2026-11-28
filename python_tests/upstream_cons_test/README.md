@@ -19,7 +19,7 @@ What `TEB_UPSTREAM_CONS` changes to align the control line with official 4.0.0:
 | `src_teb/ini_csts.F90:139` | `XRD/XRV/XCPD` from `XAVOGADRO*XBOLTZ/XM…` instead of rounded literals |
 | `src_driver/call_driver.F90`, `src_teb/urban_drag.F90` | D7: legacy `2H/3` wind profile and `+XZD_TOWN` aerodynamic correction instead of consistent `H−XZD_TOWN` |
 
-At the default `urb_zd_town='H/3'`, the D7 branch reproduces the original
+At the default `teb_ctype_zd_town='H/3'`, the D7 branch reproduces the original
 formulas. With another `zd`, it retains the previous `src_ctrl` behavior, whereas
 official TEB 4.0.0 had no such parameter. Ordinary `src_ctrl` uses `H−XZD_TOWN`
 in both formulas.
@@ -81,10 +81,11 @@ gfortran runtime DLL directory.
 
 ## Cases
 
-In the control template, `&tebopts` contains switches, exchange schemes and
-`z0/z0h` rules, while `&tebparams` contains roughness lengths and other physical
-parameters. `C0_control` explicitly sets `MASC95` and ratio `200` for the road
-and roof, ratio `200` for the town, and default roughness lengths.
+In the control template, `&tebopts` contains switches, exchange schemes,
+`z0/z0h` rules and the town `z0` and `zd` rules. Surface roughness lengths
+and other physical parameters go in `&tebparams`. `C0_control` explicitly
+sets `MASC95` and ratio `200` for the road and roof, ratio `200` for the
+town, and the default town rules and surface roughness lengths.
 
 | Case | Component | Control (`&tebopts` and `&tebparams`) | 2020 (`&parameters`) |
 | --- | --- | --- | --- |

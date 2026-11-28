@@ -71,7 +71,7 @@ CHARACTER(LEN=4) :: teb_ctype_wind
 CHARACTER(LEN=6) :: teb_ctype_exch_rd, teb_ctype_exch_rf, teb_ctype_exch_canyon
 CHARACTER(LEN=9) :: teb_ctype_garden
 CHARACTER(LEN=9) :: teb_ctype_greenroof
-CHARACTER(LEN=16) :: teb_ctype_z0_town
+CHARACTER(LEN=16) :: teb_ctype_z0_town, teb_ctype_zd_town
 CHARACTER(LEN=16) :: teb_ctype_z0_town_dyncorr, teb_ctype_zd_town_dyncorr
 CHARACTER(LEN=LEN(CTEB_TOWN_DYNCORR_DEFAULT)) :: z0_town_dyncorr, zd_town_dyncorr
 CHARACTER(LEN=16) :: teb_ctype_z0_o_z0h_rd, teb_ctype_z0_o_z0h_rf, teb_ctype_z0_o_z0h_town
@@ -159,7 +159,8 @@ NAMELIST /tebopts/ &
   teb_ctype_bem_heat, teb_ctype_wind, teb_ctype_garden, &
   teb_ctype_greenroof, teb_hroad_dir, teb_wall_opt, &
   teb_ctype_exch_rd, teb_ctype_exch_rf, teb_ctype_exch_canyon, &
-  teb_ctype_z0_town, teb_ctype_z0_town_dyncorr, teb_ctype_zd_town_dyncorr, &
+  teb_ctype_z0_town, teb_ctype_zd_town, &
+  teb_ctype_z0_town_dyncorr, teb_ctype_zd_town_dyncorr, &
   teb_ctype_z0_o_z0h_rd, teb_ctype_z0_o_z0h_rf, teb_ctype_z0_o_z0h_town, &
   teb_lwrite_output, teb_lwrite_emu, teb_lwrite_runoff, &
   teb_lwrite_test_dump
@@ -183,7 +184,7 @@ NAMELIST /tebparams/ &
   urb_alb_grf, urb_emis_grf, proxy_phu_gdn, &
   proxy_phu_grf, teb_fr_panel, teb_rd_irrig_start_m, &
   teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
-  teb_rd_irrig_sum, teb_utc_hour, urb_zd_town, &
+  teb_rd_irrig_sum, teb_utc_hour, &
   urb_z0_rd, urb_z0_rf, urb_z0_snow
 NAMELIST /tebparam/ &
   dt, urb_h_bld, urb_fr_bld, &
@@ -414,6 +415,7 @@ IF(.NOT.legacy) THEN
   teb_ctype_bem_heat=teb_itype_bem_heat
   teb_ctype_garden=teb_type_garden
   teb_ctype_greenroof=teb_type_greenroof
+  teb_ctype_zd_town=urb_zd_town
   teb_cbs_hw_thresh=teb_tau_hw_thresh
   teb_cbs_hw_width=teb_tau_hw_width
   DO j=1,SIZE(o)
@@ -438,6 +440,7 @@ IF(.NOT.legacy) THEN
   teb_itype_bem_heat=teb_ctype_bem_heat
   teb_type_garden=teb_ctype_garden
   teb_type_greenroof=teb_ctype_greenroof
+  urb_zd_town=teb_ctype_zd_town
   teb_tau_hw_thresh=teb_cbs_hw_thresh
   teb_tau_hw_width=teb_cbs_hw_width
 END IF
@@ -910,7 +913,8 @@ CASE('teb_ctype_exch_rd','teb_ctype_exch_rf','teb_ctype_exch_canyon')
   limit=6
 CASE('teb_type_garden','teb_type_greenroof','teb_ctype_garden','teb_ctype_greenroof')
   limit=9
-CASE('teb_ctype_z0_town','teb_ctype_z0_town_dyncorr','teb_ctype_zd_town_dyncorr','urb_zd_town', &
+CASE('teb_ctype_z0_town','teb_ctype_zd_town','urb_zd_town', &
+     'teb_ctype_z0_town_dyncorr','teb_ctype_zd_town_dyncorr', &
      'teb_ctype_z0_o_z0h_rd','teb_ctype_z0_o_z0h_rf','teb_ctype_z0_o_z0h_town')
   limit=16
 CASE DEFAULT
@@ -1092,6 +1096,9 @@ DO
     SELECT CASE(entry%name)
     CASE('urb_z0_town')
       CALL fail(path,group,line,'urb_z0_town is deprecated. Use teb_ctype_z0_town in &tebopts.')
+    CASE('urb_zd_town')
+      IF(group/='tebparam') &
+        CALL fail(path,group,line,'urb_zd_town is deprecated. Use teb_ctype_zd_town in &tebopts.')
     CASE('teb_ctype_exch_road')
       CALL fail(path,group,line,'teb_ctype_exch_road is deprecated. Use teb_ctype_exch_rd in &tebopts.')
     CASE('teb_ctype_exch_roof')
@@ -1102,7 +1109,8 @@ DO
     CASE('teb_tau_hw_width')
       IF(group/='tebparam') &
         CALL fail(path,group,line,'teb_tau_hw_width is deprecated. Use teb_cbs_hw_width in &tebopts.')
-    CASE('teb_cbs_hw_thresh','teb_cbs_hw_width','teb_ctype_z0_town_dyncorr','teb_ctype_zd_town_dyncorr')
+    CASE('teb_cbs_hw_thresh','teb_cbs_hw_width','teb_ctype_zd_town', &
+         'teb_ctype_z0_town_dyncorr','teb_ctype_zd_town_dyncorr')
       IF(group/='tebopts') CALL fail(path,group,line,TRIM(entry%name)//' belongs in &tebopts.')
     END SELECT
     CALL skip_space(text,p,line)

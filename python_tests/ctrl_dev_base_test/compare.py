@@ -63,7 +63,7 @@ CASE_OVERRIDES = {
                          "teb_lgreenroof": ".TRUE.", "teb_frac_gr": "0.3",
                          "teb_ctype_greenroof": "'PROXY_OLD'"},
     "irrigation": {"teb_lroad_irrig": ".TRUE."},
-    "wang_zd": {"teb_ctype_wind": "'WANG'", "urb_zd_town": "'0.4H'"},
+    "wang_zd": {"teb_ctype_wind": "'WANG'", "teb_ctype_zd_town": "'0.4H'"},
     "no_bem": {"teb_ctype_bem": "'DEF'", "teb_frac_gz": "0.0"},
     "shade": {"teb_lshade": ".TRUE."},
 }
@@ -133,6 +133,9 @@ def prepare_namelists(out: Path, smoke_steps: int, forcing_source: Path,
                       forcing_dir: Path | None, irrigation_months: tuple[int, int] | None,
                       replacement_wind: Path | None) -> dict:
     param = canonicalize_legacy_selectors(read_template(PARAM_TEMPLATE))
+    # CAPITOUL can rely on DEF. Make the baseline selector explicit for this matrix.
+    if not re.search(r"(?im)^[ \t]*teb_ctype_wind[ \t]*=", param):
+        param = set_namelist_value(param, "teb_ctype_wind", "'DEF'")
     expected = {
         "teb_lgarden": ".false.",
         "fr_garden": "0.0",
