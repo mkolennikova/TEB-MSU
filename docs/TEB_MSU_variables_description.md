@@ -225,6 +225,18 @@ Both trees read the road, roof and snow momentum roughness lengths from
 | `nsteps` | Integer | >= 2 | Required | — | Number of forcing records; [time sampling](#31-files-and-time-sampling). |
 | `forc_step` | Real | s | `1800` | — | Forcing interval; a positive integer multiple of `dt`. |
 
+In both offline drivers (`src_dev` and `src_ctrl`), `Forc_DIR.txt` gives the
+meteorological direction the wind blows **from**, in degrees clockwise from
+true north. With wind speed `S` and this angle in radians, each driver
+computes eastward `u = -S sin(angle)` and northward `v = -S cos(angle)` at
+both forcing records, then interpolates the components. A north wind (0°)
+has negative `v` and a west wind (270°) has positive `u`.
+
+For legacy `src_ctrl` forcing files encoded as the direction the wind blows
+**toward**, convert the angles once by adding 180° modulo 360°.
+Both drivers derive the [CSV direction](#37-atmospheric-forcing) from the
+interpolated components.
+
 ## 2. Parameter notes
 
 ### 2.1 Input rules
@@ -636,13 +648,18 @@ Solar geometry used at the last model substep of the output interval.
 Interpolated forcing used by the last model substep, at `time-dt`.
 All cells receive the same atmospheric series.
 
+The offline CSV reports `Forc_DIR` from `Forc_U=u` and `Forc_V=v` using
+`modulo(180 + atan2(u,v) * 180/pi, 360)`, with `atan2` in radians.
+The control driver appends the column at the end of `TEB_output.csv`.
+
 | Column | Units | Meaning |
 | --- | --- | --- |
 | `Forc_TA` | K | Air temperature. |
 | `Forc_QA` | kg/m³ | Air water-vapor density, `Forc_QV*Forc_RHOA`. |
 | `Forc_QV` | kg/kg | Air specific humidity passed to TEB. |
-| `Forc_U`, `Forc_V`, `Forc_WIND` | m/s | Zonal/meridional wind components and wind speed. |
-| `Forc_DIR` | ° | Wind direction clockwise from north, `atan2(u,v)`. |
+| `Forc_U`, `Forc_V` | m/s | Eastward and northward components of the forcing wind. |
+| `Forc_WIND` | m/s | Magnitude of the forcing wind in `src_dev`. |
+| `Forc_DIR` | ° | In both offline drivers, direction from which the forcing wind blows, clockwise from true north in [0°, 360°). A row with a zero wind vector uses `XUNDEF` for direction. |
 | `Forc_PS` | Pa | Pressure at the forcing level. |
 | `Forc_RHOA` | kg/m³ | Air density at the forcing level. |
 | `Forc_RAIN`, `Forc_SNOW` | kg/(m² s) | Rain and snow precipitation rates. |

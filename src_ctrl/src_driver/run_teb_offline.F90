@@ -377,6 +377,7 @@ INTEGER                           :: nout, lout, jout
 CHARACTER(LEN=64), DIMENSION(nout_max) :: out_names
 CHARACTER(LEN=8192)               :: out_line
 CHARACTER(LEN=32)                 :: time_buf
+REAL                             :: forc_dir
 ! -----------------------------------------------------------
 ! Namelist groups of the run and their paths
 ! -----------------------------------------------------------
@@ -1017,6 +1018,7 @@ nout = nout + 1; out_names(nout) = 'Forc_SNOW'
 nout = nout + 1; out_names(nout) = 'Forc_LW'
 nout = nout + 1; out_names(nout) = 'Forc_DIR_SW'
 nout = nout + 1; out_names(nout) = 'Forc_SCA_SW'
+nout = nout + 1; out_names(nout) = 'Forc_DIR'
 IF (nout > nout_max) THEN
   WRITE(*,*) 'ERROR RUN_TEB_OFFLINE: too many output columns: ', nout, &
     ' > nout_max = ', nout_max
@@ -1238,6 +1240,13 @@ DO ntstep = 1, nsteps - 1
   CALL CSV_APPEND(out_line, lwd_s(1))
   CALL CSV_APPEND(out_line, swdir_s(1))
   CALL CSV_APPEND(out_line, swdifd_s(1))
+  ! Diagnose the wind-from azimuth from the interpolated forcing vector.
+  IF (u(1) == 0. .AND. v(1) == 0.) THEN
+    forc_dir = XUNDEF
+  ELSE
+    forc_dir = MODULO(180. + ATAN2(u(1),v(1))*180./XPI, 360.)
+  END IF
+  CALL CSV_APPEND(out_line, forc_dir)
   WRITE(fu_out,'(A)') TRIM(out_line)
 END DO
 

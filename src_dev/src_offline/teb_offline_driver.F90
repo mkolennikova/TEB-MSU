@@ -173,7 +173,7 @@ DO b=1,cfg%nblocks
   blocks(b)%kteb_log_block=log_blocks
   blocks(b)%kteb_log_point=log_points
 END DO
-CALL TEB_LOG_INIT(prefix//'TEB_output',cadence,rc)
+CALL TEB_LOG_INIT(prefix//'TEB_output',cadence,rc,LWIND_FROM=.TRUE.)
 IF(rc/=0) ERROR STOP 'Cannot initialize model CSV output'
 CALL TEB_LOG_SET_VERBOSE(cfg%verbose)
 IF(cfg%test_dump) THEN

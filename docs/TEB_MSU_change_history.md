@@ -1,5 +1,7 @@
 # TEB-MSU change history
 
+Selected repository history through 2026-11-28.
+
 | Commit | Date | Author | Files changed | Brief description |
 | --- | --- | --- | ---: | --- |
 | [`582c3ab`](https://github.com/mkolennikova/TEB-MSU/commit/582c3abf340bdd02cf9d147f667055c5ba86ec30) | 2026-06-10 | mkolennikova | 200 | Import the initial TEB-Ru source tree, including urban and building energy budgets, garden and greenroof proxies, the offline driver, and example inputs. |
@@ -130,4 +132,5 @@
 | [`12c3fbf`](https://github.com/mkolennikova/TEB-MSU/commit/12c3fbf52092e84431f9dfbabef3e76741a0ac8d) | 2026-11-25 | mvarentsov | 6 | Add CBS and TEB-MSU coupling diagrams. |
 | [`ca3508e`](https://github.com/mkolennikova/TEB-MSU/commit/ca3508ea4b8065dd81c23f4fbaa88ea5e741e655) | 2026-11-26 | mvarentsov | 17 | Average pedestrian MRT across street width with sun/shade classes and open-roof exposure. Add canyon UTCI with equivalent 10 m wind and guarded validity ranges. |
 | [`216e917`](https://github.com/mkolennikova/TEB-MSU/commit/216e917f0916c5fa77c10aaae128da030eb74d48) | 2026-11-26 | mvarentsov | 31 | Consolidate documentation conventions in AGENTS.md, remove the duplicate rules guide, and organize physical-scheme descriptions under docs/schemes/. Rename diagram assets to illustrations/, translate the eight remaining Russian documents into English, and update repository and section links. |
-| Uncommitted (MRT illustration) | 2026-11-26 | mvarentsov | 2 | Remove the PNG copy of the pedestrian MRT diagram. The scheme document displays the SVG directly. |
+| [`eabe2e4`](https://github.com/mkolennikova/TEB-MSU/commit/eabe2e4deb746ecddc2dec5b8e05f07a29613724) | 2026-11-26 | mvarentsov | 2 | Remove the PNG copy of the pedestrian MRT diagram. The scheme document displays the SVG directly. |
+| Uncommitted | 2026-11-28 | mvarentsov | 8 | Use meteorological wind direction for offline forcing and CSV output in both source trees. Document conversion of legacy control forcing files. |

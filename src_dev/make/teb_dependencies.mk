@@ -52,7 +52,8 @@ $(OBJDIR)/teb_log.o: src_api/teb_log.F90 \
     $(OBJDIR)/modd_teb_forcingn.o \
     $(OBJDIR)/modd_teb_optionn.o \
     $(OBJDIR)/modd_tebn.o \
-    $(OBJDIR)/modd_csts.o
+    $(OBJDIR)/modd_csts.o \
+    $(OBJDIR)/modd_surf_par.o
 
 $(OBJDIR)/urb_aero_params.o: src_api/urb_aero_params.F90 \
     $(OBJDIR)/modd_csts.o

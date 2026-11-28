@@ -100,12 +100,12 @@ INTEGER :: ILUOUT
 !
 ILUOUT = 10
 !
-! Compute wind components
-! zonal wind
-ZU1 = PWIND  (1,:) * SIN(PDIR(1,:)*XPI/180.)
-ZV1 = PWIND  (1,:) * COS(PDIR(1,:)*XPI/180.)
-ZU2 = PWIND  (2,:) * SIN(PDIR(2,:)*XPI/180.)
-ZV2 = PWIND  (2,:) * COS(PDIR(2,:)*XPI/180.)
+! Forc_DIR is the meteorological direction from which the wind blows.
+! Convert to eastward and northward velocities before interpolation.
+ZU1 = -PWIND  (1,:) * SIN(PDIR(1,:)*XPI/180.)
+ZV1 = -PWIND  (1,:) * COS(PDIR(1,:)*XPI/180.)
+ZU2 = -PWIND  (2,:) * SIN(PDIR(2,:)*XPI/180.)
+ZV2 = -PWIND  (2,:) * COS(PDIR(2,:)*XPI/180.)
 !
 ! Compute variation from atmospheric time step J and J+1
 !
