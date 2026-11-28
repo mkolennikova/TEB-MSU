@@ -47,9 +47,9 @@ and checks that
 Configurations (3 LCZ x 4 garden modes x 2 values of urb_z0_gdn = 24 runs)
 -----------------------------------------------------------------------
     gOFF : teb_lgarden = .FALSE.                        (Z1: no-op)
-    gOLD : teb_lgarden = .TRUE., teb_type_garden = 'PROXY_OLD'  (Z2: no-op)
-    gNEW : teb_lgarden = .TRUE., teb_type_garden = 'PROXY_NEW'  (Z3, Z5)
-    gEXT : teb_lgarden = .TRUE., teb_type_garden = 'EXT'        (Z4)
+    gOLD : teb_lgarden = .TRUE., teb_ctype_garden = 'PROXY_OLD'  (Z2: no-op)
+    gNEW : teb_lgarden = .TRUE., teb_ctype_garden = 'PROXY_NEW'  (Z3, Z5)
+    gEXT : teb_lgarden = .TRUE., teb_ctype_garden = 'EXT'        (Z4)
 
 The CBS scheme of the road is OFF in every case and ``fr_garden = 0.3``.
 
@@ -97,6 +97,8 @@ PYTHON_DIR = MODEL_DIR / 'python'      # shared libraries of the repository
 if str(PYTHON_DIR) not in sys.path:
     sys.path.append(str(PYTHON_DIR))
 
+from container_ab_compare import model_csv  # noqa: E402
+from teb_namelist import read_model_namelist  # noqa: E402
 from sensitivity_zd import (                                          # noqa: E402
     LCZ, DEFAULT_WORK_DIR, run_case, series, stats_of,
 )
@@ -104,7 +106,7 @@ from sensitivity_zd import (                                          # noqa: E4
 #: values >= XUNDEF are undefined in TEB-MSU (MODD_SURF_PAR:XUNDEF = 1.0e20)
 XUNDEF = 1.0e19
 
-#: garden modes: tag -> (teb_lgarden, teb_type_garden, description)
+#: garden modes: tag -> (teb_lgarden, teb_ctype_garden, description)
 MODES = {
     'gOFF': (False, 'PROXY_NEW', 'garden OFF'),
     'gOLD': (True,  'PROXY_OLD', 'garden ON, historical Bowen proxy'),
@@ -160,19 +162,19 @@ def build_namelist(base_nml: Path, lcz_tag: str, mode_tag: str, z0: float,
 
     The road CBS scheme is switched OFF: the experiment isolates the garden.
     """
-    import f90nml
-    nml = f90nml.read(str(base_nml))
-    p = nml['tebparam']
+    nml = read_model_namelist(base_nml)
+    opts = nml['tebopts']
+    p = nml['tebparams']
     lcz = LCZ[lcz_tag]
     lgarden, gtype, _desc = MODES[mode_tag]
     p['urb_h_bld'] = float(lcz['h_bld'])
     p['urb_fr_bld'] = float(lcz['fr_bld'])
     p['urb_h2w'] = float(lcz['h2w'])
     p['teb_fai'] = [float(lcz['fai'])] * 8
-    p['teb_lgarden'] = bool(lgarden)
+    opts['teb_lgarden'] = bool(lgarden)
     p['fr_garden'] = float(fr_garden) if lgarden else 0.0
-    p['teb_type_garden'] = gtype
-    p['teb_lcbs_scheme'] = False
+    opts['teb_ctype_garden'] = gtype
+    opts['teb_lcbs_scheme'] = False
     p['urb_z0_gdn'] = float(z0)                  # the item under study
     path.parent.mkdir(parents=True, exist_ok=True)
     nml.write(str(path), force=True)
@@ -190,7 +192,7 @@ def read_all(out_dir: Path):
     may lose one ULP): the bit-for-bit comparisons below need the exact values
     written by the model.
     """
-    csv = out_dir / 'TEB_output.csv'
+    csv = model_csv(out_dir)
     if not csv.is_file():
         return None
     with open(csv, encoding='utf-8', errors='ignore') as fh:
@@ -356,24 +358,12 @@ def main(argv=None) -> int:
         return 2
     z0_ref, z0_new = z0_values[0], z0_values[-1]
 
-    #: z0/z0h ratio of the garden used by the runs (`urb_z0_o_z0h_gdn`). The bench
-    #: does not write the item, so the runs use the driver default
-    #: (MODD_PROXI_SVAT_PAR:XZ0_O_Z0H_GD = 4); if the base namelist sets it, that
-    #: value is used by the analytic checks below.
-    z0h_ratio = 4.0
-    try:
-        import f90nml
-        _p = f90nml.read(str(base))
-        z0h_ratio = float(_p['tebparam'].get('urb_z0_o_z0h_gdn', z0h_ratio))
-    except Exception:
-        pass
-
     work = Path(args.work_dir)
     site_dir = work / args.site
     base = (Path(args.base_namelist) if args.base_namelist
             else site_dir / 'params_CTRL.nml')
     if not base.is_file():
-        base = MODEL_DIR / 'namelist' / 'namelist.nml'
+        base = MODEL_DIR / 'tests' / 'CAPITOUL' / 'namelist' / 'namelist.nml'
     forcing_nml = (Path(args.forcing_nml) if args.forcing_nml
                    else site_dir / 'forcing_ERA5' / 'namelist_forcing.nml')
     out_root = (Path(args.out_root) if args.out_root
@@ -390,6 +380,10 @@ def main(argv=None) -> int:
         for case, lcz_tag, mode_tag, z0 in all_cases:
             print(f'{case:<22} {LCZ[lcz_tag]["label"]:<46} {z0:>6g}  {MODES[mode_tag][2]}')
         return 0
+
+    # The sensitivity runs retain the garden ratio from their base namelist.
+    parameters = read_model_namelist(base)['tebparams']
+    z0h_ratio = float(parameters.get('urb_z0_o_z0h_gdn', 4.0))
 
     out_root.mkdir(parents=True, exist_ok=True)
     (out_root / 'namelists').mkdir(exist_ok=True)
@@ -414,7 +408,7 @@ def main(argv=None) -> int:
         build_namelist(base, lcz_tag, mode_tag, z0, nml_path, args.fr_garden)
         if args.skip_run:
             continue
-        if (out_dir / 'TEB_output.csv').is_file() and not args.force:
+        if model_csv(out_dir).is_file() and not args.force:
             print(f'  [skip] {case}')
             continue
         print(f'  [run ] {case}  ({LCZ[lcz_tag]["label"]}, {mode_tag}, z0 = {z0:g} m)')
@@ -430,7 +424,7 @@ def main(argv=None) -> int:
         out_dir = out_root / f'output_{case}'
         df = read_all(out_dir)
         if df is None:
-            print(f'  [miss] {case}: no TEB_output.csv')
+            print(f'  [miss] {case}: no model CSV')
             continue
         if args.days:
             tmax = pd.Timestamp(df['time'].iloc[0]) + pd.Timedelta(days=args.days)
@@ -715,7 +709,7 @@ def main(argv=None) -> int:
     md = []
     md.append('# Garden roughness length (`urb_z0_gdn`): sensitivity experiment')
     md.append('')
-    md.append('Garden model of TEB-MSU (`teb_type_garden`) tested on the Moscow ERA5'
+    md.append('Garden model of TEB-MSU (`teb_ctype_garden`) tested on the Moscow ERA5'
               ' forcing, with the garden roughness length taken from the namelist item'
               ' `urb_z0_gdn` (all the garden versions).')
     md.append('')
@@ -728,7 +722,7 @@ def main(argv=None) -> int:
     md.append('')
     md.append('## Configurations')
     md.append('')
-    md.append('| case | LCZ | garden | `teb_type_garden` | `urb_z0_gdn` (m) |')
+    md.append('| case | LCZ | garden | `teb_ctype_garden` | `urb_z0_gdn` (m) |')
     md.append('|---|---|---|---|---|')
     for case, lcz_tag, mode_tag, z0 in all_cases:
         lg, ty, _desc = MODES[mode_tag]

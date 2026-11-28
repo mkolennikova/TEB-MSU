@@ -8,6 +8,7 @@
 !!        Validate named common selectors while accepting legacy key lengths.
 !!      11/2026 -- OpenAI Codex
 !!        Require the town roughness option under its new namelist key.
+!!        Retire the monolithic parameter group.
 !-------------------------------------------------------------------------------
 MODULE TEB_CTRL_NAMELIST_INPUT
 IMPLICIT NONE
@@ -20,27 +21,18 @@ TYPE NML_ASSIGNMENT
   INTEGER :: count=0
 END TYPE
 CONTAINS
-SUBROUTINE CTRL_PREPARE_NAMELISTS(path,opts_text,param_text,legacy,garden_z0_explicit)
+SUBROUTINE CTRL_PREPARE_NAMELISTS(path,opts_text,param_text,garden_z0_explicit)
 CHARACTER(LEN=*),INTENT(IN)::path
 CHARACTER(LEN=:),ALLOCATABLE,INTENT(OUT)::opts_text,param_text
-LOGICAL,INTENT(OUT)::legacy,garden_z0_explicit
-TYPE(NML_ASSIGNMENT),ALLOCATABLE::o(:),a(:),probe(:),native_opts(:)
+LOGICAL,INTENT(OUT)::garden_z0_explicit
+TYPE(NML_ASSIGNMENT),ALLOCATABLE::o(:),a(:),native_opts(:)
 CHARACTER(LEN=:),ALLOCATABLE::text
 LOGICAL::found
 INTEGER::j,n,rc
 CALL read_text(path,text)
-CALL scan_group(text,'tebparam',a,legacy,path)
-IF(legacy) THEN
-  CALL scan_group(text,'tebopts',probe,found,path)
-  IF(found) CALL fail(path,'tebopts',0,'cannot mix tebparam and tebopts')
-  CALL scan_group(text,'tebparams',probe,found,path)
-  IF(found) CALL fail(path,'tebparams',0,'cannot mix tebparam and tebparams')
-  ALLOCATE(o(0))
-ELSE
-  CALL scan_group(text,'tebopts',o,found,path)
-  CALL scan_group(text,'tebparams',a,found,path)
-  IF(.NOT.found) CALL fail(path,'tebparams',0,'missing namelist group')
-END IF
+CALL scan_group(text,'tebopts',o,found,path)
+CALL scan_group(text,'tebparams',a,found,path)
+IF(.NOT.found) CALL fail(path,'tebparams',0,'missing namelist group')
 ALLOCATE(native_opts(0))
 DO j=1,SIZE(o)
   CALL require_count(o(j),1,1,path)
@@ -63,11 +55,7 @@ DO j=1,SIZE(a)
 END DO
 garden_z0_explicit=ANY(a%name=='urb_z0_gdn')
 opts_text=build_text('tebopts',native_opts)
-IF(legacy) THEN
-  param_text=build_text('tebparam',a)
-ELSE
-  param_text=build_text('tebparams',a)
-END IF
+param_text=build_text('tebparams',a)
 END SUBROUTINE
 SUBROUTINE check_string(a,path)
 TYPE(NML_ASSIGNMENT),INTENT(IN)::a
@@ -75,17 +63,17 @@ CHARACTER(LEN=*),INTENT(IN)::path
 INTEGER::limit,n,p
 CHARACTER::quote
 SELECT CASE(a%name)
-CASE('teb_itype_bem','teb_ctype_bem')
+CASE('teb_ctype_bem')
   limit=3
-CASE('teb_itype_natvent','teb_ctype_natvent','teb_ctype_wind','teb_hroad_dir','teb_wall_opt')
+CASE('teb_ctype_natvent','teb_ctype_wind','teb_hroad_dir','teb_wall_opt')
   limit=4
-CASE('teb_itype_bem_cool','teb_itype_bem_heat','teb_ctype_bem_cool','teb_ctype_bem_heat')
+CASE('teb_ctype_bem_cool','teb_ctype_bem_heat')
   limit=6
 CASE('teb_ctype_exch_rd','teb_ctype_exch_rf','teb_ctype_exch_canyon')
   limit=6
-CASE('teb_type_garden','teb_type_greenroof','teb_ctype_garden','teb_ctype_greenroof')
+CASE('teb_ctype_garden','teb_ctype_greenroof')
   limit=9
-CASE('teb_ctype_z0_town','teb_ctype_zd_town','urb_zd_town', &
+CASE('teb_ctype_z0_town','teb_ctype_zd_town', &
      'teb_ctype_z0_o_z0h_rd','teb_ctype_z0_o_z0h_rf','teb_ctype_z0_o_z0h_town')
   limit=16
 CASE DEFAULT
@@ -236,7 +224,9 @@ DO
   p=p+1
   name=get_name(text,p)
   SELECT CASE(name)
-  CASE('tebopts','tebparams','tebparam','tebforcing','block_test')
+  CASE('tebopts','tebparams','tebforcing','block_test')
+  CASE('tebparam')
+    CALL fail(path,name,line,'&tebparam is no longer supported. Use &tebopts and &tebparams.')
   CASE DEFAULT
     CALL fail(path,name,line,'unknown namelist group')
   END SELECT
@@ -266,7 +256,7 @@ DO
     IF(LEN_TRIM(entry%name)==0) CALL fail(path,group,line,'expected parameter name')
     IF(entry%name=='urb_z0_town') &
       CALL fail(path,group,line,'urb_z0_town is deprecated. Use teb_ctype_z0_town in &tebopts.')
-    IF(entry%name=='urb_zd_town' .AND. group/='tebparam') &
+    IF(entry%name=='urb_zd_town') &
       CALL fail(path,group,line,'urb_zd_town is deprecated. Use teb_ctype_zd_town in &tebopts.')
     IF(entry%name=='teb_ctype_zd_town' .AND. group/='tebopts') &
       CALL fail(path,group,line,'teb_ctype_zd_town belongs in &tebopts.')

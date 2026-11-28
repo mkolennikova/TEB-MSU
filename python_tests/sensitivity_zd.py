@@ -15,7 +15,7 @@ Varied parameters:
   * z0 prescription: '0.1H' in the zd-sensitivity group, plus the two
     combinations in which zd and z0 are both taken from the same Macdonald
     parameterization (staggered and square)
-  * wind scheme: teb_itype_wind = 0 (default) and 1 (Wang 2012)
+  * wind scheme: teb_ctype_wind = 'DEF' and 'WANG'
   * urban morphology: LCZ 2 (compact mid-rise, city centre) and LCZ 9
     (sparse low-rise, suburban, H/W = 0.15)
 
@@ -44,7 +44,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import f90nml
 
 import matplotlib
 matplotlib.use('Agg')
@@ -65,8 +64,9 @@ except Exception:                                # pragma: no cover
 # building configurations of the cases: the descriptions live in the shared
 # module morphology.py; LCZ (the single set) is imported here and re-exported,
 # so the benches keep importing it from sensitivity_zd
+from container_ab_compare import model_csv       # noqa: E402
 from morphology import LCZ                       # noqa: E402
-from ctrl_dev_base_test.compare import canonicalize_legacy_selectors, split_parameters  # noqa: E402
+from teb_namelist import read_model_namelist       # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Experiment configuration
@@ -108,8 +108,9 @@ CASE_MATRIX = [
 #: labels of the variants in plot order
 VARIANT_ORDER = [lab for _, _, lab in CASE_MATRIX]
 
-#: wind schemes: teb_itype_wind -> case tag
+#: Wind scheme codes used in experiment names and tables.
 WIND_TYPES = {0: 'w0', 1: 'w1'}
+WIND_SCHEMES = {0: 'DEF', 1: 'WANG'}
 
 RE_Z0 = re.compile(r'urb_z0_town\s*=\s*(\S+)\s*->\s*z0\s*=\s*([0-9EeDd.+-]+)')
 RE_ZD = re.compile(r'urb_zd_town\s*=\s*(\S+)\s*->\s*zd\s*=\s*([0-9EeDd.+-]+)')
@@ -150,21 +151,19 @@ def variant_label(z0_tag: str, zd_tag: str) -> str:
 def build_namelist(base_nml: Path, lcz_tag: str, wind_type: int, z0_tag: str,
                    zd_tag: str, path: Path) -> Path:
     """Write the namelist of one case: base namelist + LCZ + wind scheme + z0/zd."""
-    nml = f90nml.read(str(base_nml))
-    p = nml['tebparam']
+    nml = read_model_namelist(base_nml)
+    opts = nml['tebopts']
+    p = nml['tebparams']
     lcz = LCZ[lcz_tag]
     p['urb_h_bld'] = float(lcz['h_bld'])
     p['urb_fr_bld'] = float(lcz['fr_bld'])
     p['urb_h2w'] = float(lcz['h2w'])
     p['teb_fai'] = [float(lcz['fai'])] * 8
-    p['teb_itype_wind'] = int(wind_type)
-    p.pop('urb_z0_town', None)
-    p.pop('urb_zd_town', None)
-    p['teb_ctype_z0_town'] = Z0_VARIANTS[z0_tag][0]
-    p['teb_ctype_zd_town'] = ZD_VARIANTS[zd_tag][0]
+    opts['teb_ctype_wind'] = WIND_SCHEMES[wind_type]
+    opts['teb_ctype_z0_town'] = Z0_VARIANTS[z0_tag][0]
+    opts['teb_ctype_zd_town'] = ZD_VARIANTS[zd_tag][0]
     path.parent.mkdir(parents=True, exist_ok=True)
-    content = split_parameters(canonicalize_legacy_selectors(str(nml)))
-    path.write_bytes(content.encode('utf-8'))
+    nml.write(str(path), force=True)
     return path
 
 
@@ -204,22 +203,24 @@ def banner_values(log_file: Path):
 def series(out_dir: Path, name: str):
     """Read one output variable (one value per forcing step) as an array.
 
-    Both output formats are supported: the single CSV file ``TEB_output.csv``
-    (columns: ``time``, model variables, ``Forc_*``) and the legacy per-variable
-    ``<NAME>.txt`` files. ``name`` is the variable name, optionally with '.txt'.
+    Read the scalar-run CSV streams or legacy per-variable ``<NAME>.txt`` files.
+    ``name`` is the variable name, optionally with '.txt'.
     Returns None when the variable is not available.
     """
     name = str(name)
     if name.endswith('.txt'):
         name = name[:-4]
-    csv_file = out_dir / 'TEB_output.csv'
+    csv_file = model_csv(out_dir)
     if csv_file.is_file():
-        try:
-            # converters=float: the pandas fast float parser may lose 1 ULP
-            return pd.read_csv(csv_file, sep=';', usecols=[name],
-                               converters={name: float})[name].to_numpy(dtype=float)
-        except ValueError:                      # column not present in the CSV
-            return None
+        for path in (csv_file, out_dir / 'TEB_emu.csv', out_dir / 'TEB_runoff.csv'):
+            if path.is_file():
+                try:
+                    # converters=float: the pandas fast float parser may lose 1 ULP
+                    return pd.read_csv(path, sep=';', usecols=[name],
+                                       converters={name: float})[name].to_numpy(dtype=float)
+                except ValueError:
+                    continue
+        return None
     f = out_dir / f'{name}.txt'
     if not f.exists():
         return None
@@ -300,7 +301,7 @@ def plot_bars(df: pd.DataFrame, columns, ylabel, title, path: Path):
                 ax.bar(x + (k - (len(columns) - 1) / 2) * w, sub[col], w, label=lab, color=c)
             ax.set_xticks(x)
             ax.set_xticklabels(VARIANT_ORDER, fontsize=7.5, rotation=20, ha='right')
-            ax.set_title(f'{LCZ[lcz_tag]["label"]}\nteb_itype_wind = {wind_type}', fontsize=9)
+            ax.set_title(f'{LCZ[lcz_tag]["label"]}\nteb_ctype_wind = {WIND_SCHEMES[wind_type]}', fontsize=9)
             ax.set_ylabel(ylabel)
             ax.grid(True, axis='y', alpha=0.3)
             ax.legend(fontsize=8)
@@ -425,7 +426,7 @@ def main(argv=None) -> int:
     ap.add_argument('--site', default='Moscow', help='site name (default: %(default)s)')
     ap.add_argument('--base-namelist', default=None,
                     help='model parameters namelist to start from '
-                         '(default: <site>/params_CTRL.nml, else <repo>/namelist/namelist.nml)')
+                         '(default: <site>/params_CTRL.nml, else tests/CAPITOUL/namelist/namelist.nml)')
     ap.add_argument('--forcing-nml', default=None,
                     help='forcing namelist (default: <site>/forcing_ERA5/namelist_forcing.nml)')
     ap.add_argument('--out-root', default=None,
@@ -443,7 +444,7 @@ def main(argv=None) -> int:
     work = Path(args.work_dir)
     base = Path(args.base_namelist) if args.base_namelist else (work / args.site / 'params_CTRL.nml')
     if not base.is_file():
-        base = MODEL_DIR / 'namelist' / 'namelist.nml'
+        base = MODEL_DIR / 'tests' / 'CAPITOUL' / 'namelist' / 'namelist.nml'
     forcing_nml = (Path(args.forcing_nml) if args.forcing_nml
                    else work / args.site / 'forcing_ERA5' / 'namelist_forcing.nml')
     out_root = Path(args.out_root) if args.out_root else work / args.site / 'sensitivity_zd'
@@ -454,7 +455,7 @@ def main(argv=None) -> int:
         for case, lcz_tag, wind_type, z0_tag, zd_tag in all_cases:
             print(f'{case:<26} {LCZ[lcz_tag]["label"]:<42} '
                   f'z0={Z0_VARIANTS[z0_tag][0]:<16} zd={ZD_VARIANTS[zd_tag][0]:<16} '
-                  f'itype_wind={wind_type}')
+                  f'teb_ctype_wind={WIND_SCHEMES[wind_type]}')
         return 0
 
     if args.only:
@@ -489,7 +490,7 @@ def main(argv=None) -> int:
         # a case whose stored namelist differs from the current one is stale
         # (e.g. after a change of the morphology of its LCZ) and is re-run
         unchanged = (previous == read_text(nml_path))
-        done = (out_dir / 'TEB_output.csv').is_file() or (out_dir / 'U_CANYON.txt').is_file()
+        done = model_csv(out_dir).is_file() or (out_dir / 'U_CANYON.txt').is_file()
         if args.skip_run or (done and unchanged and not args.force):
             print(f'  [skip] {case}')
             continue
@@ -531,7 +532,7 @@ def main(argv=None) -> int:
         for col, ttl in (('u_top_mean', 'Mean U_TOP (m/s)'),
                          ('u_canyon_mean', 'Mean U_CANYON (m/s)'),
                          ('canyon_over_top', 'U_CANYON / U_TOP')):
-            print(f'\n{ttl}, teb_itype_wind = {wind_type}:')
+            print(f'\n{ttl}, teb_ctype_wind = {WIND_SCHEMES[wind_type]}:')
             print(sub.pivot_table(index='variant', columns='lcz', values=col)
                   .reindex(VARIANT_ORDER).round(3).to_string())
 

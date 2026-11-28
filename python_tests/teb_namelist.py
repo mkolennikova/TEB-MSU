@@ -36,61 +36,120 @@ AERODYNAMIC_DEFAULTS = {
 }
 
 
-def split_parameters(content: str, *, defaults: dict[str, str] | None = None) -> str:
-    """Regroup a flat scalar-run fixture, retaining its literal values."""
-    entries = {}
-    name = None
-    chunks = []
-    for line in content.splitlines():
-        match = re.match(r"\s*([a-zA-Z]\w*)\s*=", line)
-        if match or re.match(r"\s*/\s*$", line):
-            if name is not None:
-                if name in entries:
-                    raise ValueError(f"duplicate parameter in fixture: {name}")
-                entries[name] = "\n".join(chunks)
-            name = match.group(1).lower() if match else None
-            chunks = []
-        if name is not None:
-            chunks.append(line)
-    if name is not None:
-        raise ValueError("Parameter fixture has no terminating slash")
-    if not entries:
-        raise ValueError("Empty parameter fixture")
-    for key, value in (defaults or {}).items():
-        entries.setdefault(key, f" {key}={value},")
-    options = [entries.pop("nvec", " nvec=1,")]
-    options += [text for key, text in entries.items() if key in OPTION_NAMES]
-    parameters = [text for key, text in entries.items() if key not in OPTION_NAMES]
-    return ("&tebopts\n" + "\n".join(options) + "\n/\n"
-            + "&tebparams\n" + "\n".join(parameters) + "\n/\n").replace("\n", "\r\n")
+def find_group(lines: list[str], group: str) -> tuple[int, int]:
+    """Return (start, end) line indices of ``&group`` ... ``/``."""
+    token = '&' + group.lower()
+    start = None
+    for i, line in enumerate(lines):
+        if line.partition('!')[0].strip().lower() == token:
+            start = i
+            break
+    if start is None:
+        raise SystemExit(f'ERROR: namelist group &{group} not found')
+    for j in range(start + 1, len(lines)):
+        if lines[j].strip().startswith('/'):
+            return start, j
+    raise SystemExit(f'ERROR: namelist group &{group} has no terminating /')
 
 
-def canonicalize_legacy_selectors(content: str) -> str:
-    """Translate flat-fixture keys before creating a split namelist."""
-    names = {
-        "teb_itype_bem": "teb_ctype_bem",
-        "teb_itype_natvent": "teb_ctype_natvent",
-        "teb_itype_bem_cool": "teb_ctype_bem_cool",
-        "teb_itype_bem_heat": "teb_ctype_bem_heat",
-        "teb_type_garden": "teb_ctype_garden",
-        "teb_type_greenroof": "teb_ctype_greenroof",
-        "urb_z0_town": "teb_ctype_z0_town",
-        "urb_zd_town": "teb_ctype_zd_town",
-        "teb_ctype_exch_road": "teb_ctype_exch_rd",
-        "teb_ctype_exch_roof": "teb_ctype_exch_rf",
-        "teb_tau_hw_thresh": "teb_cbs_hw_thresh",
-        "teb_tau_hw_width": "teb_cbs_hw_width",
-    }
-    for old, new in names.items():
-        content = re.sub(r"(?im)^([ \t]*)" + re.escape(old) + r"([ \t]*=)",
-                         lambda match: match.group(1) + new + match.group(2), content)
-    pattern = re.compile(r"(?im)^([ \t]*)teb_itype_wind([ \t]*=[ \t]*)([^!,\r\n]+)")
+def _replace_item(line: str, key: str, value: str) -> str | None:
+    """Replace ``key = ...`` in a single namelist line, or return None."""
+    code, sep, comment = line.partition('!')
+    pattern = re.compile(
+        r'^(\s*)(' + re.escape(key) + r')(\s*=\s*)(.*?)(\s*),?\s*$', re.I)
+    m = pattern.match(code)
+    if not m:
+        return None
+    prefix, name, eq = m.group(1), m.group(2), m.group(3)
+    tail = ''
+    if sep:
+        tail = ' !' + comment
+    return f'{prefix}{name}{eq}{value},{tail}'.rstrip()
 
-    def wind(match):
-        value = match.group(3).strip()
-        if value not in ("0", "1"):
-            raise ValueError(f"unexpected legacy wind selector: {value}")
-        selector = "'DEF'" if value == "0" else "'WANG'"
-        return match.group(1) + "teb_ctype_wind" + match.group(2) + selector
 
-    return pattern.sub(wind, content)
+def apply_namelist_overrides(text: str, group: str, overrides: dict[str, str]) -> str:
+    """Apply ``overrides`` to one namelist group, preserving the rest.
+
+    A missing item is inserted just before the terminating ``/`` of the group.
+    """
+    newline = '\r\n' if '\r\n' in text else '\n'
+    lines = text.replace('\r\n', '\n').split('\n')
+    if lines and lines[-1] == '':
+        lines.pop()
+    start, end = find_group(lines, group)
+    for key, value in overrides.items():
+        replaced = False
+        for i in range(start + 1, end):
+            new_line = _replace_item(lines[i], key, value)
+            if new_line is not None:
+                lines[i] = new_line
+                replaced = True
+                break
+        if not replaced:
+            # Insert before the terminating '/'. The previous item must be
+            # terminated by a comma (a newline is also a valid Fortran namelist
+            # separator, but the generated file is easier to audit when every
+            # item ends with a comma).
+            prev = end - 1
+            while prev > start and (not lines[prev].strip()
+                                    or lines[prev].strip().startswith('!')):
+                prev -= 1
+            code, sep, comment = lines[prev].partition('!')
+            if prev > start and not code.rstrip().endswith(','):
+                tail = (' !' + comment) if sep else ''
+                lines[prev] = code.rstrip() + ',' + tail
+            lines.insert(end, f' {key}={value},')
+            end += 1
+    return newline.join(lines) + newline
+
+
+def group_values(text: str, group: str) -> dict[str, str]:
+    """Return ``{lowercase item: raw value}`` of one namelist group."""
+    lines = text.replace('\r\n', '\n').split('\n')
+    start, end = find_group(lines, group)
+    values: dict[str, str] = {}
+    duplicates = []
+    for line in lines[start + 1:end]:
+        code = line.partition('!')[0]
+        m = re.match(r'\s*([A-Za-z0-9_]+)\s*=\s*(.*?)\s*,?\s*$', code)
+        if not m:
+            continue
+        key = m.group(1).lower()
+        if key in values:
+            duplicates.append(key)
+        values[key] = m.group(2).strip()
+    if duplicates:
+        raise SystemExit(f'ERROR: duplicate namelist items in &{group}: '
+                         f'{duplicates}')
+    return values
+
+
+def apply_model_overrides(text: str, overrides: dict[str, str], *,
+                          defaults: dict[str, str] | None = None) -> str:
+    """Edit a model fixture, placing each scalar or list in its proper group."""
+    if re.search(r"(?im)^[ \t]*&tebparam\b", text):
+        raise ValueError("&tebparam is no longer supported. Use &tebopts and &tebparams.")
+    if not re.search(r"(?im)^[ \t]*&tebopts\b", text):
+        newline = '\r\n' if '\r\n' in text else '\n'
+        text = newline.join(('&tebopts', '/', text))
+    for group, is_option in (('tebopts', True), ('tebparams', False)):
+        existing = group_values(text, group)
+        edits = {name: value for name, value in (defaults or {}).items()
+                 if (name in OPTION_NAMES) == is_option and name not in existing}
+        edits.update((name, value) for name, value in overrides.items()
+                     if (name in OPTION_NAMES) == is_option)
+        text = apply_namelist_overrides(text, group, edits)
+    return text
+
+
+def read_model_namelist(path):
+    """Load the split model groups for callers already using f90nml."""
+    import f90nml
+
+    nml = f90nml.read(str(path))
+    if 'tebparam' in nml:
+        raise ValueError(f"{path}: &tebparam is no longer supported. Use &tebopts and &tebparams.")
+    if 'tebparams' not in nml:
+        raise ValueError(f"{path}: missing &tebparams")
+    nml.setdefault('tebopts', {})
+    return nml

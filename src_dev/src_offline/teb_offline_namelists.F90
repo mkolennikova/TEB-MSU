@@ -26,6 +26,7 @@
 !!        Read the dynamic town roughness and displacement rules in tebopts.
 !!      11/2026 -- OpenAI Codex
 !!        Derive omitted frontal area indices from each cell's wall area.
+!!        Retire the monolithic parameter group.
 !-------------------------------------------------------------------------------
 MODULE TEB_OFFLINE_NAMELISTS
 USE TEB_OFFLINE_HOST, ONLY: BLOCK_CONFIG, TEB_BLOCK, allocate_block
@@ -60,7 +61,7 @@ CHARACTER(LEN=1024) :: message
 INTEGER :: nvec,rc,j,k,unit
 INTEGER :: teb_nroof_layer, teb_nroad_layer, teb_nwall_layer
 REAL, ALLOCATABLE :: urb_d_rf(:), urb_d_rd(:), urb_d_wl(:)
-LOGICAL :: legacy,found,teb_lwrite_output,teb_lwrite_emu,teb_lwrite_runoff,teb_lwrite_test_dump
+LOGICAL :: found,teb_lwrite_output,teb_lwrite_emu,teb_lwrite_runoff,teb_lwrite_test_dump
 LOGICAL :: valid_town_dyncorr, has_fai
 REAL :: dt
 CHARACTER(LEN=3) :: teb_ctype_bem
@@ -100,11 +101,7 @@ REAL, ALLOCATABLE :: urb_alb_wl_th(:)
 REAL, ALLOCATABLE :: urb_emis_wl(:)
 REAL, ALLOCATABLE :: urb_hcap_wl(:)
 REAL, ALLOCATABLE :: urb_hcon_wl(:)
-CHARACTER(LEN=3) :: teb_itype_bem
 LOGICAL :: teb_lbem_ac
-CHARACTER(LEN=4) :: teb_itype_natvent
-CHARACTER(LEN=6) :: teb_itype_bem_cool
-CHARACTER(LEN=6) :: teb_itype_bem_heat
 REAL, ALLOCATABLE :: teb_frac_gz(:)
 REAL, ALLOCATABLE :: teb_tcool_target(:)
 REAL, ALLOCATABLE :: teb_theat_target(:)
@@ -121,13 +118,11 @@ REAL, ALLOCATABLE :: ahf_traffic(:)
 REAL, ALLOCATABLE :: ahf_industry(:)
 REAL :: teb_fai(8)
 LOGICAL :: teb_lgarden
-CHARACTER(LEN=9) :: teb_type_garden
 REAL, ALLOCATABLE :: urb_z0_gdn(:)
 REAL, ALLOCATABLE :: urb_z0_o_z0h_gdn(:)
 REAL, ALLOCATABLE :: urb_alb_gdn(:)
 REAL, ALLOCATABLE :: urb_emis_gdn(:)
 LOGICAL :: teb_lgreenroof
-CHARACTER(LEN=9) :: teb_type_greenroof
 REAL, ALLOCATABLE :: teb_frac_gr(:)
 REAL, ALLOCATABLE :: urb_z0_grf(:)
 REAL, ALLOCATABLE :: urb_z0_o_z0h_grf(:)
@@ -143,10 +138,8 @@ REAL, ALLOCATABLE :: teb_rd_irrig_end_h(:)
 REAL, ALLOCATABLE :: teb_rd_irrig_sum(:)
 INTEGER :: teb_utc_hour
 LOGICAL :: teb_lshade
-CHARACTER(LEN=16) :: urb_zd_town
 REAL :: urb_z0_rd, urb_z0_rf, urb_z0_snow
 LOGICAL :: teb_lcbs_scheme
-REAL :: teb_tau_hw_thresh, teb_tau_hw_width  ! Legacy &tebparam and host values.
 REAL :: teb_cbs_hw_thresh, teb_cbs_hw_width
 NAMELIST /tebopts/ &
   dt, &
@@ -186,70 +179,31 @@ NAMELIST /tebparams/ &
   teb_rd_irrig_end_m, teb_rd_irrig_start_h, teb_rd_irrig_end_h, &
   teb_rd_irrig_sum, teb_utc_hour, &
   urb_z0_rd, urb_z0_rf, urb_z0_snow
-NAMELIST /tebparam/ &
-  dt, urb_h_bld, urb_fr_bld, &
-  fr_garden, urb_h2w, teb_road_dir, &
-  teb_hroad_dir, teb_wall_opt, teb_ti_bld_init, &
-  teb_qi_bld_init, urb_alb_rf_so, urb_alb_rf_th, &
-  urb_emis_rf, urb_hcap_rf, urb_hcon_rf, &
-  urb_alb_rd_so, urb_alb_rd_th, urb_emis_rd, &
-  urb_hcap_rd, urb_hcon_rd, urb_alb_wl_so, &
-  urb_alb_wl_th, urb_emis_wl, urb_hcap_wl, &
-  urb_hcon_wl, teb_itype_bem, teb_lbem_ac, &
-  teb_itype_natvent, teb_itype_bem_cool, teb_itype_bem_heat, &
-  teb_frac_gz, teb_tcool_target, teb_theat_target, &
-  teb_zresidential, teb_dt_res, teb_dt_off, &
-  teb_bem_inf, teb_bem_vent, teb_bem_cop, &
-  teb_cap_sys_rat, teb_m_sys_rat, teb_cap_sys_heat, &
-  ahf_traffic, ahf_industry, teb_ctype_wind, &
-  teb_fai, teb_lgarden, teb_type_garden, &
-  urb_z0_gdn, urb_z0_o_z0h_gdn, urb_alb_gdn, &
-  urb_emis_gdn, teb_lgreenroof, teb_type_greenroof, &
-  teb_frac_gr, urb_z0_grf, urb_z0_o_z0h_grf, &
-  urb_alb_grf, urb_emis_grf, proxy_phu_gdn, &
-  proxy_phu_grf, teb_lsolar_panel, teb_fr_panel, &
-  teb_lroad_irrig, teb_rd_irrig_start_m, teb_rd_irrig_end_m, &
-  teb_rd_irrig_start_h, teb_rd_irrig_end_h, teb_rd_irrig_sum, &
-  teb_utc_hour, teb_lshade, urb_zd_town, &
-  teb_lcbs_scheme, teb_tau_hw_thresh, &
-  teb_tau_hw_width, teb_snow_check
 teb_nroof_layer=5
 teb_nroad_layer=5
 teb_nwall_layer=5
 CALL read_text(path,text)
-CALL scan_group(text,'tebparam',a,found,path)
-legacy=found
-IF (legacy) THEN
-  CALL scan_group(text,'tebopts',o,found,path)
-  IF(found) CALL fail(path,'tebopts',0,'cannot mix legacy tebparam and tebopts')
-  CALL scan_group(text,'tebparams',o,found,path)
-  IF(found) CALL fail(path,'tebparams',0,'cannot mix legacy tebparam and tebparams')
-  nvec=1
-ELSE
-  CALL scan_group(text,'tebopts',o,found,path)
-  nvec=1
-  IF(found) THEN
-    DO j=1,SIZE(o)
-      SELECT CASE(o(j)%name)
-      CASE('nvec','teb_nroof_layer','teb_nroad_layer','teb_nwall_layer')
-        CALL require_count(o(j),1,1,path)
-        SELECT CASE(o(j)%name)
-        CASE('nvec')
-          READ(o(j)%value,*,IOSTAT=rc) nvec
-        CASE('teb_nroof_layer')
-          READ(o(j)%value,*,IOSTAT=rc) teb_nroof_layer
-        CASE('teb_nroad_layer')
-          READ(o(j)%value,*,IOSTAT=rc) teb_nroad_layer
-        CASE('teb_nwall_layer')
-          READ(o(j)%value,*,IOSTAT=rc) teb_nwall_layer
-        END SELECT
-        IF(rc/=0) CALL fail(path,o(j)%name,o(j)%line,'expected an integer')
-      END SELECT
-    END DO
-  END IF
-  CALL scan_group(text,'tebparams',a,found,path)
-  IF(.NOT.found) CALL fail(path,'tebparams',0,'missing namelist group')
-END IF
+CALL scan_group(text,'tebopts',o,found,path)
+nvec=1
+DO j=1,SIZE(o)
+  SELECT CASE(o(j)%name)
+  CASE('nvec','teb_nroof_layer','teb_nroad_layer','teb_nwall_layer')
+    CALL require_count(o(j),1,1,path)
+    SELECT CASE(o(j)%name)
+    CASE('nvec')
+      READ(o(j)%value,*,IOSTAT=rc) nvec
+    CASE('teb_nroof_layer')
+      READ(o(j)%value,*,IOSTAT=rc) teb_nroof_layer
+    CASE('teb_nroad_layer')
+      READ(o(j)%value,*,IOSTAT=rc) teb_nroad_layer
+    CASE('teb_nwall_layer')
+      READ(o(j)%value,*,IOSTAT=rc) teb_nwall_layer
+    END SELECT
+    IF(rc/=0) CALL fail(path,o(j)%name,o(j)%line,'expected an integer')
+  END SELECT
+END DO
+CALL scan_group(text,'tebparams',a,found,path)
+IF(.NOT.found) CALL fail(path,'tebparams',0,'missing namelist group')
 IF(nvec<1) CALL fail(path,'nvec',0,'must be positive')
 IF(teb_nroof_layer<1) CALL fail(path,'teb_nroof_layer',0,'must be positive')
 IF(teb_nroad_layer<1) CALL fail(path,'teb_nroad_layer',0,'must be positive')
@@ -338,11 +292,11 @@ urb_alb_wl_th=XUNDEF
 urb_emis_wl=XUNDEF
 urb_hcap_wl=1580000.
 urb_hcon_wl=1.15
-teb_itype_bem='BEM'
+teb_ctype_bem='BEM'
 teb_lbem_ac=.TRUE.
-teb_itype_natvent='NONE'
-teb_itype_bem_cool='IDEAL '
-teb_itype_bem_heat='IDEAL '
+teb_ctype_natvent='NONE'
+teb_ctype_bem_cool='IDEAL '
+teb_ctype_bem_heat='IDEAL '
 teb_frac_gz=0.1
 teb_tcool_target=297.16
 teb_theat_target=292.16
@@ -359,13 +313,13 @@ ahf_traffic=0.0
 ahf_industry=0.0
 teb_ctype_wind='DEF'
 teb_lgarden=.TRUE.
-teb_type_garden='PROXY_NEW'
+teb_ctype_garden='PROXY_NEW'
 urb_z0_gdn=XZ0_GD
 urb_z0_o_z0h_gdn=XZ0_O_Z0H_GD
 urb_alb_gdn=0.15
 urb_emis_gdn=0.98
 teb_lgreenroof=.FALSE.
-teb_type_greenroof='PROXY_NEW'
+teb_ctype_greenroof='PROXY_NEW'
 teb_frac_gr=0.0
 urb_z0_grf=XZ0_GR
 urb_z0_o_z0h_grf=XZ0_O_Z0H_GR
@@ -384,15 +338,15 @@ teb_rd_irrig_sum=1.
 teb_utc_hour=3
 teb_lshade=.TRUE.
 teb_ctype_z0_town='0.1H'
+teb_ctype_zd_town='H/3'
 teb_ctype_z0_town_dyncorr=CTEB_TOWN_DYNCORR_DEFAULT
 teb_ctype_zd_town_dyncorr=CTEB_TOWN_DYNCORR_DEFAULT
 urb_z0_rd=c%tz0%XROAD
 urb_z0_rf=c%tz0%XROOF
 urb_z0_snow=XZ0SN
-urb_zd_town='H/3'
 teb_lcbs_scheme=.FALSE.
-teb_tau_hw_thresh=0.5
-teb_tau_hw_width=0.25
+teb_cbs_hw_thresh=0.5
+teb_cbs_hw_width=0.25
 teb_snow_check=.FALSE.
 teb_ctype_exch_rd=CTEB_EXCH_DEFAULT
 teb_ctype_exch_rf=CTEB_EXCH_DEFAULT
@@ -404,46 +358,22 @@ teb_lwrite_output=.TRUE.
 teb_lwrite_emu=.TRUE.
 teb_lwrite_runoff=.TRUE.
 teb_lwrite_test_dump=.FALSE.
-IF(legacy) THEN
-  teb_lwrite_output=cfg%model_log
-  teb_lwrite_test_dump=cfg%test_dump
-END IF
-IF(.NOT.legacy) THEN
-  teb_ctype_bem=teb_itype_bem
-  teb_ctype_natvent=teb_itype_natvent
-  teb_ctype_bem_cool=teb_itype_bem_cool
-  teb_ctype_bem_heat=teb_itype_bem_heat
-  teb_ctype_garden=teb_type_garden
-  teb_ctype_greenroof=teb_type_greenroof
-  teb_ctype_zd_town=urb_zd_town
-  teb_cbs_hw_thresh=teb_tau_hw_thresh
-  teb_cbs_hw_width=teb_tau_hw_width
-  DO j=1,SIZE(o)
-    CALL require_count(o(j),1,1,path)
-    CALL check_string(o(j),path)
-  END DO
-  opts=build_text('tebopts',o)
-  READ(opts,NML=tebopts,IOSTAT=rc,IOMSG=message)
-  IF(rc/=0) CALL fail(path,'tebopts',0,TRIM(message))
-  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_rd)) &
-    CALL fail(path,'teb_ctype_exch_rd',0,'expected MASC95 or DELAGE')
-  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_rf)) &
-    CALL fail(path,'teb_ctype_exch_rf',0,'expected MASC95 or DELAGE')
-  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_canyon)) &
-    CALL fail(path,'teb_ctype_exch_canyon',0,'expected MASC95 or DELAGE')
-  CALL read_z0h_rule(path,'teb_ctype_z0_o_z0h_rd',teb_ctype_z0_o_z0h_rd,z0h%RD)
-  CALL read_z0h_rule(path,'teb_ctype_z0_o_z0h_rf',teb_ctype_z0_o_z0h_rf,z0h%RF)
-  CALL read_z0h_rule(path,'teb_ctype_z0_o_z0h_town',teb_ctype_z0_o_z0h_town,z0h%TOWN)
-  teb_itype_bem=teb_ctype_bem
-  teb_itype_natvent=teb_ctype_natvent
-  teb_itype_bem_cool=teb_ctype_bem_cool
-  teb_itype_bem_heat=teb_ctype_bem_heat
-  teb_type_garden=teb_ctype_garden
-  teb_type_greenroof=teb_ctype_greenroof
-  urb_zd_town=teb_ctype_zd_town
-  teb_tau_hw_thresh=teb_cbs_hw_thresh
-  teb_tau_hw_width=teb_cbs_hw_width
-END IF
+DO j=1,SIZE(o)
+  CALL require_count(o(j),1,1,path)
+  CALL check_string(o(j),path)
+END DO
+opts=build_text('tebopts',o)
+READ(opts,NML=tebopts,IOSTAT=rc,IOMSG=message)
+IF(rc/=0) CALL fail(path,'tebopts',0,TRIM(message))
+IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_rd)) &
+  CALL fail(path,'teb_ctype_exch_rd',0,'expected MASC95 or DELAGE')
+IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_rf)) &
+  CALL fail(path,'teb_ctype_exch_rf',0,'expected MASC95 or DELAGE')
+IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_canyon)) &
+  CALL fail(path,'teb_ctype_exch_canyon',0,'expected MASC95 or DELAGE')
+CALL read_z0h_rule(path,'teb_ctype_z0_o_z0h_rd',teb_ctype_z0_o_z0h_rd,z0h%RD)
+CALL read_z0h_rule(path,'teb_ctype_z0_o_z0h_rf',teb_ctype_z0_o_z0h_rf,z0h%RF)
+CALL read_z0h_rule(path,'teb_ctype_z0_o_z0h_town',teb_ctype_z0_o_z0h_town,z0h%TOWN)
 CALL TEB_PARSE_TOWN_DYNCORR(teb_ctype_z0_town_dyncorr,z0_town_dyncorr,valid_town_dyncorr)
 IF (.NOT. valid_town_dyncorr) &
   CALL fail(path,'teb_ctype_z0_town_dyncorr',0,'expected OFF or ZIL2008')
@@ -476,13 +406,8 @@ DO j=1,SIZE(a)
     CALL require_count(a(j),1,1,path)
   END SELECT
 END DO
-IF(legacy) THEN
-  body=build_text('tebparam',a)
-  READ(body,NML=tebparam,IOSTAT=rc,IOMSG=message)
-ELSE
-  body=build_text('tebparams',a)
-  READ(body,NML=tebparams,IOSTAT=rc,IOMSG=message)
-END IF
+body=build_text('tebparams',a)
+READ(body,NML=tebparams,IOSTAT=rc,IOMSG=message)
 IF(rc/=0) CALL fail(path,'parameters',0,TRIM(message))
 CALL check_layer_depths(path,'urb_d_rf',urb_d_rf)
 CALL check_layer_depths(path,'urb_d_rd',urb_d_rd)
@@ -672,17 +597,17 @@ IF(ANY(urb_emis_grf<=0. .OR. urb_emis_grf>1.)) CALL fail(path,'urb_emis_grf',0,'
 CALL check_vegetation_ratio(path,'urb_z0_o_z0h_grf',urb_z0_o_z0h_grf)
 IF(.NOT.IEEE_IS_FINITE(proxy_phu_grf) .OR. proxy_phu_grf<=0. .OR. proxy_phu_grf>1.) &
   CALL fail(path,'proxy_phu_grf',0,'expected finite humidity > 0 and <= 1')
-SELECT CASE(TRIM(teb_type_garden))
+SELECT CASE(TRIM(teb_ctype_garden))
 CASE('PROXY_OLD','PROXY_NEW','EXT','EXT_NEU')
 CASE DEFAULT
-  CALL fail(path,selector_name('teb_type_garden',legacy),0,'unknown surface scheme')
+  CALL fail(path,'teb_ctype_garden',0,'unknown surface scheme')
 END SELECT
-SELECT CASE(TRIM(teb_type_greenroof))
+SELECT CASE(TRIM(teb_ctype_greenroof))
 CASE('PROXY_OLD','PROXY_NEW','EXT','EXT_NEU')
 CASE DEFAULT
-  CALL fail(path,selector_name('teb_type_greenroof',legacy),0,'unknown surface scheme')
+  CALL fail(path,'teb_ctype_greenroof',0,'unknown surface scheme')
 END SELECT
-IF(teb_itype_bem/='BEM' .AND. teb_itype_bem/='DEF') CALL fail(path,selector_name('teb_itype_bem',legacy),0,'expected BEM or DEF')
+IF(teb_ctype_bem/='BEM' .AND. teb_ctype_bem/='DEF') CALL fail(path,'teb_ctype_bem',0,'expected BEM or DEF')
 IF(teb_ctype_wind/='DEF' .AND. teb_ctype_wind/='WANG') &
   CALL fail(path,'teb_ctype_wind',0,'expected DEF or WANG')
 has_fai=supplied(a,'teb_fai')
@@ -690,17 +615,17 @@ IF(has_fai) THEN
   IF(.NOT.ALL(IEEE_IS_FINITE(teb_fai)) .OR. ANY(teb_fai<0.)) CALL fail(path,'teb_fai',0, &
     'expected finite nonnegative indices')
 END IF
-IF(.NOT.IEEE_IS_FINITE(teb_tau_hw_thresh) .OR. .NOT.IEEE_IS_FINITE(teb_tau_hw_width)) &
+IF(.NOT.IEEE_IS_FINITE(teb_cbs_hw_thresh) .OR. .NOT.IEEE_IS_FINITE(teb_cbs_hw_width)) &
   CALL fail(path,'CBS thresholds',0,'expected finite values')
-SELECT CASE(TRIM(teb_itype_natvent))
+SELECT CASE(TRIM(teb_ctype_natvent))
 CASE('NONE','AUTO','MECH','MANU')
 CASE DEFAULT
-  CALL fail(path,selector_name('teb_itype_natvent',legacy),0,'unknown natural ventilation option')
+  CALL fail(path,'teb_ctype_natvent',0,'unknown natural ventilation option')
 END SELECT
-IF(teb_itype_bem_cool/='IDEAL' .AND. teb_itype_bem_cool/='DXCOIL') &
-  CALL fail(path,selector_name('teb_itype_bem_cool',legacy),0,'unknown cooling option')
-IF(teb_itype_bem_heat/='IDEAL' .AND. teb_itype_bem_heat/='FINCAP') &
-  CALL fail(path,selector_name('teb_itype_bem_heat',legacy),0,'unknown heating option')
+IF(teb_ctype_bem_cool/='IDEAL' .AND. teb_ctype_bem_cool/='DXCOIL') &
+  CALL fail(path,'teb_ctype_bem_cool',0,'unknown cooling option')
+IF(teb_ctype_bem_heat/='IDEAL' .AND. teb_ctype_bem_heat/='FINCAP') &
+  CALL fail(path,'teb_ctype_bem_heat',0,'unknown heating option')
 cfg%dt=dt
 cfg%model_log=teb_lwrite_output
 cfg%write_emu=teb_lwrite_emu
@@ -754,11 +679,11 @@ c%urb_alb_wl_so=urb_alb_wl_so
 c%urb_alb_wl_th=urb_alb_wl_th
 c%urb_hcap_wl=urb_hcap_wl
 c%urb_hcon_wl=urb_hcon_wl
-c%teb_itype_bem=teb_itype_bem
+c%teb_itype_bem=teb_ctype_bem
 c%teb_lbem_ac=teb_lbem_ac
-c%teb_itype_natvent=teb_itype_natvent
-c%teb_itype_bem_cool=teb_itype_bem_cool
-c%teb_itype_bem_heat=teb_itype_bem_heat
+c%teb_itype_natvent=teb_ctype_natvent
+c%teb_itype_bem_cool=teb_ctype_bem_cool
+c%teb_itype_bem_heat=teb_ctype_bem_heat
 c%teb_frac_gz=teb_frac_gz
 c%teb_tcool_target=teb_tcool_target
 c%teb_theat_target=teb_theat_target
@@ -780,13 +705,13 @@ c%teb_ctype_exch_canyon=teb_ctype_exch_canyon
 c%teb_ctype_z0_town_dyncorr=z0_town_dyncorr
 c%teb_ctype_zd_town_dyncorr=zd_town_dyncorr
 c%teb_lgarden=teb_lgarden
-c%teb_type_garden=teb_type_garden
+c%teb_type_garden=teb_ctype_garden
 c%teb_z0_gd=urb_z0_gdn
 c%urb_z0_o_z0h_gdn=urb_z0_o_z0h_gdn
 c%teb_alb_gd=urb_alb_gdn
 c%teb_emis_gd=urb_emis_gdn
 c%teb_lgreenroof=teb_lgreenroof
-c%teb_type_greenroof=teb_type_greenroof
+c%teb_type_greenroof=teb_ctype_greenroof
 c%teb_frac_gr=teb_frac_gr
 c%teb_z0_gr=urb_z0_grf
 c%urb_z0_o_z0h_grf=urb_z0_o_z0h_grf
@@ -807,10 +732,10 @@ c%tz0h=z0h
 c%tz0%XROAD=urb_z0_rd
 c%tz0%XROOF=urb_z0_rf
 c%tz0%XSNOW=urb_z0_snow
-c%urb_zd_town=urb_zd_town
+c%urb_zd_town=teb_ctype_zd_town
 c%teb_lcbs_scheme=teb_lcbs_scheme
-c%teb_tau_hw_thresh=teb_tau_hw_thresh
-c%teb_tau_hw_width=teb_tau_hw_width
+c%teb_tau_hw_thresh=teb_cbs_hw_thresh
+c%teb_tau_hw_width=teb_cbs_hw_width
 IF(has_fai) THEN
   DO k=1,8
     c%teb_fai(:,k)=teb_fai(k)
@@ -821,7 +746,7 @@ ELSE
     c%teb_fai(k,:)=TEB_WALL_AREA_INDEX(urb_h2w(k),urb_fr_bld(k))/XPI
   END DO
 END IF
-c%teb_lgreenroof_ext=teb_type_greenroof=='EXT' .OR. teb_type_greenroof=='EXT_NEU'
+c%teb_lgreenroof_ext=teb_ctype_greenroof=='EXT' .OR. teb_ctype_greenroof=='EXT_NEU'
 c%teb_tch_gd=XUNDEF
 c%teb_tcm_gd=XUNDEF
 c%teb_ustar_town=0.2
@@ -833,7 +758,7 @@ c%teb_ts_gd=275.
 c%teb_ts_gr=275.
 c%teb_qs_gd=0.00380
 c%teb_qs_gr=0.00380
-IF(teb_type_garden=='EXT' .OR. teb_type_garden=='EXT_NEU') THEN
+IF(teb_ctype_garden=='EXT' .OR. teb_ctype_garden=='EXT_NEU') THEN
   c%teb_ts_gd=c%t
   c%teb_qs_gd=proxy_phu_gdn*QSAT(c%teb_ts_gd,c%ps)
 END IF
@@ -875,45 +800,23 @@ CHARACTER(LEN=*),INTENT(IN)::name
 supplied=ANY(a%name==name)
 END FUNCTION
 
-FUNCTION selector_name(name,legacy) RESULT(key)
-CHARACTER(LEN=*),INTENT(IN)::name
-LOGICAL,INTENT(IN)::legacy
-CHARACTER(LEN=32)::key
-key=name
-IF(legacy) RETURN
-SELECT CASE(name)
-CASE('teb_itype_bem')
-  key='teb_ctype_bem'
-CASE('teb_itype_natvent')
-  key='teb_ctype_natvent'
-CASE('teb_itype_bem_cool')
-  key='teb_ctype_bem_cool'
-CASE('teb_itype_bem_heat')
-  key='teb_ctype_bem_heat'
-CASE('teb_type_garden')
-  key='teb_ctype_garden'
-CASE('teb_type_greenroof')
-  key='teb_ctype_greenroof'
-END SELECT
-END FUNCTION
-
 SUBROUTINE check_string(a,path)
 TYPE(NML_ASSIGNMENT),INTENT(IN)::a
 CHARACTER(LEN=*),INTENT(IN)::path
 INTEGER::limit,n,p
 CHARACTER::quote
 SELECT CASE(a%name)
-CASE('teb_itype_bem','teb_ctype_bem')
+CASE('teb_ctype_bem')
   limit=3
-CASE('teb_itype_natvent','teb_ctype_natvent','teb_ctype_wind','teb_hroad_dir','teb_wall_opt')
+CASE('teb_ctype_natvent','teb_ctype_wind','teb_hroad_dir','teb_wall_opt')
   limit=4
-CASE('teb_itype_bem_cool','teb_itype_bem_heat','teb_ctype_bem_cool','teb_ctype_bem_heat')
+CASE('teb_ctype_bem_cool','teb_ctype_bem_heat')
   limit=6
 CASE('teb_ctype_exch_rd','teb_ctype_exch_rf','teb_ctype_exch_canyon')
   limit=6
-CASE('teb_type_garden','teb_type_greenroof','teb_ctype_garden','teb_ctype_greenroof')
+CASE('teb_ctype_garden','teb_ctype_greenroof')
   limit=9
-CASE('teb_ctype_z0_town','teb_ctype_zd_town','urb_zd_town', &
+CASE('teb_ctype_z0_town','teb_ctype_zd_town', &
      'teb_ctype_z0_town_dyncorr','teb_ctype_zd_town_dyncorr', &
      'teb_ctype_z0_o_z0h_rd','teb_ctype_z0_o_z0h_rf','teb_ctype_z0_o_z0h_town')
   limit=16
@@ -1065,7 +968,9 @@ DO
   p=p+1
   name=get_name(text,p)
   SELECT CASE(name)
-  CASE('tebopts','tebparams','tebparam','tebforcing','block_test')
+  CASE('tebopts','tebparams','tebforcing','block_test')
+  CASE('tebparam')
+    CALL fail(path,name,line,'&tebparam is no longer supported. Use &tebopts and &tebparams.')
   CASE DEFAULT
     CALL fail(path,name,line,'unknown namelist group')
   END SELECT
@@ -1097,18 +1002,15 @@ DO
     CASE('urb_z0_town')
       CALL fail(path,group,line,'urb_z0_town is deprecated. Use teb_ctype_z0_town in &tebopts.')
     CASE('urb_zd_town')
-      IF(group/='tebparam') &
-        CALL fail(path,group,line,'urb_zd_town is deprecated. Use teb_ctype_zd_town in &tebopts.')
+      CALL fail(path,group,line,'urb_zd_town is deprecated. Use teb_ctype_zd_town in &tebopts.')
     CASE('teb_ctype_exch_road')
       CALL fail(path,group,line,'teb_ctype_exch_road is deprecated. Use teb_ctype_exch_rd in &tebopts.')
     CASE('teb_ctype_exch_roof')
       CALL fail(path,group,line,'teb_ctype_exch_roof is deprecated. Use teb_ctype_exch_rf in &tebopts.')
     CASE('teb_tau_hw_thresh')
-      IF(group/='tebparam') &
-        CALL fail(path,group,line,'teb_tau_hw_thresh is deprecated. Use teb_cbs_hw_thresh in &tebopts.')
+      CALL fail(path,group,line,'teb_tau_hw_thresh is deprecated. Use teb_cbs_hw_thresh in &tebopts.')
     CASE('teb_tau_hw_width')
-      IF(group/='tebparam') &
-        CALL fail(path,group,line,'teb_tau_hw_width is deprecated. Use teb_cbs_hw_width in &tebopts.')
+      CALL fail(path,group,line,'teb_tau_hw_width is deprecated. Use teb_cbs_hw_width in &tebopts.')
     CASE('teb_cbs_hw_thresh','teb_cbs_hw_width','teb_ctype_zd_town', &
          'teb_ctype_z0_town_dyncorr','teb_ctype_zd_town_dyncorr')
       IF(group/='tebopts') CALL fail(path,group,line,TRIM(entry%name)//' belongs in &tebopts.')

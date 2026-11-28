@@ -45,31 +45,31 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from container_ab_compare import MODEL_DIR, run_case, read_csv
+from container_ab_compare import MODEL_DIR, model_csv, run_case, read_csv
+from teb_namelist import apply_model_overrides, apply_namelist_overrides
 
 CASE = MODEL_DIR / 'tests' / 'CAPITOUL'
 BASE_NML = CASE / 'namelist' / 'namelist.nml'
 FORCING_NML = CASE / 'namelist' / 'namelist_forcing.nml'
 OUT_ROOT = MODEL_DIR / 'python_tests' / 'container_ab_matrix'
 
-REF_CSV_NAME = 'TEB_output.csv'          # origin (before P-log) filename
 NEW_CSV_NAME = 'TEB_output_b1_c1.csv'    # candidate filename
 
 #: config name -> namelist overrides (key -> Fortran literal value)
 CONFIGS = [
     ('baseline', {}),
-    ('bem_off', {'teb_itype_bem': "'DEF'", 'teb_lbem_ac': '.FALSE.', 'teb_frac_gz': '0.'}),
+    ('bem_off', {'teb_ctype_bem': "'DEF'", 'teb_lbem_ac': '.FALSE.', 'teb_frac_gz': '0.'}),
     ('bem_ac_off', {'teb_lbem_ac': '.FALSE.'}),
     ('garden_proxy_new', {'teb_lgarden': '.TRUE.', 'fr_garden': '0.30'}),
     ('garden_proxy_old', {'teb_lgarden': '.TRUE.', 'fr_garden': '0.30',
-                          'teb_type_garden': "'PROXY_OLD'"}),
+                          'teb_ctype_garden': "'PROXY_OLD'"}),
     ('garden_ext', {'teb_lgarden': '.TRUE.', 'fr_garden': '0.30',
-                    'teb_type_garden': "'EXT'"}),
+                    'teb_ctype_garden': "'EXT'"}),
     ('garden_ext_neu', {'teb_lgarden': '.TRUE.', 'fr_garden': '0.30',
-                        'teb_type_garden': "'EXT_NEU'"}),
+                        'teb_ctype_garden': "'EXT_NEU'"}),
     ('greenroof_on', {'teb_lgreenroof': '.TRUE.', 'teb_frac_gr': '0.50'}),
     ('greenroof_ext', {'teb_lgreenroof': '.TRUE.', 'teb_frac_gr': '0.50',
-                       'teb_type_greenroof': "'EXT'"}),
+                       'teb_ctype_greenroof': "'EXT'"}),
     ('solar_on', {'teb_lsolar_panel': '.TRUE.', 'teb_fr_panel': '0.50'}),
     ('cbs_off', {'teb_lcbs_scheme': '.FALSE.'}),
     ('cbs_on', {'teb_lcbs_scheme': '.TRUE.'}),
@@ -80,11 +80,11 @@ CONFIGS = [
 ]
 
 #: the surface modes reused by the extended sets
-GARDEN_EXT = {'teb_lgarden': '.TRUE.', 'fr_garden': '0.30', 'teb_type_garden': "'EXT'"}
-GREENROOF_EXT = {'teb_lgreenroof': '.TRUE.', 'teb_frac_gr': '0.50', 'teb_type_greenroof': "'EXT'"}
+GARDEN_EXT = {'teb_lgarden': '.TRUE.', 'fr_garden': '0.30', 'teb_ctype_garden': "'EXT'"}
+GREENROOF_EXT = {'teb_lgreenroof': '.TRUE.', 'teb_frac_gr': '0.50', 'teb_ctype_greenroof': "'EXT'"}
 GREENROOF_EXT_NEU = {'teb_lgreenroof': '.TRUE.', 'teb_frac_gr': '0.50',
-                     'teb_type_greenroof': "'EXT_NEU'"}
-GARDEN_EXT_NEU = {'teb_lgarden': '.TRUE.', 'fr_garden': '0.30', 'teb_type_garden': "'EXT_NEU'"}
+                     'teb_ctype_greenroof': "'EXT_NEU'"}
+GARDEN_EXT_NEU = {'teb_lgarden': '.TRUE.', 'fr_garden': '0.30', 'teb_ctype_garden': "'EXT_NEU'"}
 PANELS = {'teb_lsolar_panel': '.TRUE.', 'teb_fr_panel': '0.50'}
 CBS = {'teb_lcbs_scheme': '.TRUE.'}
 
@@ -100,8 +100,8 @@ CBS = {'teb_lcbs_scheme': '.TRUE.'}
 #:  * the CBS scheme at other geometries. tau = 0.5*(1 + tanh((H/W - 0.5)/0.25)):
 #:    the base H/W = 1.38158 gives tau = 0.999, so the transition band
 #:    (H/W ~ 0.25..0.75) and the tau ~ 0 regime were never exercised. The
-#:    aerodynamic parameters follow the height (urb_z0_town='0.1H',
-#:    urb_zd_town='H/3'), so a height change keeps the parameterisation
+#:    aerodynamic parameters follow the height (teb_ctype_z0_town='0.1H',
+#:    teb_ctype_zd_town='H/3'), so a height change keeps the parameterisation
 #:    consistent.
 #:
 #: Entries are (name, parameter overrides, forcing overrides).
@@ -143,31 +143,25 @@ SETS = {
 }
 
 
-#: candidate-only initial-state keys, unknown to the old reference binary
-INIT_KEYS = ('teb_ti_bld_init', 'teb_qi_bld_init')
+#: These selectors are translated only for a supplied historical reference template.
+REFERENCE_SELECTOR_NAMES = {
+    'teb_ctype_bem': 'teb_itype_bem',
+    'teb_ctype_natvent': 'teb_itype_natvent',
+    'teb_ctype_garden': 'teb_type_garden',
+    'teb_ctype_greenroof': 'teb_type_greenroof',
+}
 
 
-def _strip_init_keys(text: str) -> str:
-    """Remove the candidate-only initial-state keys (unknown to the old ref)."""
-    for key in INIT_KEYS:
-        text = re.sub(r'^(\s*)' + re.escape(key) + r'\s*=\s*[^\n]*\n?', '', text, flags=re.M)
-    return text
-
-
-def make_param_namelist(dst: Path, overrides: dict, *, reference: bool = False) -> Path:
-    """Copy the base param namelist, applying the overrides; write to dst."""
-    """Copy the base param namelist, applying the overrides; write to dst."""
-    text = BASE_NML.read_text(encoding='utf-8')
-    for key, value in overrides.items():
-        pat = re.compile(r'^(\s*)' + re.escape(key) + r'\s*=\s*[^\n]*', re.M)
-        if pat.search(text):
-            text = pat.sub(lambda m: m.group(1) + key + '=' + value + ',', text, count=1)
-        else:
-            text = text.replace('\n/', '\n ' + key + '=' + value + ',\n/', 1)
-    if reference:
-        text = _strip_init_keys(text)
+def make_param_namelist(dst: Path, overrides: dict, *, ref_template: Path | None = None) -> Path:
+    """Apply case overrides to CAPITOUL or to a template from the reference revision."""
+    text = (ref_template or BASE_NML).read_bytes().decode('utf-8')
+    if ref_template and re.search(r'(?im)^[ \t]*&tebparam\b', text):
+        edits = {REFERENCE_SELECTOR_NAMES.get(key, key): value for key, value in overrides.items()}
+        text = apply_namelist_overrides(text, 'tebparam', edits)
+    else:
+        text = apply_model_overrides(text, overrides)
     dst.parent.mkdir(parents=True, exist_ok=True)
-    dst.write_text(text, encoding='utf-8')
+    dst.write_bytes(text.encode('utf-8'))
     return dst
 
 
@@ -226,7 +220,8 @@ def compare_emu(ref_csv: Path, new_csv: Path) -> dict:
     never sees them; without this check a wrong emulator input changes only
     columns that are not compared (see change history, defect N3).
     """
-    h_ref, r_ref = read_csv(ref_csv)
+    ref_emu = ref_csv.with_name(new_csv.name)
+    h_ref, r_ref = read_csv(ref_emu if ref_emu.is_file() else ref_csv)
     h_new, r_new = read_csv(new_csv)
     differing = []
     n = min(len(r_ref), len(r_new))
@@ -244,7 +239,8 @@ def compare_emu(ref_csv: Path, new_csv: Path) -> dict:
 
 def compare_runoff(ref_csv: Path, new_csv: Path) -> dict:
     """Compare RUNOFF_ROAD/RUNOFF_ROOF: ref main CSV vs candidate TEB_runoff.csv."""
-    h_ref, r_ref = read_csv(ref_csv)
+    ref_runoff = ref_csv.with_name(new_csv.name)
+    h_ref, r_ref = read_csv(ref_runoff if ref_runoff.is_file() else ref_csv)
     h_new, r_new = read_csv(new_csv)
     differing = []
     n = min(len(r_ref), len(r_new))
@@ -265,10 +261,13 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--ref-exe', default='build/TEB_offline_dev_ref.exe')
     ap.add_argument('--new-exe', default='build/TEB_offline_dev.exe')
+    ap.add_argument('--ref-param-nml', type=Path, help='parameter template from the reference revision')
+    ap.add_argument('--out-root', type=Path, default=OUT_ROOT)
     ap.add_argument('--set', default='base', choices=tuple(SETS),
                     help='which set of configurations to run (default: base)')
     args = ap.parse_args(argv)
 
+    out_root = args.out_root.resolve()
     ref_exe = (MODEL_DIR / args.ref_exe).resolve()
     new_exe = (MODEL_DIR / args.new_exe).resolve()
     for exe in (ref_exe, new_exe):
@@ -281,15 +280,16 @@ def main(argv=None) -> int:
     for cfg in SETS[args.set]:
         name, overrides, f_overrides = (cfg if len(cfg) == 3
                                         else (cfg[0], cfg[1], {}))
-        cfg_dir = OUT_ROOT / name
+        cfg_dir = out_root / name
         param_nml = make_param_namelist(cfg_dir / 'namelist.nml', overrides)
-        param_nml_ref = make_param_namelist(cfg_dir / 'namelist_ref.nml', overrides, reference=True)
+        param_nml_ref = make_param_namelist(cfg_dir / 'namelist_ref.nml', overrides,
+                                          ref_template=args.ref_param_nml)
         forcing_nml = (make_forcing_namelist(cfg_dir / 'namelist_forcing.nml', f_overrides)
                        if f_overrides else FORCING_NML)
         run_case(ref_exe, CASE, forcing_nml, cfg_dir / 'ref', None, param_nml_ref)
         run_case(new_exe, CASE, forcing_nml, cfg_dir / 'new', None, param_nml)
 
-        ref_csv = cfg_dir / 'ref' / REF_CSV_NAME
+        ref_csv = model_csv(cfg_dir / 'ref')
         new_csv = cfg_dir / 'new' / NEW_CSV_NAME
         res = compare_common(ref_csv, new_csv)
 
@@ -319,7 +319,7 @@ def main(argv=None) -> int:
         for d in emu['differing'][:5]:
             print(f'      EMU {d[0]} row {d[1]}: {d[2]} != {d[3]}')
 
-    summary = OUT_ROOT / ('summary_matrix.csv' if args.set == 'base'
+    summary = out_root / ('summary_matrix.csv' if args.set == 'base'
                           else f'summary_matrix_{args.set}.csv')
     summary.write_text('\n'.join(';'.join(r) for r in rows) + '\n', encoding='utf-8')
     print('summary:', summary)

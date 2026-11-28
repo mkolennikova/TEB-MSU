@@ -65,7 +65,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import f90nml
 
 import matplotlib
 matplotlib.use('Agg')
@@ -80,6 +79,8 @@ if str(PYTHON_DIR) not in sys.path:
     sys.path.append(str(PYTHON_DIR))
 
 from sensitivity_zd import LCZ, DEFAULT_WORK_DIR, series, stats_of      # noqa: E402
+from container_ab_compare import model_csv  # noqa: E402
+from teb_namelist import read_model_namelist                            # noqa: E402
 
 #: model columns used by the checks
 COLS = ('RN_TOWN', 'H_TOWN', 'LE_TOWN', 'H_ROAD', 'T_CANYON', 'H_ROAD_CAN',
@@ -134,17 +135,17 @@ def ahf_traffic_now(ahf_traffic: float, hour, minute, second, utc_hour: int,
 def read_run(out_dir: Path) -> dict:
     """Model output of one run: the columns of the checks and the time stamps."""
     data = {name: series(out_dir, name) for name in COLS}
-    csv = out_dir / 'TEB_output.csv'
+    csv = model_csv(out_dir)
     data['time'] = (pd.read_csv(csv, sep=';', usecols=['time'])['time']
                     if csv.is_file() else None)
     return data
 
 
 def namelist_get(path: Path, key: str, default):
-    """One value of a case namelist (ahf_traffic, teb_utc_hour, ...)."""
+    """One physical parameter of a case namelist."""
     try:
-        return f90nml.read(str(path))['tebparam'][key]
-    except Exception:                                              # noqa: BLE001
+        return read_model_namelist(path)['tebparams'].get(key, default)
+    except OSError:
         return default
 
 
@@ -347,7 +348,7 @@ def main(argv=None) -> int:
     cases = []
     for path in sorted(root['base'].glob('output_*')):
         name = path.name[len('output_'):]
-        if name.endswith('_cbs') or not (path / 'TEB_output.csv').is_file():
+        if name.endswith('_cbs') or not model_csv(path).is_file():
             continue
         cases.append(name)
     if args.cases:
@@ -376,7 +377,7 @@ def main(argv=None) -> int:
         for key, path in root.items():
             for tag, label in CBS_MODES:
                 out_dir = path / f'output_{case}{tag}'
-                if (out_dir / 'TEB_output.csv').is_file():
+                if model_csv(out_dir).is_file():
                     runs[(key, label)] = read_run(out_dir)
         if ('base', 'CBS off') not in runs:
             print(f'  [skip] {case}: no reference run')

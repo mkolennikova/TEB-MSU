@@ -696,7 +696,7 @@ IF (ZZ0(1) <= 0. .OR. ZZ0(1) > 0.5*ZBLD_HEIGHT(1)) THEN
   STOP 1
 ENDIF
 IF (XZD_TOWN(1) < 0. .OR. XZD_TOWN(1) >= ZBLD_HEIGHT(1)) THEN
-  WRITE(*,*) 'ERROR in CALL_DRIVER: teb_ctype_zd_town (legacy urb_zd_town) = ', &
+  WRITE(*,*) 'ERROR in CALL_DRIVER: teb_ctype_zd_town = ', &
     TRIM(urb_zd_town), ' -> zd = ', XZD_TOWN(1), ' m'
   WRITE(*,*) '   zd must be in [0, urb_h_bld), urb_h_bld = ', ZBLD_HEIGHT(1), ' m'
   STOP 1
@@ -1570,7 +1570,7 @@ CHARACTER(LEN=*), INTENT(IN) :: CZ0, CZD  ! both namelist entries
 
 WRITE(*,*) 'ERROR in CALL_DRIVER: cannot interpret the namelist entry '//TRIM(CNAME)
 WRITE(*,*) '   teb_ctype_z0_town = ', TRIM(CZ0)
-WRITE(*,*) '   teb_ctype_zd_town (legacy urb_zd_town) = ', TRIM(CZD)
+WRITE(*,*) '   teb_ctype_zd_town = ', TRIM(CZD)
 WRITE(*,*) '   accepted forms: <value> (m), <value>m, <value>H, H/<n>'
 WRITE(*,*) '   note: the named parameterizations of src_dev (MACDONALD1998,'
 WRITE(*,*) '         MACDONALD1998SQ) are not implemented in src_ctrl'

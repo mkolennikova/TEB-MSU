@@ -30,7 +30,7 @@ LCZ = {
                  h_bld=20.0, fr_bld=0.55, h2w=1.50, fai=0.40),
     #: LOW but DENSE buildings (a dense open low-rise, roughly a compact LCZ 6).
     #: The aspect ratio is the driver default of the CBS threshold,
-    #: urb_h2w = 0.5 = teb_tau_hw_thresh, so tanh(0) = 0 gives tau = 0.5 EXACTLY,
+    #: urb_h2w = 0.5 = teb_cbs_hw_thresh, so tanh(0) = 0 gives tau = 0.5 EXACTLY,
     #: whatever the width: it is the worst case of the CBS averaging, where the
     #: canyon path and the atmosphere path carry the same weight (1/2 each). The
     #: plan area index follows the same geometry as SPARSE (fr_bld = 0.5/1.588 =

@@ -72,7 +72,7 @@ CHARACTER(LEN=*), INTENT(IN) :: CZ0, CZD  ! both namelist entries
 
 WRITE(*,*) 'ERROR in CALL_DRIVER: cannot interpret the namelist entry '//TRIM(CNAME)
 WRITE(*,*) '   teb_ctype_z0_town = ', TRIM(CZ0)
-WRITE(*,*) '   teb_ctype_zd_town (legacy urb_zd_town) = ', TRIM(CZD)
+WRITE(*,*) '   teb_ctype_zd_town = ', TRIM(CZD)
 WRITE(*,*) '   accepted forms: <value> (m), <value>m, <value>H, H/<n>'
 WRITE(*,*) '   named parameterizations: MACDONALD1998, MACDONALD1998SQ'
 STOP

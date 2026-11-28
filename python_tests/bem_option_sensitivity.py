@@ -42,8 +42,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from container_ab_compare import MODEL_DIR, read_csv, run_case            # noqa: E402
-from container_ab_matrix import (FORCING_NML, NEW_CSV_NAME, REF_CSV_NAME,  # noqa: E402
+from container_ab_compare import MODEL_DIR, model_csv, read_csv, run_case  # noqa: E402
+from container_ab_matrix import (FORCING_NML, NEW_CSV_NAME,  # noqa: E402
                                  CASE, compare_common, compare_emu,
                                  compare_runoff, make_param_namelist)
 
@@ -62,12 +62,12 @@ EXPERIMENTS = [
      {'teb_lbem_ac': '.TRUE.'},
      ('HVAC_COOL', 'HVAC_HEAT', 'TI_BLD', 'H_TOWN', 'LE_TOWN')),
     ('natvent_auto',
-     {'teb_itype_natvent': "'NONE'"},
-     {'teb_itype_natvent': "'AUTO'"},
+     {'teb_ctype_natvent': "'NONE'"},
+     {'teb_ctype_natvent': "'AUTO'"},
      ('TI_BLD', 'HVAC_COOL', 'HVAC_HEAT', 'Q_CANYON', 'T_CANYON')),
     ('natvent_mech',
-     {'teb_itype_natvent': "'NONE'"},
-     {'teb_itype_natvent': "'MECH'"},
+     {'teb_ctype_natvent': "'NONE'"},
+     {'teb_ctype_natvent': "'MECH'"},
      ('TI_BLD', 'HVAC_COOL', 'HVAC_HEAT', 'Q_CANYON', 'T_CANYON')),
 ]
 
@@ -125,6 +125,7 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument('--ref-exe', default='build/TEB_offline_dev_ref.exe')
     ap.add_argument('--new-exe', default='build/TEB_offline_dev.exe')
+    ap.add_argument('--ref-param-nml', type=Path, help='parameter template from the reference revision')
     ap.add_argument('--out-root', default=str(OUT_ROOT))
     args = ap.parse_args(argv)
 
@@ -133,7 +134,7 @@ def main(argv=None) -> int:
     for exe in (ref_exe, new_exe):
         if not exe.is_file():
             sys.exit(f'ERROR: not found: {exe}')
-    out_root = Path(args.out_root)
+    out_root = Path(args.out_root).resolve()
     out_root.mkdir(parents=True, exist_ok=True)
 
     print('BEM option sensitivity  [%s]' % CASE.name)
@@ -143,8 +144,9 @@ def main(argv=None) -> int:
         exp_dir = out_root / name
         nml = {'off': make_param_namelist(exp_dir / 'off' / 'namelist.nml', off),
                'on': make_param_namelist(exp_dir / 'on' / 'namelist.nml', on)}
-        nml_ref = {'off': make_param_namelist(exp_dir / 'off' / 'namelist_ref.nml', off, reference=True),
-                   'on': make_param_namelist(exp_dir / 'on' / 'namelist_ref.nml', on, reference=True)}
+        nml_ref = {variant: make_param_namelist(exp_dir / variant / 'namelist_ref.nml', overrides,
+                                              ref_template=args.ref_param_nml)
+                   for variant, overrides in (('off', off), ('on', on))}
         for variant in ('off', 'on'):
             run_case(ref_exe, CASE, FORCING_NML, exp_dir / variant / 'ref', None, nml_ref[variant])
             run_case(new_exe, CASE, FORCING_NML, exp_dir / variant / 'new', None, nml[variant])
@@ -152,7 +154,7 @@ def main(argv=None) -> int:
         ab = {}
         for variant in ('off', 'on'):
             base = exp_dir / variant
-            ab[variant], msg = ab_ok(base / 'ref' / REF_CSV_NAME,
+            ab[variant], msg = ab_ok(model_csv(base / 'ref'),
                                      base / 'new' / NEW_CSV_NAME,
                                      base / 'new' / 'TEB_runoff.csv',
                                      base / 'new' / 'TEB_emu.csv')

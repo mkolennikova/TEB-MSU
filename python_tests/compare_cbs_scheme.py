@@ -7,7 +7,7 @@ Purpose
 With the CBS scheme the actual road fluxes are the weighted mean of the
 road/canyon and road/forcing-level exchanges, with the weights tau and 1-tau:
 
-    tau = 0.5 * (1 + tanh((H/W - teb_tau_hw_thresh) / teb_tau_hw_width))
+    tau = 0.5 * (1 + tanh((H/W - teb_cbs_hw_thresh) / teb_cbs_hw_width))
 
 so that tau -> 0 for very sparse buildings (the road exchanges directly with the
 air of the forcing level) and tau = 1 for a dense canyon (the road exchanges
@@ -27,13 +27,13 @@ Experiment design
 Same forcing and building parameters as `python_tests/sensitivity_zd.py`: the Moscow
 ERA5 forcing (hlev_teb = 10 m), the LCZ 2, LCZ 6D, LCZ 9 and SPARSE morphologies
 (LCZ 6D is the extra low but dense one) and the two canyon-wind schemes
-(teb_itype_wind = 0 and 1). The urban roughness length and the displacement height
-keep their default prescriptions (z0 = 0.1H and urb_zd_town = 'H/3').
+(teb_ctype_wind = 'DEF' and 'WANG'). The urban roughness length and the displacement height
+keep their default prescriptions (z0 = 0.1H and teb_ctype_zd_town = 'H/3').
 
 The CBS scheme is driven by the canyon H/W ratio of the morphology (urb_h2w):
 LCZ 2 (compact midrise) is a dense canyon (tau close to 1), LCZ 6D (low but dense
 buildings) sits exactly on the driver default of the threshold, urb_h2w = 0.5 =
-teb_tau_hw_thresh, so that tau = 0.5 (the worst case of the CBS averaging, where
+teb_cbs_hw_thresh, so that tau = 0.5 (the worst case of the CBS averaging, where
 the canyon path and the atmosphere path carry the same weight), and LCZ 9 and
 SPARSE (sparsely built) are close to the free atmosphere (small tau).
 
@@ -65,7 +65,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import f90nml
 
 import matplotlib
 matplotlib.use('Agg')
@@ -83,8 +82,10 @@ if str(PYTHON_DIR) not in sys.path:
 # the building configurations come from the shared morphology.py (the single set
 # LCZ, which includes the low but dense LCZ6D with tau = 0.5)
 from morphology import LCZ                                           # noqa: E402
+from container_ab_compare import model_csv  # noqa: E402
+from teb_namelist import read_model_namelist  # noqa: E402
 from sensitivity_zd import (                                         # noqa: E402
-    WIND_TYPES, DEFAULT_WORK_DIR,
+    WIND_TYPES, WIND_SCHEMES, DEFAULT_WORK_DIR,
     run_case, series, stats_of, banner_values, read_forcing,
 )
 
@@ -208,32 +209,33 @@ def build_namelist(base_nml: Path, lcz_tag: str, wind_type: int, path: Path,
     the buildings (H_WASTE) vanishes: this is the control configuration of the
     verification of the anthropogenic heat accounting.
     """
-    nml = f90nml.read(str(base_nml))
-    p = nml['tebparam']
+    nml = read_model_namelist(base_nml)
+    opts = nml['tebopts']
+    p = nml['tebparams']
     lcz = LCZ[lcz_tag]
     p['urb_h_bld'] = float(lcz['h_bld'])
     p['urb_fr_bld'] = float(lcz['fr_bld'])
     p['urb_h2w'] = float(lcz['h2w'])
     p['teb_fai'] = [float(lcz['fai'])] * 8
-    p['teb_itype_wind'] = int(wind_type)
-    p.pop('urb_z0_town', None)
-    p['urb_zd_town'] = ZD_DEFAULT
-    p['teb_lgarden'] = bool(garden)
+    opts['teb_ctype_wind'] = WIND_SCHEMES[wind_type]
+    opts['teb_ctype_z0_town'] = Z0_DEFAULT
+    opts['teb_ctype_zd_town'] = ZD_DEFAULT
+    opts['teb_lgarden'] = bool(garden)
     p['fr_garden'] = float(fr_garden) if garden else 0.0
-    p['teb_lcbs_scheme'] = bool(tau)
-    p['teb_tau_hw_thresh'] = float(tau_thresh)
-    p['teb_tau_hw_width'] = float(tau_width)
+    opts['teb_lcbs_scheme'] = bool(tau)
+    opts['teb_cbs_hw_thresh'] = float(tau_thresh)
+    opts['teb_cbs_hw_width'] = float(tau_width)
     p['ahf_traffic'] = float(ahf_traffic)
     p['ahf_industry'] = 0.0
     if not waste:
-        p['teb_lbem_ac'] = False
+        opts['teb_lbem_ac'] = False
         p['teb_tcool_target'] = WASTE_OFF_TCOOL
         p['teb_theat_target'] = WASTE_OFF_THEAT
         p['teb_bem_inf'] = 0.0
         p['teb_bem_vent'] = 0.0
         #: natural ventilation must be off as well: it injects canyon air into
         #: the buildings and contributes to the waste heat (H_WASTE)
-        p['teb_itype_natvent'] = 'NONE'
+        opts['teb_ctype_natvent'] = 'NONE'
     path.parent.mkdir(parents=True, exist_ok=True)
     nml.write(str(path), force=True)
     return path
@@ -253,7 +255,7 @@ def read_case(out_dir: Path) -> dict:
     data = {name: mask_undefined(series(out_dir, name)) for name in CMP}
     for name in AUX:
         data[name] = mask_undefined(series(out_dir, name))
-    csv = out_dir / 'TEB_output.csv'
+    csv = model_csv(out_dir)
     data['time'] = (pd.read_csv(csv, sep=';', usecols=['time'])['time']
                     if csv.is_file() else None)
     return data
@@ -299,7 +301,7 @@ def _case_title(case: str, info: dict, tau_val: float) -> str:
     """Title of a panel: case name + morphology + the tau value of the case."""
     lcz_tag, wind_type = info[case]
     hw = float(LCZ[lcz_tag]['h2w'])
-    return (f'{case}\n{LCZ[lcz_tag]["label"]}, teb_itype_wind = {wind_type}, '
+    return (f'{case}\n{LCZ[lcz_tag]["label"]}, teb_ctype_wind = {WIND_SCHEMES[wind_type]}, '
             f'tau(H/W = {hw:g}) = {tau_val:.3f}')
 
 
@@ -454,7 +456,7 @@ def write_readme(out_root: Path, base: Path, forcing_nml: Path, info: dict,
     for case in info:
         lcz_tag, wind_type = info[case]
         hw = float(LCZ[lcz_tag]['h2w'])
-        lines.append(f'| `{case}` | {LCZ[lcz_tag]["label"]} | {wind_type} | '
+        lines.append(f'| `{case}` | {LCZ[lcz_tag]["label"]} | {WIND_SCHEMES[wind_type]} | '
                      f'{hw:g} | {tau_of(hw, tau_thresh, tau_width):.3f} |')
     txt = f"""# Comparison of the CBS scheme of the road fluxes (TEB-MSU)
 
@@ -465,21 +467,21 @@ Generated by `python_tests/compare_cbs_scheme.py`. The simulation data are kept 
 * Forcing: `{forcing_nml}`
 * Base model namelist: `{base}`
 * Urban roughness length and displacement height: defaults
-  (`z0 = {Z0_DEFAULT}`, `urb_zd_town = {ZD_DEFAULT}`)
+  (`z0 = {Z0_DEFAULT}`, `teb_ctype_zd_town = {ZD_DEFAULT}`)
 * Garden: {'activated' if garden else 'NOT activated'} (`teb_lgarden = {str(garden).upper()}`,
   `fr_garden = {fr_garden if garden else 0.0:g}`)
-* Buildings: `teb_itype_bem = '{bem}'` (base namelist); waste heat
+* Buildings: `teb_ctype_bem = '{bem}'` (base namelist); waste heat
   {'active' if waste else 'switched OFF (control configuration: `teb_lbem_ac = .FALSE.`, `teb_bem_inf = teb_bem_vent = 0`)'}
 * Anthropogenic heat flux due to traffic: `ahf_traffic = {ahf_traffic:g}` W/m2
   (daily cycle applied by the driver, `teb_utc_hour` of the base namelist),
   `ahf_industry = 0`
 * Every case is run twice: `teb_lcbs_scheme = .FALSE.` (reference) and `.TRUE.`
-  (CBS scheme), with `teb_tau_hw_thresh = {tau_thresh:g}` and
-  `teb_tau_hw_width = {tau_width:g}`
+  (CBS scheme), with `teb_cbs_hw_thresh = {tau_thresh:g}` and
+  `teb_cbs_hw_width = {tau_width:g}`
 
 ## Cases and tau
 
-| case | morphology | teb_itype_wind | H/W | tau |
+| case | morphology | teb_ctype_wind | H/W | tau |
 | --- | --- | --- | --- | --- |
 """ + '\n'.join(lines) + f"""
 
@@ -532,8 +534,8 @@ members (`T_CAN = tau * T_CAN0 + (1 - tau) * T_CAN1`):
 With `teb_lcbs_scheme = .FALSE.` the driver sets `tau = 1`, so
 `T_CAN = T_CAN0` and the reference run is exactly the former model (verified
 bit-for-bit); the two tau limits are also reachable through the namelist without
-any code switch (`teb_tau_hw_thresh = -1000` gives `tau = 1`,
-`teb_tau_hw_thresh = +100` gives `tau = 0`).
+any code switch (`teb_cbs_hw_thresh = -1000` gives `tau = 1`,
+`teb_cbs_hw_thresh = +100` gives `tau = 0`).
 
 ## Files
 
@@ -587,7 +589,7 @@ def main(argv=None) -> int:
     ap.add_argument('--site', default='Moscow', help='site name (default: %(default)s)')
     ap.add_argument('--base-namelist', default=None,
                     help='model parameters namelist to start from '
-                         '(default: <site>/params_CTRL.nml, else <repo>/namelist/namelist.nml)')
+                         '(default: <site>/params_CTRL.nml, else tests/CAPITOUL/namelist/namelist.nml)')
     ap.add_argument('--forcing-nml', default=None,
                     help='forcing namelist (default: <site>/forcing_ERA5/namelist_forcing.nml)')
     ap.add_argument('--out-root', default=None,
@@ -626,7 +628,7 @@ def main(argv=None) -> int:
     base = (Path(args.base_namelist) if args.base_namelist
             else work / args.site / 'params_CTRL.nml')
     if not base.is_file():
-        base = MODEL_DIR / 'namelist' / 'namelist.nml'
+        base = MODEL_DIR / 'tests' / 'CAPITOUL' / 'namelist' / 'namelist.nml'
     forcing_nml = (Path(args.forcing_nml) if args.forcing_nml
                    else work / args.site / 'forcing_ERA5' / 'namelist_forcing.nml')
     out_root = (Path(args.out_root) if args.out_root
@@ -636,10 +638,7 @@ def main(argv=None) -> int:
     use_cbs = not args.no_cbs
     waste = not args.no_waste
     # BEM option of the base configuration (the CBS scheme is evaluated with it)
-    try:
-        bem = str(f90nml.read(str(base))['tebparam']['teb_itype_bem']).strip()
-    except Exception:                                     # noqa: BLE001
-        bem = 'unknown'
+    bem = read_model_namelist(base)['tebopts'].get('teb_ctype_bem', 'BEM').strip()
     #: cases of the experiment that actually have an output: a partial run (e.g.
     #: with --only) produces statistics and figures for the available cases only
     info, tau_vals = {}, {}
@@ -649,7 +648,7 @@ def main(argv=None) -> int:
         for case, lcz_tag, wind_type, tau in all_cases:
             hw = float(LCZ[lcz_tag]['h2w'])
             tv = tau_of(hw, args.tau_hw_thresh, args.tau_hw_width)
-            print(f'{case:<18} {LCZ[lcz_tag]["label"]:<44} teb_itype_wind={wind_type} '
+            print(f'{case:<18} {LCZ[lcz_tag]["label"]:<44} teb_ctype_wind={WIND_SCHEMES[wind_type]} '
                   f'H/W={hw:g} tau={tv:.3f} lcbs_scheme={tau}')
         return 0
 
@@ -673,10 +672,10 @@ def main(argv=None) -> int:
     print('  base nml       :', base)
     print('  output root    :', out_root)
     print('  cases          :', len(all_cases))
-    print('  tau parameters : teb_tau_hw_thresh =', args.tau_hw_thresh,
-          ', teb_tau_hw_width =', args.tau_hw_width)
+    print('  tau parameters : teb_cbs_hw_thresh =', args.tau_hw_thresh,
+          ', teb_cbs_hw_width =', args.tau_hw_width)
     print('  z0, zd         :', Z0_DEFAULT, ',', ZD_DEFAULT, '(defaults)')
-    print('  BEM            :', bem, '(base namelist teb_itype_bem)')
+    print('  BEM            :', bem, '(base namelist teb_ctype_bem)')
     print('  AHF traffic    :', args.ahf_traffic, 'W/m2 (namelist ahf_traffic)')
     print('  BEM waste heat :', 'on' if waste else 'OFF (control configuration)')
     print('==================================================================')
@@ -690,7 +689,7 @@ def main(argv=None) -> int:
                        tau, args.tau_hw_thresh, args.tau_hw_width,
                        args.ahf_traffic, waste)
         unchanged = previous == _read_text(nml_path)
-        done = (out_dir / 'TEB_output.csv').is_file()
+        done = model_csv(out_dir).is_file()
         if args.skip_run or (done and unchanged and not args.force):
             print(f'  [skip] {case}')
             continue
@@ -700,7 +699,7 @@ def main(argv=None) -> int:
         print(f'  [run ] {case}  (return code {rc})')
 
     for case, case_cbs, lcz_tag, wind_type in pairs(use_cbs):
-        if not (out_root / f'output_{case}' / 'TEB_output.csv').is_file():
+        if not model_csv(out_root / f'output_{case}').is_file():
             print(f'  [none] {case}  (no output: statistics and figures skipped)')
             continue
         info[case] = (lcz_tag, wind_type)
@@ -715,7 +714,7 @@ def main(argv=None) -> int:
         ref_data[case] = ref
         if case_cbs is None:
             continue
-        if not (out_root / f'output_{case_cbs}' / 'TEB_output.csv').is_file():
+        if not model_csv(out_root / f'output_{case_cbs}').is_file():
             print(f'  [none] {case_cbs}  (no output: statistics and figures skipped)')
             continue
         run = read_case(out_root / f'output_{case_cbs}')

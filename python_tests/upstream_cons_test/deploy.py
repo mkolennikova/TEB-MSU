@@ -323,9 +323,8 @@ def materialize(layout: bc.Layout, args) -> dict:
     for source in (bc.CAPITOUL_PARAM_NML, bc.CAPITOUL_FORCING_NML):
         if not source.is_file():
             raise SystemExit(f'ERROR: missing template: {source}')
-    legacy = bc.CAPITOUL_PARAM_NML.read_text(encoding='utf-8')
-    ctrl = teb_namelist.split_parameters(teb_namelist.canonicalize_legacy_selectors(legacy),
-                                         defaults=teb_namelist.AERODYNAMIC_DEFAULTS)
+    capitoul = bc.CAPITOUL_PARAM_NML.read_bytes().decode('utf-8')
+    ctrl = teb_namelist.apply_model_overrides(capitoul, {}, defaults=teb_namelist.AERODYNAMIC_DEFAULTS)
     bc.write_text(layout.template_ctrl(), ctrl)
     shutil.copy2(bc.CAPITOUL_FORCING_NML, layout.template_ctrl_forcing())
     templates = {target.name: bc.sha256(target)

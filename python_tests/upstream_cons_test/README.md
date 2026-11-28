@@ -28,7 +28,8 @@ in both formulas.
 
 | File | Purpose |
 | --- | --- |
-| `common.py` | Paths, line-based namelist patching, driver execution, generation of the 2020 initial state from control cold start, output reading and metrics (stdlib only) |
+| `common.py` | Paths, driver execution, generation of the 2020 initial state from control cold start, output reading and metrics (stdlib only) |
+| [`teb_namelist.py`](../teb_namelist.py) | Shared line-based namelist patching (stdlib only) |
 | `cases.py` | Cases: `C0_control` + `D1…D5` |
 | `deploy.py` | Deployment into `--target`, template preparation and builds of both programs |
 | `sensitivity.py` | Execution and metrics: `prepare → run → compare → report` |
@@ -81,7 +82,8 @@ gfortran runtime DLL directory.
 
 ## Cases
 
-In the control template, `&tebopts` contains switches, exchange schemes,
+The control template starts from the shared CAPITOUL parameter file.
+`&tebopts` contains switches, exchange schemes,
 `z0/z0h` rules and the town `z0` and `zd` rules. Surface roughness lengths
 and other physical parameters go in `&tebparams`. `C0_control` explicitly
 sets `MASC95` and ratio `200` for the road and roof, ratio `200` for the

@@ -57,7 +57,7 @@ REAL,    PARAMETER :: XSURF_EPSILON = EPSILON(XSURF_EPSILON)  ! minimum
 REAL,    PARAMETER :: XSURF_HUGE    = HUGE(XSURF_HUGE) 
 REAL,    PARAMETER :: XSURF_TINY    = TINY(XSURF_TINY) 
 !
-!* COSMO coupling option, available in the offline /tebparam/ namelist.
+!* COSMO coupling option, available in the offline &tebopts namelist.
 !* When enabled, snowfall below XTEB_SNOW_RATE_MIN cannot create snow cover
 !* on a bare road or roof. Existing cover receives the full snowfall rate.
 LOGICAL :: teb_snow_check = .FALSE.

@@ -1,12 +1,12 @@
 # Trace snowfall filtering (`teb_snow_check`)
 
-> The code state of `src_dev` and `src_ctrl` corresponds to [commit `878c93f`](https://github.com/mkolennikova/TEB-MSU/commit/878c93fa85b1dac2e09e59003308b97e2e5071cc).
+> The verification below used [commit `878c93f`](https://github.com/mkolennikova/TEB-MSU/commit/878c93fa85b1dac2e09e59003308b97e2e5071cc).
 
 ## 1. Purpose of the flag
 
 The snow correction originated in the coupled COSMO–TEB version, where it ran
-at every step. The TEB-MSU offline driver reads `teb_snow_check` from the
-`/tebparam/` group. Its default is `.FALSE.`. With zero snow storage, any positive
+at every step. Both TEB-MSU offline drivers read `teb_snow_check` from
+`&tebopts`. Its default is `.FALSE.`. With zero snow storage, any positive
 snowfall in the base scheme assigns snow to 1 % of the road or roof area.
 Trace solid precipitation can therefore change the albedo returned by TEB to
 COSMO even if the snow melts during the same step.

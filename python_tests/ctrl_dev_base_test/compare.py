@@ -20,8 +20,8 @@ from datetime import datetime
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from teb_namelist import (AERODYNAMIC_DEFAULTS, canonicalize_legacy_selectors,
-                          split_parameters)  # noqa: E402
+from teb_namelist import (AERODYNAMIC_DEFAULTS, OPTION_NAMES, apply_model_overrides,
+                          apply_namelist_overrides, group_values)  # noqa: E402
 
 
 REPO = Path(__file__).resolve().parents[2]
@@ -44,7 +44,7 @@ MODEL_COLUMNS = (
 FORCING_COLUMNS = (
     "Forc_TA", "Forc_QA", "Forc_QV", "Forc_U", "Forc_V", "Forc_PS",
     "Forc_RHOA", "Forc_RAIN", "Forc_SNOW", "Forc_LW", "Forc_DIR_SW",
-    "Forc_SCA_SW",
+    "Forc_SCA_SW", "Forc_DIR",
 )
 EXCLUDED_CTRL_COLUMNS = {
     "WIND_TOP": "different diagnostic meaning at teb_ctype_wind='DEF'",
@@ -100,28 +100,6 @@ def write_template(path: Path, content: str) -> None:
         stream.write(content)
 
 
-def namelist_value(content: str, key: str) -> str:
-    pattern = re.compile(r"^\s*" + re.escape(key) + r"\s*=\s*([^!,\r\n]+)", re.I | re.M)
-    matches = pattern.findall(content)
-    if len(matches) != 1:
-        raise ValueError(f"expected exactly one {key} in base namelist")
-    return matches[0].strip().lower()
-
-
-def set_namelist_value(content: str, key: str, value: str) -> str:
-    pattern = re.compile(r"(?im)^([ \t]*" + re.escape(key) + r"[ \t]*=[ \t]*)[^!\r\n]*")
-    if len(pattern.findall(content)) == 1:
-        return pattern.sub(lambda match: match.group(1) + value + ",", content, count=1)
-    if pattern.search(content):
-        raise ValueError(f"duplicate namelist key: {key}")
-    newline = "\r\n" if "\r\n" in content else "\n"
-    content, count = re.subn(r"(?m)^/[ \t]*(?=\r?$)",
-                             " " + key + "=" + value + "," + newline + "/", content)
-    if count != 1:
-        raise ValueError(f"could not insert namelist key {key}")
-    return content
-
-
 def external(path: Path) -> Path:
     path = path.expanduser().resolve()
     if path == REPO or REPO in path.parents:
@@ -132,10 +110,9 @@ def external(path: Path) -> Path:
 def prepare_namelists(out: Path, smoke_steps: int, forcing_source: Path,
                       forcing_dir: Path | None, irrigation_months: tuple[int, int] | None,
                       replacement_wind: Path | None) -> dict:
-    param = canonicalize_legacy_selectors(read_template(PARAM_TEMPLATE))
-    # CAPITOUL can rely on DEF. Make the baseline selector explicit for this matrix.
-    if not re.search(r"(?im)^[ \t]*teb_ctype_wind[ \t]*=", param):
-        param = set_namelist_value(param, "teb_ctype_wind", "'DEF'")
+    param = read_template(PARAM_TEMPLATE)
+    options = group_values(param, "tebopts")
+    parameters = group_values(param, "tebparams")
     expected = {
         "teb_lgarden": ".false.",
         "fr_garden": "0.0",
@@ -147,12 +124,13 @@ def prepare_namelists(out: Path, smoke_steps: int, forcing_source: Path,
         "teb_ctype_wind": "'def'",
     }
     for key, value in expected.items():
-        actual = namelist_value(param, key)
+        values = options if key in OPTION_NAMES else parameters
+        actual = values.get(key, "").lower()
         if actual != value:
             raise ValueError(f"base namelist has {key}={actual}, expected {value}")
-    if re.search(r"^\s*teb_lshade\s*=", param, re.I | re.M):
+    if "teb_lshade" in options:
         raise ValueError("base namelist already sets teb_lshade; review the test configuration")
-    param = set_namelist_value(param, "teb_lshade", ".FALSE.")
+    common = {"teb_lshade": ".FALSE.", "teb_lcbs_scheme": ".FALSE."}
     case_overrides = {case: dict(overrides) for case, overrides in CASE_OVERRIDES.items()}
     if irrigation_months is not None:
         start, end = irrigation_months
@@ -160,16 +138,13 @@ def prepare_namelists(out: Path, smoke_steps: int, forcing_source: Path,
                                              "teb_rd_irrig_end_m": str(end)})
     param_paths = {}
     for case, overrides in case_overrides.items():
-        case_param = param
-        for key, value in overrides.items():
-            case_param = set_namelist_value(case_param, key, value)
-        case_param = set_namelist_value(case_param, "teb_lcbs_scheme", ".FALSE.")
+        case_param = apply_model_overrides(param, {**common, **overrides}, defaults=AERODYNAMIC_DEFAULTS)
         param_path = out / "config" / case / "namelist.nml"
-        write_template(param_path, split_parameters(case_param, defaults=AERODYNAMIC_DEFAULTS))
+        write_template(param_path, case_param)
         param_paths[case] = param_path
 
     forcing = read_template(forcing_source)
-    full_steps = int(namelist_value(forcing, "nsteps"))
+    full_steps = int(group_values(forcing, "tebforcing")["nsteps"])
     if not 2 <= smoke_steps <= full_steps:
         raise ValueError(f"smoke-steps must be in 2..{full_steps}")
     source_forcing_dir = (forcing_dir or CASE / "input").resolve()
@@ -194,8 +169,8 @@ def prepare_namelists(out: Path, smoke_steps: int, forcing_source: Path,
             raise ValueError(f"{file} has {rows} rows, expected at least {full_steps}")
     # Each model runs in out/runs/<case>/<stage>/<tree>; short paths also work
     # with the reference driver's retained 100-character CLI buffers.
-    forcing = set_namelist_value(forcing, "forcing_path", "'../../../../input/'")
-    smoke = set_namelist_value(forcing, "nsteps", str(smoke_steps))
+    forcing = apply_namelist_overrides(forcing, "tebforcing", {"forcing_path": "'../../../../input/'"})
+    smoke = apply_namelist_overrides(forcing, "tebforcing", {"nsteps": str(smoke_steps)})
     smoke_path = out / "config" / "namelist_forcing_smoke.nml"
     full_path = out / "config" / "namelist_forcing_full.nml"
     write_template(smoke_path, smoke)

@@ -28,6 +28,8 @@ import time
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 
+from teb_namelist import apply_namelist_overrides, find_group, group_values
+
 #: directory of this file (imports are by sibling name)
 HERE = Path(__file__).resolve().parent
 
@@ -92,74 +94,6 @@ TOLERANCE_PHYSICAL = 1e-3
 # lose the comments and the exact formatting of the case files.
 
 
-def _find_group(lines: List[str], group: str) -> Tuple[int, int]:
-    """Return (start, end) line indices of ``&group`` ... ``/``."""
-    token = '&' + group.lower()
-    start = None
-    for i, line in enumerate(lines):
-        if line.partition('!')[0].strip().lower() == token:
-            start = i
-            break
-    if start is None:
-        raise SystemExit(f'ERROR: namelist group &{group} not found')
-    for j in range(start + 1, len(lines)):
-        if lines[j].strip().startswith('/'):
-            return start, j
-    raise SystemExit(f'ERROR: namelist group &{group} has no terminating /')
-
-
-def _replace_item(line: str, key: str, value: str) -> str | None:
-    """Replace ``key = ...`` in a single namelist line, or return None."""
-    code, sep, comment = line.partition('!')
-    pattern = re.compile(
-        r'^(\s*)(' + re.escape(key) + r')(\s*=\s*)(.*?)(\s*),?\s*$', re.I)
-    m = pattern.match(code)
-    if not m:
-        return None
-    prefix, name, eq = m.group(1), m.group(2), m.group(3)
-    tail = ''
-    if sep:
-        tail = ' !' + comment
-    return f'{prefix}{name}{eq}{value},{tail}'.rstrip()
-
-
-def apply_namelist_overrides(text: str, group: str,
-                             overrides: Dict[str, str]) -> str:
-    """Apply ``overrides`` to one namelist group, preserving the rest.
-
-    A missing item is inserted just before the terminating ``/`` of the group.
-    """
-    newline = '\r\n' if '\r\n' in text else '\n'
-    lines = text.replace('\r\n', '\n').split('\n')
-    if lines and lines[-1] == '':
-        lines.pop()
-    start, end = _find_group(lines, group)
-    for key, value in overrides.items():
-        replaced = False
-        for i in range(start + 1, end):
-            new_line = _replace_item(lines[i], key, value)
-            if new_line is not None:
-                lines[i] = new_line
-                replaced = True
-                break
-        if not replaced:
-            # Insert before the terminating '/'. The previous item must be
-            # terminated by a comma (a newline is also a valid Fortran namelist
-            # separator, but the generated file is easier to audit when every
-            # item ends with a comma).
-            prev = end - 1
-            while prev > start and (not lines[prev].strip()
-                                    or lines[prev].strip().startswith('!')):
-                prev -= 1
-            code, sep, comment = lines[prev].partition('!')
-            if code.strip() and not code.rstrip().endswith(','):
-                tail = (' !' + comment) if sep else ''
-                lines[prev] = code.rstrip() + ',' + tail
-            lines.insert(end, f' {key}={value},')
-            end += 1
-    return newline.join(lines) + newline
-
-
 def remove_namelist_items(text: str, group: str, keys: Iterable[str]) -> str:
     """Delete the ``key = ...`` lines of one namelist group.
 
@@ -172,7 +106,7 @@ def remove_namelist_items(text: str, group: str, keys: Iterable[str]) -> str:
     lines = text.replace('\r\n', '\n').split('\n')
     if lines and lines[-1] == '':
         lines.pop()
-    start, end = _find_group(lines, group)
+    start, end = find_group(lines, group)
     wanted = set(keys)
     removed = set()
     kept = []
@@ -201,27 +135,6 @@ def render_namelist(template: Path, group: str,
     with open(template, 'r', encoding='utf-8', errors='ignore', newline='') as fh:
         text = fh.read()
     return apply_namelist_overrides(text, group, overrides)
-
-
-def group_values(text: str, group: str) -> Dict[str, str]:
-    """Return ``{lowercase item: raw value}`` of one namelist group."""
-    lines = text.replace('\r\n', '\n').split('\n')
-    start, end = _find_group(lines, group)
-    values: Dict[str, str] = {}
-    duplicates = []
-    for line in lines[start + 1:end]:
-        code = line.partition('!')[0]
-        m = re.match(r'\s*([A-Za-z0-9_]+)\s*=\s*(.*?)\s*,?\s*$', code)
-        if not m:
-            continue
-        key = m.group(1).lower()
-        if key in values:
-            duplicates.append(key)
-        values[key] = m.group(2).strip()
-    if duplicates:
-        raise SystemExit(f'ERROR: duplicate namelist items in &{group}: '
-                         f'{duplicates}')
-    return values
 
 
 def _normalise(value: str) -> str:
@@ -413,7 +326,7 @@ def apply_initial_state(text: str, forcing_dir: Path, anchor: float) -> str:
     lines = text.replace('\r\n', '\n').split('\n')
     if lines and lines[-1] == '':
         lines.pop()
-    start, end = _find_group(lines, GROUP_UPSTREAM)
+    start, end = find_group(lines, GROUP_UPSTREAM)
     seen = set()
     for i in range(start + 1, end):
         code, _sep, _comment = lines[i].partition('!')

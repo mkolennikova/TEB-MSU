@@ -42,7 +42,7 @@ and checks
 Configurations (3 LCZ x 2 CBS settings x 4 ratios = 24 runs)
 ------------------------------------------------------------
     tOFF : teb_lcbs_scheme = .FALSE.  (garden exchanges with the canyon air)
-    t05  : teb_lcbs_scheme = .TRUE., teb_tau_hw_thresh = urb_h2w -> tau = 0.5 exactly
+    t05  : teb_lcbs_scheme = .TRUE., teb_cbs_hw_thresh = urb_h2w -> tau = 0.5 exactly
 
 The garden is 'PROXY_NEW' with ``fr_garden = 0.3`` in every case.
 
@@ -86,6 +86,8 @@ PYTHON_DIR = MODEL_DIR / 'python'      # shared libraries of the repository
 if str(PYTHON_DIR) not in sys.path:
     sys.path.append(str(PYTHON_DIR))
 
+from container_ab_compare import model_csv  # noqa: E402
+from teb_namelist import read_model_namelist  # noqa: E402
 from sensitivity_zd import (                                          # noqa: E402
     LCZ, DEFAULT_WORK_DIR, run_case, series, stats_of,
 )
@@ -146,24 +148,24 @@ def cases(ratio_values=None, lcz_tags=None, cbs_tags=None):
 def build_namelist(base_nml: Path, lcz_tag: str, cbs_tag: str, ratio: float,
                    path: Path, fr_garden: float, z0_gdn: float) -> Path:
     """Namelist of one case: base namelist + LCZ + tau + urb_z0_o_z0h_gdn."""
-    import f90nml
-    nml = f90nml.read(str(base_nml))
-    p = nml['tebparam']
+    nml = read_model_namelist(base_nml)
+    opts = nml['tebopts']
+    p = nml['tebparams']
     lcz = LCZ[lcz_tag]
     lcbs, _desc = CBS_SETTINGS[cbs_tag]
     p['urb_h_bld'] = float(lcz['h_bld'])
     p['urb_fr_bld'] = float(lcz['fr_bld'])
     p['urb_h2w'] = float(lcz['h2w'])
     p['teb_fai'] = [float(lcz['fai'])] * 8
-    p['teb_lgarden'] = True
+    opts['teb_lgarden'] = True
     p['fr_garden'] = float(fr_garden)
-    p['teb_type_garden'] = 'PROXY_NEW'
+    opts['teb_ctype_garden'] = 'PROXY_NEW'
     p['urb_z0_gdn'] = float(z0_gdn)
     p['urb_z0_o_z0h_gdn'] = float(ratio)         # the item under study
-    p['teb_lcbs_scheme'] = bool(lcbs)
+    opts['teb_lcbs_scheme'] = bool(lcbs)
     if lcbs:
         # tanh(0) = 0 -> tau = 0.5 exactly, whatever the morphology
-        p['teb_tau_hw_thresh'] = float(lcz['h2w'])
+        opts['teb_cbs_hw_thresh'] = float(lcz['h2w'])
     path.parent.mkdir(parents=True, exist_ok=True)
     nml.write(str(path), force=True)
     return path
@@ -180,7 +182,7 @@ def read_all(out_dir: Path):
     may lose one ULP): the exact comparisons below need the values written by
     the model.
     """
-    csv = out_dir / 'TEB_output.csv'
+    csv = model_csv(out_dir)
     if not csv.is_file():
         return None
     with open(csv, encoding='utf-8', errors='ignore') as fh:
@@ -287,7 +289,7 @@ def main(argv=None) -> int:
         log_file = out_root / 'logs' / f'{case}.log'
         if args.skip_run:
             continue
-        if out_dir.is_dir() and (out_dir / 'TEB_output.csv').is_file() and not args.force:
+        if out_dir.is_dir() and model_csv(out_dir).is_file() and not args.force:
             print(f'  {case:<22} kept')
             continue
         rc = run_case(exe, forcing_nml, nml_path, out_dir, log_file)
@@ -510,7 +512,7 @@ def _write_readme(out_root: Path, base: Path, forcing_nml: Path, check_df, eff_d
     """Description of the experiment and its results."""
     md = ['# Garden thermal roughness (`urb_z0_o_z0h_gdn`): sensitivity experiment',
           '',
-          'Garden model of TEB-MSU (`teb_type_garden = PROXY_NEW`) tested on the Moscow',
+          'Garden model of TEB-MSU (`teb_ctype_garden = PROXY_NEW`) tested on the Moscow',
           'ERA5 forcing with the thermal (scalar) roughness `z0h = urb_z0_gdn/R`,',
           '`R = urb_z0_o_z0h_gdn` (namelist item, default `4.0`). The garden exchanges',
           'heat and moisture through the neutral scalar coefficient',

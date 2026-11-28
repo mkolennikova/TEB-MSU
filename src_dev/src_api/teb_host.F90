@@ -430,7 +430,7 @@ DO K = KSTART, KEND
     STOP
   ENDIF
   IF (TPARAMS%XZD_TOWN(K) < 0. .OR. TPARAMS%XZD_TOWN(K) >= TPARAMS%XBLD_HEIGHT(K)) THEN
-    WRITE(*,*) 'ERROR in CALL_DRIVER: teb_ctype_zd_town (legacy urb_zd_town) = ', &
+    WRITE(*,*) 'ERROR in CALL_DRIVER: teb_ctype_zd_town = ', &
       TRIM(urb_zd_town), ' -> zd = ', TPARAMS%XZD_TOWN(K), ' m'
     WRITE(*,*) '   zd must be in [0, urb_h_bld), urb_h_bld = ', TPARAMS%XBLD_HEIGHT(K), ' m'
     STOP

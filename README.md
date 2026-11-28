@@ -175,13 +175,11 @@ cell from its wall area index. The forcing file retains the common
 /
 ```
 
-The split format uses `teb_ctype_*` selector keys; `teb_ctype_wind` is `'DEF'`
-or `'WANG'`. The API retains its original selector names and numeric wind codes.
-The old monolithic `&tebparam` retains its former keys and numeric wind selector
-and remains readable for scalar runs; mixing old and
-new groups is an error. `src_ctrl` also accepts `tebopts/tebparams` for
-`nvec=1` and retains legacy `tebparam` support. Its physical defaults and
-numerical operations are preserved; unsupported enabled options are rejected.
+Both trees use `teb_ctype_*` selector keys and accept `'DEF'` or `'WANG'` for
+`teb_ctype_wind`. The shared [CAPITOUL parameter file](tests/CAPITOUL/namelist/namelist.nml)
+uses this format with `nvec=1`, the number of cells supported by `src_ctrl`.
+Both offline drivers reject `&tebparam` with a migration hint. See the
+[parameter migration instructions](docs/TEB_MSU_variables_description.md#21-input-rules).
 
 Each active cell produces `TEB_output_b<B>_c<C>.csv`,
 `TEB_emu_b<B>_c<C>.csv` and `TEB_runoff_b<B>_c<C>.csv`. Single-column, single-block
@@ -229,7 +227,7 @@ The Fortran sources are split into two independent trees, each with its own `Mak
 | Tree | Physics | Builds |
 | --- | --- | --- |
 | `src_dev/` | development line (branch `MV_devs`) with the modern I/O | `<BUILD_ROOT>/lib/libteb.a` and `<BUILD_ROOT>/bin/TEB_offline_dev.exe` |
-| `src_ctrl/` | control line based on the first commit `582c3ab`, with common D7–D9 fixes and scalar split/legacy namelist support | executable selected with absolute external `OBJDIR` and `EXEC` |
+| `src_ctrl/` | control line based on the first commit `582c3ab`, with common D7–D9 fixes and single-cell namelist input | executable selected with absolute external `OBJDIR` and `EXEC` |
 
 Both trees share `tests/`, `python/` and `docs/`. Dev builds the offline host
 through its common library; ctrl retains its existing Makefile and numerical
@@ -299,13 +297,10 @@ For another site, copy and adapt these examples (the notebook `TEB_sandbox.ipynb
 `params_<experiment>.nml` from the CAPITOUL parameters).
 
 <!-- MV202609 strict namelist date/time reading -->
-⚠️ **The driver stops if a namelist cannot be read.** Both namelist files
-(`namelist_forcing.nml` and `namelist.nml`) are read with the same policy: on an
-`IOSTAT > 0` the run stops with an error (**no parameters are silently taken from the
-program**), the log lists every declared item of the failing group with its line
-number and its state, and the **first line at which the read fails** is reported. The
-items that are simply not present in the file are listed separately, together with the
-notice that the driver default is used for them.
+Both drivers stop when a model or forcing namelist fails validation. The
+documented defaults apply to optional settings that are omitted.
+`src_ctrl` reports item details and the first failing assignment when
+reading the forcing namelist.
 
 Integer items must be written without a decimal point: `teb_year`, `teb_month`,
 `teb_day`, `teb_hour`, `teb_min`, `nsteps` and `teb_utc_hour` are INTEGER items and a

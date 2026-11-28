@@ -69,6 +69,8 @@ PYTHON_DIR = MODEL_DIR / 'python'      # shared libraries of the repository
 if str(PYTHON_DIR) not in sys.path:
     sys.path.append(str(PYTHON_DIR))
 
+from container_ab_compare import model_csv  # noqa: E402
+from teb_namelist import read_model_namelist  # noqa: E402
 from sensitivity_zd import (                                          # noqa: E402
     LCZ, DEFAULT_WORK_DIR, run_case,
 )
@@ -160,21 +162,21 @@ def build_namelist(base_nml: Path, lcz_tag: str, mode_tag: str, param, value,
     vegetation surfaces. The four parameters under study are always written
     explicitly, so that the reference run of each mode is well defined.
     """
-    import f90nml
-    nml = f90nml.read(str(base_nml))
-    p = nml['tebparam']
+    nml = read_model_namelist(base_nml)
+    opts = nml['tebopts']
+    p = nml['tebparams']
     lcz = LCZ[lcz_tag]
     lgarden, gtype, fr_gd, lgreenroof, fr_gr = MODES[mode_tag]
     p['urb_h_bld'] = float(lcz['h_bld'])
     p['urb_fr_bld'] = float(lcz['fr_bld'])
     p['urb_h2w'] = float(lcz['h2w'])
     p['teb_fai'] = [float(lcz['fai'])] * 8
-    p['teb_lgarden'] = bool(lgarden)
+    opts['teb_lgarden'] = bool(lgarden)
     p['fr_garden'] = float(fr_gd) if lgarden else 0.0
-    p['teb_type_garden'] = gtype
-    p['teb_lgreenroof'] = bool(lgreenroof)
+    opts['teb_ctype_garden'] = gtype
+    opts['teb_lgreenroof'] = bool(lgreenroof)
     p['teb_frac_gr'] = float(fr_gr)
-    p['teb_lcbs_scheme'] = False
+    opts['teb_lcbs_scheme'] = False
     p['urb_z0_gdn'] = 0.1                      # roughness: not studied here
     p['urb_z0_grf'] = 0.01
     p['urb_alb_gdn'] = float(alb_values[0])
@@ -271,7 +273,7 @@ def main(argv=None) -> int:
     base = (Path(args.base_namelist) if args.base_namelist
             else site_dir / 'params_CTRL.nml')
     if not base.is_file():
-        base = MODEL_DIR / 'namelist' / 'namelist.nml'
+        base = MODEL_DIR / 'tests' / 'CAPITOUL' / 'namelist' / 'namelist.nml'
     forcing_nml = (Path(args.forcing_nml) if args.forcing_nml
                    else site_dir / 'forcing_ERA5' / 'namelist_forcing.nml')
     out_root = (Path(args.out_root) if args.out_root
@@ -311,7 +313,7 @@ def main(argv=None) -> int:
                        alb_values, emis_values)
         if args.skip_run:
             continue
-        if (out_dir / 'TEB_output.csv').is_file() and not args.force:
+        if model_csv(out_dir).is_file() and not args.force:
             print(f'  [skip] {case}')
             continue
         print(f'  [run ] {case}  ({LCZ[lcz_tag]["label"]}, {mode_tag}, '

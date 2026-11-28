@@ -5,7 +5,7 @@ External greenroof emulator (``PCD_GREENROOF``) versus the internal greenroof.
 Purpose
 -------
 The greenroof of TEB-MSU can be provided by an external model through the
-``teb_type_greenroof = 'EXT'`` / ``'EXT_NEU'`` interface: the driver owns the
+``teb_ctype_greenroof = 'EXT'`` / ``'EXT_NEU'`` interface: the driver owns the
 greenroof surface temperature and fluxes and TEB reads them back at every model
 sub-step (see ``run_teb_offline.F90`` and ``docs/schemes/TEB_MSU_garden_diagnostic_scheme.md``).
 
@@ -126,6 +126,8 @@ PYTHON_DIR = MODEL_DIR / 'python'      # shared libraries of the repository
 if str(PYTHON_DIR) not in sys.path:
     sys.path.append(str(PYTHON_DIR))
 
+from container_ab_compare import model_csv  # noqa: E402
+from teb_namelist import read_model_namelist  # noqa: E402
 from sensitivity_zd import (                                          # noqa: E402
     LCZ, DEFAULT_WORK_DIR, run_case, series,
 )
@@ -133,7 +135,7 @@ from sensitivity_zd import (                                          # noqa: E4
 #: values >= XUNDEF are undefined in TEB-MSU (MODD_SURF_PAR:XUNDEF = 1.0e20)
 XUNDEF = 1.0e19
 
-#: greenroof modes: tag -> (teb_type_greenroof, description)
+#: greenroof modes: tag -> (teb_ctype_greenroof, description)
 MODES = {
     'PROXY_NEW': ('PROXY_NEW', 'internal diagnostic greenroof (reference)'),
     'EXT_NEU':   ('EXT_NEU',   'external greenroof, neutral coefficients (emulator)'),
@@ -202,23 +204,24 @@ def build_namelist(base_nml: Path, lcz_tag: str, mode_tag: str, path: Path,
     forcing step by the caller, so that one output row is one model sub-step
     and the coupling lag is directly visible in the CSV.
     """
-    nml = f90nml.read(str(base_nml))
-    p = nml['tebparam']
+    nml = read_model_namelist(base_nml)
+    opts = nml['tebopts']
+    p = nml['tebparams']
     lcz = LCZ[lcz_tag]
     p['urb_h_bld'] = float(lcz['h_bld'])
     p['urb_fr_bld'] = float(lcz['fr_bld'])
     p['urb_h2w'] = float(lcz['h2w'])
     p['teb_fai'] = [float(lcz['fai'])] * 8
     # the greenroof only: the garden is switched off
-    p['teb_lgarden'] = False
+    opts['teb_lgarden'] = False
     p['fr_garden'] = 0.0
-    p['teb_lgreenroof'] = True
+    opts['teb_lgreenroof'] = True
     p['teb_frac_gr'] = float(fr_greenroof)
-    p['teb_type_greenroof'] = MODES[mode_tag][0]
+    opts['teb_ctype_greenroof'] = MODES[mode_tag][0]
     # no solar panel: the panel long-wave term is not part of the emulator
-    p['teb_lsolar_panel'] = False
+    opts['teb_lsolar_panel'] = False
     p['teb_fr_panel'] = 0.0
-    p['dt'] = float(dt)
+    opts['dt'] = float(dt)
     path.parent.mkdir(parents=True, exist_ok=True)
     nml.write(str(path), force=True)
     return path
@@ -707,7 +710,7 @@ def main(argv=None) -> int:
         build_namelist(base, lcz_tag, mode_tag, nml_path, args.fr_greenroof, dt)
         out_dir = out_root / f'output_{case}'
         log_file = out_root / 'logs' / f'{case}.log'
-        csv_file = out_dir / 'TEB_output.csv'
+        csv_file = model_csv(out_dir)
         if args.skip_run:
             rc = 0 if csv_file.is_file() else 1
             print(f'  {case:<18} post-processed ({description(lcz_tag, mode_tag)})')

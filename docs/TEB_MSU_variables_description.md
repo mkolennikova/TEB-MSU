@@ -120,7 +120,7 @@ In both trees, each `teb_ctype_exch_*` key selects the `SURFACE_*` routines
 | `urb_z0_snow` | Real | m, finite and positive | `0.001` | — | Momentum roughness shared by snow on the road and roof. |
 
 Both trees read the road, roof and snow momentum roughness lengths from
-`&tebparams`. The legacy `&tebparam` group uses their defaults.
+`&tebparams`.
 
 #### 1.2.3 Surface Properties
 
@@ -241,10 +241,9 @@ interpolated components.
 
 ### 2.1 Input rules
 
-A split model namelist requires `&tebparams`. Omitted `&tebopts` entries use
-their defaults. The legacy `&tebparam` group is a separate single-cell format.
-Scheme selectors are common to the block and use the uppercase names shown in
-the tables.
+A model namelist requires `&tebparams`. Omit `&tebopts` or individual options to
+use their documented defaults. Scheme selectors are common to the block and use
+the uppercase names shown in the tables.
 
 For list-enabled parameters, supply one literal or exactly `nvec` literals.
 Repetition syntax (`3*10.`), missing elements (`,,`), indexed assignments,
@@ -254,6 +253,35 @@ namelist. Comments, line breaks and a trailing comma are allowed.
 In `&tebforcing`, write integer items without a decimal point
 (`teb_hour=0`). Supply a valid UTC start date/time and at least two records.
 Use finite physical values and a positive `dt` with integer `forc_step/dt`.
+
+#### Migrating `&tebparam` files
+
+Both offline drivers stop with a migration hint if the parameter file contains
+`&tebparam`. Move common settings such as `dt` and scheme switches to
+`&tebopts`, and place geometry, material properties, initial states and
+`teb_fai` in `&tebparams`. Use `nvec=1` for a single cell. The
+[shared CAPITOUL file](../tests/CAPITOUL/namelist/namelist.nml) shows the
+layout for both trees.
+
+| Historical key or setting | Replacement in `&tebopts` |
+| --- | --- |
+| `teb_itype_bem` | `teb_ctype_bem` |
+| `teb_itype_natvent` | `teb_ctype_natvent` |
+| `teb_itype_bem_cool` | `teb_ctype_bem_cool` |
+| `teb_itype_bem_heat` | `teb_ctype_bem_heat` |
+| `teb_itype_wind=0` or `teb_itype_wind=1` | `teb_ctype_wind='DEF'` or `teb_ctype_wind='WANG'`, respectively |
+| `teb_type_garden` | `teb_ctype_garden` |
+| `teb_type_greenroof` | `teb_ctype_greenroof` |
+| `teb_tau_hw_thresh` and `teb_tau_hw_width` | `teb_cbs_hw_thresh` and `teb_cbs_hw_width` in `src_dev` |
+
+See [urban aerodynamics](#23-urban-aerodynamics) for renamed roughness,
+displacement and exchange keys. In `src_dev` runs with `&block_test`, set
+`teb_lwrite_output` to the desired former `model_log` setting and enable
+`teb_lwrite_test_dump` to retain the former diagnostic dump.
+
+Block checkpoint validation checks the parameter file checksum. Resume a
+checkpoint created with `&tebparam` or superseded keys using the original
+executable and parameter file.
 
 ### 2.2 Initial conditions and BEM
 
@@ -337,8 +365,8 @@ It works in both trees.
 /
 ```
 
-For the split format, the reader stops with a replacement hint when it
-encounters a deprecated key, including when its replacement is present.
+The reader stops with a replacement hint when it encounters any of these
+deprecated keys, including when the replacement is present.
 
 | Deprecated key | Replacement in `&tebopts` |
 | --- | --- |
@@ -347,25 +375,15 @@ encounters a deprecated key, including when its replacement is present.
 | `teb_ctype_exch_road` | `teb_ctype_exch_rd` |
 | `teb_ctype_exch_roof` | `teb_ctype_exch_rf` |
 
-The legacy `&tebparam` format uses `'0.1H'` for town momentum roughness,
-`'MASC95'` for exchange and `'200'` for the road, roof and town ratios. It
-still accepts `urb_zd_town`.
-
-Checkpoint validation in the block driver compares the parameter file
-checksum. To resume a checkpoint created with `urb_zd_town` in
-`&tebparams`, use the original executable and parameter file.
-
 ### 2.4 CBS and Canopy Wind
 
 In `src_dev`, set `teb_lcbs_scheme`, `teb_cbs_hw_thresh` and
 `teb_cbs_hw_width` in `&tebopts`. The threshold and width are finite
-scalars shared by the block. The single-cell `&tebparam` format, the API
-and the metadata in `parameters.csv` use the `teb_tau_hw_*` names. See the
-[CBS scheme description](schemes/TEB_MSU_CBS_scheme_T_CAN_reformulation.md).
+scalars shared by the block. The API and the metadata in `parameters.csv`
+use the `teb_tau_hw_*` names. See the [CBS scheme description](schemes/TEB_MSU_CBS_scheme_T_CAN_reformulation.md).
 
 `DEF` selects the basic canopy wind scheme. `WANG` selects the Wang (2012)
-profile. Use the same text selector `teb_ctype_wind` in single-cell
-`&tebparam` files for `src_dev`. The expanded selector appears in
+profile. The expanded `teb_ctype_wind` selector in `src_dev` appears in
 `parameters.csv`. The Wang profile evaluates `U_CANYON` at half building height and `U_CAN_PED` /
 `U_CAN_10M` at 1.1 m / 10 m above the road. These height-specific outputs are
 undefined above roof level. A supplied `teb_fai` is one set of eight
@@ -403,8 +421,7 @@ In `src_dev`, `PROXY_NEW`, `EXT` and `EXT_NEU` use the cell's ratio. The
 offline emulators use the same cell values in the external modes. Each ratio
 must satisfy `1 <= R < XUNDEF`. Supply one value for all cells or exactly
 `nvec` values in input-cell order. The expanded values appear in
-`parameters.csv`. The legacy `&tebparam` format accepts both ratios as
-scalars.
+`parameters.csv`.
 
 In this `src_dev` example, the garden ratio varies by cell and the greenroof
 ratio is shared.
@@ -427,14 +444,17 @@ ratio is shared.
 In `src_ctrl`, `PROXY_NEW` and `PROXY_OLD` share the fixed-Bowen-ratio
 formulation. `EXT` and `EXT_NEU` select the same external mode with the offline
 Bowen emulators. For the external garden, set a scalar `urb_z0_o_z0h_gdn`
-in `&tebparams`. It must be finite and at least 1 and applies to both
-canyon and forcing-level exchange. The legacy `&tebparam` format uses
-`4.0` for the external garden.
+in `&tebparams`. It defaults to `4.0`, must be finite and at least 1, and
+applies to both canyon and forcing-level exchange.
 
 Omitting `urb_z0_gdn` in `src_ctrl` uses `0.80` m for external-garden exchange
 and `0.10` m for garden friction. An explicit `urb_z0_gdn` in `&tebparams`
-supplies both lengths. In the legacy `&tebparam` group, the key supplies
-external-garden exchange and friction uses `0.10` m.
+supplies both lengths. The historical `&tebparam` driver used `0.10` m for
+friction even when the user supplied an exchange length. During migration,
+an explicit `0.10` m preserves both CAPITOUL values, and omission reproduces
+the `0.80` m exchange and `0.10` m friction pair. To reproduce an old
+configuration with another exchange length and fixed `0.10` m friction,
+use its historical executable and parameter file.
 
 The `proxy_phu_*` inputs prescribe surface humidity for the internal proxies
 and their offline external-surface emulators.
@@ -453,7 +473,7 @@ included; the daily hour interval includes its start and excludes its end.
 
 ### 2.7 Snowfall Filter
 
-Both trees read `teb_snow_check` from `&tebopts` or legacy `&tebparam`.
+Both trees read `teb_snow_check` from `&tebopts`.
 When the switch is true, a bare road or roof can gain snow cover only at
 snowfall rates of at least `XTEB_SNOW_RATE_MIN=1.e-8 kg/(m² s)`. An existing
 snow cover receives the full snowfall rate.

@@ -70,9 +70,7 @@ traffic and waste heat are not split by the scheme (see §6).
 | `&tebopts` | `teb_cbs_hw_thresh` | H/W at which τ = 0.5 | `0.5` |
 | `&tebopts` | `teb_cbs_hw_width` | Width of the tanh transition | `0.25` |
 
-The threshold and width are scalars for the entire block. The single-cell
-`&tebparam` retains the legacy names `teb_tau_hw_thresh` and
-`teb_tau_hw_width`.
+The threshold and width are scalars for the entire block.
 
 The flag, threshold and width are stored in `TOPTS%LCBS_SCHEME`,
 `TOPTS%XTAU_HW_THRESH` and `TOPTS%XTAU_HW_WIDTH`

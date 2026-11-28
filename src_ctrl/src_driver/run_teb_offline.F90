@@ -21,6 +21,7 @@
 !!        Read the town roughness rule from tebopts.
 !!      11/2026 -- OpenAI Codex
 !!        Read thermal roughness rules and the external garden ratio.
+!!        Read the split parameter file through a single path.
 !!------------------------------------------------------------------------------
 PROGRAM run_teb_offline
 
@@ -393,27 +394,13 @@ CHARACTER(LEN=*), PARAMETER :: nml_forcing_items =                              
 !* items of /tebforcing/ that have a sentinel (inml_unset) when they are not read
 CHARACTER(LEN=*), PARAMETER :: nml_forcing_value_items =                            &
   'teb_year,teb_month,teb_day,teb_hour,teb_min,nsteps'
-CHARACTER(LEN=*), PARAMETER :: nml_param_items =                                    &
-  'dt,urb_h_bld,urb_fr_bld,fr_garden,urb_h2w,teb_road_dir,teb_hroad_dir,'//      &
-  'teb_wall_opt,teb_ti_bld_init,teb_qi_bld_init,urb_alb_rf_so,urb_alb_rf_th,urb_emis_rf,urb_hcap_rf,'//&
-  'urb_hcon_rf,urb_alb_rd_so,urb_alb_rd_th,urb_emis_rd,urb_hcap_rd,urb_hcon_rd,'//           &
-  'urb_alb_wl_so,urb_alb_wl_th,urb_emis_wl,urb_hcap_wl,urb_hcon_wl,teb_itype_bem,'//         &
-  'teb_lbem_ac,teb_itype_natvent,teb_itype_bem_cool,teb_itype_bem_heat,'//       &
-  'teb_frac_gz,teb_tcool_target,teb_theat_target,teb_zresidential,teb_dt_res,'//  &
-  'teb_dt_off,teb_bem_inf,teb_bem_vent,teb_bem_cop,teb_cap_sys_rat,'//           &
-  'teb_m_sys_rat,teb_cap_sys_heat,ahf_traffic,ahf_industry,teb_itype_wind,'//    &
-  'teb_fai,teb_lgarden,teb_lgreenroof,teb_frac_gr,teb_lsolar_panel,teb_fr_panel,'//&
-  'teb_lroad_irrig,teb_rd_irrig_start_m,teb_rd_irrig_end_m,teb_rd_irrig_start_h,'//&
-  'teb_rd_irrig_end_h,teb_rd_irrig_sum,teb_utc_hour,urb_zd_town,'//                &
-  'teb_type_garden,urb_z0_gdn,urb_alb_gdn,urb_emis_gdn,teb_type_greenroof,'//    &
-  'urb_z0_grf,urb_alb_grf,urb_emis_grf,teb_lshade,teb_snow_check'
 !* The two groups are declared here (and not next to the READ that uses them): a
 !* NAMELIST statement belongs to the specification part of the program, i.e. it must
 !* appear before the first executable statement.
 ! Common options and explicit overrides of the reference exchange algorithm.
 CHARACTER(LEN=:),ALLOCATABLE :: nml_options_text,nml_parameters_text
 CHARACTER(LEN=1024) :: nml_message
-LOGICAL :: nml_legacy, garden_z0_explicit
+LOGICAL :: garden_z0_explicit
 REAL :: urb_z0_snow
 CHARACTER(LEN=3) :: teb_ctype_bem
 CHARACTER(LEN=4) :: teb_ctype_natvent
@@ -430,24 +417,6 @@ LOGICAL :: teb_lwrite_output=.TRUE.,teb_lwrite_emu=.TRUE.,teb_lwrite_runoff=.TRU
 LOGICAL :: teb_lwrite_test_dump=.FALSE.
 NAMELIST /tebforcing/ forcing_path, lon_teb, lat_teb, hlev_teb, teb_year,   &
                       teb_month, teb_day, teb_hour, teb_min, nsteps, forc_step
-NAMELIST /tebparam/ dt, urb_h_bld, urb_fr_bld, fr_garden, urb_h2w, teb_road_dir,           &
-                    teb_hroad_dir, teb_wall_opt, teb_ti_bld_init, teb_qi_bld_init,                   &
-                    urb_alb_rf_so, urb_alb_rf_th, urb_emis_rf, urb_hcap_rf, urb_hcon_rf,                &
-                    urb_alb_rd_so, urb_alb_rd_th, urb_emis_rd, urb_hcap_rd, urb_hcon_rd,                &
-                    urb_alb_wl_so, urb_alb_wl_th, urb_emis_wl, urb_hcap_wl, urb_hcon_wl,                &
-                    teb_itype_bem, teb_lbem_ac, teb_itype_natvent, teb_itype_bem_cool,     &
-                    teb_itype_bem_heat, teb_frac_gz, teb_tcool_target,                     &
-                    teb_theat_target, teb_zresidential, teb_dt_res, teb_dt_off,            &
-                    teb_bem_inf, teb_bem_vent, teb_bem_cop, teb_cap_sys_rat,               &
-                    teb_m_sys_rat, teb_cap_sys_heat, ahf_traffic, ahf_industry,            &
-                    teb_itype_wind, teb_fai, teb_lgarden, teb_lgreenroof, teb_frac_gr,     &
-                    teb_lsolar_panel, teb_fr_panel, teb_lroad_irrig,                       &
-                    teb_rd_irrig_start_m, teb_rd_irrig_end_m, teb_rd_irrig_start_h,        &
-                    teb_rd_irrig_end_h, teb_rd_irrig_sum, teb_utc_hour,                    &
-!* urban aerodynamics and garden/greenroof surface parameters
-                    urb_zd_town, teb_type_garden, urb_z0_gdn, urb_alb_gdn,                 &
-                    urb_emis_gdn, teb_type_greenroof, urb_z0_grf, urb_alb_grf, urb_emis_grf, &
-                    teb_lshade, teb_snow_check
 NAMELIST /tebopts/ &
   dt, &
   teb_lbem_ac, teb_lshade, teb_lgarden, &
@@ -799,54 +768,50 @@ teb_ctype_z0_o_z0h_rf='200'
 teb_ctype_z0_o_z0h_town='200'
 urb_z0_snow=XZ0SN
 CALL CTRL_PREPARE_NAMELISTS(TRIM(namelist_path_local), &
-                            nml_options_text,nml_parameters_text,nml_legacy,garden_z0_explicit)
-IF(nml_legacy) THEN
-  READ(nml_parameters_text,NML=tebparam,IOSTAT=rc,IOMSG=nml_message)
-ELSE
-  teb_ctype_bem=teb_itype_bem
-  teb_ctype_natvent=teb_itype_natvent
-  teb_ctype_bem_cool=teb_itype_bem_cool
-  teb_ctype_bem_heat=teb_itype_bem_heat
-  teb_ctype_wind='DEF'
-  teb_ctype_garden=teb_type_garden
-  teb_ctype_greenroof=teb_type_greenroof
-  teb_ctype_z0_town=urb_z0_town
-  teb_ctype_zd_town=urb_zd_town
-  READ(nml_options_text,NML=tebopts,IOSTAT=rc,IOMSG=nml_message)
-  IF(rc/=0) THEN
-    WRITE(*,*) 'ERROR: tebopts in ',TRIM(namelist_path_local),': ',TRIM(nml_message)
-    ERROR STOP 'Invalid control-tree options'
-  END IF
-  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_rd)) &
-    ERROR STOP 'Invalid teb_ctype_exch_rd: expected MASC95 or DELAGE'
-  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_rf)) &
-    ERROR STOP 'Invalid teb_ctype_exch_rf: expected MASC95 or DELAGE'
-  IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_canyon)) &
-    ERROR STOP 'Invalid teb_ctype_exch_canyon: expected MASC95 or DELAGE'
-  CALL READ_Z0H_RULE('teb_ctype_z0_o_z0h_rd',teb_ctype_z0_o_z0h_rd,TZ0H_OFFLINE%RD)
-  CALL READ_Z0H_RULE('teb_ctype_z0_o_z0h_rf',teb_ctype_z0_o_z0h_rf,TZ0H_OFFLINE%RF)
-  CALL READ_Z0H_RULE('teb_ctype_z0_o_z0h_town',teb_ctype_z0_o_z0h_town,TZ0H_OFFLINE%TOWN)
-  teb_itype_bem=teb_ctype_bem
-  teb_itype_natvent=teb_ctype_natvent
-  teb_itype_bem_cool=teb_ctype_bem_cool
-  teb_itype_bem_heat=teb_ctype_bem_heat
-  teb_type_garden=teb_ctype_garden
-  teb_type_greenroof=teb_ctype_greenroof
-  urb_z0_town=teb_ctype_z0_town
-  urb_zd_town=teb_ctype_zd_town
-  SELECT CASE(TRIM(teb_ctype_wind))
-  CASE('DEF')
-    teb_itype_wind=0
-  CASE('WANG')
-    teb_itype_wind=1
-  CASE DEFAULT
-    ERROR STOP 'Invalid teb_ctype_wind: expected DEF or WANG'
-  END SELECT
-  IF(teb_lcbs_scheme) ERROR STOP 'src_ctrl does not implement CBS; set teb_lcbs_scheme=.FALSE.'
-  IF(.NOT.teb_lwrite_output .OR. .NOT.teb_lwrite_emu .OR. .NOT.teb_lwrite_runoff .OR. teb_lwrite_test_dump) &
-    ERROR STOP 'src_ctrl retains its merged CSV; independent output switches and block dumps are unsupported'
-  READ(nml_parameters_text,NML=tebparams,IOSTAT=rc,IOMSG=nml_message)
+                            nml_options_text,nml_parameters_text,garden_z0_explicit)
+teb_ctype_bem=teb_itype_bem
+teb_ctype_natvent=teb_itype_natvent
+teb_ctype_bem_cool=teb_itype_bem_cool
+teb_ctype_bem_heat=teb_itype_bem_heat
+teb_ctype_wind='DEF'
+teb_ctype_garden=teb_type_garden
+teb_ctype_greenroof=teb_type_greenroof
+teb_ctype_z0_town=urb_z0_town
+teb_ctype_zd_town=urb_zd_town
+READ(nml_options_text,NML=tebopts,IOSTAT=rc,IOMSG=nml_message)
+IF(rc/=0) THEN
+  WRITE(*,*) 'ERROR: tebopts in ',TRIM(namelist_path_local),': ',TRIM(nml_message)
+  ERROR STOP 'Invalid control-tree options'
 END IF
+IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_rd)) &
+  ERROR STOP 'Invalid teb_ctype_exch_rd: expected MASC95 or DELAGE'
+IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_rf)) &
+  ERROR STOP 'Invalid teb_ctype_exch_rf: expected MASC95 or DELAGE'
+IF (.NOT. TEB_EXCH_VALID(teb_ctype_exch_canyon)) &
+  ERROR STOP 'Invalid teb_ctype_exch_canyon: expected MASC95 or DELAGE'
+CALL READ_Z0H_RULE('teb_ctype_z0_o_z0h_rd',teb_ctype_z0_o_z0h_rd,TZ0H_OFFLINE%RD)
+CALL READ_Z0H_RULE('teb_ctype_z0_o_z0h_rf',teb_ctype_z0_o_z0h_rf,TZ0H_OFFLINE%RF)
+CALL READ_Z0H_RULE('teb_ctype_z0_o_z0h_town',teb_ctype_z0_o_z0h_town,TZ0H_OFFLINE%TOWN)
+teb_itype_bem=teb_ctype_bem
+teb_itype_natvent=teb_ctype_natvent
+teb_itype_bem_cool=teb_ctype_bem_cool
+teb_itype_bem_heat=teb_ctype_bem_heat
+teb_type_garden=teb_ctype_garden
+teb_type_greenroof=teb_ctype_greenroof
+urb_z0_town=teb_ctype_z0_town
+urb_zd_town=teb_ctype_zd_town
+SELECT CASE(TRIM(teb_ctype_wind))
+CASE('DEF')
+  teb_itype_wind=0
+CASE('WANG')
+  teb_itype_wind=1
+CASE DEFAULT
+  ERROR STOP 'Invalid teb_ctype_wind: expected DEF or WANG'
+END SELECT
+IF(teb_lcbs_scheme) ERROR STOP 'src_ctrl does not implement CBS; set teb_lcbs_scheme=.FALSE.'
+IF(.NOT.teb_lwrite_output .OR. .NOT.teb_lwrite_emu .OR. .NOT.teb_lwrite_runoff .OR. teb_lwrite_test_dump) &
+  ERROR STOP 'src_ctrl retains its merged CSV; independent output switches and block dumps are unsupported'
+READ(nml_parameters_text,NML=tebparams,IOSTAT=rc,IOMSG=nml_message)
 IF(rc/=0) THEN
   WRITE(*,*) 'ERROR: parameter namelist ',TRIM(namelist_path_local),': ',TRIM(nml_message)
   ERROR STOP 'Invalid control-tree parameters'
@@ -857,12 +822,11 @@ CALL CHECK_Z0_INPUT('urb_z0_snow',urb_z0_snow)
 IF (.NOT. TEB_Z0_RATIO_VALID(urb_z0_o_z0h_gdn)) &
   ERROR STOP 'Invalid urb_z0_o_z0h_gdn: expected a finite ratio >= 1'
 XZ0SN=urb_z0_snow
-! An explicit split input supplies the same z0 for both garden calculations.
-IF (.NOT. nml_legacy .AND. garden_z0_explicit) THEN
+! An explicit garden roughness supplies the same z0 for both calculations.
+IF (garden_z0_explicit) THEN
   CALL CHECK_Z0_INPUT('urb_z0_gdn',urb_z0_gdn)
   XZ0_GD_FRICTION=urb_z0_gdn
 END IF
-IF(nml_legacy) CALL NML_REPORT_ABSENT('tebparam',namelist_path_local,nml_param_items)
 IF (ALL(teb_ti_bld_init /= XUNDEF)) THEN
   WRITE(*,'(A)') ' TEB-MSU offline: teb_ti_bld_init given in the namelist'
 ELSE IF (ANY(teb_ti_bld_init == XUNDEF)) THEN
@@ -883,10 +847,10 @@ IF (ALL(teb_qi_bld_init /= XUNDEF)) THEN
 ELSE IF (ANY(teb_qi_bld_init == XUNDEF)) THEN
   WRITE(*,'(A)') ' TEB-MSU offline: teb_qi_bld_init not given; 0.5*QSAT(TI_BLD, ps) is used at the first sub-step'
 END IF
-!* dt comes from tebopts or legacy tebparam: forc_step/dt must be an integer
+!* dt comes from tebopts: forc_step/dt must be an integer
 !* number of model sub-steps per forcing step.
 IF (dt(1) <= 0. .OR. MOD(forc_step, dt(1)) /= 0.) THEN
-  WRITE(*,*) 'ERROR: inconsistent time steps: dt = ', dt(1), ' s (tebopts or legacy tebparam),'
+  WRITE(*,*) 'ERROR: inconsistent time steps: dt = ', dt(1), ' s (tebopts),'
   WRITE(*,*) '       forc_step = ', forc_step, ' s (forcing namelist):'
   WRITE(*,*) '       dt must be > 0 and forc_step must be a multiple of dt'
   STOP 1
@@ -1800,11 +1764,7 @@ INTEGER, INTENT(IN) :: nbody
 CHARACTER(LEN=:), ALLOCATABLE :: buf
 INTEGER :: rc
 buf = NML_BUILD_TEXT(group, body, nbody)
-IF (group == 'tebforcing') THEN
-  READ(buf, nml=tebforcing, iostat=rc)
-ELSE
-  READ(buf, nml=tebparam, iostat=rc)
-END IF
+READ(buf, nml=tebforcing, iostat=rc)
 DEALLOCATE(buf)
 NML_TEXT_OK = (rc <= 0)
 END FUNCTION NML_TEXT_OK

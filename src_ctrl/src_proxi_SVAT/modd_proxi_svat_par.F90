@@ -118,7 +118,7 @@ REAL, PARAMETER :: XPHU_GR  = 0.3
 CHARACTER(LEN=16), PARAMETER :: XURB_Z0_TOWN_DEF = '0.1H'
 CHARACTER(LEN=16), PARAMETER :: XURB_ZD_TOWN_DEF = 'H/3'
 !
-!*       0.3  Namelist items of /tebparam/ carried by this module
+!*       0.3  Offline options and parameters carried by this module
 !             ------------------------------------------------
 !
 !* The shared namelist files give these items to BOTH trees (src_dev and

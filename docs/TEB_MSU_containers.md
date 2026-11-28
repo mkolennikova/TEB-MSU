@@ -309,7 +309,7 @@ Five `TEB_GARDEN` flags/strings (`OGREENROOF_EXT`, `HIMPLICIT_WIND`, `PBEM_AC`, 
 | `python_tests/call_signature_inventory.py` | `CALL_DRIVER` signature classes `transient`/`container`/`host-export`/`host-state`/`deferred`/`violation` (`--strict --expect 28`) |
 | `python_tests/container_ab_compare.py` | Two binaries on `tests/CAPITOUL`: bitwise field-by-field CSV comparison, header, row count and SHA-256 |
 | `python_tests/container_ab_matrix.py` | Same across configurations; `--set`: `base` — 13 namelist configurations (BEM, garden/roof modes, panels, CBS); `ext` — 13 container-coverage configurations (3/50 m forcing heights, roof `EXT_NEU`, both external surfaces, CBS at `urb_h_bld` 10/40 and `urb_h2w` 0.1/0.3/0.5/0.75, external garden + CBS); `opt` — 3; `all` — 29. Physics compared by column name, `RUNOFF_*` and `EMU_*` against separate candidate files; summaries `summary_matrix.csv` / `summary_matrix_<set>.csv` |
-| `python_tests/bem_option_sensitivity.py` | BEM option sensitivity and A/B: two namelists (off/on), four runs (ref/new x off/on) per option. Checks both bitwise candidate/reference equality for the same namelist and a material off/on response in observed columns (`max_rel > 1e-6`, excluding 1 ulp artifacts). Options: shading (`teb_lshade`), air conditioning (`teb_lbem_ac`), ventilation (`teb_itype_natvent` = `AUTO`, `MECH`); summary `bem_sensitivity/summary_bem_sensitivity.csv` |
+| `python_tests/bem_option_sensitivity.py` | BEM option sensitivity and A/B. Each option uses two namelists (off/on) and four runs (ref/new × off/on). Checks bitwise candidate/reference equality for the same namelist and a material off/on response in observed columns (`max_rel > 1e-6`, excluding 1 ulp artifacts). Covers shading (`teb_lshade`), air conditioning (`teb_lbem_ac`) and ventilation (`teb_ctype_natvent` set to `AUTO` or `MECH`). Writes `bem_sensitivity/summary_bem_sensitivity.csv`. |
 
 ```powershell
 python python_tests/check_diag_container.py
@@ -324,11 +324,18 @@ python python_tests/container_ab_matrix.py --set all        # base + ext + opt
 python python_tests/bem_option_sensitivity.py      # BEM options: A/B + sensitivity
 ```
 
+All three A/B benches use the shared CAPITOUL `&tebopts` and `&tebparams`
+file by default. When a historical reference binary requires a different
+format, pass the parameter file from its own revision with
+`--ref-param-nml PATH`. The matrix and BEM benches use that file as the
+reference template for their scenario overrides. The candidate defaults
+to the current CAPITOUL template.
+
 **Why `ext` is needed.** The base matrix varies only the namelist on one geometry and forcing: `hlev_teb = 28`, `urb_h_bld = 20`, `urb_h2w = 1.38158`. The latter gives `τ = 0.5·(1 + tanh((H/W − 0.5)/0.25)) = 0.999`: both `baseline` and `cbs_on` are at the canyon end of relaxation, leaving the transition and `τ ≈ 0` untested. `ext` adds:
 
 * Forcing heights 3 and 50 m: `ZREF·G` in `XRHOA`/`XPA`/`XEXNA`, the `DMT%XWIND_TOP` profile, neutral emulator coefficients and the `XZREF`/`XUREF` bridge, including both external surfaces.
 * Greenroof `EXT_NEU` and `combined_ext`: both external surfaces in one step, together with panels and CBS (base `combined` uses internal proxies).
-* `urb_h2w` = 0.1 / 0.3 / 0.5 / 0.75 (`τ` = 0.04 / 0.17 / 0.50 / 0.88) and `urb_h_bld` = 10 / 40 m; `urb_z0_town='0.1H'` and `urb_zd_town='H/3'` scale with height to keep aerodynamics consistent.
+* `urb_h2w` = 0.1 / 0.3 / 0.5 / 0.75 (`τ` = 0.04 / 0.17 / 0.50 / 0.88) and `urb_h_bld` = 10 / 40 m. The rules `teb_ctype_z0_town='0.1H'` and `teb_ctype_zd_town='H/3'` scale with height to keep aerodynamics consistent.
 
 **BEM options.** `bem_option_sensitivity.py` checks that options are active: a pair of off/on namelists, four runs, A/B identity for each, and material response (`max_rel > 1e-6`). Measured over 18 000 steps: shading up to 28.97 on 13 842 rows; air conditioning up to 54.02 on 13 848; `AUTO`/`MECH` ventilation up to 11.48/19.74. All four are `IDENTICAL` and material.
 

@@ -4,7 +4,7 @@
 The refactor of the diagnostics plumbing (the diagnostics container) must not
 change a single number of the reference case. This bench runs the same case
 with two executables ("reference" = before the change, "candidate" = after the
-change) and compares the two `TEB_output.csv` files field by field, as text, so
+change) and compares the two main model CSV files field by field, as text, so
 that the comparison is exact (no floating-point tolerance):
 
   * the header lines are split on ';' and compared column by column
@@ -16,7 +16,8 @@ that the comparison is exact (no floating-point tolerance):
 
 The executables are given explicitly, so that the bench never touches the
 working tree of the sources: build the "before" tree into a separate name and
-pass it as `--ref-exe`.
+pass it as `--ref-exe`. Use `--ref-param-nml` with the reference revision's
+parameter file when it requires a different namelist format.
 
 Usage
 -----
@@ -32,9 +33,9 @@ Usage
         --golden python_tests/container_ab/csv_header_golden.txt
 
 Files written into `<out-root>` (default `python_tests/container_ab`, ignored by
-git): `ref/TEB_output.csv`, `new/TEB_output.csv`, the generated forcing namelist
-and `summary_container_ab.csv`. Exit code 1 when the headers or any column
-differ.
+git): the main model CSV files under `ref/` and `new/`, the generated forcing
+namelist and `summary_container_ab.csv`. Exit code 1 when the headers or any
+column differ.
 """
 from __future__ import annotations
 
@@ -52,8 +53,11 @@ MODEL_DIR = HERE.parent
 #: the forcing namelist item that controls the length of the run
 RE_NSTEPS = re.compile(r'(nsteps\s*=\s*)(\d+)', re.I)
 
-#: candidate-only initial-state keys, unknown to the old reference binary
-INIT_KEYS = ('teb_ti_bld_init', 'teb_qi_bld_init')
+
+def model_csv(directory: Path) -> Path:
+    """Main CSV for a single-column offline run."""
+    per_cell = directory / 'TEB_output_b1_c1.csv'
+    return per_cell if per_cell.is_file() else directory / 'TEB_output.csv'
 
 
 def sha256(path: Path) -> str:
@@ -72,16 +76,6 @@ def read_csv(path: Path):
     header = lines[0].split(';')
     rows = [line.split(';') for line in lines[1:] if line.strip()]
     return header, rows
-
-
-def make_reference_param_namelist(src: Path, dst: Path) -> Path:
-    """Copy a parameter namelist, removing keys the old reference does not know."""
-    text = src.read_text(encoding='utf-8', errors='ignore')
-    for key in INIT_KEYS:
-        text = re.sub(r'^(\s*)' + re.escape(key) + r'\s*=\s*[^\n]*\n?', '', text, flags=re.M)
-    dst.parent.mkdir(parents=True, exist_ok=True)
-    dst.write_text(text, encoding='utf-8')
-    return dst
 
 
 def make_short_namelist(src: Path, dst: Path, steps: int) -> Path:
@@ -192,7 +186,8 @@ def main(argv=None) -> int:
     ap.add_argument('--case', default='tests/CAPITOUL', help='case directory (default: tests/CAPITOUL)')
     ap.add_argument('--steps', type=int, default=None, help='run only the first N forcing steps')
     ap.add_argument('--param-nml', default=None, help='parameter namelist file (passed via -param_nml)')
-    ap.add_argument('--ref-param-nml', default=None, help='parameter namelist for the reference binary (default: --param-nml without the new init keys)')
+    ap.add_argument('--ref-param-nml', default=None,
+                    help='reference revision parameter file (default: same file as the candidate)')
     ap.add_argument('--out-root', default='python_tests/container_ab', help='root of the run outputs')
     ap.add_argument('--golden', default=None, help='file with the expected CSV header (one column per line)')
     ap.add_argument('--timeout', type=float, default=None, help='seconds allowed per run')
@@ -214,22 +209,15 @@ def main(argv=None) -> int:
             forcing_nml, out_root / f'namelist_forcing_{args.steps}steps.nml', args.steps)
         print(f'short run: nsteps = {args.steps} ({forcing_nml.name})')
 
-    param_nml = (MODEL_DIR / args.param_nml).resolve() if args.param_nml else None
-    if args.ref_param_nml:
-        ref_param_nml = (MODEL_DIR / args.ref_param_nml).resolve()
-    elif param_nml is not None:
-        ref_param_nml = make_reference_param_namelist(param_nml, out_root / 'param_namelist_ref.nml')
-    else:
-        base_nml = case / 'namelist' / 'namelist.nml'
-        ref_param_nml = (make_reference_param_namelist(base_nml, out_root / 'param_namelist_ref.nml')
-                         if base_nml.is_file() else None)
+    param_nml = (MODEL_DIR / args.param_nml).resolve() if args.param_nml else case / 'namelist' / 'namelist.nml'
+    ref_param_nml = (MODEL_DIR / args.ref_param_nml).resolve() if args.ref_param_nml else param_nml
 
     print(f'A/B comparison: {args.case}')
     run_case(ref_exe, case, forcing_nml, out_root / 'ref', args.timeout, ref_param_nml)
     run_case(new_exe, case, forcing_nml, out_root / 'new', args.timeout, param_nml)
 
-    ref_csv = out_root / 'ref' / 'TEB_output_b1_c1.csv'
-    new_csv = out_root / 'new' / 'TEB_output_b1_c1.csv'
+    ref_csv = model_csv(out_root / 'ref')
+    new_csv = model_csv(out_root / 'new')
     for path in (ref_csv, new_csv):
         if not path.is_file():
             sys.exit(f'ERROR: no output written: {path}')
